@@ -1,8 +1,8 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
-#ifndef __MEMFABRIC_SMEM_AI_CORE_BASE_API_H__
-#define __MEMFABRIC_SMEM_AI_CORE_BASE_API_H__
+#ifndef __MEMFABRIC_SMEM_AI_CORE_API_H__
+#define __MEMFABRIC_SMEM_AI_CORE_API_H__
 
 #include "smem_shm_aicore_meta.h"
 #include "smem_shm_aicore_base_copy.h"
@@ -79,4 +79,4 @@ template<typename T>
 SMEM_INLINE_AICORE void smem_copy_gm2ub(const AscendC::LocalTensor<T> &dstUb,
     const AscendC::GlobalTensor<T> &srcGva, uint32_t size);
 
-#endif // __MEMFABRIC_SMEM_AI_CORE_BASE_API_H__
+#endif // __MEMFABRIC_SMEM_AI_CORE_API_H__
