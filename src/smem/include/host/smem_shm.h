@@ -98,7 +98,7 @@ int32_t smem_shm_destroy(smem_shm_t handle, uint32_t flags);
  *
  * @param handle            [in] the shm object to be set
  * @param context           [in] extra context ptr
- * @param size              [in] extra context size (max is 16M)
+ * @param size              [in] extra context size (max is 64K)
  * @return 0 if successful
  */
 int32_t smem_shm_set_extra_context(smem_shm_t handle, const void *context, uint32_t size);
