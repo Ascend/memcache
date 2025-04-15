@@ -1,10 +1,9 @@
 ## 目录结构介绍
 ```
-├── AddKernelInvocationNeo
+├── AllReduce
 │   ├── cmake                   // 编译工程文件
 │   ├── scripts
-│   │   ├── gen_data.py         // 输入数据和真值数据生成脚本
-│   │   └── verify_result.py    // 验证输出数据和真值数据是否一致的验证脚本
+│   │   └── gen_data.py         // 输入数据和真值数据生成脚本
 │   ├── shm_all_reduce.cpp          // 算子kernel实现
 │   ├── CMakeLists.txt          // 编译工程文件
 │   ├── data_utils.h            // 数据读入写出函数
@@ -22,7 +21,7 @@
     ```bash
     bash build.sh -r [RUN_MODE] -v  [SOC_VERSION]
     ```
-    - RUN_MODE：编译方式，可选择CPU调试，NPU仿真，NPU上板。支持参数为[cpu /sim / npu]
+    - RUN_MODE：编译方式，当前仅支持参数为[npu]
     - SOC_VERSION：昇腾AI处理器型号，如果无法确定具体的[SOC_VERSION]，则在安装昇腾AI处理器的服务器执行npu-smi info命令进行查询，在查询到的“Name”前增加Ascend信息，例如“Name”对应取值为xxxyy，实际配置的[SOC_VERSION]值为Ascendxxxyy。支持以下产品型号：
       - Atlas 训练系列产品
       - Atlas 推理系列产品AI Core

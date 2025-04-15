@@ -1,6 +1,6 @@
 ## 目录结构介绍
 ```
-├── AddKernelInvocationNeo
+├── ShiftPutGet
 │   ├── cmake                   // 编译工程文件
 │   ├── shm_all_shift.cpp       // 算子kernel实现
 │   ├── CMakeLists.txt          // 编译工程文件
@@ -9,7 +9,7 @@
 │   └── run.sh                  // 编译运行算子的脚本
 ```
 ## 代码实现介绍
-本样例简单验证了smem_put_xxx接口和smem_uput_xxx接口
+本样例简单验证了extra_context相关接口,smem_shm_put_xxx接口和smem_shm_uput_xxx接口
 运行样例前请先编译smem和hybm,生成lib库，并将编译结果放在```memfabric_hybrid/output```中
 
 ## 运行样例算子
@@ -19,7 +19,7 @@
     ```bash
     bash build.sh -r [RUN_MODE] -v  [SOC_VERSION]
     ```
-    - RUN_MODE：编译方式，可选择CPU调试，NPU仿真，NPU上板。支持参数为[cpu /sim / npu]
+    - RUN_MODE：编译方式，当前仅支持参数为[npu]
     - SOC_VERSION：昇腾AI处理器型号，如果无法确定具体的[SOC_VERSION]，则在安装昇腾AI处理器的服务器执行npu-smi info命令进行查询，在查询到的“Name”前增加Ascend信息，例如“Name”对应取值为xxxyy，实际配置的[SOC_VERSION]值为Ascendxxxyy。支持以下产品型号：
       - Atlas 训练系列产品
       - Atlas 推理系列产品AI Core
