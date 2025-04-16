@@ -12,14 +12,14 @@ namespace smem {
 ClientWaitContext::ClientWaitContext(std::mutex &mtx, std::condition_variable &cond) noexcept
     : waitMutex_{mtx},
       waitCond_{cond},
-      finished{false}
+      finished_{false}
 {
 }
 
 std::shared_ptr<ock::acc::AccTcpRequestContext> ClientWaitContext::WaitFinished() noexcept
 {
     std::unique_lock<std::mutex> locker{waitMutex_};
-    waitCond_.wait(locker, [this]() { return finished; });
+    waitCond_.wait(locker, [this]() { return finished_; });
     auto copy = responseInfo_;
     locker.unlock();
 
@@ -30,7 +30,7 @@ void ClientWaitContext::SetFinished(const ock::acc::AccTcpRequestContext &respon
 {
     std::unique_lock<std::mutex> locker{waitMutex_};
     responseInfo_ = std::make_shared<ock::acc::AccTcpRequestContext>(response);
-    finished = true;
+    finished_ = true;
     locker.unlock();
 
     waitCond_.notify_one();

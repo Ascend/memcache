@@ -25,7 +25,7 @@ public:
 private:
     std::mutex &waitMutex_;
     std::condition_variable &waitCond_;
-    bool finished;
+    bool finished_;
     std::shared_ptr<ock::acc::AccTcpRequestContext> responseInfo_;
 };
 
