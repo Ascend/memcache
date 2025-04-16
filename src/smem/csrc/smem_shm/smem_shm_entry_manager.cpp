@@ -22,12 +22,12 @@ Result SmemShmEntryManager::Initialize(const char *configStoreIpPort, uint32_t w
 {
     std::lock_guard<std::mutex> guard(entryMutex_);
     if (inited_) {
-        SM_LOG_WARN("smem shm has inited!");
+        SM_LOG_WARN("smem shm manager has already initialized");
         return SM_OK;
     }
 
-    SM_PARAM_VALIDATE(config == nullptr, "Invalid param, config is NULL", SM_INVALID_PARAM);
-    SM_PARAM_VALIDATE(configStoreIpPort == nullptr, "Invalid param, ipPort is NULL", SM_INVALID_PARAM);
+    SM_PARAM_VALIDATE(config == nullptr, "invalid param, config is NULL", SM_INVALID_PARAM);
+    SM_PARAM_VALIDATE(configStoreIpPort == nullptr, "invalid param, ipPort is NULL", SM_INVALID_PARAM);
 
     UrlExtraction option;
     std::string url(configStoreIpPort);
@@ -56,7 +56,7 @@ Result SmemShmEntryManager::CreateEntryById(uint32_t id, SmemShmEntryPtr &entry 
     SM_ASSERT_RETURN(inited_, SM_NOT_STARTED);
     auto iter = entryIdMap_.find(id);
     if (iter != entryIdMap_.end()) {
-        SM_LOG_WARN("Failed to create shm entry with id " << id << " as already exists");
+        SM_LOG_WARN("create shm entry failed as already exists, id: " << id);
         return SM_DUPLICATED_OBJECT;
     }
 
@@ -72,7 +72,7 @@ Result SmemShmEntryManager::CreateEntryById(uint32_t id, SmemShmEntryPtr &entry 
     entry = tmpEntry;
     entry->SetConfig(config_);
 
-    SM_LOG_DEBUG("Create new shm entry with id " << id);
+    SM_LOG_DEBUG("create new shm entry success, id: " << id);
     return SM_OK;
 }
 
@@ -87,7 +87,7 @@ Result SmemShmEntryManager::GetEntryByPtr(uintptr_t ptr, SmemShmEntryPtr &entry)
         return SM_OK;
     }
 
-    SM_LOG_DEBUG("Not found shm entry with ptr " << ptr);
+    SM_LOG_DEBUG("not found shm entry with ptr " << ptr);
     return SM_OBJECT_NOT_EXISTS;
 }
 
@@ -102,7 +102,7 @@ Result SmemShmEntryManager::GetEntryById(uint32_t id, SmemShmEntryPtr &entry)
         return SM_OK;
     }
 
-    SM_LOG_DEBUG("Not found shm entry with id " << id);
+    SM_LOG_DEBUG("not found shm entry with id " << id);
     return SM_OBJECT_NOT_EXISTS;
 }
 
@@ -113,7 +113,7 @@ Result SmemShmEntryManager::RemoveEntryByPtr(uintptr_t ptr)
     SM_ASSERT_RETURN(inited_, SM_NOT_STARTED);
     auto iter = ptr2EntryMap_.find(ptr);
     if (iter == ptr2EntryMap_.end()) {
-        SM_LOG_DEBUG("Not found shm entry with ptr " << ptr);
+        SM_LOG_DEBUG("not found shm entry with ptr " << ptr);
         return SM_OBJECT_NOT_EXISTS;
     }
 
@@ -125,7 +125,7 @@ Result SmemShmEntryManager::RemoveEntryByPtr(uintptr_t ptr)
     SM_ASSERT_RETURN(entry != nullptr, SM_ERROR);
     entryIdMap_.erase(entry->Id());
 
-    SM_LOG_DEBUG("Remove shm entry with ptr " << ptr << ", id " << entry->Id());
+    SM_LOG_DEBUG("remove shm entry success, ptr: " << ptr << ", id: " << entry->Id());
 
     return SM_OK;
 }

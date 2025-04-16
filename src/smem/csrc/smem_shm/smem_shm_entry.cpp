@@ -59,7 +59,7 @@ Result SmemShmEntry::CreateGlobalTeam(uint32_t rankSize, uint32_t rankId)
 
     auto ret = team->Initialize(extraConfig_.controlOperationTimeout, client);
     if (ret != SM_OK) {
-        SM_LOG_ERROR("global team init failed! ret: " << ret);
+        SM_LOG_ERROR("global team init failed, result: " << ret);
         return SM_ERROR;
     }
 
@@ -77,7 +77,7 @@ Result SmemShmEntry::Initialize(hybm_options &options)
     localRank_ = options.rankId;
 
     SM_LOG_ERROR_RETURN_IT_IF_NOT_OK(CreateGlobalTeam(options.rankCount, options.rankId),
-        "create global team failed.");
+        "create global team failed");
 
     do {
         entity = hybm_create_entity(id_, &options, flags);
@@ -89,22 +89,22 @@ Result SmemShmEntry::Initialize(hybm_options &options)
 
         ret = hybm_reserve_mem_space(entity, flags, &reservedMem);
         if (ret != 0 || reservedMem == nullptr) {
-            SM_LOG_ERROR("reserve mem failed(" << ret << ")");
+            SM_LOG_ERROR("reserve mem failed, result: " << ret);
             ret = SM_ERROR;
             break;
         }
 
         slice = hybm_alloc_local_memory(entity, HyBM_MEM_TYPE_DEVICE, options.singleRankVASpace, flags);
         if (slice == 0) {
-            SM_LOG_ERROR("alloc local mem failed, size(" << options.singleRankVASpace << ")");
-            ret = -1;
+            SM_LOG_ERROR("alloc local mem failed, size: " << options.singleRankVASpace);
+            ret = SM_ERROR;
             break;
         }
 
         hybm_exchange_info exInfo = { 0 };
         ret = hybm_export(entity, slice, flags, &exInfo);
         if (ret != 0) {
-            SM_LOG_ERROR("hybm export failed(" << ret << ")");
+            SM_LOG_ERROR("hybm export failed, result: " << ret);
             break;
         }
 
@@ -112,25 +112,25 @@ Result SmemShmEntry::Initialize(hybm_options &options)
         ret = globalTeam_->TeamAllGather((char *)&exInfo, sizeof(hybm_exchange_info),
             (char *)allExInfo, sizeof(hybm_exchange_info) * options.rankCount);
         if (ret != 0) {
-            SM_LOG_ERROR("hybm gather export failed(" << ret << ")");
+            SM_LOG_ERROR("hybm gather export failed, result: " << ret);
             break;
         }
 
         ret = hybm_import(entity, allExInfo, options.rankCount, flags);
         if (ret != 0) {
-            SM_LOG_ERROR("hybm import failed(" << ret << ")");
+            SM_LOG_ERROR("hybm import failed, result: " << ret);
             break;
         }
 
         ret = globalTeam_->TeamBarrier();
         if (ret != 0) {
-            SM_LOG_ERROR("hybm barrier failed(" << ret << ")");
+            SM_LOG_ERROR("hybm barrier failed, result: " << ret );
             break;
         }
 
         ret = hybm_start(entity, flags);
         if (ret != 0) {
-            SM_LOG_ERROR("hybm start failed(" << ret << ")");
+            SM_LOG_ERROR("hybm start failed, result: " << ret);
             break;
         }
     } while (0);
@@ -150,7 +150,7 @@ Result SmemShmEntry::Initialize(hybm_options &options)
 SmemShmTeam *SmemShmEntry::CreateTeam(const uint32_t *rankList, uint32_t rankSize, uint32_t flags)
 {
     if (!inited_) {
-        SM_LOG_ERROR("smem she entry don't inited!");
+        SM_LOG_ERROR("smem shm entry has not been initialized");
         return nullptr;
     }
 
@@ -181,7 +181,7 @@ SmemShmTeam *SmemShmEntry::CreateTeam(const uint32_t *rankList, uint32_t rankSiz
     std::lock_guard<std::mutex> guard(entryMutex_);
     teamMap_.emplace(teamId, team);
 
-    SM_LOG_INFO("smemId: " << id_ << " create team : " <<
+    SM_LOG_INFO("shmId: " << id_ << " create team : " <<
         SmemArray2String(rankList, rankSize) << " teamId: " << teamId);
     return team.Get();
 }
@@ -192,7 +192,7 @@ Result SmemShmEntry::RemoveTeam(SmemShmTeam *team)
     std::lock_guard<std::mutex> guard(entryMutex_);
     auto it = teamMap_.find(teamId);
     if (it == teamMap_.end()) {
-        SM_LOG_ERROR("not found this team, remove team failed, teamId: " << teamId << " smemId: " << id_);
+        SM_LOG_ERROR("not found this team, remove team failed, teamId: " << teamId << " shmId: " << id_);
         return SM_ERROR;
     }
     teamMap_.erase(it);
@@ -202,13 +202,13 @@ Result SmemShmEntry::RemoveTeam(SmemShmTeam *team)
 void SmemShmEntry::SetConfig(const smem_shm_config_t &config)
 {
     extraConfig_ = config;
-    SM_LOG_INFO("smemId: " << id_ << " set_config control_operation_timeout: " << extraConfig_.controlOperationTimeout);
+    SM_LOG_INFO("shmId: " << id_ << " set_config control_operation_timeout: " << extraConfig_.controlOperationTimeout);
 }
 
 Result SmemShmEntry::SetExtraContext(const void *context, uint32_t size)
 {
     if (!inited_ || entity_ == nullptr) {
-        SM_LOG_ERROR("smem she entry don't inited!");
+        SM_LOG_ERROR("smem shm entry has not been initialized");
         return SM_ERROR;
     }
 

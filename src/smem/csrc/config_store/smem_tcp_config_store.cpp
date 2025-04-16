@@ -65,7 +65,7 @@ Result TcpConfigStore::Startup() noexcept
 
     accClient_ = ock::acc::AccTcpServer::Create();
     if (accClient_ == nullptr) {
-        SM_LOG_ERROR("create acc tcp client failed.");
+        SM_LOG_ERROR("create acc tcp client failed");
         return SM_ERROR;
     }
 
@@ -90,7 +90,7 @@ Result TcpConfigStore::Startup() noexcept
     ock::acc::AccTcpServerOptions options;
     options.linkSendQueueSize = ock::acc::UNO_48;
     if ((result = accClient_->Start(options)) != SM_OK) {
-        SM_LOG_ERROR("start acc client failed: " << result);
+        SM_LOG_ERROR("start acc client failed, result: " << result);
         Shutdown();
         return result;
     }
@@ -98,7 +98,7 @@ Result TcpConfigStore::Startup() noexcept
     ock::acc::AccConnReq connReq;
     connReq.rankId = rankId_;
     if ((result = accClient_->ConnectToPeerServer(serverIp_, serverPort_, connReq, accClientLink_)) != 0) {
-        SM_LOG_ERROR("connect to server failed: " << result);
+        SM_LOG_ERROR("connect to server failed, result: " << result);
         Shutdown();
         return result;
     }
@@ -124,7 +124,7 @@ void TcpConfigStore::Shutdown() noexcept
 Result TcpConfigStore::Set(const std::string &key, const std::vector<uint8_t> &value) noexcept
 {
     if (key.empty() || key.length() > MAX_KEY_LEN_CLIENT) {
-        SM_LOG_ERROR("key length invalid.");
+        SM_LOG_ERROR("key length is invalid");
         return StoreErrorCode::INVALID_KEY;
     }
 
@@ -135,13 +135,13 @@ Result TcpConfigStore::Set(const std::string &key, const std::vector<uint8_t> &v
     auto packedRequest = SmemMessagePacker::Pack(request);
     auto response = SendMessageBlocked(packedRequest);
     if (response == nullptr) {
-        SM_LOG_ERROR("send set for key : " << key << ", get null response");
+        SM_LOG_ERROR("send set for key: " << key << ", get null response");
         return IO_ERROR;
     }
 
     auto responseCode = response->Header().result;
     if (responseCode != 0) {
-        SM_LOG_ERROR("send set for key : " << key << ", get response code: " << responseCode);
+        SM_LOG_ERROR("send set for key: " << key << ", get response code: " << responseCode);
     }
 
     return responseCode;
@@ -150,7 +150,7 @@ Result TcpConfigStore::Set(const std::string &key, const std::vector<uint8_t> &v
 Result TcpConfigStore::GetReal(const std::string &key, std::vector<uint8_t> &value, int64_t timeoutMs) noexcept
 {
     if (key.empty() || key.length() > MAX_KEY_LEN_CLIENT) {
-        SM_LOG_ERROR("key length invalid.");
+        SM_LOG_ERROR("key length is invalid");
         return StoreErrorCode::INVALID_KEY;
     }
 
@@ -161,13 +161,13 @@ Result TcpConfigStore::GetReal(const std::string &key, std::vector<uint8_t> &val
     auto packedRequest = SmemMessagePacker::Pack(request);
     auto response = SendMessageBlocked(packedRequest);
     if (response == nullptr) {
-        SM_LOG_ERROR("send get for key : " << key << ", get null response");
+        SM_LOG_ERROR("send get for key: " << key << ", get null response");
         return -1;
     }
 
     auto responseCode = response->Header().result;
     if (responseCode != 0) {
-        SM_LOG_ERROR("send get for key : " << key << ", get response code: " << responseCode);
+        SM_LOG_ERROR("send get for key: " << key << ", get response code: " << responseCode);
         return responseCode;
     }
 
@@ -176,12 +176,12 @@ Result TcpConfigStore::GetReal(const std::string &key, std::vector<uint8_t> &val
     SmemMessage responseBody;
     auto ret = SmemMessagePacker::Unpack(packedResponse, responseBody);
     if (ret < 0) {
-        SM_LOG_ERROR("unpack response body failed: " << ret);
+        SM_LOG_ERROR("unpack response body failed, result: " << ret);
         return -1;
     }
 
     if (responseBody.values.empty()) {
-        SM_LOG_ERROR("response body no values.");
+        SM_LOG_ERROR("response body has no value");
         return -1;
     }
 
@@ -192,7 +192,7 @@ Result TcpConfigStore::GetReal(const std::string &key, std::vector<uint8_t> &val
 Result TcpConfigStore::Add(const std::string &key, int64_t increment, int64_t &value) noexcept
 {
     if (key.empty() || key.length() > MAX_KEY_LEN_CLIENT) {
-        SM_LOG_ERROR("key length invalid.");
+        SM_LOG_ERROR("key length is invalid");
         return StoreErrorCode::INVALID_KEY;
     }
 
@@ -204,13 +204,13 @@ Result TcpConfigStore::Add(const std::string &key, int64_t increment, int64_t &v
     auto packedRequest = SmemMessagePacker::Pack(request);
     auto response = SendMessageBlocked(packedRequest);
     if (response == nullptr) {
-        SM_LOG_ERROR("send add for key : " << key << ", get null response");
+        SM_LOG_ERROR("send add for key: " << key << ", get null response");
         return StoreErrorCode::ERROR;
     }
 
     auto responseCode = response->Header().result;
     if (responseCode != 0) {
-        SM_LOG_ERROR("send add for key : " << key << ", get response code: " << responseCode);
+        SM_LOG_ERROR("send add for key: " << key << ", get response code: " << responseCode);
         return responseCode;
     }
 
@@ -223,7 +223,7 @@ Result TcpConfigStore::Add(const std::string &key, int64_t increment, int64_t &v
 Result TcpConfigStore::Remove(const std::string &key) noexcept
 {
     if (key.empty() || key.length() > MAX_KEY_LEN_CLIENT) {
-        SM_LOG_ERROR("key length invalid.");
+        SM_LOG_ERROR("key length is invalid");
         return StoreErrorCode::INVALID_KEY;
     }
 
@@ -233,13 +233,13 @@ Result TcpConfigStore::Remove(const std::string &key) noexcept
     auto packedRequest = SmemMessagePacker::Pack(request);
     auto response = SendMessageBlocked(packedRequest);
     if (response == nullptr) {
-        SM_LOG_ERROR("send remove for key : " << key << ", get null response");
+        SM_LOG_ERROR("send remove for key: " << key << ", get null response");
         return StoreErrorCode::ERROR;
     }
 
     auto responseCode = response->Header().result;
     if (responseCode != 0) {
-        SM_LOG_ERROR("send remove for key : " << key << ", get response code: " << responseCode);
+        SM_LOG_ERROR("send remove for key: " << key << ", get response code: " << responseCode);
         return responseCode;
     }
 
@@ -249,7 +249,7 @@ Result TcpConfigStore::Remove(const std::string &key) noexcept
 Result TcpConfigStore::Append(const std::string &key, const std::vector<uint8_t> &value, uint64_t &newSize) noexcept
 {
     if (key.empty() || key.length() > MAX_KEY_LEN_CLIENT) {
-        SM_LOG_ERROR("key length invalid.");
+        SM_LOG_ERROR("key length is invalid");
         return StoreErrorCode::INVALID_KEY;
     }
 
@@ -260,13 +260,13 @@ Result TcpConfigStore::Append(const std::string &key, const std::vector<uint8_t>
     auto packedRequest = SmemMessagePacker::Pack(request);
     auto response = SendMessageBlocked(packedRequest);
     if (response == nullptr) {
-        SM_LOG_ERROR("send append for key : " << key << ", get null response");
+        SM_LOG_ERROR("send append for key: " << key << ", get null response");
         return StoreErrorCode::ERROR;
     }
 
     auto responseCode = response->Header().result;
     if (responseCode != 0) {
-        SM_LOG_ERROR("send append for key : " << key << ", get response code: " << responseCode);
+        SM_LOG_ERROR("send append for key: " << key << ", get response code: " << responseCode);
         return responseCode;
     }
 
@@ -281,7 +281,7 @@ std::shared_ptr<ock::acc::AccTcpRequestContext> TcpConfigStore::SendMessageBlock
 {
     auto dup = DuplicateMessage(reqBody);
     if (dup == nullptr) {
-        SM_LOG_ERROR("dup packed message failed.");
+        SM_LOG_ERROR("duplicate packed message failed");
         return nullptr;
     }
 
@@ -289,7 +289,7 @@ std::shared_ptr<ock::acc::AccTcpRequestContext> TcpConfigStore::SendMessageBlock
     auto dataBuf = ock::acc::AccDataBuffer::Create(dup, reqBody.size());
     auto ret = accClientLink_->NonBlockSend(0, seqNo, dataBuf, nullptr);
     if (ret != SM_OK) {
-        SM_LOG_ERROR("send message failed: " << ret);
+        SM_LOG_ERROR("send message failed, result: " << ret);
         return nullptr;
     }
 
@@ -307,7 +307,7 @@ std::shared_ptr<ock::acc::AccTcpRequestContext> TcpConfigStore::SendMessageBlock
 
 Result TcpConfigStore::LinkBrokenHandler(const ock::acc::AccTcpLinkComplexPtr &link) noexcept
 {
-    SM_LOG_INFO("link broken: " << link->Id());
+    SM_LOG_INFO("link broken, linkId: " << link->Id());
     return SM_OK;
 }
 

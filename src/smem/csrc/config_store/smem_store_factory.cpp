@@ -27,7 +27,7 @@ StorePtr StoreFactory::CreateStore(const std::string &ip, uint16_t port, bool is
 
 StorePtr StoreFactory::PrefixStore(const ock::smem::StorePtr &base, const std::string &prefix) noexcept
 {
-    SM_PARAM_VALIDATE(base == nullptr, "Invalid param, base is nullptr", nullptr);
+    SM_PARAM_VALIDATE(base == nullptr, "invalid param, base is nullptr", nullptr);
 
     auto store = SmMakeRef<PrefixConfigStore>(base, prefix);
     SM_ASSERT_RETURN(store != nullptr, nullptr);
