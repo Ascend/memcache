@@ -1,13 +1,3 @@
-include_directories(
-        ${PROJECT_SMEM_SRC_BASE}/include/host
-        ${PROJECT_SMEM_SRC_BASE}/csrc/common
-        ${PROJECT_SMEM_SRC_BASE}/csrc/config_store
-        ${PROJECT_SMEM_SRC_BASE}/csrc/net
-        ${PROJECT_SMEM_SRC_BASE}/csrc/smem_shm
-        ${PROJECT_SMEM_SRC_BASE}/csrc/under_api/hybm_core
-        ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/include/
-)
-
 file(GLOB_RECURSE UT_SOURCE_FILES *.cpp
         testcase/*
         ../stub/*
@@ -34,6 +24,8 @@ target_link_libraries(test_mf_hy gtest dl libacc_tcp_net.a)
 target_include_directories(test_mf_hy PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/testcase
         ${PROJECT_SMEM_SRC_BASE}/include/host
+        ${PROJECT_SMEM_SRC_BASE}/csrc
+        ${PROJECT_SMEM_SRC_BASE}/csrc/net
         ${PROJECT_SMEM_SRC_BASE}/csrc/common
         ${PROJECT_SMEM_SRC_BASE}/csrc/config_store
         ${PROJECT_OUTPUT_PATH}/3rdparty/acc_links/net/include

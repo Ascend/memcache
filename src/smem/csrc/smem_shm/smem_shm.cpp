@@ -26,7 +26,7 @@ smem_shm_t smem_shm_create(uint32_t id, uint32_t rankSize, uint32_t rankId,
     SmemShmEntryPtr entry = nullptr;
     auto ret = SmemShmEntryManager::Instance().CreateEntryById(id, entry);
     if (ret != SM_OK || entry == nullptr) {
-        SM_LOG_ERROR("malloc entry failed, id: " << id << ", result: " << ret);
+        SM_LOG_AND_SET_LAST_ERROR("malloc entry failed, id: " << id << ", result: " << ret);
         return nullptr;
     }
 
@@ -43,7 +43,7 @@ smem_shm_t smem_shm_create(uint32_t id, uint32_t rankSize, uint32_t rankId,
 
     ret = entry->Initialize(options);
     if (ret != 0) {
-        SM_LOG_ERROR("entry init failed, result: " << ret);
+        SM_LOG_AND_SET_LAST_ERROR("entry init failed, result: " << ret);
         return nullptr;
     }
 
@@ -66,7 +66,7 @@ int32_t smem_shm_set_extra_context(smem_shm_t handle, const void* context, uint3
     SmemShmEntryPtr entry = nullptr;
     auto ret = SmemShmEntryManager::Instance().GetEntryByPtr(reinterpret_cast<uintptr_t>(handle), entry);
     if (ret != SM_OK || entry == nullptr) {
-        SM_LOG_ERROR("input handle is invalid, result: " << ret);
+        SM_LOG_AND_SET_LAST_ERROR("input handle is invalid, result: " << ret);
         return SM_INVALID_PARAM;
     }
     return entry->SetExtraContext(context, size);
@@ -81,7 +81,7 @@ smem_shm_team_t smem_shm_team_create(smem_shm_t handle, const uint32_t* rankList
     SmemShmEntryPtr entry = nullptr;
     auto ret = SmemShmEntryManager::Instance().GetEntryByPtr(reinterpret_cast<uintptr_t>(handle), entry);
     if (ret != SM_OK || entry == nullptr) {
-        SM_LOG_ERROR("input handle is invalid, result: " << ret);
+        SM_LOG_AND_SET_LAST_ERROR("input handle is invalid, result: " << ret);
         return nullptr;
     }
     return entry->CreateTeam(rankList, rankSize, flags);
@@ -94,18 +94,18 @@ int32_t smem_shm_team_destroy(smem_shm_team_t team, uint32_t flags)
     SmemShmTeam* t = reinterpret_cast<SmemShmTeam*>(team);
     if (t == nullptr) {
         SM_LOG_WARN("input team is null");
-        return 0;
+        return SM_OK;
     }
 
     SmemShmEntryPtr entry = nullptr;
     auto ret = SmemShmEntryManager::Instance().GetEntryById(t->GetShmEntryId(), entry);
     if (ret != SM_OK || entry == nullptr) {
-        SM_LOG_ERROR("input handle is invalid, result: " << ret);
+        SM_LOG_AND_SET_LAST_ERROR("input handle is invalid, result: " << ret);
         return SM_ERROR;
     }
 
     entry->RemoveTeam(t);
-    return 0;
+    return SM_OK;
 }
 
 smem_shm_team_t smem_shm_get_global_team(smem_shm_t handle)
@@ -115,7 +115,7 @@ smem_shm_team_t smem_shm_get_global_team(smem_shm_t handle)
     SmemShmEntryPtr entry = nullptr;
     auto ret = SmemShmEntryManager::Instance().GetEntryByPtr(reinterpret_cast<uintptr_t>(handle), entry);
     if (ret != SM_OK || entry == nullptr) {
-        SM_LOG_ERROR("input handle is invalid, result: " << ret);
+        SM_LOG_AND_SET_LAST_ERROR("input handle is invalid, result: " << ret);
         return nullptr;
     }
     return reinterpret_cast<void*>(entry->GetGlobalTeam().Get());
@@ -127,7 +127,7 @@ uint32_t smem_shm_team_get_rank(smem_shm_team_t team)
 
     SmemShmTeam* t = reinterpret_cast<SmemShmTeam*>(team);
     if (t == nullptr) {
-        SM_LOG_ERROR("input team is null");
+        SM_LOG_AND_SET_LAST_ERROR("input team is null");
         return UINT32_MAX;
     }
     return t->GetLocalRank();
@@ -139,7 +139,7 @@ uint32_t smem_shm_team_get_size(smem_shm_team_t team)
 
     SmemShmTeam* t = reinterpret_cast<SmemShmTeam*>(team);
     if (t == nullptr) {
-        SM_LOG_ERROR("input team is null");
+        SM_LOG_AND_SET_LAST_ERROR("input team is null");
         return UINT32_MAX;
     }
     return t->GetRankSize();
@@ -151,9 +151,10 @@ int32_t smem_shm_control_barrier(smem_shm_team_t team)
 
     SmemShmTeam* t = reinterpret_cast<SmemShmTeam*>(team);
     if (t == nullptr) {
-        SM_LOG_ERROR("input team is null");
+        SM_LOG_AND_SET_LAST_ERROR("input team is null");
         return SM_INVALID_PARAM;
     }
+
     return t->TeamBarrier();
 }
 
@@ -168,7 +169,7 @@ int32_t smem_shm_control_allgather(smem_shm_team_t team, const char* sendBuf, ui
 
     SmemShmTeam* t = reinterpret_cast<SmemShmTeam*>(team);
     if (t == nullptr) {
-        SM_LOG_ERROR("input team is null");
+        SM_LOG_AND_SET_LAST_ERROR("input team is null");
         return SM_INVALID_PARAM;
     }
     return t->TeamAllGather(sendBuf, sendSize, recvBuf, recvSize);
@@ -182,12 +183,12 @@ int32_t smem_shm_topology_can_reach(smem_shm_t handle, uint32_t remoteRank, uint
     SmemShmEntryPtr entry = nullptr;
     auto ret = SmemShmEntryManager::Instance().GetEntryByPtr(reinterpret_cast<uintptr_t>(handle), entry);
     if (ret != SM_OK || entry == nullptr) {
-        SM_LOG_ERROR("input handle is invalid, result: " << ret);
+        SM_LOG_AND_SET_LAST_ERROR("input handle is invalid, result: " << ret);
         return SM_INVALID_PARAM;
     }
     // TODO: 待实现
     *reachInfo = SMEM_TRANSPORT_CAP_MAP | SMEM_TRANSPORT_CAP_MTE;
-    return 0;
+    return SM_OK;
 }
 
 int32_t smem_shm_config_init(smem_shm_config_t *config)
@@ -213,13 +214,13 @@ int32_t smem_shm_init(const char *configStoreIpPort, uint32_t worldSize, uint32_
 
     int32_t ret = SmemShmEntryManager::Instance().Initialize(configStoreIpPort, worldSize, rankId, deviceId, config);
     if (ret != 0) {
-        SM_LOG_ERROR("init shm entry manager failed, result: " << ret);
+        SM_LOG_AND_SET_LAST_ERROR("init shm entry manager failed, result: " << ret);
         return SM_ERROR;
     }
 
     ret = HybmCoreApi::HybmCoreInit(gvaSpaceSize, deviceId, config->flags);
     if (ret != 0) {
-        SM_LOG_ERROR("init hybm failed, result: " << ret << ", flags: 0x" << std::hex << config->flags);
+        SM_LOG_AND_SET_LAST_ERROR("init hybm failed, result: " << ret << ", flags: 0x" << std::hex << config->flags);
         return SM_ERROR;
     }
 

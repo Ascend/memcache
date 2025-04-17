@@ -30,10 +30,10 @@ int32_t smem_init(uint32_t flags);
  * 2 WARN,
  * 3 ERROR
  *
- * @param func             [in] external function
+ * @param func             [in] external logger function
  * @return 0 if successful
  */
-int32_t smem_set_extern_logger(void (*func)(int level, const char* msg));
+int32_t smem_set_extern_logger(void (*func)(int level, const char *msg));
 
 /**
  * @brief set log print level
@@ -53,7 +53,14 @@ void smem_uninit();
  *
  * @return last error message
  */
-const char* smem_get_error_msg(int32_t errCode);
+const char *smem_get_last_err_msg();
+
+/**
+ * @brief Get the last error message and clear
+ *
+ * @return last error message
+ */
+const char *smem_get_and_clear_last_err_msg();
 
 #ifdef __cplusplus
 }

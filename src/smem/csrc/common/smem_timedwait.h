@@ -16,6 +16,7 @@ class SmemTimedwait {    // wait signal or overtime, instead of sem_timedwait
 public:
     SmemTimedwait() = default;
     ~SmemTimedwait() = default;
+
     Result Initialize()
     {
         signalFlag = false;

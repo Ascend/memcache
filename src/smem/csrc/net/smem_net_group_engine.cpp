@@ -20,25 +20,25 @@ Result SmemNetGroupEngine::GroupBarrier(std::string &key, uint32_t size)
     int64_t val = 0;
     auto ret = store_->Add(addKey, 1, val);
     if (ret != SM_OK) {
-        SM_LOG_ERROR("store add key: " << addKey << " failed, result:" << ret);
+        SM_LOG_AND_SET_LAST_ERROR("store add key: " << addKey << " failed, result:" << ret);
         return SM_ERROR;
     }
     if (val == size) {
         ret = store_->Set(waitKey, SMEM_NET_SET_STR);
         if (ret != SM_OK) {
-            SM_LOG_ERROR("store set key: " << waitKey << " failed, result:" << ret);
+            SM_LOG_AND_SET_LAST_ERROR("store set key: " << waitKey << " failed, result:" << ret);
             return SM_ERROR;
         }
     }
     std::string getVal;
     ret = store_->Get(waitKey, getVal, timeoutMs_);
     if (ret != SM_OK) {
-        SM_LOG_ERROR("store get key: " << addKey << " failed, result:" << ret);
+        SM_LOG_AND_SET_LAST_ERROR("store get key: " << addKey << " failed, result:" << ret);
         return SM_ERROR;
     }
 
     if (getVal != SMEM_NET_SET_STR) {
-        SM_LOG_ERROR("store get key: " << addKey << " val is not equal, val: " <<
+        SM_LOG_AND_SET_LAST_ERROR("store get key: " << addKey << " val is not equal, val: " <<
             getVal << " expect: " << SMEM_NET_SET_STR);
         return SM_ERROR;
     }
@@ -85,25 +85,25 @@ Result SmemNetGroupEngine::GroupAllGather(std::string &key, uint32_t rank, uint3
     uint64_t val = 0;
     auto ret = store_->Append(addKey, input, val);
     if (ret != SM_OK) {
-        SM_LOG_ERROR("store add key: " << addKey << " failed, result:" << ret);
+        SM_LOG_AND_SET_LAST_ERROR("store add key: " << addKey << " failed, result:" << ret);
         return SM_ERROR;
     }
     if (val == input.size() * size) {
         ret = store_->Set(waitKey, SMEM_NET_SET_STR);
         if (ret != SM_OK) {
-            SM_LOG_ERROR("store set key: " << waitKey << " failed, result:" << ret);
+            SM_LOG_AND_SET_LAST_ERROR("store set key: " << waitKey << " failed, result:" << ret);
             return SM_ERROR;
         }
     }
     std::string getVal;
     ret = store_->Get(waitKey, getVal, timeoutMs_);
     if (ret != SM_OK) {
-        SM_LOG_ERROR("store get key: " << addKey << " failed, result:" << ret);
+        SM_LOG_AND_SET_LAST_ERROR("store get key: " << addKey << " failed, result:" << ret);
         return SM_ERROR;
     }
 
     if (getVal != SMEM_NET_SET_STR) {
-        SM_LOG_ERROR("store get key: " << addKey << " val is not equal, val: " <<
+        SM_LOG_AND_SET_LAST_ERROR("store get key: " << addKey << " val is not equal, val: " <<
                                        getVal << " expect: " << SMEM_NET_SET_STR);
         return SM_ERROR;
     }
@@ -111,7 +111,7 @@ Result SmemNetGroupEngine::GroupAllGather(std::string &key, uint32_t rank, uint3
     std::vector<uint8_t> output;
     ret = store_->Get(addKey, output, timeoutMs_);
     if (ret != SM_OK || output.size() != input.size() * size) {
-        SM_LOG_ERROR("after wait, store get key: " << addKey << " failed, result:" <<
+        SM_LOG_AND_SET_LAST_ERROR("after wait, store get key: " << addKey << " failed, result:" <<
             ret << " recv_size: " << output.size());
         return SM_ERROR;
     }

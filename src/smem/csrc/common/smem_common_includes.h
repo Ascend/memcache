@@ -6,8 +6,10 @@
 
 #include <map>
 #include <set>
+#include <string>
 
 #include "smem_define.h"
+#include "smem_last_error.h"
 #include "smem_logger.h"
 #include "smem_types.h"
 #include "smem_ref.h"

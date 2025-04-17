@@ -19,7 +19,7 @@
 
 namespace ock {
 namespace smem {
-using ExternalLog = void (*)(int, const char*);
+using ExternalLog = void (*)(int, const char *);
 
 enum LogLevel : int {
     DEBUG_LEVEL = 0,
@@ -31,23 +31,9 @@ enum LogLevel : int {
 
 class SMOutLogger {
 public:
-    static SMOutLogger* Instance()
+    static SMOutLogger &Instance()
     {
-        static SMOutLogger* gLogger = nullptr;
-        static std::mutex gMutex;
-
-        if (__builtin_expect(gLogger == nullptr, 0) != 0) {
-            gMutex.lock();
-            if (gLogger == nullptr) {
-                gLogger = new (std::nothrow) SMOutLogger();
-
-                if (gLogger == nullptr) {
-                    printf("Failed to new SMOutLogger, probably out of memory");
-                }
-            }
-            gMutex.unlock();
-        }
-
+        static SMOutLogger gLogger;
         return gLogger;
     }
 
@@ -75,7 +61,7 @@ public:
         }
     }
 
-    inline void Log(int level, const std::ostringstream& oss)
+    inline void Log(int level, const std::ostringstream &oss)
     {
         if (mLogFunc != nullptr) {
             mLogFunc(level, oss.str().c_str());
@@ -101,7 +87,7 @@ public:
         }
     }
 
-    inline void AuditLog(int level, const std::ostringstream& oss)
+    inline void AuditLog(int level, const std::ostringstream &oss)
     {
         if (mAuditLogFunc != nullptr) {
             mAuditLogFunc(level, oss.str().c_str());
@@ -126,8 +112,8 @@ public:
         }
     }
 
-    SMOutLogger(const SMOutLogger&) = delete;
-    SMOutLogger(SMOutLogger&&) = delete;
+    SMOutLogger(const SMOutLogger &) = delete;
+    SMOutLogger(SMOutLogger &&) = delete;
 
     ~SMOutLogger()
     {
@@ -138,7 +124,7 @@ public:
 private:
     SMOutLogger() = default;
 
-    inline const std::string& LogLevelDesc(int level)
+    inline const std::string &LogLevelDesc(int level)
     {
         static std::string invalid = "invalid";
         if (UNLIKELY(level < DEBUG_LEVEL || level >= BUTT_LEVEL)) {
@@ -166,14 +152,14 @@ private:
     do {                                                                               \
         std::ostringstream oss;                                                        \
         oss << "[SMEM " << SMEM_LOG_FILENAME_SHORT << ":" << __LINE__ << "] " << ARGS; \
-        ock::smem::SMOutLogger::Instance()->Log(LEVEL, oss);                           \
+        ock::smem::SMOutLogger::Instance().Log(LEVEL, oss);                            \
     } while (0)
 
-#define SM_AUDIT_OUT_LOG(LEVEL, ARGS)                             \
-    do {                                                          \
-        std::ostringstream oss;                                   \
-        oss << "[SMEM_AUDIT] " << ARGS;                           \
-        ock::smem::SMOutLogger::Instance()->AuditLog(LEVEL, oss); \
+#define SM_AUDIT_OUT_LOG(LEVEL, ARGS)                            \
+    do {                                                         \
+        std::ostringstream oss;                                  \
+        oss << "[SMEM_AUDIT] " << ARGS;                          \
+        ock::smem::SMOutLogger::Instance().AuditLog(LEVEL, oss); \
     } while (0)
 
 #define SM_LOG_DEBUG(ARGS) SM_OUT_LOG(ock::smem::DEBUG_LEVEL, ARGS)
@@ -231,24 +217,4 @@ private:
             return innerResult;           \
         }                                 \
     } while (0)
-
-#define SM_PARAM_VALIDATE(expression, msg, returnValue) \
-    do {                                                \
-        if ((expression)) {                             \
-            SM_LOG_ERROR(msg);                          \
-            return returnValue;                         \
-        }                                               \
-    } while (0)
-
-template<class T>
-inline std::string SmemArray2String(const T *arr, uint32_t len)
-{
-    std::ostringstream oss;
-    oss << "[";
-    for (uint32_t i = 0; i < len; i++) {
-        oss << arr[i] << (i + 1 == len ? "]" : ",");
-    }
-    return oss.str();
-}
-
 #endif  // MEMFABRIC_HYBRID_SMEM_LOGGER_H

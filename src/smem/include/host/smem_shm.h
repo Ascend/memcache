@@ -14,7 +14,7 @@ extern "C" {
 /**
  * @brief Initialize smem_shm_config_t, i.e. set to default value
  *
- * @param config           [in] config to be initialed
+ * @param config           [in] config to be initialized
  * @return 0 if successful
  */
 int32_t smem_shm_config_init(smem_shm_config_t *config);
@@ -34,8 +34,8 @@ int32_t smem_shm_config_init(smem_shm_config_t *config);
  * @param config           [in] config, see @smem_shm_config_t
  * @return 0 if successfully
  */
-int32_t smem_shm_init(const char *configStoreIpPort, uint32_t worldSize, uint32_t rankId,
-    uint16_t deviceId, uint64_t gvaSpaceSize, smem_shm_config_t *config);
+int32_t smem_shm_init(const char *configStoreIpPort, uint32_t worldSize, uint32_t rankId, uint16_t deviceId,
+                      uint64_t gvaSpaceSize, smem_shm_config_t *config);
 
 /**
  * @brief Un-initialize shm library with destroy all things
@@ -56,8 +56,8 @@ void smem_shm_uninit(uint32_t flags);
  * @param gva              [out] global virtual address created
  * @return shm object created if successful, null if failed, use @ref smem_get_last_error_msg to get last error message
  */
-smem_shm_t smem_shm_create(uint32_t id, uint32_t rankSize, uint32_t rankId,
-    uint64_t symmetricSize, smem_shm_data_op_type dataOpType, uint32_t flags, void **gva);
+smem_shm_t smem_shm_create(uint32_t id, uint32_t rankSize, uint32_t rankId, uint64_t symmetricSize,
+                           smem_shm_data_op_type dataOpType, uint32_t flags, void **gva);
 
 /**
  * @brief Destroy shm object
@@ -121,7 +121,7 @@ int32_t smem_shm_control_barrier(smem_shm_team_t team);
  * @return 0 if successful
  */
 int32_t smem_shm_control_allgather(smem_shm_team_t team, const char *sendBuf, uint32_t sendSize, char *recvBuf,
-    uint32_t recvSize);
+                                   uint32_t recvSize);
 
 /**
  * @brief Query if remote rank can ranch
@@ -137,4 +137,4 @@ int32_t smem_shm_topology_can_reach(smem_shm_t handle, uint32_t remoteRank, uint
 }
 #endif
 
-#endif // __MEMFABRIC_SMEM_SHM_H__
+#endif  // __MEMFABRIC_SMEM_SHM_H__

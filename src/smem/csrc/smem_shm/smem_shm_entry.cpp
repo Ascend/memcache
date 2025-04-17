@@ -64,7 +64,7 @@ Result SmemShmEntry::CreateGlobalTeam(uint32_t rankSize, uint32_t rankId)
     }
 
     globalTeam_ = team;
-    return team->TeamBarrier(); // 保证所有rank都初始化了
+    return team->TeamBarrier();  // 保证所有rank都初始化了
 }
 
 Result SmemShmEntry::Initialize(hybm_options &options)
@@ -76,8 +76,7 @@ Result SmemShmEntry::Initialize(hybm_options &options)
     Result ret = SM_ERROR;
     localRank_ = options.rankId;
 
-    SM_LOG_ERROR_RETURN_IT_IF_NOT_OK(CreateGlobalTeam(options.rankCount, options.rankId),
-        "create global team failed");
+    SM_LOG_ERROR_RETURN_IT_IF_NOT_OK(CreateGlobalTeam(options.rankCount, options.rankId), "create global team failed");
 
     do {
         entity = HybmCoreApi::HybmCreateEntity(id_, &options, flags);
@@ -109,8 +108,8 @@ Result SmemShmEntry::Initialize(hybm_options &options)
         }
 
         hybm_exchange_info allExInfo[options.rankCount];
-        ret = globalTeam_->TeamAllGather((char *)&exInfo, sizeof(hybm_exchange_info),
-            (char *)allExInfo, sizeof(hybm_exchange_info) * options.rankCount);
+        ret = globalTeam_->TeamAllGather((char *)&exInfo, sizeof(hybm_exchange_info), (char *)allExInfo,
+                                         sizeof(hybm_exchange_info) * options.rankCount);
         if (ret != 0) {
             SM_LOG_ERROR("hybm gather export failed, result: " << ret);
             break;
@@ -124,7 +123,7 @@ Result SmemShmEntry::Initialize(hybm_options &options)
 
         ret = globalTeam_->TeamBarrier();
         if (ret != 0) {
-            SM_LOG_ERROR("hybm barrier failed, result: " << ret );
+            SM_LOG_ERROR("hybm barrier failed, result: " << ret);
             break;
         }
 
@@ -181,8 +180,8 @@ SmemShmTeam *SmemShmEntry::CreateTeam(const uint32_t *rankList, uint32_t rankSiz
     std::lock_guard<std::mutex> guard(entryMutex_);
     teamMap_.emplace(teamId, team);
 
-    SM_LOG_INFO("shmId: " << id_ << " create team : " <<
-        SmemArray2String(rankList, rankSize) << " teamId: " << teamId);
+    SM_LOG_INFO("shmId: " << id_ << " create team : " << CommonFunc::SmemArray2String(rankList, rankSize)
+                          << " teamId: " << teamId);
     return team.Get();
 }
 
@@ -219,5 +218,5 @@ void *SmemShmEntry::GetGva() const
 {
     return gva_;
 }
-}
-}
+}  // namespace smem
+}  // namespace ock

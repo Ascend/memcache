@@ -7,6 +7,8 @@ option(BUILD_EXAMPLE "build example or not" ON)
 option(BUILD_TESTS "build test or not" OFF)
 option(BUILD_OPEN_ABI "build open _GLIBCXX_USE_CXX11_ABI" ON)
 
+#set(CMAKE_VERBOSE_MAKEFILE ON)
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RELEASE)
 endif()
