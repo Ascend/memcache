@@ -37,11 +37,9 @@ Result SmemShmEntryManager::Initialize(const char *configStoreIpPort, uint32_t w
         storeServer_ = ock::smem::StoreFactory::CreateStore(option.ip, option.port, true, 0);
         SM_ASSERT_RETURN(storeServer_ != nullptr, SM_ERROR);
     }
-    storeClient_ = ock::smem::StoreFactory::CreateStore(option.ip, option.port, false, static_cast<int32_t>(rankId));
+    storeClient_ = ock::smem::StoreFactory::CreateStore(option.ip, option.port, false,
+        static_cast<int32_t>(rankId), static_cast<int32_t>(config->shmInitTimeout));
     SM_ASSERT_RETURN(storeClient_ != nullptr, SM_ERROR);
-
-    // TODO: acc link开放建链超时接口
-    // TODO: 确保所有client都建链
 
     config_ = *config;
     deviceId_ = deviceId;

@@ -21,6 +21,7 @@ smem_shm_t smem_shm_create(uint32_t id, uint32_t rankSize, uint32_t rankId,
     SM_PARAM_VALIDATE(
         rankSize > UINT16_MAX || rankId >= rankSize,
         "invalid param, input size: " << rankSize << " limit: " << UINT16_MAX << " input rank: " << rankId, nullptr);
+    SM_PARAM_VALIDATE(dataOpType != SMEMS_DATA_OP_MTE, "only support SMEMS_DATA_OP_MTE now", nullptr);
 
     std::lock_guard<std::mutex> guard(g_smemShmMutex_);
     SmemShmEntryPtr entry = nullptr;
@@ -187,7 +188,7 @@ int32_t smem_shm_topology_can_reach(smem_shm_t handle, uint32_t remoteRank, uint
         return SM_INVALID_PARAM;
     }
     // TODO: 待实现
-    *reachInfo = SMEM_TRANSPORT_CAP_MAP | SMEM_TRANSPORT_CAP_MTE;
+    *reachInfo = SMEMS_DATA_OP_MTE;
     return SM_OK;
 }
 
@@ -234,4 +235,9 @@ void smem_shm_uninit(uint32_t flags)
 {
     HybmCoreApi::HybmCoreUninit();
     SM_LOG_INFO("smem_shm_uninit finished");
+}
+
+uint32_t smem_shm_query_support_data_operation(void)
+{
+    return SMEMS_DATA_OP_MTE;
 }
