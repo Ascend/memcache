@@ -14,15 +14,10 @@ typedef void *smem_shm_t;
 typedef void *smem_shm_team_t;
 
 typedef enum {
-    SMEMS_DATA_OP_MTE = 0x01,
+    SMEMS_DATA_OP_MTE  = 1U << 0,
+    SMEMS_DATA_OP_SDMA = 1U << 1,
+    SMEMS_DATA_OP_ROCE = 1U << 2,
 } smem_shm_data_op_type;
-
-typedef enum {
-    SMEM_TRANSPORT_CAP_MAP  = 1U << 0,       // memory has mapped
-    SMEM_TRANSPORT_CAP_MTE  = 1U << 1,       // can access by MTE
-    SMEM_TRANSPORT_CAP_ROCE = 1U << 2,       // can access by ROCE
-    SMEM_TRANSPORT_CAP_SDMA = 1U << 3,       // can access by SDMA
-} smem_shm_transport_capabilities_type;
 
 /**
  * shm config, include operation timeout

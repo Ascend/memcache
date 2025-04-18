@@ -45,6 +45,12 @@ int32_t smem_shm_init(const char *configStoreIpPort, uint32_t worldSize, uint32_
 void smem_shm_uninit(uint32_t flags);
 
 /**
+ * @brief query support data operation engine type
+ * @return the set of smem_shm_data_op_type
+ */
+uint32_t smem_shm_query_support_data_operation(void);
+
+/**
  * @brief Create shm object peer by peer
  *
  * @param id               [in] id of the shm object
@@ -128,7 +134,7 @@ int32_t smem_shm_control_allgather(smem_shm_team_t team, const char *sendBuf, ui
  *
  * @param handle            [in] shm object
  * @param remoteRank        [in] remote rank
- * @param reachInfo         [out] reach info, the set of the smem_shm_transport_capabilities_type
+ * @param reachInfo         [out] reach info, the set of smem_shm_data_op_type
  * @return 0 if successful
  */
 int32_t smem_shm_topology_can_reach(smem_shm_t handle, uint32_t remoteRank, uint32_t *reachInfo);
