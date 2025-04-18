@@ -15,6 +15,8 @@ if(NOT EXISTS ${CHECK_FILE_LINKS})
     add_dependencies(test_mf_hy googletest)
 endif()
 
+add_definitions(-DOUT_LIB_PATH="${TARGET_INSTALL_DIR}")
+
 target_compile_options(test_mf_hy PUBLIC -D_GNU_SOURCE -g)
 target_link_directories(test_mf_hy PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/lib/)
 set_target_properties(test_mf_hy PROPERTIES OUTPUT_NAME "test_mf_hy")
@@ -23,6 +25,7 @@ set_target_properties(test_mf_hy PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_O
 target_link_libraries(test_mf_hy gtest dl libacc_tcp_net.a)
 target_include_directories(test_mf_hy PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/testcase
+        ${CMAKE_CURRENT_SOURCE_DIR}/shmem_wrapper
         ${PROJECT_SMEM_SRC_BASE}/include/host
         ${PROJECT_SMEM_SRC_BASE}/csrc
         ${PROJECT_SMEM_SRC_BASE}/csrc/net
