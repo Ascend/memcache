@@ -6,6 +6,14 @@ set(CMAKE_CXX_STANDARD 11)
 option(BUILD_EXAMPLE "build example or not" ON)
 option(BUILD_TESTS "build test or not" OFF)
 option(BUILD_OPEN_ABI "build open _GLIBCXX_USE_CXX11_ABI" ON)
+option(ENABLE_CPU_MONOTONIC "enable monotonic time using cpu hard instruction" OFF)
+
+message(STATUS "BUILD_EXAMPLE = ${BUILD_EXAMPLE}")
+message(STATUS "BUILD_TESTS = ${BUILD_TESTS}")
+message(STATUS "BUILD_USE_CXX11_ABI = ${BUILD_OPEN_ABI}")
+message(STATUS "ENABLE_CPU_MONOTONIC = ${ENABLE_CPU_MONOTONIC}")
+
+message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -13,7 +21,6 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RELEASE)
 endif()
 
-message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 if (${CMAKE_BUILD_TYPE} MATCHES "RELEASE")
     add_compile_options(-O2 -fpic)
 else ()
@@ -24,10 +31,13 @@ if(BUILD_TESTS STREQUAL "ON")
     set(BUILD_OPEN_ABI "ON")
 endif()
 
-message(STATUS "BUILD_USE_CXX11_ABI = ${BUILD_OPEN_ABI}")
 if(NOT BUILD_OPEN_ABI STREQUAL "ON")
     add_compile_options(-D_GLIBCXX_USE_CXX11_ABI=0)
 endif()
+
+if (ENABLE_CPU_MONOTONIC STREQUAL "ON")
+    add_compile_options(-DENABLE_CPU_MONOTONIC)
+endif ()
 
 set(PROJECT_BUILD_PATH ${PROJECT_SOURCE_DIR}/build)
 set(PROJECT_3RDPARTY_SRC_DIR ${PROJECT_SOURCE_DIR}/3rdparty)
@@ -56,7 +66,6 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/include/hybm
 )
 
-message(STATUS "BUILD_TESTS = ${BUILD_TESTS}")
 if(BUILD_TESTS STREQUAL "ON")
     set(CMAKE_CXX_STANDARD 14)
     message(STATUS "BUILD_TESTS = ON, add compile gov")

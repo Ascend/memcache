@@ -72,7 +72,7 @@ Result SmemShmEntry::Initialize(hybm_options &options)
     uint32_t flags = 0;
     hybm_entity_t entity = nullptr;
     void *reservedMem = nullptr;
-    hybm_mem_slice_t slice = 0;
+    hybm_mem_slice_t slice = nullptr;
     Result ret = SM_ERROR;
     localRank_ = options.rankId;
 
@@ -94,7 +94,7 @@ Result SmemShmEntry::Initialize(hybm_options &options)
         }
 
         slice = HybmCoreApi::HybmAllocLocalMemory(entity, HyBM_MEM_TYPE_DEVICE, options.singleRankVASpace, flags);
-        if (slice == 0) {
+        if (slice == nullptr) {
             SM_LOG_ERROR("alloc local mem failed, size: " << options.singleRankVASpace);
             ret = SM_ERROR;
             break;

@@ -27,7 +27,7 @@ enum StoreErrorCode : int16_t {
 
 class ConfigStore : public SmReferable {
 public:
-    virtual ~ConfigStore() override = default;
+    ~ConfigStore() override = default;
 
 public:
     /**
@@ -105,6 +105,14 @@ public:
      */
     virtual Result Append(const std::string &key, const std::vector<uint8_t> &value, uint64_t &newSize) noexcept = 0;
 
+    /**
+     * @brief Get error string by code
+     *
+     * @param errCode      [in] error cde
+     * @return error string
+     */
+    static const char *ErrStr(int16_t errCode);
+
 protected:
     virtual Result GetReal(const std::string &key, std::vector<uint8_t> &value, int64_t timeoutMs) noexcept = 0;
     static constexpr uint32_t MAX_KEY_LEN_CLIENT = 1024U;
@@ -138,6 +146,29 @@ inline Result ConfigStore::Append(const std::string &key, const std::string &val
     std::vector<uint8_t> u8val(value.begin(), value.end());
     return Append(key, u8val, newSize);
 }
+
+inline const char *ConfigStore::ErrStr(int16_t errCode)
+{
+    switch (errCode) {
+        case SUCCESS:
+            return "success";
+        case ERROR:
+            return "error";
+        case INVALID_MESSAGE:
+            return "invalid message";
+        case INVALID_KEY:
+            return "invalid key";
+        case NOT_EXIST:
+            return "key not exists";
+        case TIMEOUT:
+            return "timeout";
+        case IO_ERROR:
+            return "socket error";
+        default:
+            return "unknown error";
+    }
+}
+
 }  // namespace smem
 }  // namespace ock
 

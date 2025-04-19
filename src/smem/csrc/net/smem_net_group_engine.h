@@ -13,12 +13,12 @@ namespace smem {
 
 class SmemNetGroupEngine : public SmReferable {
 public:
-    SmemNetGroupEngine(StorePtr store, uint32_t timeoutMs) : store_(store), timeoutMs_(timeoutMs) {}
-    ~SmemNetGroupEngine() = default;
+    SmemNetGroupEngine(const StorePtr& store, uint32_t timeoutMs) : store_(store), timeoutMs_(timeoutMs) {}
+    ~SmemNetGroupEngine() override = default;
 
-    Result GroupBarrier(std::string &key, uint32_t size);
+    Result GroupBarrier(const std::string &key, uint32_t size);
 
-    Result GroupAllGather(std::string &key, uint32_t rank, uint32_t size,
+    Result GroupAllGather(const std::string &key, uint32_t rank, uint32_t size,
         const char *sendBuf, uint32_t sendSize, char *recvBuf, uint32_t recvSize);
 
 private:

@@ -10,7 +10,7 @@ namespace smem {
 const std::string SMEM_NET_SET_STR = "ok";
 constexpr uint32_t SMEM_GATHER_PREFIX_SIZE = 4U;
 
-Result SmemNetGroupEngine::GroupBarrier(std::string &key, uint32_t size)
+Result SmemNetGroupEngine::GroupBarrier(const std::string &key, uint32_t size)
 {
     SM_ASSERT_RETURN(store_ != nullptr, SM_INVALID_PARAM);
 
@@ -18,30 +18,47 @@ Result SmemNetGroupEngine::GroupBarrier(std::string &key, uint32_t size)
     std::string addKey = key + "_" + idx + "_BA";
     std::string waitKey = key + "_" + idx + "_BW";
     int64_t val = 0;
+
+    MonoPerfTrace traceBarrier;
+    /* all guys add 1 to barrier key and get it */
+    MonoPerfTrace traceAdd;
     auto ret = store_->Add(addKey, 1, val);
     if (ret != SM_OK) {
-        SM_LOG_AND_SET_LAST_ERROR("store add key: " << addKey << " failed, result:" << ret);
+        SM_LOG_AND_SET_LAST_ERROR("store add key: " << addKey << " failed, result:" << ConfigStore::ErrStr(ret));
         return SM_ERROR;
     }
+    traceAdd.RecordEnd();
+
+    /* the last guy set the status to ok, and other guys just wait for the last guy set the value */
     if (val == size) {
         ret = store_->Set(waitKey, SMEM_NET_SET_STR);
         if (ret != SM_OK) {
-            SM_LOG_AND_SET_LAST_ERROR("store set key: " << waitKey << " failed, result:" << ret);
+            SM_LOG_AND_SET_LAST_ERROR("store set key: " << waitKey
+                                       << " failed, result:" << ConfigStore::ErrStr(ret));
             return SM_ERROR;
         }
     }
+
+    /* all guys wait for waitKey status with timeout, timeout happens if the ok status not set by the last guy */
+    MonoPerfTrace traceGetStatus;
     std::string getVal;
     ret = store_->Get(waitKey, getVal, timeoutMs_);
     if (ret != SM_OK) {
-        SM_LOG_AND_SET_LAST_ERROR("store get key: " << addKey << " failed, result:" << ret);
+        SM_LOG_AND_SET_LAST_ERROR("store get key: " << addKey << " failed, result:" << ConfigStore::ErrStr(ret));
         return SM_ERROR;
     }
+    traceGetStatus.RecordEnd();
 
     if (getVal != SMEM_NET_SET_STR) {
-        SM_LOG_AND_SET_LAST_ERROR("store get key: " << addKey << " val is not equal, val: " <<
-            getVal << " expect: " << SMEM_NET_SET_STR);
+        SM_LOG_AND_SET_LAST_ERROR("store get key: " << addKey << " val is not equal, val: " << getVal
+                                   << " expect: " << SMEM_NET_SET_STR);
         return SM_ERROR;
     }
+    traceBarrier.RecordEnd();
+
+    SM_LOG_INFO("groupBarrier successfully, key: " << key << ", size: " << size << ", timeCostUs: total("
+                 << traceBarrier.PeriodUs() << ") add(" << traceAdd.PeriodUs()
+                 << ") getStatus(" << traceGetStatus.PeriodUs() << ")");
     return SM_OK;
 }
 
@@ -68,8 +85,8 @@ static void SortGatherRecv(std::vector<uint8_t> &vec, uint32_t preSize, uint32_t
     }
 }
 
-Result SmemNetGroupEngine::GroupAllGather(std::string &key, uint32_t rank, uint32_t size,
-    const char *sendBuf, uint32_t sendSize, char *recvBuf, uint32_t recvSize)
+Result SmemNetGroupEngine::GroupAllGather(const std::string &key, uint32_t rank, uint32_t size, const char *sendBuf,
+                                          uint32_t sendSize, char *recvBuf, uint32_t recvSize)
 {
     SM_ASSERT_RETURN(store_ != nullptr, SM_INVALID_PARAM);
     SM_ASSERT_RETURN(sendSize * size == recvSize, SM_INVALID_PARAM);
@@ -82,43 +99,65 @@ Result SmemNetGroupEngine::GroupAllGather(std::string &key, uint32_t rank, uint3
     GatherFillRank(input, rank);
     (void)std::copy_n(sendBuf, sendSize, input.data() + SMEM_GATHER_PREFIX_SIZE);
 
+    MonoPerfTrace traceAllGather;
+    /* append things and get the length of value */
+    MonoPerfTrace traceAppend;
     uint64_t val = 0;
     auto ret = store_->Append(addKey, input, val);
     if (ret != SM_OK) {
-        SM_LOG_AND_SET_LAST_ERROR("store add key: " << addKey << " failed, result:" << ret);
+        SM_LOG_AND_SET_LAST_ERROR("store add key: " << addKey << " failed, result:" << ConfigStore::ErrStr(ret));
         return SM_ERROR;
     }
+    traceAppend.RecordEnd();
+
+    /* the last guy set ok status */
     if (val == input.size() * size) {
         ret = store_->Set(waitKey, SMEM_NET_SET_STR);
         if (ret != SM_OK) {
-            SM_LOG_AND_SET_LAST_ERROR("store set key: " << waitKey << " failed, result:" << ret);
+            SM_LOG_AND_SET_LAST_ERROR("store set key: " << waitKey
+                                       << " failed, result:" << ConfigStore::ErrStr(ret));
             return SM_ERROR;
         }
     }
+
+    /* all guys wait for ok status with timeout */
+    MonoPerfTrace traceGetStatus;
     std::string getVal;
     ret = store_->Get(waitKey, getVal, timeoutMs_);
     if (ret != SM_OK) {
-        SM_LOG_AND_SET_LAST_ERROR("store get key: " << addKey << " failed, result:" << ret);
+        SM_LOG_AND_SET_LAST_ERROR("store get key: " << addKey << " failed, result:" << ConfigStore::ErrStr(ret));
         return SM_ERROR;
     }
+    traceGetStatus.RecordEnd();
 
     if (getVal != SMEM_NET_SET_STR) {
-        SM_LOG_AND_SET_LAST_ERROR("store get key: " << addKey << " val is not equal, val: " <<
-                                       getVal << " expect: " << SMEM_NET_SET_STR);
+        SM_LOG_AND_SET_LAST_ERROR("store get key: " << addKey << " val is not equal, val: " << getVal
+                                   << " expect: " << SMEM_NET_SET_STR);
         return SM_ERROR;
     }
 
+    /* get the whole value */
+    MonoPerfTrace traceGetData;
     std::vector<uint8_t> output;
     ret = store_->Get(addKey, output, timeoutMs_);
     if (ret != SM_OK || output.size() != input.size() * size) {
-        SM_LOG_AND_SET_LAST_ERROR("after wait, store get key: " << addKey << " failed, result:" <<
-            ret << " recv_size: " << output.size());
+        SM_LOG_AND_SET_LAST_ERROR("after wait, store get key: " << addKey
+                                   << " failed, result:" << ConfigStore::ErrStr(ret)
+                                   << " recv_size: " << output.size());
         return SM_ERROR;
     }
+    traceGetData.RecordEnd();
+    traceAllGather.RecordEnd();
 
     SortGatherRecv(output, sendSize, size, recvBuf);
+
+    SM_LOG_INFO("allGather successfully, key: " << key << ", rank: " << rank << ", size: " << size
+                 << ", timeCostUs: total(" << traceAllGather.PeriodUs() << ") append("
+                 << traceAppend.PeriodUs() << ") getStatus(" << traceGetStatus.PeriodUs()
+                 << ") getData(" << traceGetData.PeriodUs() << ")");
+
     return SM_OK;
 }
 
-}
-}
+}  // namespace smem
+}  // namespace ock
