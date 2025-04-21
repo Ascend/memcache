@@ -30,9 +30,9 @@ int32_t smem_shm_config_init(smem_shm_config_t *config);
  * @param worldSize        [in] size of processes
  * @param rankId           [in] local rank id in world size
  * @param deviceId         [in] device npu id
- * @param gvaSpaceSize     [in] global virtual memory space size, all shm objects will be created on this space
+ * @param gvaSpaceSize     [in] size of virtual memory space to be reserved, all shm objects will be created on it
  * @param config           [in] config, see @smem_shm_config_t
- * @return 0 if successfully
+ * @return 0 if successfully, negative value if failed, use @ref smem_get_last_error_msg to get last err msg
  */
 int32_t smem_shm_init(const char *configStoreIpPort, uint32_t worldSize, uint32_t rankId, uint16_t deviceId,
                       uint64_t gvaSpaceSize, smem_shm_config_t *config);
@@ -45,7 +45,7 @@ int32_t smem_shm_init(const char *configStoreIpPort, uint32_t worldSize, uint32_
 void smem_shm_uninit(uint32_t flags);
 
 /**
- * @brief query support data operation engine type
+ * @brief Query supported data operation type
  * @return the set of smem_shm_data_op_type
  */
 uint32_t smem_shm_query_support_data_operation(void);
@@ -59,7 +59,7 @@ uint32_t smem_shm_query_support_data_operation(void);
  * @param symmetricSize    [in] local memory contributed to the shm object, all ranks must the same size
  * @param dataOpType       [in] data operation engine type, i.e. MTE, SDMA, RDMA etc
  * @param flags            [in] optional flags
- * @param gva              [out] global virtual address created
+ * @param gva              [out] global virtual address created, it can be passed to kernel to data operations
  * @return shm object created if successful, null if failed, use @ref smem_get_last_error_msg to get last error message
  */
 smem_shm_t smem_shm_create(uint32_t id, uint32_t rankSize, uint32_t rankId, uint64_t symmetricSize,
@@ -117,7 +117,7 @@ uint32_t smem_shm_team_get_size(smem_shm_team_t team);
 int32_t smem_shm_control_barrier(smem_shm_team_t team);
 
 /**
- * @brief Do all gather on a shm tream, using control network
+ * @brief Do all gather on a shm team, using control network
  *
  * @param team              [in] barrier shm team
  * @param sendBuf           [in] input data buf
