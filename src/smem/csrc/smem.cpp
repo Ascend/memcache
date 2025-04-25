@@ -3,6 +3,7 @@
  */
 #include "smem.h"
 #include "smem_common_includes.h"
+#include "smem_version.h"
 #include "hybm_core_api.h"
 #include "acc_links/net/acc_log.h"
 
@@ -41,6 +42,8 @@ int32_t smem_init(uint32_t flags)
     }
     (void)smem_set_log_level(SMOutLogger::Instance().GetLogLevel());
 
+    SM_LOG_INFO("smem init successfully, " << LIB_VERSION);
+	
     return SM_OK;
 }
 
