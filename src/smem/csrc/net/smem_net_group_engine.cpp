@@ -28,6 +28,7 @@ Result SmemNetGroupEngine::GroupBarrier(const std::string &key, uint32_t size)
         return SM_ERROR;
     }
     traceAdd.RecordEnd();
+    SM_LOG_DEBUG("store add key: " << addKey << " value: " << val);
 
     /* the last guy set the status to ok, and other guys just wait for the last guy set the value */
     if (val == size) {

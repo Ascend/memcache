@@ -245,8 +245,8 @@ Result AccStoreServer::AddHandler(const ock::acc::AccTcpRequestContext &context,
         return StoreErrorCode::INVALID_KEY;
     }
 
-    SM_LOG_DEBUG("ADD REQUEST(" << context.SeqNo() << ") for key(" << key << ") start.");
     std::string valueStr{value.begin(), value.end()};
+    SM_LOG_DEBUG("ADD REQUEST(" << context.SeqNo() << ") for key(" << key << ") value(" << valueStr << ") start.");
     auto valueNum = strtol(valueStr.c_str(), nullptr, 10);
     if (valueStr != std::to_string(valueNum)) {
         SM_LOG_ERROR("request(" << context.SeqNo() << ") add for key(" << key << ") value is not a number");
