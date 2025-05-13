@@ -10,7 +10,7 @@
 namespace ock {
 namespace smem {
 
-using hybmInitFunc = int32_t (*)(uint64_t, uint16_t, uint64_t);
+using hybmInitFunc = int32_t (*)(uint16_t, uint64_t);
 using hybmUninitFunc = void (*)(void);
 using hybmSetLoggerFunc = int32_t (*)(void (*)(int, const char *));
 using hybmSetLogLevelFunc = int32_t (*)(int);
@@ -27,14 +27,17 @@ using hybmImportFunc = int32_t (*)(hybm_entity_t, const hybm_exchange_info *, ui
 using hybmSetExtraContextFunc = int32_t (*)(hybm_entity_t, const void *, uint32_t);
 using hybmStartFunc = int32_t (*)(hybm_entity_t, uint32_t);
 using hybmStopFunc = void (*)(hybm_entity_t, uint32_t);
+using hybmMmapFunc = int32_t (*)(hybm_entity_t, uint32_t);
+using hybmJoinFunc = int32_t (*)(hybm_entity_t, uint32_t, uint32_t);
+using hybmLeaveFunc = int32_t (*)(hybm_entity_t, uint32_t, uint32_t);
 
 class HybmCoreApi {
 public:
     static Result LoadLibrary(const std::string &libDirPath);
 
-    static inline int32_t HybmCoreInit(uint64_t globalSize, uint16_t deviceId, uint64_t flags)
+    static inline int32_t HybmCoreInit(uint16_t deviceId, uint64_t flags)
     {
-        return pHybmInit(globalSize, deviceId, flags);
+        return pHybmInit(deviceId, flags);
     }
 
     static inline void HybmCoreUninit()
@@ -112,6 +115,21 @@ public:
         return pHybmStop(e, flags);
     }
 
+    static inline int32_t HybmMmap(hybm_entity_t e, uint32_t flags)
+    {
+        return pHybmMmap(e, flags);
+    }
+
+    static inline int32_t HybmJoin(hybm_entity_t e, uint32_t rank, uint32_t flags)
+    {
+        return pHybmJoin(e, rank, flags);
+    }
+
+    static inline int32_t HybmLeave(hybm_entity_t e, uint32_t rank, uint32_t flags)
+    {
+        return pHybmLeave(e, rank, flags);
+    }
+
 private:
     static int32_t GetLibPath(const std::string &libDir, std::string &outputPath);
 
@@ -138,6 +156,9 @@ private:
     static hybmSetExtraContextFunc pHybmSetExtraContext;
     static hybmStartFunc pHybmStart;
     static hybmStopFunc pHybmStop;
+    static hybmMmapFunc pHybmMmap;
+    static hybmJoinFunc pHybmJoin;
+    static hybmLeaveFunc pHybmLeave;
 };
 }
 }
