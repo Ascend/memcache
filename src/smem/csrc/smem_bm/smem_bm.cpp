@@ -77,7 +77,13 @@ SMEM_API smem_bm_t smem_bm_create(uint32_t id)
     return nullptr;
 }
 
-SMEM_API void smem_bm_destroy(smem_bm_t handle) {}
+SMEM_API void smem_bm_destroy(smem_bm_t handle) {
+    SM_ASSERT_RET_VOID(handle == nullptr);
+    SM_ASSERT_RET_VOID(!g_smemBmInited);
+
+    auto ret = SmemBmEntryManager::Instance().RemoveEntryByPtr(reinterpret_cast<uintptr_t>(handle));
+    SM_ASSERT_RET_VOID(ret == SM_OK);
+}
 
 SMEM_API int32_t smem_bm_join(smem_bm_t handle, uint32_t flags, void **localGvaAddress)
 {
