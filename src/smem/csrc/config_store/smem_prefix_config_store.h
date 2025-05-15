@@ -40,9 +40,15 @@ public:
         return baseStore_->Append(std::string(keyPrefix_).append(key), value, newSize);
     }
 
+    Result Cas(const std::string &key, const std::vector<uint8_t> &expect, const std::vector<uint8_t> &value,
+               std::vector<uint8_t> &exists) noexcept override
+    {
+        return baseStore_->Cas(std::string(keyPrefix_).append(key), expect, value, exists);
+    }
+
     std::string GetCompleteKey(std::string &key) noexcept override
     {
-        return std::string(keyPrefix_).append(key);
+        return std::string(keyPrefix_).append(baseStore_->GetCompleteKey(key));
     }
 
 protected:

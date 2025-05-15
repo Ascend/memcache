@@ -80,6 +80,7 @@ private:
     Result AddHandler(const ock::acc::AccTcpRequestContext &context, SmemMessage &request) noexcept;
     Result RemoveHandler(const ock::acc::AccTcpRequestContext &context, SmemMessage &request) noexcept;
     Result AppendHandler(const ock::acc::AccTcpRequestContext &context, SmemMessage &request) noexcept;
+    Result CasHandler(const ock::acc::AccTcpRequestContext &context, SmemMessage &request) noexcept;
 
     std::list<ock::acc::AccTcpRequestContext> GetOutWaitersInLock(const std::unordered_set<uint64_t> &ids) noexcept;
     void WakeupWaiters(const std::list<ock::acc::AccTcpRequestContext> &waiters,

@@ -11,12 +11,15 @@ namespace smem {
 constexpr auto CONNECT_RETRY_MAX_TIMES = 60;
 
 ClientWaitContext::ClientWaitContext(std::mutex &mtx, std::condition_variable &cond) noexcept
-    : waitMutex_{ mtx }, waitCond_{ cond }, finished_{ false }
-{}
+    : waitMutex_{mtx},
+      waitCond_{cond},
+      finished_{false}
+{
+}
 
 std::shared_ptr<ock::acc::AccTcpRequestContext> ClientWaitContext::WaitFinished() noexcept
 {
-    std::unique_lock<std::mutex> locker{ waitMutex_ };
+    std::unique_lock<std::mutex> locker{waitMutex_};
     waitCond_.wait(locker, [this]() { return finished_; });
     auto copy = responseInfo_;
     locker.unlock();
@@ -26,7 +29,7 @@ std::shared_ptr<ock::acc::AccTcpRequestContext> ClientWaitContext::WaitFinished(
 
 void ClientWaitContext::SetFinished(const ock::acc::AccTcpRequestContext &response) noexcept
 {
-    std::unique_lock<std::mutex> locker{ waitMutex_ };
+    std::unique_lock<std::mutex> locker{waitMutex_};
     responseInfo_ = std::make_shared<ock::acc::AccTcpRequestContext>(response);
     finished_ = true;
     locker.unlock();
@@ -34,9 +37,12 @@ void ClientWaitContext::SetFinished(const ock::acc::AccTcpRequestContext &respon
     waitCond_.notify_one();
 }
 
-std::atomic<uint32_t> TcpConfigStore::reqSeqGen_{ 0 };
+std::atomic<uint32_t> TcpConfigStore::reqSeqGen_{0};
 TcpConfigStore::TcpConfigStore(std::string ip, uint16_t port, bool isServer, int32_t rankId) noexcept
-    : serverIp_{ std::move(ip) }, serverPort_{ port }, isServer_{ isServer }, rankId_{ rankId }
+    : serverIp_{std::move(ip)},
+      serverPort_{port},
+      isServer_{isServer},
+      rankId_{rankId}
 {
     if (isServer_) {
         accServer_ = SmMakeRef<AccStoreServer>(serverIp_, serverPort_);
@@ -78,8 +84,8 @@ Result TcpConfigStore::Startup(int reconnectRetryTimes) noexcept
         }
     }
 
-    accClient_->RegisterNewRequestHandler(0,
-        [this](const ock::acc::AccTcpRequestContext &context) { return ReceiveResponseHandler(context); });
+    accClient_->RegisterNewRequestHandler(
+        0, [this](const ock::acc::AccTcpRequestContext &context) { return ReceiveResponseHandler(context); });
     accClient_->RegisterLinkBrokenHandler(
         [this](const ock::acc::AccTcpLinkComplexPtr &link) { return LinkBrokenHandler(link); });
 
@@ -125,7 +131,7 @@ Result TcpConfigStore::Set(const std::string &key, const std::vector<uint8_t> &v
         return StoreErrorCode::INVALID_KEY;
     }
 
-    SmemMessage request{ MessageType::SET };
+    SmemMessage request{MessageType::SET};
     request.keys.push_back(key);
     request.values.push_back(value);
 
@@ -151,7 +157,7 @@ Result TcpConfigStore::GetReal(const std::string &key, std::vector<uint8_t> &val
         return StoreErrorCode::INVALID_KEY;
     }
 
-    SmemMessage request{ MessageType::GET };
+    SmemMessage request{MessageType::GET};
     request.keys.push_back(key);
     request.userDef = timeoutMs;
 
@@ -193,7 +199,7 @@ Result TcpConfigStore::Add(const std::string &key, int64_t increment, int64_t &v
         return StoreErrorCode::INVALID_KEY;
     }
 
-    SmemMessage request{ MessageType::ADD };
+    SmemMessage request{MessageType::ADD};
     request.keys.push_back(key);
     std::string inc = std::to_string(increment);
     request.values.push_back(std::vector<uint8_t>(inc.begin(), inc.end()));
@@ -223,7 +229,7 @@ Result TcpConfigStore::Remove(const std::string &key) noexcept
         return StoreErrorCode::INVALID_KEY;
     }
 
-    SmemMessage request{ MessageType::REMOVE };
+    SmemMessage request{MessageType::REMOVE};
     request.keys.push_back(key);
 
     auto packedRequest = SmemMessagePacker::Pack(request);
@@ -249,7 +255,7 @@ Result TcpConfigStore::Append(const std::string &key, const std::vector<uint8_t>
         return StoreErrorCode::INVALID_KEY;
     }
 
-    SmemMessage request{ MessageType::APPEND };
+    SmemMessage request{MessageType::APPEND};
     request.keys.push_back(key);
     request.values.push_back(value);
 
@@ -270,6 +276,50 @@ Result TcpConfigStore::Append(const std::string &key, const std::vector<uint8_t>
     newSize = strtol(data.c_str(), nullptr, 10);
 
     return StoreErrorCode::SUCCESS;
+}
+
+Result TcpConfigStore::Cas(const std::string &key, const std::vector<uint8_t> &expect,
+                           const std::vector<uint8_t> &value, std::vector<uint8_t> &exists) noexcept
+{
+    if (key.empty() || key.length() > MAX_KEY_LEN_CLIENT) {
+        SM_LOG_ERROR("key length is invalid");
+        return StoreErrorCode::INVALID_KEY;
+    }
+
+    SmemMessage request{MessageType::CAS};
+    request.keys.push_back(key);
+    request.values.push_back(expect);
+    request.values.push_back(value);
+
+    auto packedRequest = SmemMessagePacker::Pack(request);
+    auto response = SendMessageBlocked(packedRequest);
+    if (response == nullptr) {
+        SM_LOG_ERROR("send CAS for key: " << key << ", get null response");
+        return StoreErrorCode::ERROR;
+    }
+
+    auto responseCode = response->Header().result;
+    if (responseCode != 0) {
+        SM_LOG_ERROR("send CAS for key: " << key << ", get response code: " << responseCode);
+        return responseCode;
+    }
+
+    auto data = reinterpret_cast<const uint8_t *>(response->DataPtr());
+    auto packedResponse = std::vector<uint8_t>(data, data + response->DataLen());
+    SmemMessage responseBody;
+    auto ret = SmemMessagePacker::Unpack(packedResponse, responseBody);
+    if (ret < 0) {
+        SM_LOG_ERROR("unpack response body failed, result: " << ret);
+        return -1;
+    }
+
+    if (responseBody.values.empty()) {
+        SM_LOG_ERROR("response body has no value");
+        return -1;
+    }
+
+    exists = std::move(responseBody.values[0]);
+    return 0;
 }
 
 std::shared_ptr<ock::acc::AccTcpRequestContext> TcpConfigStore::SendMessageBlocked(
@@ -293,7 +343,7 @@ std::shared_ptr<ock::acc::AccTcpRequestContext> TcpConfigStore::SendMessageBlock
     std::condition_variable waitRespCond;
     auto waitContext = std::make_shared<ClientWaitContext>(waitRespMutex, waitRespCond);
 
-    std::unique_lock<std::mutex> msgCtxLocker{ msgCtxMutex_ };
+    std::unique_lock<std::mutex> msgCtxLocker{msgCtxMutex_};
     msgWaitContext_.emplace(seqNo, waitContext);
     msgCtxLocker.unlock();
 
@@ -311,7 +361,7 @@ Result TcpConfigStore::ReceiveResponseHandler(const ock::acc::AccTcpRequestConte
 {
     SM_LOG_DEBUG("client received message: " << context.SeqNo());
     std::shared_ptr<ClientWaitContext> waitContext;
-    std::unique_lock<std::mutex> msgCtxLocker{ msgCtxMutex_ };
+    std::unique_lock<std::mutex> msgCtxLocker{msgCtxMutex_};
     auto pos = msgWaitContext_.find(context.SeqNo());
     if (pos != msgWaitContext_.end()) {
         waitContext = std::move(pos->second);
@@ -336,5 +386,5 @@ uint8_t *TcpConfigStore::DuplicateMessage(const std::vector<uint8_t> &message) n
     memcpy(dup, message.data(), message.size());
     return dup;
 }
-} // namespace smem
-} // namespace ock
+}  // namespace smem
+}  // namespace ock
