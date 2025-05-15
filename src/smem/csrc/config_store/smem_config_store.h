@@ -105,6 +105,34 @@ public:
     virtual Result Append(const std::string &key, const std::vector<uint8_t> &value, uint64_t &newSize) noexcept = 0;
 
     /**
+     * @brief Perform an atomic compare and swap for string type. That is, if the current value for <i>key</i> equals
+     *        <i>expect</i>, then set the value of <i>key</i> to be <i>value</i>.
+     * @param key          [in] key for performed
+     * @param expect       [in] expected value for old, empty string equals non-exist
+     * @param value        [in] value for set if expected matches
+     * @param exists       [out] old value of the key before this operation
+     * @return If the communication with the store server is successful, 0 is returned. Otherwise, non-zero is returned.
+     *         Returning 0 does not indicate successful CAS. To determine whether the CAS is successful, compare
+     *         <i>exists</i> and <i>expect</i>.
+     */
+    Result Cas(const std::string &key, const std::string &expect, const std::string &value,
+                  std::string &exists) noexcept;
+
+    /**
+     * @brief Perform an atomic compare and swap for uint8 vector. That is, if the current value for <i>key</i> equals
+     *        <i>expect</i>, then set the value of <i>key</i> to be <i>value</i>.
+     * @param key          [in] key for performed
+     * @param expect       [in] expected value for old, empty vector equals non-exist
+     * @param value        [in] value for set if expected matches
+     * @param exists       [out] old value of the key before this operation
+     * @return If the communication with the store server is successful, 0 is returned. Otherwise, non-zero is returned.
+     *         Returning 0 does not indicate successful CAS. To determine whether the CAS is successful, compare
+     *         <i>exists</i> and <i>expect</i>.
+     */
+    virtual Result Cas(const std::string &key, const std::vector<uint8_t> &expect, const std::vector<uint8_t> &value,
+                       std::vector<uint8_t> &exists) noexcept = 0;
+
+    /**
      * @brief Get error string by code
      *
      * @param errCode      [in] error cde
@@ -146,6 +174,20 @@ inline Result ConfigStore::Append(const std::string &key, const std::string &val
 {
     std::vector<uint8_t> u8val(value.begin(), value.end());
     return Append(key, u8val, newSize);
+}
+
+inline Result ConfigStore::Cas(const std::string &key, const std::string &expect, const std::string &value,
+                               std::string &exists) noexcept {
+    std::vector<uint8_t> u8expect{expect.begin(), expect.end()};
+    std::vector<uint8_t> u8value{value.begin(), value.end()};
+    std::vector<uint8_t> u8exists;
+    auto ret = Cas(key, u8expect, u8value, u8exists);
+    if (ret != SM_OK) {
+        return ret;
+    }
+
+    exists = std::string{u8exists.begin(), u8exists.end()};
+    return SM_OK;
 }
 
 inline const char *ConfigStore::ErrStr(int16_t errCode)

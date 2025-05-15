@@ -13,11 +13,10 @@ std::atomic<uint64_t> StoreWaitContext::idGen_{1UL};
 AccStoreServer::AccStoreServer(std::string ip, uint16_t port) noexcept
     : listenIp_{std::move(ip)},
       listenPort_{port},
-      requestHandlers_{{MessageType::SET, &AccStoreServer::SetHandler},
-                       {MessageType::GET, &AccStoreServer::GetHandler},
-                       {MessageType::ADD, &AccStoreServer::AddHandler},
-                       {MessageType::REMOVE, &AccStoreServer::RemoveHandler},
-                       {MessageType::APPEND, &AccStoreServer::AppendHandler}}
+      requestHandlers_{
+          {MessageType::SET, &AccStoreServer::SetHandler},       {MessageType::GET, &AccStoreServer::GetHandler},
+          {MessageType::ADD, &AccStoreServer::AddHandler},       {MessageType::REMOVE, &AccStoreServer::RemoveHandler},
+          {MessageType::APPEND, &AccStoreServer::AppendHandler}, {MessageType::CAS, &AccStoreServer::CasHandler}}
 {
 }
 
@@ -353,6 +352,60 @@ Result AccStoreServer::AppendHandler(const ock::acc::AccTcpRequestContext &conte
         WakeupWaiters(wakeupWaiters, value);
     }
 
+    return SM_OK;
+}
+
+Result AccStoreServer::CasHandler(const ock::acc::AccTcpRequestContext &context,
+                                  ock::smem::SmemMessage &request) noexcept
+{
+    if (request.keys.size() != 1 || request.values.size() != 2) {
+        SM_LOG_ERROR("request(" << context.SeqNo() << ") handle invalid body");
+        ReplyWithMessage(context, StoreErrorCode::INVALID_MESSAGE, "invalid request: count(key)=1 & count(value)=2");
+        return SM_INVALID_PARAM;
+    }
+
+    auto &key = request.keys[0];
+    auto &expected = request.values[0];
+    auto &exchange = request.values[1];
+    auto newValue = exchange;
+    if (key.length() > MAX_KEY_LEN_SERVER) {
+        SM_LOG_ERROR("key length too large, length: " << key.length());
+        return StoreErrorCode::INVALID_KEY;
+    }
+
+    std::vector<uint8_t> exists;
+    SmemMessage responseMessage{request.mt};
+    std::list<ock::acc::AccTcpRequestContext> wakeupWaiters;
+    SM_LOG_DEBUG("CAS REQUEST(" << context.SeqNo() << ") for key(" << key << ") start.");
+
+    std::unique_lock<std::mutex> lockGuard{storeMutex_};
+    auto pos = kvStore_.find(key);
+    if (pos != kvStore_.end()) {
+        if (expected == pos->second) {
+            exists = std::move(pos->second);
+            pos->second = std::move(exchange);
+        } else {
+            exists = pos->second;
+        }
+    } else {
+        if (expected.empty()) {
+            pos->second = std::move(exchange);
+            auto wPos = keyWaiters_.find(key);
+            if (wPos != keyWaiters_.end()) {
+                wakeupWaiters = GetOutWaitersInLock(wPos->second);
+                keyWaiters_.erase(wPos);
+            }
+        }
+    }
+    lockGuard.unlock();
+    SM_LOG_DEBUG("CAS REQUEST(" << context.SeqNo() << ") for key(" << key << ") finished.");
+
+    responseMessage.values.push_back(exists);
+    auto response = SmemMessagePacker::Pack(responseMessage);
+    ReplyWithMessage(context, StoreErrorCode::SUCCESS, response);
+    if (!wakeupWaiters.empty()) {
+        WakeupWaiters(wakeupWaiters, newValue);
+    }
     return SM_OK;
 }
 
