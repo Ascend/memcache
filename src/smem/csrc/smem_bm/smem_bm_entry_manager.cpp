@@ -147,6 +147,8 @@ Result SmemBmEntryManager::CreateEntryById(uint32_t id, SmemBmEntryPtr &entry /*
     }
 
     /* create new bm entry */
+    SmemBmEntryOptions opt{ id, config_.rankId, config_.dynamicWorldSize, config_.controlOperationTimeout };
+    auto tmpEntry = SmMakeRef<SmemBmEntry>(opt);
     SmemBmEntryOptions opt;
     opt.id = id;
     auto store = StoreFactory::PrefixStore(confStore_, std::string("#BmEntry#").append(std::to_string(id)));
@@ -165,8 +167,6 @@ Result SmemBmEntryManager::CreateEntryById(uint32_t id, SmemBmEntryPtr &entry /*
 
     /* assign out object ptr */
     entry = tmpEntry;
-    entry->SetConfig(config_);
-
     SM_LOG_DEBUG("create new bm entry success, id: " << id);
     return SM_OK;
 }

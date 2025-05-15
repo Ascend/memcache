@@ -13,7 +13,10 @@
 namespace ock {
 namespace smem {
 struct SmemBmEntryOptions {
-    uint32_t id = 0;
+    uint32_t id;
+    uint32_t rank;
+    uint32_t rankSize;
+    uint64_t controlOperationTimeout;
 };
 
 class SmemBmEntry : public SmReferable {
