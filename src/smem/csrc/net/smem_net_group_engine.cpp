@@ -263,11 +263,10 @@ Result SmemNetGroupEngine::StartListenEvent()
 Result SmemNetGroupEngine::GroupJoin()
 {
     SM_ASSERT_RETURN(option_.dynamic, SM_INVALID_PARAM);
-
+    std::string old;
     std::string val = "J" + std::to_string(option_.rank);
     while (true) {
-        // TODO: update cas
-        auto ret = store_->Set(SMEM_GROUP_LISTEN_EVENT_KEY, val);
+        auto ret = store_->Cas(SMEM_GROUP_LISTEN_EVENT_KEY, "", val, old);
         if (ret == SM_OK) {
             break;
         }
@@ -308,10 +307,10 @@ Result SmemNetGroupEngine::GroupLeave()
 {
     SM_ASSERT_RETURN(option_.dynamic, SM_INVALID_PARAM);
     SM_ASSERT_RETURN(joined_, SM_NOT_STARTED);
+    std::string old;
     std::string val = "L" + std::to_string(option_.rank);
     while (true) {
-        // TODO: update cas
-        auto ret = store_->Set(SMEM_GROUP_LISTEN_EVENT_KEY, val);
+        auto ret = store_->Cas(SMEM_GROUP_LISTEN_EVENT_KEY, "", val, old);
         if (ret == SM_OK) {
             break;
         }

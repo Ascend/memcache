@@ -24,13 +24,6 @@ static void ReleaseAfterFailed(hybm_entity_t entity, hybm_mem_slice_t slice, voi
     }
 }
 
-void SmemBmEntry::SetConfig(const smem_bm_config_t &config)
-{
-    extraConfig_ = config;
-    SM_LOG_INFO("bmId: " << options_.id
-                         << " set_config control_operation_timeout: " << extraConfig_.controlOperationTimeout);
-}
-
 int32_t SmemBmEntry::Initialize(const hybm_options &options)
 {
     uint32_t flags = 0;
@@ -38,7 +31,6 @@ int32_t SmemBmEntry::Initialize(const hybm_options &options)
     void *reservedMem = nullptr;
     hybm_mem_slice_t slice = nullptr;
     Result ret = SM_ERROR;
-    localRank_ = options.rankId;
 
     SM_LOG_ERROR_RETURN_IT_IF_NOT_OK(CreateGlobalTeam(options.rankCount, options.rankId), "create global team failed");
 
@@ -64,37 +56,10 @@ int32_t SmemBmEntry::Initialize(const hybm_options &options)
             break;
         }
 
-        hybm_exchange_info exInfo;
-        bzero(&exInfo, sizeof(hybm_exchange_info));
-        ret = HybmCoreApi::HybmExport(entity, slice, flags, &exInfo);
+        bzero(&exInfo_, sizeof(hybm_exchange_info));
+        ret = HybmCoreApi::HybmExport(entity_, slice, flags, &exInfo_);
         if (ret != 0) {
             SM_LOG_ERROR("hybm export failed, result: " << ret);
-            break;
-        }
-
-        hybm_exchange_info allExInfo[options.rankCount];
-        ret = globalGroup_->GroupAllGather((char *)&exInfo, sizeof(hybm_exchange_info), (char *)allExInfo,
-                                           sizeof(hybm_exchange_info) * options.rankCount);
-        if (ret != 0) {
-            SM_LOG_ERROR("hybm gather export failed, result: " << ret);
-            break;
-        }
-
-        ret = HybmCoreApi::HybmImport(entity, allExInfo, options.rankCount, flags);
-        if (ret != 0) {
-            SM_LOG_ERROR("hybm import failed, result: " << ret);
-            break;
-        }
-
-        ret = globalGroup_->GroupBarrier();
-        if (ret != 0) {
-            SM_LOG_ERROR("hybm barrier failed, result: " << ret);
-            break;
-        }
-
-        ret = HybmCoreApi::HybmMmap(entity, flags);
-        if (ret != 0) {
-            SM_LOG_ERROR("hybm mmap failed, result: " << ret);
             break;
         }
 
@@ -118,9 +83,59 @@ int32_t SmemBmEntry::Initialize(const hybm_options &options)
     return 0;
 }
 
+Result SmemBmEntry::JoinHandle(uint32_t rk)
+{
+    hybm_exchange_info allExInfo[coreOptions_.rankCount];
+    auto ret = globalGroup_->GroupAllGather((char *)&exInfo_, sizeof(hybm_exchange_info), (char *)allExInfo,
+                                       sizeof(hybm_exchange_info) * coreOptions_.rankCount);
+    if (ret != 0) {
+        SM_LOG_ERROR("hybm gather export failed, result: " << ret);
+        return SM_ERROR;
+    }
+
+    ret = HybmCoreApi::HybmImport(entity_, allExInfo, coreOptions_.rankCount, 0);
+    if (ret != 0) {
+        SM_LOG_ERROR("hybm import failed, result: " << ret);
+        return SM_ERROR;
+    }
+
+    ret = globalGroup_->GroupBarrier();
+    if (ret != 0) {
+        SM_LOG_ERROR("hybm barrier failed, result: " << ret);
+        return SM_ERROR;
+    }
+
+    ret = HybmCoreApi::HybmMmap(entity_, 0);
+    if (ret != 0) {
+        SM_LOG_ERROR("hybm mmap failed, result: " << ret);
+        return SM_ERROR;
+    }
+
+    ret = HybmCoreApi::HybmJoin(entity_, rk, 0);
+    if (ret != 0) {
+        SM_LOG_ERROR("hybm join failed, result: " << ret);
+        return SM_ERROR;
+    }
+
+    // TODO: rollback after join failed
+    return SM_OK;
+}
+
+Result SmemBmEntry::LeaveHandle(uint32_t rk)
+{
+    auto ret = HybmCoreApi::HybmLeave(entity_, rk, 0);
+    if (ret != 0) {
+        SM_LOG_ERROR("hybm leave failed, result: " << ret);
+        return SM_ERROR;
+    }
+    return SM_OK;
+}
+
 Result SmemBmEntry::Join(uint32_t flags, void **localGvaAddress)
 {
     SM_ASSERT_RETURN(!inited_, SM_NOT_INITIALIZED);
+    auto ret = globalGroup_->GroupJoin();
+    SM_LOG_ERROR_RETURN_IT_IF_NOT_OK(ret, "join failed, ret: " << ret);
 
     return SM_OK;
 }
@@ -128,6 +143,8 @@ Result SmemBmEntry::Join(uint32_t flags, void **localGvaAddress)
 Result SmemBmEntry::Leave(uint32_t flags)
 {
     SM_ASSERT_RETURN(!inited_, SM_NOT_INITIALIZED);
+    auto ret = globalGroup_->GroupLeave();
+    SM_LOG_ERROR_RETURN_IT_IF_NOT_OK(ret, "leave failed, ret: " << ret);
 
     return SM_OK;
 }
@@ -155,8 +172,10 @@ Result SmemBmEntry::DataCopy(const void *src, void *dest, uint64_t size, smem_bm
 }
 Result SmemBmEntry::CreateGlobalTeam(uint32_t rankSize, uint32_t rankId)
 {
-    SmemGroupOption opt = {rankSize, rankId,  extraConfig_.controlOperationTimeout * SECOND_TO_MILLSEC,
-                           false,    nullptr, nullptr};
+    SmemGroupChangeCallback joinFunc = std::bind(&SmemBmEntry::JoinHandle, this, std::placeholders::_1);
+    SmemGroupChangeCallback leaveFunc = std::bind(&SmemBmEntry::LeaveHandle, this, std::placeholders::_1);
+    SmemGroupOption opt = {rankSize, rankId,  options_.controlOperationTimeout * SECOND_TO_MILLSEC,
+                           false, joinFunc, leaveFunc};
     SmemGroupEnginePtr group = SmemNetGroupEngine::Create(_configStore, opt);
     SM_ASSERT_RETURN(group != nullptr, SM_ERROR);
 

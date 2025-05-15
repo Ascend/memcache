@@ -29,8 +29,6 @@ public:
 
     ~SmemBmEntry() override = default;
 
-    void SetConfig(const smem_bm_config_t &config);
-
     int32_t Initialize(const hybm_options &options);
 
     Result Join(uint32_t flags, void **localGvaAddress);
@@ -49,20 +47,22 @@ private:
     bool AddressInRange(const void *address, uint64_t size);
     Result CreateGlobalTeam(uint32_t rankSize, uint32_t rankId);
 
+    Result JoinHandle(uint32_t rk);
+    Result LeaveHandle(uint32_t rk);
+
 private:
     /* hot used variables */
     bool inited_ = false;
     std::mutex mutex_;
     SmemGroupEnginePtr globalGroup_ = nullptr;
-    uint32_t localRank_ = UINT32_MAX;
     hybm_entity_t entity_ = nullptr;
     void *gva_ = nullptr;
 
     /* non-hot used variables */
     SmemBmEntryOptions options_;
     hybm_options coreOptions_;
-    smem_bm_config_t extraConfig_;
     StorePtr _configStore;
+    hybm_exchange_info exInfo_;
 };
 using SmemBmEntryPtr = SmRef<SmemBmEntry>;
 
