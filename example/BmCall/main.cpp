@@ -94,7 +94,7 @@ int main(int32_t argc, char* argv[])
             LOG_ERROR("fork failed ! " << pids[i]);
             exit(-1);
         } else if (pids[i] == 0) {
-            // 子进程
+            // subprocess
             close(pipeFd[i][1]); // close write
             SubProcessRuning(i, rankSize, ipport);
             exit(0);

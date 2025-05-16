@@ -47,7 +47,7 @@ Result SmemNetGroupEngine::GroupBarrier()
 {
     SM_ASSERT_RETURN(store_ != nullptr, SM_INVALID_PARAM);
     uint32_t size = option_.rankSize;
-    std::string idx = std::to_string(groupVersion_) + "_" + std::to_string(groupSn_.fetch_add(1U));
+    std::string idx = std::to_string(groupVersion_) + "_" + std::to_string(groupSn_++);
     std::string addKey = idx + "_BA";
     std::string waitKey = idx + "_BW";
     int64_t val = 0;
@@ -128,7 +128,7 @@ Result SmemNetGroupEngine::GroupAllGather(const char *sendBuf, uint32_t sendSize
     uint32_t size = option_.rankSize;
     SM_ASSERT_RETURN(sendSize * size == recvSize, SM_INVALID_PARAM);
 
-    std::string idx = std::to_string(groupVersion_) + "_" + std::to_string(groupSn_.fetch_add(1U));
+    std::string idx = std::to_string(groupVersion_) + "_" + std::to_string(groupSn_++);
     std::string addKey = idx + "_GA";
     std::string waitKey = idx + "_GW";
 
