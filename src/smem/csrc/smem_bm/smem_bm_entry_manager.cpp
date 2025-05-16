@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
+* Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
 #include <thread>
 #include <algorithm>
@@ -89,7 +89,7 @@ int32_t SmemBmEntryManager::PrepareStore()
             SM_ASSERT_RETURN(confStore_ != nullptr, StoreFactory::GetFailedReason());
         }
     }
-    confStore_ = StoreFactory::PrefixStore(confStore_, "SMEM_BM#");
+    confStore_ = StoreFactory::PrefixStore(confStore_, "SMEM_BM_");
 
     return SM_OK;
 }
@@ -172,7 +172,7 @@ Result SmemBmEntryManager::CreateEntryById(uint32_t id, SmemBmEntryPtr &entry /*
 
     /* create new bm entry */
     SmemBmEntryOptions opt{ id, config_.rankId, config_.dynamicWorldSize, config_.controlOperationTimeout };
-    auto store = StoreFactory::PrefixStore(confStore_, std::string("#BmEntry#").append(std::to_string(id)));
+    auto store = StoreFactory::PrefixStore(confStore_, std::string("(").append(std::to_string(id)).append(")_"));
     if (store == nullptr) {
         SM_LOG_ERROR("create new prefix store for entity: " << id << " failed");
         return SM_ERROR;
