@@ -78,7 +78,7 @@ int32_t SmemBmEntryManager::PrepareStore()
         }
         SM_ASSERT_RETURN(confStore_ != nullptr, SM_ERROR);
 
-        confStore_ = StoreFactory::PrefixStore(confStore_, "SMEM_BM#");
+        confStore_ = StoreFactory::PrefixStore(confStore_, "SMEM_BM_");
     } else {
         if (config_.startConfigStore) {
             SM_LOG_ERROR("AutoRanking mode not support configure store open.");
@@ -151,7 +151,7 @@ Result SmemBmEntryManager::CreateEntryById(uint32_t id, SmemBmEntryPtr &entry /*
 
     /* create new bm entry */
     SmemBmEntryOptions opt{ id, config_.rankId, config_.dynamicWorldSize, config_.controlOperationTimeout };
-    auto store = StoreFactory::PrefixStore(confStore_, std::string("#BmEntry#").append(std::to_string(id)));
+    auto store = StoreFactory::PrefixStore(confStore_, std::string("(").append(std::to_string(id)).append(")_"));
     if (store == nullptr) {
         SM_LOG_ERROR("create new prefix store for entity: " << id << " failed");
         return SM_ERROR;
