@@ -15,7 +15,7 @@ std::unordered_map<std::string, StorePtr> StoreFactory::serverStores_;
 std::unordered_map<std::string, StorePtr> StoreFactory::clientStores_;
 
 StorePtr StoreFactory::CreateStore(const std::string &ip, uint16_t port, bool isServer, int32_t rankId,
-    int32_t connMaxRetry) noexcept
+                                   int32_t connMaxRetry) noexcept
 {
     std::string storeKey = std::string(ip).append(":").append(std::to_string(port));
     std::unordered_map<std::string, StorePtr> *storeMap = isServer ? &serverStores_ : &clientStores_;
@@ -31,14 +31,14 @@ StorePtr StoreFactory::CreateStore(const std::string &ip, uint16_t port, bool is
 
     auto ret = store->Startup(connMaxRetry);
     if (ret == SM_RESOURCE_IN_USE) {
-        SM_LOG_INFO("Startup for store(url=" << ip << ":" << port << ", isSever=" << isServer << ", rank=" << rankId <<
-            ") address in use");
+        SM_LOG_INFO("Startup for store(url=" << ip << ":" << port << ", isSever=" << isServer << ", rank=" << rankId
+                                             << ") address in use");
         failedReason_ = SM_RESOURCE_IN_USE;
         return nullptr;
     }
     if (ret != 0) {
-        SM_LOG_ERROR("Startup for store(url=" << ip << ":" << port << ", isSever=" << isServer << ", rank=" << rankId <<
-            ") failed:" << ret);
+        SM_LOG_ERROR("Startup for store(url=" << ip << ":" << port << ", isSever=" << isServer << ", rank=" << rankId
+                                              << ") failed:" << ret);
         failedReason_ = ret;
         return nullptr;
     }
@@ -47,6 +47,15 @@ StorePtr StoreFactory::CreateStore(const std::string &ip, uint16_t port, bool is
     lockGuard.unlock();
 
     return store.Get();
+}
+
+void StoreFactory::DestroyStore(const std::string &ip, uint16_t port, bool isServer) noexcept
+{
+    std::string storeKey = std::string(ip).append(":").append(std::to_string(port));
+    std::unordered_map<std::string, StorePtr> *storeMap = isServer ? &serverStores_ : &clientStores_;
+
+    std::unique_lock<std::mutex> lockGuard{storesMutex_};
+    storeMap->erase(storeKey);
 }
 
 StorePtr StoreFactory::PrefixStore(const ock::smem::StorePtr &base, const std::string &prefix) noexcept
@@ -63,5 +72,5 @@ int StoreFactory::GetFailedReason() noexcept
 {
     return failedReason_;
 }
-} // namespace smem
-} // namespace ock
+}  // namespace smem
+}  // namespace ock

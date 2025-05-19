@@ -13,7 +13,6 @@ class AccConfigStoreTest : public testing::Test {
 public:
     void SetUp() override
     {
-        uint16_t port = 10000U + getpid() % 1000U;
         std::cout << "port is : " << port << std::endl;
         server = ock::smem::StoreFactory::CreateStore("127.0.0.1", port, true, 0);
         client = ock::smem::StoreFactory::CreateStore("127.0.0.1", port, false, 1);
@@ -21,11 +20,15 @@ public:
 
     void TearDown() override
     {
-        // client.reset();
-        // server.reset();
+        client = nullptr;
+        ock::smem::StoreFactory::DestroyStore("127.0.0.1", port, false);
+
+        server = nullptr;
+        ock::smem::StoreFactory::DestroyStore("127.0.0.1", port, true);
     }
 
 protected:
+    const uint16_t port = 10000U + getpid() % 1000U;
     ock::smem::StorePtr client;
     ock::smem::StorePtr server;
 };
@@ -136,4 +139,94 @@ TEST_F(AccConfigStoreTest, prefix_store_check)
     ret = store->Get(key, getValue, 0);
     ASSERT_EQ(0, ret);
     ASSERT_EQ(value, getValue);
+}
+
+
+TEST_F(AccConfigStoreTest, get_when_server_exit)
+{
+    std::string prefix = "/server-exit/";
+    auto store = ock::smem::StoreFactory::PrefixStore(client, prefix);
+
+    std::atomic<bool> finished{false};
+    std::atomic<int> ret{-10000};
+    std::string key = "store_check_key_for_server_exit";
+    std::string value;
+
+    std::thread child{[&finished, &ret, &store, &key, &value](){
+        ret = store->Get(key, value);
+        finished = true;
+    }};
+    child.detach();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    server = nullptr;
+    ock::smem::StoreFactory::DestroyStore("127.0.0.1", port, true);
+    std::this_thread::sleep_for(std::chrono::seconds (1));
+
+    ASSERT_TRUE(finished.load());
+    ASSERT_NE(0, ret.load());
+}
+
+TEST_F(AccConfigStoreTest, watch_one_key_notify_success)
+{
+    std::string prefix = "/watch/";
+    auto store = ock::smem::StoreFactory::PrefixStore(client, prefix);
+
+    uint32_t wid;
+    std::string key = "watch_store_check_key";
+    std::string value = "this is value";
+
+    struct NotifyContext {
+        std::mutex mutex;
+        std::condition_variable cond;
+        bool finished = false;
+        int result = -1;
+        std::string key;
+        std::string value;
+    } notifyContext;
+
+    auto ret = client->Watch(
+        key,
+        [&notifyContext](int res, const std::string &nKey, const std::string &nValue) {
+            std::unique_lock<std::mutex> lockGuard{notifyContext.mutex};
+            notifyContext.finished = true;
+            notifyContext.result = res;
+            notifyContext.key = nKey;
+            notifyContext.value = nValue;
+            lockGuard.unlock();
+
+            notifyContext.cond.notify_one();
+        },
+        wid);
+    ASSERT_EQ(0, ret) << "client watch key: (" << key << ") failed.";
+
+    ret = server->Set(key, value);
+    ASSERT_EQ(0, ret) << "server set key: (" << key << ") failed.";
+
+    std::unique_lock<std::mutex> lockGuard{notifyContext.mutex};
+    notifyContext.cond.wait_for(lockGuard, std::chrono::seconds{1});
+    ASSERT_TRUE(notifyContext.finished);
+    ASSERT_EQ(key, notifyContext.key);
+    ASSERT_EQ(0, notifyContext.result);
+    ASSERT_EQ(value, notifyContext.value);
+}
+
+TEST_F(AccConfigStoreTest, watch_one_key_unwatch)
+{
+    std::string prefix = "/watch-unwatch/";
+    auto store = ock::smem::StoreFactory::PrefixStore(client, prefix);
+
+    uint32_t wid;
+    std::string key = "watch_store_check_key_for_unwatch";
+    std::string value = "this is value";
+
+    std::atomic<int64_t> notifyTimes{0L};
+    auto ret = client->Watch(
+        key, [&notifyTimes](int, const std::string &, const std::string &) { notifyTimes.fetch_add(1L); }, wid);
+    ASSERT_EQ(0, ret) << "client watch key: (" << key << ") failed.";
+
+    ret = client->Unwatch(wid);
+    ASSERT_EQ(0, ret) << "client unwatch for wid: (" << wid << ") failed.";
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT_EQ(0L, notifyTimes.load());
 }

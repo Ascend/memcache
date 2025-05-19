@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <functional>
 
 #include "smem_config_store.h"
 #include "smem_tcp_config_store_server.h"
@@ -16,17 +17,13 @@
 namespace ock {
 namespace smem {
 
-class ClientWaitContext {
+class ClientCommonContext {
 public:
-    ClientWaitContext(std::mutex &mtx, std::condition_variable &cond) noexcept;
-    std::shared_ptr<ock::acc::AccTcpRequestContext> WaitFinished() noexcept;
-    void SetFinished(const ock::acc::AccTcpRequestContext &response) noexcept;
-
-private:
-    std::mutex &waitMutex_;
-    std::condition_variable &waitCond_;
-    bool finished_;
-    std::shared_ptr<ock::acc::AccTcpRequestContext> responseInfo_;
+    virtual ~ClientCommonContext() = default;
+    virtual std::shared_ptr<ock::acc::AccTcpRequestContext> WaitFinished() noexcept = 0;
+    virtual void SetFinished(const ock::acc::AccTcpRequestContext &response) noexcept = 0;
+    virtual void SetFailedFinish() noexcept = 0;
+    virtual bool Blocking() const noexcept = 0;
 };
 
 class TcpConfigStore : public ConfigStore {
@@ -43,6 +40,10 @@ public:
     Result Append(const std::string &key, const std::vector<uint8_t> &value, uint64_t &newSize) noexcept override;
     Result Cas(const std::string &key, const std::vector<uint8_t> &expect, const std::vector<uint8_t> &value,
                std::vector<uint8_t> &exists) noexcept override;
+    Result Watch(const std::string &key,
+                 const std::function<void(int result, const std::string &, const std::vector<uint8_t> &)> &notify,
+                 uint32_t &wid) noexcept override;
+    Result Unwatch(uint32_t wid) noexcept override;
     std::string GetCompleteKey(const std::string &key) noexcept override
     {
         return key;
@@ -65,6 +66,8 @@ private:
     std::shared_ptr<ock::acc::AccTcpRequestContext> SendMessageBlocked(const std::vector<uint8_t> &reqBody) noexcept;
     Result LinkBrokenHandler(const ock::acc::AccTcpLinkComplexPtr &link) noexcept;
     Result ReceiveResponseHandler(const ock::acc::AccTcpRequestContext &context) noexcept;
+    Result SendWatchRequest(const std::vector<uint8_t> &reqBody,
+                            const std::function<void(int result, const std::vector<uint8_t> &)> &notify, uint32_t &id) noexcept;
 
 private:
     AccStoreServerPtr accServer_;
@@ -72,7 +75,7 @@ private:
     ock::acc::AccTcpLinkComplexPtr accClientLink_;
 
     std::mutex msgCtxMutex_;
-    std::unordered_map<uint32_t, std::shared_ptr<ClientWaitContext>> msgWaitContext_;
+    std::unordered_map<uint32_t, std::shared_ptr<ClientCommonContext>> msgClientContext_;
     static std::atomic<uint32_t> reqSeqGen_;
 
     std::mutex mutex_;

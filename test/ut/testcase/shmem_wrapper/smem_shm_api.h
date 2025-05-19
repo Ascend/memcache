@@ -18,7 +18,7 @@ using SmemGetAndClearLastErrMsgFunc = const char *(*)();
 
 /* smem shm functions */
 using SmemShmConfigInitFunc = int32_t (*)(smem_shm_config_t *config);
-using SmemShmInitFunc = int32_t (*)(const char *, uint32_t, uint32_t, uint16_t, uint64_t, smem_shm_config_t *);
+using SmemShmInitFunc = int32_t (*)(const char *, uint32_t, uint32_t, uint16_t, smem_shm_config_t *);
 using SmemShmUnInitFunc = void (*)(uint32_t flags);
 using SmemShmQuerySupportDataOpFunc = uint32_t (*)(void);
 using SmemShmCreateFunc = smem_shm_t (*)(uint32_t, uint32_t, uint32_t, uint64_t, smem_shm_data_op_type, uint32_t,
