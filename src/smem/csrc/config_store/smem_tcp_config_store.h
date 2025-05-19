@@ -65,7 +65,6 @@ private:
     std::shared_ptr<ock::acc::AccTcpRequestContext> SendMessageBlocked(const std::vector<uint8_t> &reqBody) noexcept;
     Result LinkBrokenHandler(const ock::acc::AccTcpLinkComplexPtr &link) noexcept;
     Result ReceiveResponseHandler(const ock::acc::AccTcpRequestContext &context) noexcept;
-    static uint8_t *DuplicateMessage(const std::vector<uint8_t> &message) noexcept;
 
 private:
     AccStoreServerPtr accServer_;

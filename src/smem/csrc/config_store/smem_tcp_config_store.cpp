@@ -321,14 +321,8 @@ Result TcpConfigStore::Cas(const std::string &key, const std::vector<uint8_t> &e
 std::shared_ptr<ock::acc::AccTcpRequestContext> TcpConfigStore::SendMessageBlocked(
     const std::vector<uint8_t> &reqBody) noexcept
 {
-    auto dup = DuplicateMessage(reqBody);
-    if (dup == nullptr) {
-        SM_LOG_ERROR("duplicate packed message failed");
-        return nullptr;
-    }
-
     auto seqNo = reqSeqGen_.fetch_add(1U);
-    auto dataBuf = ock::acc::AccDataBuffer::Create(dup, reqBody.size());
+    auto dataBuf = ock::acc::AccDataBuffer::Create(reqBody.data(), reqBody.size());
     auto ret = accClientLink_->NonBlockSend(0, seqNo, dataBuf, nullptr);
     if (ret != SM_OK) {
         SM_LOG_ERROR("send message failed, result: " << ret);
@@ -372,15 +366,6 @@ Result TcpConfigStore::ReceiveResponseHandler(const ock::acc::AccTcpRequestConte
 
     waitContext->SetFinished(context);
     return SM_OK;
-}
-
-uint8_t *TcpConfigStore::DuplicateMessage(const std::vector<uint8_t> &message) noexcept
-{
-    auto dup = (uint8_t *)malloc(message.size());
-    SM_ASSERT_RETURN(dup != nullptr, nullptr);
-
-    memcpy(dup, message.data(), message.size());
-    return dup;
 }
 }  // namespace smem
 }  // namespace ock
