@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <functional>
 
 #include "smem_common_includes.h"
 
@@ -116,7 +117,7 @@ public:
      *         <i>exists</i> and <i>expect</i>.
      */
     Result Cas(const std::string &key, const std::string &expect, const std::string &value,
-                  std::string &exists) noexcept;
+               std::string &exists) noexcept;
 
     /**
      * @brief Perform an atomic compare and swap for uint8 vector. That is, if the current value for <i>key</i> equals
@@ -131,6 +132,36 @@ public:
      */
     virtual Result Cas(const std::string &key, const std::vector<uint8_t> &expect, const std::vector<uint8_t> &value,
                        std::vector<uint8_t> &exists) noexcept = 0;
+
+    /**
+     * @brief Watch the specified non-existent key. When the key is created, the specified notify function is invoked.
+     * @param key          [in] key to be watched
+     * @param notify       [in] notify function when key is created.
+     * @param wid          [out] Unique ID of the watch event.
+     * @return 0 if successfully done
+     */
+    Result Watch(const std::string &key,
+                 const std::function<void(int result, const std::string &, const std::string &)> &notify,
+                 uint32_t &wid) noexcept;
+
+    /**
+     * @brief Watch the specified non-existent key. When the key is created, the specified notify function is invoked.
+     * @param key          [in] key to be watched
+     * @param notify       [in] notify function when key is created.
+     * @param wid          [out] Unique ID of the watch event.
+     * @return 0 if successfully done
+     */
+    virtual Result Watch(
+        const std::string &key,
+        const std::function<void(int result, const std::string &, const std::vector<uint8_t> &)> &notify,
+        uint32_t &wid) noexcept = 0;
+
+    /**
+     * @brief Cancel an existed watcher.
+     * @param wid          [in] Unique ID of the watch event.
+     * @return 0 if successfully done
+     */
+    virtual Result Unwatch(uint32_t wid) noexcept = 0;
 
     /**
      * @brief Get error string by code
@@ -181,7 +212,8 @@ inline Result ConfigStore::Append(const std::string &key, const std::string &val
 }
 
 inline Result ConfigStore::Cas(const std::string &key, const std::string &expect, const std::string &value,
-                               std::string &exists) noexcept {
+                               std::string &exists) noexcept
+{
     std::vector<uint8_t> u8expect{expect.begin(), expect.end()};
     std::vector<uint8_t> u8value{value.begin(), value.end()};
     std::vector<uint8_t> u8exists;
@@ -192,6 +224,18 @@ inline Result ConfigStore::Cas(const std::string &key, const std::string &expect
 
     exists = std::string{u8exists.begin(), u8exists.end()};
     return SM_OK;
+}
+
+inline Result ConfigStore::Watch(
+    const std::string &key, const std::function<void(int result, const std::string &, const std::string &)> &notify,
+    uint32_t &wid) noexcept
+{
+    return Watch(
+        key,
+        [notify](int res, const std::string &k, const std::vector<uint8_t> &v) {
+            notify(res, k, std::string{v.begin(), v.end()});
+        },
+        wid);
 }
 
 inline const char *ConfigStore::ErrStr(int16_t errCode)

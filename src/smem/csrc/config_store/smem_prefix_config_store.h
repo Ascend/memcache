@@ -46,6 +46,23 @@ public:
         return baseStore_->Cas(std::string(keyPrefix_).append(key), expect, value, exists);
     }
 
+    Result Watch(const std::string &key,
+                 const std::function<void(int result, const std::string &, const std::vector<uint8_t> &)> &notify,
+                 uint32_t &wid) noexcept override
+    {
+        return baseStore_->Watch(
+            key,
+            [key, notify](int result, const std::string &, const std::vector<uint8_t> &value) {
+                notify(result, key, value);
+            },
+            wid);
+    }
+
+    Result Unwatch(uint32_t wid) noexcept override
+    {
+        return baseStore_->Unwatch(wid);
+    }
+
     std::string GetCompleteKey(const std::string &key) noexcept override
     {
         return std::string(keyPrefix_).append(key);
