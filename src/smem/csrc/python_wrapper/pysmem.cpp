@@ -218,15 +218,14 @@ void DefineShmClass(py::module_ &m)
         .value("SDMA", SMEMS_DATA_OP_SDMA)
         .value("ROCE", SMEMS_DATA_OP_ROCE);
 
+    m.def("initialize", &ShareMemory::Initialize, py::call_guard<py::gil_scoped_release>(), py::arg("store_url"),
+          py::arg("world_size"), py::arg("rank_id"), py::arg("device_id"), py::arg("config"));
+    m.def("uninitialize", &ShareMemory::UnInitialize, py::call_guard<py::gil_scoped_release>(), py::arg("flags") = 0);
+    m.def("create", &ShareMemory::Create, py::call_guard<py::gil_scoped_release>(), py::arg("id"), py::arg("rank_size"),
+          py::arg("rank_id"), py::arg("local_mem_size"), py::arg("data_op_type") = SMEMS_DATA_OP_MTE,
+          py::arg("flags") = 0);
+
     py::class_<ShareMemory>(m, "ShareMemory")
-        .def_static("initialize", &ShareMemory::Initialize, py::call_guard<py::gil_scoped_release>(),
-                    py::arg("store_url"), py::arg("world_size"), py::arg("rank_id"), py::arg("device_id"),
-                    py::arg("config"))
-        .def_static("uninitialize", &ShareMemory::UnInitialize, py::call_guard<py::gil_scoped_release>(),
-                    py::arg("flags") = 0)
-        .def_static("create", &ShareMemory::Create, py::call_guard<py::gil_scoped_release>(), py::arg("id"),
-                    py::arg("rank_size"), py::arg("rank_id"), py::arg("local_mem_size"),
-                    py::arg("data_op_type") = SMEMS_DATA_OP_MTE, py::arg("flags") = 0)
         .def(
             "set_context",
             [](ShareMemory &shm, py::bytes data) {
@@ -260,15 +259,17 @@ void DefineBmClass(py::module_ &m)
         .value("SDMA", SMEMB_DATA_OP_SDMA)
         .value("ROCE", SMEMB_DATA_OP_ROCE);
 
+    // module method
+    m.def("initialize", &BigMemory::Initialize, py::call_guard<py::gil_scoped_release>(), py::arg("store_url"),
+          py::arg("world_size"), py::arg("device_id"), py::arg("config"));
+    m.def("uninitialize", &BigMemory::UnInitialize, py::call_guard<py::gil_scoped_release>(), py::arg("flags") = 0);
+    m.def("bm_rank_id", &BigMemory::GetRankId, py::call_guard<py::gil_scoped_release>());
+    m.def("create", &BigMemory::Create, py::call_guard<py::gil_scoped_release>(), py::arg("id"),
+          py::arg("local_mem_size"), py::arg("mem_type") = SMEMB_MEM_TYPE_HBM,
+          py::arg("data_op_type") = SMEMB_DATA_OP_SDMA, py::arg("flags") = 0);
+
+    // big memory class
     py::class_<BigMemory>(m, "BigMemory")
-        .def_static("initialize", &BigMemory::Initialize, py::call_guard<py::gil_scoped_release>(),
-                    py::arg("store_url"), py::arg("world_size"), py::arg("device_id"), py::arg("config"))
-        .def_static("uninitialize", &BigMemory::UnInitialize, py::call_guard<py::gil_scoped_release>(),
-                    py::arg("flags") = 0)
-        .def_static("bm_rank_id", &BigMemory::GetRankId, py::call_guard<py::gil_scoped_release>())
-        .def_static("create", &BigMemory::Create, py::call_guard<py::gil_scoped_release>(), py::arg("id"),
-                    py::arg("local_mem_size"), py::arg("mem_type") = SMEMB_MEM_TYPE_HBM,
-                    py::arg("data_op_type") = SMEMB_DATA_OP_SDMA, py::arg("flags") = 0)
         .def("join", &BigMemory::Join, py::call_guard<py::gil_scoped_release>(), py::arg("flags") = 0)
         .def("leave", &BigMemory::Leave, py::call_guard<py::gil_scoped_release>(), py::arg("flags") = 0)
         .def("local_mem_size", &BigMemory::LocalMemSize, py::call_guard<py::gil_scoped_release>())
@@ -278,10 +279,14 @@ void DefineBmClass(py::module_ &m)
 }
 }
 
-PYBIND11_MODULE(smem, m)
+PYBIND11_MODULE(_pysmem, m)
 {
-    DefineShmConfig(m);
-    DefineBmConfig(m);
-    DefineShmClass(m);
-    DefineBmClass(m);
+    auto shm = m.def_submodule("shm", "Share Memory Module.");
+    auto bm = m.def_submodule("bm", "Big Memory Module.");
+
+    DefineShmConfig(shm);
+    DefineShmClass(shm);
+
+    DefineBmConfig(bm);
+    DefineBmClass(bm);
 }
