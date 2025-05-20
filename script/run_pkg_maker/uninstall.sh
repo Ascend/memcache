@@ -51,6 +51,13 @@ function uninstall_process()
         chmod -R 700 $mf_dir
         rm -rf $mf_dir
     fi
+
+    pip_path=$(which pip3 2>/dev/null)
+    if [ -z "$pip_path" ]; then
+        print "WARNING" "pip3 Not Found, skip uninstall wheel package."
+    else
+        pip3 uninstall -y mf_smem
+    fi
     print "INFO" "MF $(basename $1) uninstall success!"
 }
 
