@@ -258,6 +258,13 @@ function install_to_path()
 
     cd ${default_install_dir}
     ln -snf ${version1} latest
+
+    pip_path=$(which pip3 2>/dev/null)
+    if [ -z "$pip_path" ]; then
+        print "WARNING" "pip3 Not Found, skip install wheel package."
+    else
+        pip3 install "${install_dir}"/"${pkg_arch}"-"${os1}"/wheel/smem-*.whl --force-reinstall
+    fi
 }
 
 function generate_set_env() {

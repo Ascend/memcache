@@ -45,6 +45,8 @@ GIT_COMMIT=$(cat script/git_last_commit.txt)
 cd "${PROJ_DIR}/src/smem/python"
 rm -rf build/
 python3 setup.py bdist_wheel
-cp "${PROJ_DIR}"/src/smem/python/dist/*.whl "${PROJ_DIR}/output/smem/lib64"
+
+mkdir -p "${PROJ_DIR}/output/smem/wheel"
+cp "${PROJ_DIR}"/src/smem/python/dist/*.whl "${PROJ_DIR}/output/smem/wheel"
 
 cd ${CURRENT_DIR}
