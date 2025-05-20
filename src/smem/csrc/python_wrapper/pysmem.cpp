@@ -5,6 +5,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
 
+#include "smem.h"
 #include "smem_shm.h"
 #include "smem_bm.h"
 
@@ -169,6 +170,27 @@ private:
 };
 
 uint32_t BigMemory::worldSize_;
+
+void DefineSmemFunctions(py::module_ &m)
+{
+    m.def("initialize", &smem_init, py::call_guard<py::gil_scoped_release>(), py::arg("flags") = 0, R"(
+Initialize the smem running environment.
+
+Arguments:
+    flags(int): optional flags, reserved
+Returns:
+    0 if successful
+)");
+
+    m.def("uninitialize", &smem_uninit, py::call_guard<py::gil_scoped_release>(), R"(
+Un-Initialize the smem running environment)");
+
+    m.def("set_log_level", &smem_set_log_level, py::call_guard<py::gil_scoped_release>(), py::arg("level"), R"(
+set log print level.
+
+Arguments:
+    level(int): log level, 0:debug 1:info 2:warn 3:error)");
+}
 
 void DefineShmConfig(py::module_ &m)
 {
@@ -366,6 +388,8 @@ Returns:
 
 PYBIND11_MODULE(_pysmem, m)
 {
+    DefineSmemFunctions(m);
+
     auto shm = m.def_submodule("shm", "Share Memory Module.");
     auto bm = m.def_submodule("bm", "Big Memory Module.");
 
