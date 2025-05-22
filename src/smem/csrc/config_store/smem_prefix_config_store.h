@@ -13,8 +13,8 @@ namespace smem {
 class PrefixConfigStore : public ConfigStore {
 public:
     PrefixConfigStore(const StorePtr &base, std::string prefix) noexcept
-        : baseStore_{base},
-          keyPrefix_{std::move(prefix)}
+        : baseStore_{base->GetCoreStore()},
+          keyPrefix_{base->GetCommonPrefix().append(std::move(prefix))}
     {
     }
 
@@ -40,6 +40,44 @@ public:
         return baseStore_->Append(std::string(keyPrefix_).append(key), value, newSize);
     }
 
+    Result Cas(const std::string &key, const std::vector<uint8_t> &expect, const std::vector<uint8_t> &value,
+               std::vector<uint8_t> &exists) noexcept override
+    {
+        return baseStore_->Cas(std::string(keyPrefix_).append(key), expect, value, exists);
+    }
+
+    Result Watch(const std::string &key,
+                 const std::function<void(int result, const std::string &, const std::vector<uint8_t> &)> &notify,
+                 uint32_t &wid) noexcept override
+    {
+        return baseStore_->Watch(
+            std::string(keyPrefix_).append(key),
+            [key, notify](int result, const std::string &, const std::vector<uint8_t> &value) {
+                notify(result, key, value);
+            },
+            wid);
+    }
+
+    Result Unwatch(uint32_t wid) noexcept override
+    {
+        return baseStore_->Unwatch(wid);
+    }
+
+    std::string GetCompleteKey(const std::string &key) noexcept override
+    {
+        return std::string(keyPrefix_).append(key);
+    }
+
+    std::string GetCommonPrefix() noexcept override
+    {
+        return keyPrefix_ + baseStore_->GetCommonPrefix();
+    }
+
+    StorePtr GetCoreStore() noexcept override
+    {
+        return baseStore_;
+    }
+
 protected:
     Result GetReal(const std::string &key, std::vector<uint8_t> &value, int64_t timeoutMs) noexcept override
     {
@@ -50,7 +88,6 @@ private:
     const StorePtr baseStore_;
     const std::string keyPrefix_;
 };
-using PrefixConfigStorePtr = SmRef<PrefixConfigStore>;
 }  // namespace smem
 }  // namespace ock
 

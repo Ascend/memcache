@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <functional>
 
 #include "smem_common_includes.h"
 
@@ -105,12 +106,76 @@ public:
     virtual Result Append(const std::string &key, const std::vector<uint8_t> &value, uint64_t &newSize) noexcept = 0;
 
     /**
+     * @brief Perform an atomic compare and swap for string type. That is, if the current value for <i>key</i> equals
+     *        <i>expect</i>, then set the value of <i>key</i> to be <i>value</i>.
+     * @param key          [in] key for performed
+     * @param expect       [in] expected value for old, empty string equals non-exist
+     * @param value        [in] value for set if expected matches
+     * @param exists       [out] old value of the key before this operation
+     * @return If the communication with the store server is successful, 0 is returned. Otherwise, non-zero is returned.
+     *         Returning 0 does not indicate successful CAS. To determine whether the CAS is successful, compare
+     *         <i>exists</i> and <i>expect</i>.
+     */
+    Result Cas(const std::string &key, const std::string &expect, const std::string &value,
+               std::string &exists) noexcept;
+
+    /**
+     * @brief Perform an atomic compare and swap for uint8 vector. That is, if the current value for <i>key</i> equals
+     *        <i>expect</i>, then set the value of <i>key</i> to be <i>value</i>.
+     * @param key          [in] key for performed
+     * @param expect       [in] expected value for old, empty vector equals non-exist
+     * @param value        [in] value for set if expected matches
+     * @param exists       [out] old value of the key before this operation
+     * @return If the communication with the store server is successful, 0 is returned. Otherwise, non-zero is returned.
+     *         Returning 0 does not indicate successful CAS. To determine whether the CAS is successful, compare
+     *         <i>exists</i> and <i>expect</i>.
+     */
+    virtual Result Cas(const std::string &key, const std::vector<uint8_t> &expect, const std::vector<uint8_t> &value,
+                       std::vector<uint8_t> &exists) noexcept = 0;
+
+    /**
+     * @brief Watch the specified non-existent key. When the key is created, the specified notify function is invoked.
+     * @param key          [in] key to be watched
+     * @param notify       [in] notify function when key is created.
+     * @param wid          [out] Unique ID of the watch event.
+     * @return 0 if successfully done
+     */
+    Result Watch(const std::string &key,
+                 const std::function<void(int result, const std::string &, const std::string &)> &notify,
+                 uint32_t &wid) noexcept;
+
+    /**
+     * @brief Watch the specified non-existent key. When the key is created, the specified notify function is invoked.
+     * @param key          [in] key to be watched
+     * @param notify       [in] notify function when key is created.
+     * @param wid          [out] Unique ID of the watch event.
+     * @return 0 if successfully done
+     */
+    virtual Result Watch(
+        const std::string &key,
+        const std::function<void(int result, const std::string &, const std::vector<uint8_t> &)> &notify,
+        uint32_t &wid) noexcept = 0;
+
+    /**
+     * @brief Cancel an existed watcher.
+     * @param wid          [in] Unique ID of the watch event.
+     * @return 0 if successfully done
+     */
+    virtual Result Unwatch(uint32_t wid) noexcept = 0;
+
+    /**
      * @brief Get error string by code
      *
      * @param errCode      [in] error cde
      * @return error string
      */
     static const char *ErrStr(int16_t errCode);
+
+    virtual std::string GetCompleteKey(const std::string &key) noexcept = 0;
+
+    virtual std::string GetCommonPrefix() noexcept = 0;
+
+    virtual SmRef<ConfigStore> GetCoreStore() noexcept = 0;
 
 protected:
     virtual Result GetReal(const std::string &key, std::vector<uint8_t> &value, int64_t timeoutMs) noexcept = 0;
@@ -144,6 +209,33 @@ inline Result ConfigStore::Append(const std::string &key, const std::string &val
 {
     std::vector<uint8_t> u8val(value.begin(), value.end());
     return Append(key, u8val, newSize);
+}
+
+inline Result ConfigStore::Cas(const std::string &key, const std::string &expect, const std::string &value,
+                               std::string &exists) noexcept
+{
+    std::vector<uint8_t> u8expect{expect.begin(), expect.end()};
+    std::vector<uint8_t> u8value{value.begin(), value.end()};
+    std::vector<uint8_t> u8exists;
+    auto ret = Cas(key, u8expect, u8value, u8exists);
+    if (ret != SM_OK) {
+        return ret;
+    }
+
+    exists = std::string{u8exists.begin(), u8exists.end()};
+    return SM_OK;
+}
+
+inline Result ConfigStore::Watch(
+    const std::string &key, const std::function<void(int result, const std::string &, const std::string &)> &notify,
+    uint32_t &wid) noexcept
+{
+    return Watch(
+        key,
+        [notify](int res, const std::string &k, const std::vector<uint8_t> &v) {
+            notify(res, k, std::string{v.begin(), v.end()});
+        },
+        wid);
 }
 
 inline const char *ConfigStore::ErrStr(int16_t errCode)

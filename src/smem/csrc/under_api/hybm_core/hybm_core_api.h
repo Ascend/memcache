@@ -10,7 +10,7 @@
 namespace ock {
 namespace smem {
 
-using hybmInitFunc = int32_t (*)(uint64_t, uint16_t, uint64_t);
+using hybmInitFunc = int32_t (*)(uint16_t, uint64_t);
 using hybmUninitFunc = void (*)(void);
 using hybmSetLoggerFunc = int32_t (*)(void (*)(int, const char *));
 using hybmSetLogLevelFunc = int32_t (*)(int);
@@ -27,14 +27,23 @@ using hybmImportFunc = int32_t (*)(hybm_entity_t, const hybm_exchange_info *, ui
 using hybmSetExtraContextFunc = int32_t (*)(hybm_entity_t, const void *, uint32_t);
 using hybmStartFunc = int32_t (*)(hybm_entity_t, uint32_t);
 using hybmStopFunc = void (*)(hybm_entity_t, uint32_t);
+using hybmMmapFunc = int32_t (*)(hybm_entity_t, uint32_t);
+using hybmJoinFunc = int32_t (*)(hybm_entity_t, uint32_t, uint32_t);
+using hybmLeaveFunc = int32_t (*)(hybm_entity_t, uint32_t, uint32_t);
+using hybmDataCopyFunc = int32_t (*)(hybm_entity_t, const void *, void *, size_t, hybm_data_copy_direction, uint32_t);
+
+/*
+ * int32_t hybm_data_copy(hybm_entity_t e, const void *src, void *dest, size_t count, hybm_data_copy_direction direction,
+                       uint32_t flags);
+ */
 
 class HybmCoreApi {
 public:
     static Result LoadLibrary(const std::string &libDirPath);
 
-    static inline int32_t HybmCoreInit(uint64_t globalSize, uint16_t deviceId, uint64_t flags)
+    static inline int32_t HybmCoreInit(uint16_t deviceId, uint64_t flags)
     {
-        return pHybmInit(globalSize, deviceId, flags);
+        return pHybmInit(deviceId, flags);
     }
 
     static inline void HybmCoreUninit()
@@ -77,7 +86,8 @@ public:
         return pHybmUnreserveMem(e, flags, reservedMem);
     }
 
-    static inline hybm_mem_slice_t HybmAllocLocalMemory(hybm_entity_t e, hybm_mem_type mType, uint64_t size, uint32_t flags)
+    static inline hybm_mem_slice_t HybmAllocLocalMemory(hybm_entity_t e, hybm_mem_type mType, uint64_t size,
+                                                        uint32_t flags)
     {
         return pHybmAllocLocalMem(e, mType, size, flags);
     }
@@ -87,12 +97,14 @@ public:
         return pHybmFreeLocalMem(e, slice, count, flags);
     }
 
-    static inline int32_t HybmExport(hybm_entity_t e, hybm_mem_slice_t slice, uint32_t flags, hybm_exchange_info *exInfo)
+    static inline int32_t HybmExport(hybm_entity_t e, hybm_mem_slice_t slice, uint32_t flags,
+                                     hybm_exchange_info *exInfo)
     {
         return pHybmExport(e, slice, flags, exInfo);
     }
 
-    static inline int32_t HybmImport(hybm_entity_t e, const hybm_exchange_info allExInfo[], uint32_t count, uint32_t flags)
+    static inline int32_t HybmImport(hybm_entity_t e, const hybm_exchange_info allExInfo[], uint32_t count,
+                                     uint32_t flags)
     {
         return pHybmImport(e, allExInfo, count, flags);
     }
@@ -110,6 +122,27 @@ public:
     static inline void HybmStop(hybm_entity_t e, uint32_t flags)
     {
         return pHybmStop(e, flags);
+    }
+
+    static inline int32_t HybmMmap(hybm_entity_t e, uint32_t flags)
+    {
+        return pHybmMmap(e, flags);
+    }
+
+    static inline int32_t HybmJoin(hybm_entity_t e, uint32_t rank, uint32_t flags)
+    {
+        return pHybmJoin(e, rank, flags);
+    }
+
+    static inline int32_t HybmLeave(hybm_entity_t e, uint32_t rank, uint32_t flags)
+    {
+        return pHybmLeave(e, rank, flags);
+    }
+
+    static inline int32_t HybmDataCopy(hybm_entity_t e, const void *src, void *dest, size_t count,
+                                       hybm_data_copy_direction direction, uint32_t flags)
+    {
+        return pHybmDataCopy(e, src, dest, count, direction, flags);
     }
 
 private:
@@ -138,6 +171,10 @@ private:
     static hybmSetExtraContextFunc pHybmSetExtraContext;
     static hybmStartFunc pHybmStart;
     static hybmStopFunc pHybmStop;
+    static hybmMmapFunc pHybmMmap;
+    static hybmJoinFunc pHybmJoin;
+    static hybmLeaveFunc pHybmLeave;
+    static hybmDataCopyFunc pHybmDataCopy;
 };
 }
 }
