@@ -9,6 +9,7 @@
 namespace ock {
 namespace mobs {
 class MObsClientDefault : public MOReferable {};
+using MObsClientDefaultPtr = MORef<MObsClientDefault>;
 }
 }
 

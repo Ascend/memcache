@@ -4,6 +4,8 @@
 #include "mobs.h"
 #include "mobs_common_includes.h"
 
+using namespace ock::mobs;
+
 MOBS_API int32_t mobs_init(uint32_t flags)
 {
     return MO_OK;
@@ -21,7 +23,7 @@ MOBS_API int32_t mobs_set_log_level(int level)
 
 MOBS_API void mobs_uninit()
 {
-    return MO_OK;
+    return;
 }
 
 MOBS_API const char *mobs_get_last_err_msg()

@@ -8,7 +8,7 @@
 
 namespace ock {
 namespace mobs {
-class MObsMetaServiceDefault : public MObsMetaService {}
+class MObsMetaServiceDefault : public MObsMetaService {};
 }
 }
 

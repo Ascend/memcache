@@ -8,9 +8,10 @@
 
 namespace ock {
 namespace mobs {
-class MObsMetaService {
+class MObsMetaService : public MOReferable {
 public:
 };
+using MObsMetaServicePtr = MORef<MObsMetaService>;
 }
 }
 

@@ -11,10 +11,9 @@
 extern "C" {
 #endif
 
-typedef mobs_meta_service_t void *;
-typedef mobs_local_service_t void *;
-typedef mobs_client_t void *;
-typedef mobs_obj_t void *;
+typedef void *mobs_meta_service_t;
+typedef void *mobs_local_service_t;
+typedef void *mobs_client_t;
 
 typedef struct {
     char discoveryURL[1024]; /* composed by schema and url, e.g. tcp:// or etcd:// or zk:// */
@@ -47,7 +46,7 @@ typedef struct {
 } mobs_buffer;
 
 typedef struct {
-    int32_t xx; // TODO
+    int32_t xx;  // TODO
 } mobs_location_t;
 
 #ifdef __cplusplus

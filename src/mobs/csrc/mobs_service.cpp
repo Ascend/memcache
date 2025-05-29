@@ -4,6 +4,8 @@
 #include "mobs_service.h"
 #include "mobs_common_includes.h"
 
+using namespace ock::mobs;
+
 MOBS_API mobs_meta_service_t mobs_meta_service_start(mobs_meta_service_config_t *config)
 {
     return nullptr;

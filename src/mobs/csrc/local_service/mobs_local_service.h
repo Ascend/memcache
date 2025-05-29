@@ -11,6 +11,7 @@ namespace mobs {
 class MObsLocalService {
 public:
 };
+using MObsLocalServicePtr = MORef<MObsLocalService>;
 }
 }
 
