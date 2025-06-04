@@ -16,6 +16,7 @@ message(STATUS "BUILD_USE_CXX11_ABI = ${BUILD_OPEN_ABI}")
 message(STATUS "ENABLE_CPU_MONOTONIC = ${ENABLE_CPU_MONOTONIC}")
 message(STATUS "BUILD_GIT_COMMIT = ${BUILD_GIT_COMMIT}")
 message(STATUS "BUILD_GIT_COMMIT_GEN_FILE = ${BUILD_GIT_COMMIT_GEN_FILE}")
+message(STATUS "BUILD_PYTHON = ${BUILD_PYTHON}")
 
 message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
@@ -106,9 +107,9 @@ set(PROJECT_UTIL_SRC_BASE ${PROJECT_SOURCE_DIR}/src/util/csrc)
 set(PROJECT_SMEM_SRC_BASE ${PROJECT_SOURCE_DIR}/src/smem)
 set(PROJECT_SMEM_OUTPUT ${PROJECT_SOURCE_DIR}/output/smem)
 
-# set src base dir and output dir of mobs
-set(PROJECT_MOBS_SRC_BASE ${PROJECT_SOURCE_DIR}/src/mobs)
-set(PROJECT_MOBS_OUTPUT ${PROJECT_SOURCE_DIR}/output/mobs)
+# set src base dir and output dir of memcache
+set(PROJECT_MMC_SRC_BASE ${PROJECT_SOURCE_DIR}/src/memcache)
+set(PROJECT_MMC_OUTPUT ${PROJECT_SOURCE_DIR}/output/memcache)
 
 # set src base dir and output dir of smem
 set(PROJECT_HYBM_SRC_BASE ${PROJECT_SOURCE_DIR}/src/hybm)
