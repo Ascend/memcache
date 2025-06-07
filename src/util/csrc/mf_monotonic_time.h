@@ -151,7 +151,7 @@ inline uint64_t MonoPerfTrace::PeriodUs() const noexcept
 
 inline uint64_t MonoPerfTrace::PeriodMs() const noexcept
 {
-    return (end - start) / 100000L;
+    return (end - start) / 1000000L;
 }
 
 }  // namespace smem

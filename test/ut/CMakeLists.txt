@@ -40,4 +40,9 @@ target_include_directories(test_mf_hy PRIVATE
         ${PROJECT_SMEM_SRC_BASE}/csrc/config_store
         ${PROJECT_OUTPUT_PATH}/3rdparty/acc_links/net/include
         ${PROJECT_SMEM_SRC_BASE}/csrc/under_api/hybm_core
+
+        ${PROJECT_MMC_SRC_BASE}/include
+        ${PROJECT_MMC_SRC_BASE}/csrc/common
+        ${PROJECT_MMC_SRC_BASE}/csrc/net
+        ${PROJECT_MMC_SRC_BASE}/csrc/proto
 )
