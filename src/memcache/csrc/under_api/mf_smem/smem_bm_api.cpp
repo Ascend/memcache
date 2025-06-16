@@ -31,14 +31,14 @@ smemBmGetLocalMemSizeFunc MFSmemApi::gSmemBmGetLocalMemSizeFunc = nullptr;
 smemBmPtrFunc MFSmemApi::gSmemBmPtr = nullptr;
 smemBmCopyFunc MFSmemApi::gSmemBmCopy = nullptr;
 
-#define DL_LOAD_SYM(TARGET_FUNC_VAR, TARGET_FUNC_TYPE, FILE_HANDLE, SYMBOL_NAME)          \
-    do {                                                                                  \
-        TARGET_FUNC_VAR = (TARGET_FUNC_TYPE)dlsym(FILE_HANDLE, SYMBOL_NAME);              \
-        if (TARGET_FUNC_VAR == nullptr) {                                                 \
+#define DL_LOAD_SYM(TARGET_FUNC_VAR, TARGET_FUNC_TYPE, FILE_HANDLE, SYMBOL_NAME)           \
+    do {                                                                                   \
+        TARGET_FUNC_VAR = (TARGET_FUNC_TYPE)dlsym(FILE_HANDLE, SYMBOL_NAME);               \
+        if (TARGET_FUNC_VAR == nullptr) {                                                  \
             MMC_LOG_ERROR("Failed to call dlsym to load SYMBOL_NAME, error" << dlerror()); \
-            dlclose(FILE_HANDLE);                                                         \
+            dlclose(FILE_HANDLE);                                                          \
             return MMC_ERROR;                                                              \
-        }                                                                                 \
+        }                                                                                  \
     } while (0)
 
 Result MFSmemApi::LoadLibrary(const std::string &libDirPath)

@@ -116,13 +116,22 @@ Result NetEngineAcc::StopInner()
 }
 
 Result NetEngineAcc::Call(uint32_t targetId, const char *reqData, uint32_t reqDataLen, char *respData,
-                          uint32_t &respDataLen, int32_t timeoutInSecond)
+                          uint32_t &respDataLen, int16_t &userResult, int32_t timeoutInSecond)
 {
     MMC_ASSERT_RETURN(started_, MMC_NOT_STARTED);
     MMC_ASSERT_RETURN(reqData != nullptr, MMC_INVALID_PARAM);
+    MMC_ASSERT_RETURN(reqDataLen == 0, MMC_INVALID_PARAM);
     MMC_ASSERT_RETURN(respData != nullptr, MMC_INVALID_PARAM);
 
     // TODO
+
+    return MMC_OK;
+}
+
+Result NetEngineAcc::Send(uint32_t peerId, const char *reqData, uint32_t reqDataLen, int32_t timeoutInSecond) {
+    MMC_ASSERT_RETURN(started_, MMC_NOT_STARTED);
+    MMC_ASSERT_RETURN(reqData != nullptr, MMC_INVALID_PARAM);
+    MMC_ASSERT_RETURN(reqDataLen == 0, MMC_INVALID_PARAM);
 
     return MMC_OK;
 }
@@ -225,7 +234,9 @@ Result NetEngineAcc::HandleNewLink(const TcpConnReq &req, const TcpLinkPtr &link
 
 Result NetEngineAcc::HandleNeqRequest(const TcpReqContext &context)
 {
-    // TODO
+    /* use result variable for real opcode */
+
+
     return MMC_OK;
 }
 
@@ -239,9 +250,9 @@ Result NetEngineAcc::HandleLinkBroken(const TcpLinkPtr &link) const
 {
     MMC_ASSERT_RETURN(link.Get() != nullptr, MMC_INVALID_PARAM);
 
-    auto peerId = static_cast<uint32_t>(link->UpCtx());
+    const auto peerId = static_cast<uint32_t>(link->UpCtx());
 
-    auto result = peerLinkMap_->Remove(peerId);
+    const auto result = peerLinkMap_->Remove(peerId);
     if (result) {
         return MMC_OK;
     }

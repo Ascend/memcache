@@ -12,10 +12,24 @@
 
 namespace ock {
 namespace mmc {
-
+/**
+ * @brief Callback function for request received
+ */
 using NetReqReceivedHandler = std::function<int32_t(NetContextPtr &ctx)>;
+
+/**
+ * @brief Callback function for request sent
+ */
 using NetReqSentHandler = std::function<int32_t(NetContextPtr &ctx)>;
+
+/**
+ * @brief Callback function for new link
+ */
 using NetNewLinkHandler = std::function<int32_t(const NetLinkPtr &link)>;
+
+/**
+ * @brief Call function for link broken
+ */
 using NetLinkBrokenHandler = std::function<int32_t(const NetLinkPtr &link)>;
 
 class NetContext : public MmcReferable {
@@ -24,22 +38,66 @@ public:
 
     virtual int32_t Reply() = 0;
 
+    /**
+     * @brief Get seq number of request
+     *
+     * @return seq number
+     */
     virtual uint32_t SeqNo() = 0;
+
+    /**
+     * @brief Get op code of request
+     *
+     * @return op code
+     */
     virtual int16_t OpCode() = 0;
+
+    /**
+     * @brief Get rank id where the request sent
+     *
+     * @return rank id of source
+     */
     virtual int16_t SrcRankId() = 0;
+
+    /**
+     * @brief Data length of request
+     *
+     * @return length of data
+     */
     virtual uint32_t DataLen() = 0;
+
+    /**
+     * @brief Data pointer of request
+     *
+     * @return data pointer
+     */
     virtual void *Data() = 0;
 };
 
 class NetLink : public MmcReferable {
 public:
+    /**
+     * @brief Get id of net link
+     *
+     * @return id of net link
+     */
     virtual int32_t Id() const = 0;
 
+    /**
+     * @brief Get the context value which associated with this link
+     *
+     * @return Context value
+     */
     uint64_t UpCtx() const
     {
         return upCtx_;
     }
 
+    /**
+     * @brief Set the context value which associated with this link
+     *
+     * @param c            [in] context value to be set
+     */
     void UpCtx(const uint64_t c)
     {
         upCtx_ = c;
@@ -56,34 +114,89 @@ public:
 public:
     ~NetEngine() override = default;
 
+    /**
+     * @brief Start the net engine for RPC or IPC
+     *
+     * @param options        [in] options of the engine
+     * @return 0 if successful
+     */
     virtual Result Start(const NetEngineOptions &options) = 0;
+
+    /**
+     * @brief Stop the net engine
+     */
     virtual void Stop() = 0;
 
+    /**
+     * @brief Create a link to peer server
+     *
+     * @param peerId       [in] id of peer server
+     * @param peerIp       [in] ip of peer server listen at
+     * @param port         [in] port of peer server listen at
+     * @param newLink      [in/out] new linked created
+     * @param isForce      [in] force connect
+     * @return 0 if successful
+     */
     virtual Result ConnectToPeer(uint32_t peerId, const std::string &peerIp, uint16_t port, NetLinkPtr &newLink,
                                  bool isForce) = 0;
 
+    /**
+     * @brief Register callback function of request received
+     *
+     * @param opCode       [in] op code for the handler
+     * @param h            [in] handler to be registered
+     */
     void RegRequestReceivedHandler(int16_t opCode, const NetReqReceivedHandler &h);
+
+    /**
+     * @brief Register callback function of request sent
+     *
+     * @param opCode       [in] op code for the handler
+     * @param h            [in] handler to be registered
+     */
     void RegRequestSentHandler(int16_t opCode, const NetReqSentHandler &h);
+
+    /**
+     * @brief Register callback function of new link connected
+     *
+     * @param h            [in] handler to be registered
+     */
     void RegNewLinkHandler(const NetNewLinkHandler &h);
+
+    /**
+     * @brief Register callback function of link broken
+     *
+     * @param h            [in] handler to be registered
+     */
     void RegLinkBrokenHandler(const NetLinkBrokenHandler &h);
 
-    virtual Result Call(uint32_t targetId, const char *reqData, uint32_t reqDataLen, char *respData,
-                        uint32_t &respDataLen, int32_t timeoutInSecond) = 0;
-
+    /**
+     * @brief Do RPC/IPC call to peer in sync way, wait for response back
+     *
+     * @tparam REQ         [in] type of request
+     * @tparam RESP        [in] type of response
+     * @param peerId       [in] peer id
+     * @param req          [in] request
+     * @param resp         [in/out] response
+     * @param userResult   [in/out] result from peer, if call returned 0
+     * @param timeoutInSecond [in] timeout in second
+     * @return
+     */
     template <typename REQ, typename RESP>
-    Result Call(uint32_t peerId, const REQ &req, RESP &resp, int32_t timeoutInSecond)
+    Result Call(uint32_t peerId, const REQ &req, RESP &resp, int16_t &userResult, int32_t timeoutInSecond)
     {
         char *respData = nullptr;
         uint32_t respLen = 0;
         if (std::is_pod<REQ>::value && std::is_pod<RESP>::value) {
             /* do call */
             respLen = sizeof(RESP);
-            return Call(peerId, static_cast<char *>(req), sizeof(REQ), static_cast<char *>(resp), respLen,
+            return Call(peerId, static_cast<char *>(req), sizeof(REQ), static_cast<char *>(resp), respLen, userResult,
                         timeoutInSecond);
         } else if (std::is_pod<REQ>::value && !std::is_pod<RESP>::value) {
             /* do call */
             respLen = UINT32_MAX;
-            auto result = Call(peerId, static_cast<char *>(req), sizeof(REQ), resp, respLen, timeoutInSecond);
+            auto result =
+                Call(peerId, static_cast<char *>(req), sizeof(REQ), resp, respLen, userResult, timeoutInSecond);
             MMC_RETURN_NOT_OK(result);
 
             /* deserialize */
@@ -101,7 +214,7 @@ public:
             /* do call */
             respLen = sizeof(RESP);
             return Call(peerId, serializedData.c_str(), serializedData.length(), static_cast<char *>(resp), respLen,
-                        timeoutInSecond);
+                        userResult, timeoutInSecond);
         } else {
             NetMsgPacker packer;
             auto result = packer.Serialize(req);
@@ -109,7 +222,8 @@ public:
 
             /* do call */
             respLen = sizeof(RESP);
-            result = Call(peerId, serializedData.c_str(), serializedData.length(), resp, respLen, timeoutInSecond);
+            result = Call(peerId, serializedData.c_str(), serializedData.length(), resp, respLen, userResult,
+                          timeoutInSecond);
             MMC_RETURN_NOT_OK(result);
 
             /* deserialize */
@@ -120,6 +234,58 @@ public:
             return result;
         }
     }
+
+    /**
+     * @brief Do RPC/IPC call to peer in sync way, wait for response back
+     * 
+     * @tparam REQ         [in] type of request
+     * @param peerId       [in] peer id
+     * @param req          [in] request to send
+     * @param timeoutInSecond [in] timeout in second
+     * @return 0 if successful
+     */
+    template <typename REQ>
+    Result Send(uint32_t peerId, const REQ &req, int32_t timeoutInSecond)
+    {
+        if (std::is_pod<REQ>::value) {
+            /* do send */
+            return Send(peerId, static_cast<char *>(req), sizeof(REQ), timeoutInSecond);
+        } else {
+            /* serialize request */
+            NetMsgPacker packer;
+            auto result = packer.Serialize(req);
+            const std::string serializedData = packer.String();
+
+            /* do send */
+            return Send(peerId, serializedData.c_str(), serializedData.length(), timeoutInSecond);
+        }
+    }
+
+    /**
+     * @brief Do RPC/IPC call to peer in sync way, wait for response back
+     *
+     * @param peerId       [in] peer id
+     * @param reqData      [in] data to be sent to target
+     * @param reqDataLen   [in] data len to be sent to target
+     * @param respData     [in/out] data replied by target
+     * @param respDataLen  [in/out] data length replied
+     * @param result       [in/out] result of peer
+     * @param timeoutInSecond [in] timeout in second
+     * @return 0 if successful, MMC_TIMEOUT for timeout, negative value for inner local size error
+     */
+    virtual Result Call(uint32_t peerId, const char *reqData, uint32_t reqDataLen, char *respData,
+                        uint32_t &respDataLen, int16_t &result, int32_t timeoutInSecond) = 0;
+
+    /**
+     * @brief Send a request to peer with response
+     *
+     * @param peerId       [in] peer id
+     * @param reqData      [in] request data to be sent
+     * @param reqDataLen   [in] data length
+     * @param timeoutInSecond [in] timeout in second
+     * @return 0 if successful
+     */
+    virtual Result Send(uint32_t peerId, const char *reqData, uint32_t reqDataLen, int32_t timeoutInSecond) = 0;
 
 protected:
     constexpr static int16_t gHandlerMax = UN16;

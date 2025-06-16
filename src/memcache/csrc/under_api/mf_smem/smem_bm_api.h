@@ -10,24 +10,24 @@
 namespace ock {
 namespace mmc {
 
-using smemInitFunc = int32_t(*)(uint32_t);
-using smemUnInitFunc = void(*)();
-using smemSetExternLoggerFunc = int32_t(*)(void (*)(int level, const char *));
-using smemSetLogLevelFunc = int32_t(*)(int);
+using smemInitFunc = int32_t (*)(uint32_t);
+using smemUnInitFunc = void (*)();
+using smemSetExternLoggerFunc = int32_t (*)(void (*)(int level, const char *));
+using smemSetLogLevelFunc = int32_t (*)(int);
 using smemGetLastErrMsgFunc = const char *(*)();
 using smemGetAndClearLastErrMsgFunc = const char *(*)();
 
-using smemBmConfigInitFunc = int32_t(*)(smem_bm_config_t *);
-using smemBmInitFunc = int32_t(*)(const char *, uint32_t, uint16_t, const smem_bm_config_t *);
-using smemBmUnInitFunc = void(*)(uint32_t);
-using smemBmGetRankIdFunc = uint32_t(*)();
-using smemBmCreateFunc = smem_bm_t(*)(uint32_t, uint32_t, smem_bm_mem_type, smem_bm_data_op_type, uint64_t, uint32_t);
-using smemBmDestroyFunc = void(*)(smem_bm_t);
-using smemBmJoinFunc = int32_t(*)(smem_bm_t, uint32_t, void **);
-using smemBmLeaveFunc = int32_t(*)(smem_bm_t, uint32_t);
-using smemBmGetLocalMemSizeFunc = uint64_t(*)(smem_bm_t);
+using smemBmConfigInitFunc = int32_t (*)(smem_bm_config_t *);
+using smemBmInitFunc = int32_t (*)(const char *, uint32_t, uint16_t, const smem_bm_config_t *);
+using smemBmUnInitFunc = void (*)(uint32_t);
+using smemBmGetRankIdFunc = uint32_t (*)();
+using smemBmCreateFunc = smem_bm_t (*)(uint32_t, uint32_t, smem_bm_mem_type, smem_bm_data_op_type, uint64_t, uint32_t);
+using smemBmDestroyFunc = void (*)(smem_bm_t);
+using smemBmJoinFunc = int32_t (*)(smem_bm_t, uint32_t, void **);
+using smemBmLeaveFunc = int32_t (*)(smem_bm_t, uint32_t);
+using smemBmGetLocalMemSizeFunc = uint64_t (*)(smem_bm_t);
 using smemBmPtrFunc = void *(*)(smem_bm_t, uint16_t);
-using smemBmCopyFunc = int32_t(*)(smem_bm_t, const void *, void *, uint64_t, smem_bm_copy_type, uint32_t);
+using smemBmCopyFunc = int32_t (*)(smem_bm_t, const void *, void *, uint64_t, smem_bm_copy_type, uint32_t);
 
 class MFSmemApi {
 public:
