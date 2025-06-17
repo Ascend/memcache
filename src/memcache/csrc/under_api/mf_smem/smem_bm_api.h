@@ -21,7 +21,7 @@ using smemBmConfigInitFunc = int32_t (*)(smem_bm_config_t *);
 using smemBmInitFunc = int32_t (*)(const char *, uint32_t, uint16_t, const smem_bm_config_t *);
 using smemBmUnInitFunc = void (*)(uint32_t);
 using smemBmGetRankIdFunc = uint32_t (*)();
-using smemBmCreateFunc = smem_bm_t (*)(uint32_t, uint32_t, smem_bm_mem_type, smem_bm_data_op_type, uint64_t, uint32_t);
+using smemBmCreateFunc = smem_bm_t (*)(uint32_t, uint32_t, smem_bm_data_op_type, uint64_t, uint64_t, uint32_t);
 using smemBmDestroyFunc = void (*)(smem_bm_t);
 using smemBmJoinFunc = int32_t (*)(smem_bm_t, uint32_t, void **);
 using smemBmLeaveFunc = int32_t (*)(smem_bm_t, uint32_t);
@@ -164,10 +164,10 @@ public:
      * @param flags            [in] optional flags
      * @return Big Memory object handle if successful, nullptr if failed
      */
-    static smem_bm_t SmemBmCreate(uint32_t id, uint32_t memberSize, smem_bm_mem_type memType,
-                                  smem_bm_data_op_type dataOpType, uint64_t localMemorySize, uint32_t flags)
+    static smem_bm_t SmemBmCreate(uint32_t id, uint32_t memberSize, smem_bm_data_op_type dataOpType,
+                                  uint64_t localDRAMSize, uint64_t localHBMSize, uint32_t flags)
     {
-        return gSmemBmCreate(id, memberSize, memType, dataOpType, localMemorySize, flags);
+        return gSmemBmCreate(id, memberSize, dataOpType, localDRAMSize, localHBMSize, flags);
     }
 
     /**
