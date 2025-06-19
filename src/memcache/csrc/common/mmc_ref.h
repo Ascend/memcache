@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <utility>
+#include <new>
 #include <string.h>
 
 namespace ock {

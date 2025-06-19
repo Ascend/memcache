@@ -3,6 +3,7 @@ include_directories(
         ${PROJECT_MMC_SRC_BASE}/csrc/common
         ${PROJECT_MMC_SRC_BASE}/csrc/client
         ${PROJECT_MMC_SRC_BASE}/csrc/local_service
+        ${PROJECT_MMC_SRC_BASE}/csrc/entities
         ${PROJECT_MMC_SRC_BASE}/csrc/meta_service
         ${PROJECT_MMC_SRC_BASE}/csrc/net
         ${PROJECT_MMC_SRC_BASE}/csrc/net/acc_links_impl
@@ -16,6 +17,7 @@ include_directories(
 set(MMC_SRC_COMMON "")
 set(MMC_SRC_CLIENT "")
 set(MMC_SRC_LOCAL_SERVICE "")
+set(MMC_SRC_ENTITIES "")
 set(MMC_SRC_META_SERVICE "")
 set(MMC_SRC_NET "")
 set(MMC_SRC_PROTO "")
@@ -25,6 +27,7 @@ set(MMC_SRC_UNDER_API_MF_SMEM "")
 aux_source_directory(common MMC_SRC_COMMON)
 aux_source_directory(client MMC_SRC_CLIENT)
 aux_source_directory(local_service MMC_SRC_LOCAL_SERVICE)
+aux_source_directory(meta_data MMC_SRC_ENTITIES)
 aux_source_directory(meta_service MMC_SRC_META_SERVICE)
 aux_source_directory(net MMC_SRC_NET)
 aux_source_directory(net/acc_links_impl MMC_SRC_NET)
@@ -35,6 +38,7 @@ aux_source_directory(under_api/mf_smem MMC_SRC_UNDER_API_MF_SMEM)
 set(PLATFORM_SRC ${MMC_SRC_COMMON}
         ${MMC_SRC_LOCAL_SERVICE}
         ${MMC_SRC_LOCAL_SERVICE}
+        ${MMC_SRC_ENTITIES}
         ${MMC_SRC_META_SERVICE}
         ${MMC_SRC_NET}
         ${MMC_SRC_PROTO}

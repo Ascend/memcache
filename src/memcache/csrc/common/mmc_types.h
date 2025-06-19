@@ -25,6 +25,8 @@ enum MmcErrorCode : int32_t {
     MMC_NET_SEQ_DUP = -3009,
     MMC_NET_SEQ_NO_FOUND = -3010,
     MMC_ALREADY_NOTIFIED = -3011,
+    MMC_UNMATCHED_STATE = -3012,
+    MMC_EXCEED_CAPACITY = -3013,
 };
 
 constexpr int32_t N16 = 16;
@@ -42,7 +44,7 @@ constexpr uint32_t UN65536 = 65536;
 constexpr uint32_t UN16777216 = 16777216;
 
 constexpr uint32_t MMC_DEFAUT_WAIT_TIME = 120; // 120s
-} // namespace smem
+} // namespace mmc
 } // namespace ock
 
 #endif // MEMFABRIC_HYBRID_MMC_TYPES_H
