@@ -27,6 +27,8 @@ enum MmcErrorCode : int32_t {
     MMC_ALREADY_NOTIFIED = -3011,
     MMC_UNMATCHED_STATE = -3012,
     MMC_EXCEED_CAPACITY = -3013,
+    MMC_LINK_NOT_FOUND = -3014,
+    MMC_NET_REQ_HANDLE_NO_FOUND = -3015,
 };
 
 constexpr int32_t N16 = 16;

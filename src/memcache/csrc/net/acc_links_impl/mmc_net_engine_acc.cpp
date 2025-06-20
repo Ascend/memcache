@@ -1,8 +1,13 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
+#include "mmc_net_link_acc.h"
 #include "mmc_net_engine_acc.h"
 #include "mmc_net_ctx_store.h"
+#include "mmc_msg_base.h"
+#include "mmc_net_wait_handle.h"
+#include "mmc_net_common_acc.h"
+#include "mmc_net_ctx_acc.h"
 
 namespace ock {
 namespace mmc {
@@ -115,23 +120,91 @@ Result NetEngineAcc::StopInner()
     return MMC_OK;
 }
 
-Result NetEngineAcc::Call(uint32_t targetId, const char *reqData, uint32_t reqDataLen, char *respData,
+Result NetEngineAcc::Call(uint32_t targetId, const char *reqData, uint32_t reqDataLen, char **respData,
                           uint32_t &respDataLen, int16_t &userResult, int32_t timeoutInSecond)
 {
     MMC_ASSERT_RETURN(started_, MMC_NOT_STARTED);
     MMC_ASSERT_RETURN(reqData != nullptr, MMC_INVALID_PARAM);
-    MMC_ASSERT_RETURN(reqDataLen == 0, MMC_INVALID_PARAM);
+    MMC_ASSERT_RETURN(reqDataLen != 0, MMC_INVALID_PARAM);
     MMC_ASSERT_RETURN(respData != nullptr, MMC_INVALID_PARAM);
 
     // TODO
+    int16_t opCode = reinterpret_cast<MsgBase*>(const_cast<char*>(reqData))->msgId;
+    MMC_LOG_INFO("Send op " << opCode);
+    MMC_ASSERT_RETURN(opCode != -1, MMC_INVALID_PARAM);
 
-    return MMC_OK;
+    /* step1: do serialization */
+//    auto result = request->Serialize();
+//    KVS_ASSERT_RETURN(result == K_OK, result);
+
+    /* step2: get the link to send */
+    NetLinkAccPtr link;
+    auto result = peerLinkMap_->Find(targetId, link);
+    if (!result) {
+        return MMC_LINK_NOT_FOUND; /* need to connect */
+    }
+
+    /* step3: copy data */
+    auto dataBuf = MmcMakeRef<ock::acc::AccDataBuffer>(reqDataLen);
+    MMC_ASSERT_RETURN(dataBuf.Get() != nullptr, MMC_NEW_OBJECT_FAILED);
+    MMC_ASSERT_RETURN(dataBuf->AllocIfNeed(), MMC_NEW_OBJECT_FAILED);
+    memcpy(dataBuf->DataPtrVoid(), static_cast<void*>(const_cast<char*>(reqData)),
+           reqDataLen);
+    dataBuf->SetDataSize(reqDataLen);
+
+    /* step4: create wait handler and initialize */
+    auto waiter = MmcMakeRef<NetWaitHandler>(ctxStore_);
+    MMC_ASSERT_RETURN(waiter.Get() != nullptr, MMC_NEW_OBJECT_FAILED);
+    MMC_ASSERT_RETURN(waiter->Initialize() == MMC_OK, MMC_ERROR);
+
+    /* step5: put into ctx store before sent the data to peer in case of the peer responses very fast  */
+    uint32_t seqNo = 0;
+    result = ctxStore_->PutAndGetSeqNo<NetWaitHandler>(waiter.Get(), seqNo);
+    MMC_ASSERT_RETURN(result == MMC_OK, result);
+    /* step6: send message to peer */
+
+    result = link->RealLink()->NonBlockSend(MSG_TYPE_DATA, opCode, seqNo, dataBuf.Get(), nullptr);
+    if (result != MMC_OK) {
+        /* remove wait handler from context store */
+        ctxStore_->RemoveSeqNo<NetWaitHandler>(seqNo);
+        MMC_LOG_ERROR("Failed to send data to service " << targetId);
+        return result;
+    }
+
+    /* step7: wait for response */
+    result = waiter->TimedWait(timeoutInSecond);
+    /* if timeout */
+    if (result == MMC_TIMEOUT) {
+        /* remove waiter in context store */
+        ctxStore_->RemoveSeqNo<NetWaitHandler>(seqNo);
+        MMC_LOG_WARN("Peer " << targetId << " doesn't response within " << timeoutInSecond << " seconds");
+        return result;
+    }
+
+    /* got response data and deserialize */
+    auto& data = waiter->Data();
+    MMC_ASSERT_RETURN(data.Get() != nullptr, MMC_ERROR);
+    /* set response code */
+    userResult = waiter->GetResult();
+    /* deserialize */
+//    result = response->Deserialize(data->DataIntPtr(), data->DataLen());
+//    if (result != K_OK) {
+//        KVS_LOG_ERROR("Failed to deserialize response data for " << request->OpCode() << " from service " <<
+//                                                                 targetId.ToString());
+//        return result;
+//    }
+    if (*respData == nullptr) {
+        *respData = (char*) malloc(data->DataLen());
+    }
+    memcpy(*respData, (void*) data->DataIntPtr(), data->DataLen());
+    respDataLen = data->DataLen();
+    return result;
 }
 
 Result NetEngineAcc::Send(uint32_t peerId, const char *reqData, uint32_t reqDataLen, int32_t timeoutInSecond) {
     MMC_ASSERT_RETURN(started_, MMC_NOT_STARTED);
     MMC_ASSERT_RETURN(reqData != nullptr, MMC_INVALID_PARAM);
-    MMC_ASSERT_RETURN(reqDataLen == 0, MMC_INVALID_PARAM);
+    MMC_ASSERT_RETURN(reqDataLen != 0, MMC_INVALID_PARAM);
 
     return MMC_OK;
 }
@@ -143,7 +216,6 @@ NetEngineAcc::~NetEngineAcc()
 
 Result NetEngineAcc::Initialize(const NetEngineOptions &options)
 {
-    std::lock_guard<std::mutex> guard(mutex_);
     if (inited_) {
         MMC_LOG_INFO("NetEngine [" << options.name << "] already initialized");
         return MMC_OK;
@@ -164,16 +236,15 @@ Result NetEngineAcc::Initialize(const NetEngineOptions &options)
     /* create tcp server */
     auto tmpServer = TcpServer::Create();
     MMC_ASSERT_RETURN(tmpServer != nullptr, MMC_NEW_OBJECT_FAILED);
+    server_ = tmpServer.Get();
 
     /* register callbacks */
+    options_ = options;
     MMC_RETURN_NOT_OK(RegisterTcpServerHandler());
-
     /* assign to member variables */
-    server_ = tmpServer.Get();
     peerLinkMap_ = tmpLinkMap;
     ctxStore_ = tmpCtxStore;
 
-    options_ = options;
     inited_ = true;
 
     return MMC_OK;
@@ -181,7 +252,6 @@ Result NetEngineAcc::Initialize(const NetEngineOptions &options)
 
 void NetEngineAcc::UnInitialize()
 {
-    std::lock_guard<std::mutex> guard(mutex_);
     if (!inited_) {
         MMC_LOG_DEBUG("NetEngine [" << options_.name << "] has not been initialized");
         return;
@@ -229,16 +299,32 @@ Result NetEngineAcc::HandleNewLink(const TcpConnReq &req, const TcpLinkPtr &link
     /* add into peer link map */
     peerLinkMap_->Add(peerId, newLinkAcc);
     MMC_LOG_DEBUG("HandleNewLink with peer id: " << req.rankId);
+    Result ret = MMC_OK;
+    if (newLinkHandler_ != nullptr) {
+        ret = newLinkHandler_(Convert<NetLinkAcc, NetLink>(newLinkAcc));
+    }
     return MMC_OK;
 }
 
 Result NetEngineAcc::HandleNeqRequest(const TcpReqContext &context)
 {
     /* use result variable for real opcode */
-
-
+    MMC_LOG_DEBUG("HandleNeqRequest Header " << context.Header().ToString());
+    NetContextAccPtr contextAcc = MmcMakeRef<NetContextAcc>(context);
+    MMC_ASSERT_RETURN(contextAcc != nullptr, MMC_NEW_OBJECT_FAILED);
+    NetContextPtr contextPtr = Convert<NetContextAcc, NetContext>(contextAcc);
+    int16_t opCode = contextAcc->OpCode();
+    MMC_ASSERT_RETURN(opCode < gHandlerSize, MMC_NET_REQ_HANDLE_NO_FOUND);
+    if (reqReceivedHandlers_[opCode]  == nullptr) {
+        /*  client do reply response */
+        MMC_ASSERT_RETURN(HandleAllRequests4Response(context) == MMC_OK, MMC_ERROR);
+    } else {
+        /* server do function */
+        MMC_ASSERT_RETURN(reqReceivedHandlers_[opCode](contextPtr) == MMC_OK, MMC_ERROR);
+    }
     return MMC_OK;
 }
+
 
 Result NetEngineAcc::HandleMsgSent(TcpMsgSentResult result, const TcpMsgHeader &header, const TcpDataBufPtr &cbCtx)
 {
@@ -314,6 +400,40 @@ Result NetEngineAcc::ConnectToPeer(uint32_t peerId, const std::string &peerIp, u
     /* set peer id */
     newLink = linkAcc.Get();
     newLink->UpCtx(peerId);
+
+    return MMC_OK;
+}
+
+Result NetEngineAcc::HandleAllRequests4Response(const TcpReqContext &context)
+{
+    MMC_LOG_DEBUG("Get request with seqNo " << context.SeqNo());
+    NetWaitHandler *out = nullptr;
+    auto result = ctxStore_->GetSeqNoAndRemove<NetWaitHandler>(context.SeqNo(), out, false);
+    /* check if out is nullptr */
+    MMC_ASSERT_RETURN(out != nullptr, MMC_ERROR);
+    if (result != MMC_OK) {
+        if (out != nullptr) { /* decrease ref */
+            out->DecreaseRef();
+        }
+
+        MMC_LOG_WARN("Failed to get waiter from ctx store with seqNo " << context.SeqNo() << ", probably timeout");
+        return MMC_OK;
+    }
+
+    NetWaitHandlerPtr waiter = out;
+    out->DecreaseRef(); /* decrease ref */
+
+    auto dataBuf = MmcMakeRef<ock::acc::AccDataBuffer>(context.DataLen());
+    MMC_ASSERT_RETURN(result == MMC_OK, MMC_NEW_OBJECT_FAILED);
+    MMC_ASSERT_RETURN(dataBuf->AllocIfNeed(), MMC_NEW_OBJECT_FAILED);
+    memcpy(dataBuf->DataPtrVoid(), context.DataPtr(), context.DataLen());
+    dataBuf->SetDataSize(context.DataLen());
+
+    result = waiter->Notify(context.Header().result, dataBuf.Get());
+    if (result == MMC_ALREADY_NOTIFIED) {
+        MMC_LOG_WARN("Already notify wait handler for seqNo " << context.SeqNo());
+        return MMC_OK;
+    }
 
     return MMC_OK;
 }

@@ -14,7 +14,9 @@ struct MsgBase {
     uint32_t destRankId = 0;
 };
 
-enum MsgId : int16_t {};
+enum MsgId : int16_t {
+    PING_MSG = 0,
+};
 }
 }
 

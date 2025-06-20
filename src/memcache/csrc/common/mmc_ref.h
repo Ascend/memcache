@@ -8,6 +8,7 @@
 #include <utility>
 #include <new>
 #include <string.h>
+#include <new>
 
 namespace ock {
 namespace mmc {

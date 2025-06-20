@@ -40,7 +40,7 @@ using NetLinkMapAcc = NetLinkMap<NetLinkAccPtr>;
 using NetLinkMapAccPtr = MmcRef<NetLinkMapAcc>;
 
 constexpr int16_t MSG_TYPE_DATA = 0;
-
+constexpr int16_t MSG_TYPE_CTRL = 1;
 /**
  * @brief Seq number
  */

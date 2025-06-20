@@ -7,6 +7,7 @@
 #include "mmc_net_engine.h"
 #include "mmc_net_common_acc.h"
 #include "mmc_net_link_acc.h"
+#include "mmc_net_ctx_store.h"
 
 namespace ock {
 namespace mmc {
@@ -20,8 +21,8 @@ public:
     Result ConnectToPeer(uint32_t peerId, const std::string &peerIp, uint16_t port, NetLinkPtr &newLink,
                          bool isForce) override;
 
-    Result Call(uint32_t targetId, const char *reqData, uint32_t reqDataLen, char *respData, uint32_t &respDataLen,
-                int16_t &userResult, int32_t timeoutInSecond) override;
+    Result Call(uint32_t targetId, const char *reqData, uint32_t reqDataLen, char **respData,
+                        uint32_t &respDataLen, int16_t &userResult, int32_t timeoutInSecond) override;
 
     Result Send(uint32_t peerId, const char *reqData, uint32_t reqDataLen, int32_t timeoutInSecond) override;
 
@@ -38,6 +39,7 @@ private:
     Result HandleNeqRequest(const TcpReqContext &context);
     Result HandleMsgSent(TcpMsgSentResult result, const TcpMsgHeader &header, const TcpDataBufPtr &cbCtx);
     Result HandleLinkBroken(const TcpLinkPtr &link) const;
+    Result HandleAllRequests4Response(const TcpReqContext &context);
 
 private:
     /* hot used variables */

@@ -8,9 +8,11 @@
 
 namespace ock {
 namespace mmc {
-class MmcClientDefault : public MmcReferable {};
+class MmcClientDefault : public MmcReferable {
+private:
+};
 using MmcClientDefaultPtr = MmcRef<MmcClientDefault>;
 }
 }
 
-#endif  //MEM_FABRIC_MMC_CLIENT_DEFAULT_H
+#endif //MEM_FABRIC_MMC_CLIENT_DEFAULT_H

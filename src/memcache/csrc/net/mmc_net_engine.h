@@ -36,7 +36,7 @@ class NetContext : public MmcReferable {
 public:
     ~NetContext() override = default;
 
-    virtual int32_t Reply() = 0;
+    virtual int32_t Reply(int16_t responseCode, char *respData, uint32_t &respDataLen) = 0;
 
     /**
      * @brief Get seq number of request
@@ -190,45 +190,49 @@ public:
         if (std::is_pod<REQ>::value && std::is_pod<RESP>::value) {
             /* do call */
             respLen = sizeof(RESP);
-            return Call(peerId, static_cast<char *>(req), sizeof(REQ), static_cast<char *>(resp), respLen, userResult,
+            respData = reinterpret_cast<char *>(&resp);
+            return Call(peerId, reinterpret_cast<char *>(const_cast<REQ *>(&req)), sizeof(REQ), &respData, respLen, userResult,
                         timeoutInSecond);
         } else if (std::is_pod<REQ>::value && !std::is_pod<RESP>::value) {
             /* do call */
             respLen = UINT32_MAX;
-            auto result =
-                Call(peerId, static_cast<char *>(req), sizeof(REQ), resp, respLen, userResult, timeoutInSecond);
+            respData = nullptr;
+            auto result = Call(peerId, reinterpret_cast<char *>(const_cast<REQ *>(&req)), sizeof(REQ), &respData, respLen, userResult, timeoutInSecond);
             MMC_RETURN_NOT_OK(result);
 
             /* deserialize */
-            NetMsgUnpacker unpacker({resp, respLen});
-            result = resp->Deserialize(unpacker);
+            std::string respStr(respData, respLen);
+            NetMsgUnpacker unpacker(respStr);
+            unpacker.Deserialize(resp);
             MMC_LOG_ERROR_AND_RETURN_NOT_OK(result, "deserialize failed");
 
             return result;
         } else if (!std::is_pod<REQ>::value && std::is_pod<RESP>::value) {
             /* serialize request */
             NetMsgPacker packer;
-            auto result = packer.Serialize(req);
+            packer.Serialize(req);
             std::string serializedData = packer.String();
 
             /* do call */
             respLen = sizeof(RESP);
-            return Call(peerId, serializedData.c_str(), serializedData.length(), static_cast<char *>(resp), respLen,
+            char *respData = reinterpret_cast<char *>(&resp);
+            return Call(peerId, serializedData.c_str(), serializedData.length(), &respData, respLen,
                         userResult, timeoutInSecond);
         } else {
             NetMsgPacker packer;
-            auto result = packer.Serialize(req);
+            packer.Serialize(req);
             std::string serializedData = packer.String();
 
             /* do call */
             respLen = sizeof(RESP);
-            result = Call(peerId, serializedData.c_str(), serializedData.length(), resp, respLen, userResult,
-                          timeoutInSecond);
+            respData = nullptr;
+            Result result = Call(peerId, serializedData.c_str(), serializedData.length(), &respData, respLen, userResult, timeoutInSecond);
             MMC_RETURN_NOT_OK(result);
 
             /* deserialize */
-            NetMsgUnpacker unpacker({resp, respLen});
-            result = resp->Deserialize(unpacker);
+            std::string respStr(respData, respLen);
+            NetMsgUnpacker unpacker(respStr);
+            unpacker.Deserialize(resp);
             MMC_LOG_ERROR_AND_RETURN_NOT_OK(result, "deserialize failed");
 
             return result;
@@ -237,7 +241,7 @@ public:
 
     /**
      * @brief Do RPC/IPC call to peer in sync way, wait for response back
-     * 
+     *
      * @tparam REQ         [in] type of request
      * @param peerId       [in] peer id
      * @param req          [in] request to send
@@ -273,8 +277,8 @@ public:
      * @param timeoutInSecond [in] timeout in second
      * @return 0 if successful, MMC_TIMEOUT for timeout, negative value for inner local size error
      */
-    virtual Result Call(uint32_t peerId, const char *reqData, uint32_t reqDataLen, char *respData,
-                        uint32_t &respDataLen, int16_t &result, int32_t timeoutInSecond) = 0;
+    virtual Result Call(uint32_t targetId, const char *reqData, uint32_t reqDataLen, char **respData,
+                        uint32_t &respDataLen, int16_t &userResult, int32_t timeoutInSecond) = 0;
 
     /**
      * @brief Send a request to peer with response
@@ -292,6 +296,7 @@ protected:
     constexpr static int16_t gHandlerMin = 0;
 
 protected:
+    int16_t gHandlerSize = 0;
     NetReqReceivedHandler reqReceivedHandlers_[gHandlerMax];
     NetReqSentHandler reqSentHandlers_[gHandlerMax];
     NetNewLinkHandler newLinkHandler_ = nullptr;
@@ -302,11 +307,11 @@ protected:
 
 inline void NetEngine::RegRequestReceivedHandler(int16_t opCode, const NetReqReceivedHandler &h)
 {
-    MMC_ASSERT_RET_VOID(h != nullptr);
     MMC_ASSERT_RET_VOID(opCode >= 0 && opCode < gHandlerMax);
 
     std::lock_guard<std::mutex> guard(mutex_);
     reqReceivedHandlers_[opCode] = h;
+    gHandlerSize++;
 }
 
 inline void NetEngine::RegRequestSentHandler(int16_t opCode, const NetReqSentHandler &h)

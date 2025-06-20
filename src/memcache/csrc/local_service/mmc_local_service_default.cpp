@@ -5,5 +5,10 @@
 
 namespace ock {
 namespace mmc {
+MmcErrorCode MmcLocalServiceDefault::Start(mmc_local_service_config_t *config)
+{
+    return MMC_OBJECT_NOT_EXISTS;
+}
+void MmcLocalServiceDefault::Stop() {}
 }
 }

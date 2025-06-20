@@ -8,7 +8,11 @@
 
 namespace ock {
 namespace mmc {
-class MmcLocalServiceDefault : public MmcLocalService {};
+class MmcLocalServiceDefault : public MmcLocalService {
+public:
+  MmcErrorCode Start(mmc_local_service_config_t *config) override;
+  void Stop() override;
+};
 }
 }
 

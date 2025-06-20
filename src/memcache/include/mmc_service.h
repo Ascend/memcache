@@ -45,4 +45,4 @@ void mmcs_local_service_stop(mmc_local_service_t handle);
 }
 #endif
 
-#endif //__MEMFABRIC_MMC_SERVICE_H__
+#endif // __MEMFABRIC_MMC_SERVICE_H__
