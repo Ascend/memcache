@@ -12,7 +12,7 @@ namespace ock {
 namespace mmc {
 
 template <typename Key, typename Value, uint32_t numBuckets>
-class LookupMap {
+class MmcLookupMap {
     static_assert(numBuckets > 0, "numBuckets must be positive");
 
 public:
@@ -41,7 +41,7 @@ public:
      * @param value        [in/out] value found
      * @return 0 if found
      */
-    Result Find(const Key &key, Value &value) const
+    Result Find(const Key &key, Value &value)
     {
         Bucket &bucket = GetBucket(key);
         std::lock_guard<std::mutex> guard(bucket.mutex_);
@@ -77,7 +77,7 @@ private:
 
     std::hash<Key> keyHasher;
 
-    Bucket &GetBucket(Key key) const
+    Bucket &GetBucket(Key key)
     {
         return buckets_[keyHasher(key) % numBuckets];
     }

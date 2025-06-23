@@ -32,7 +32,7 @@ public:
      * @param oldState     [in] old state
      * @return 0 if new state not equal to old state, MMC_UNMATCHED_STATE if newState and old state are equal
      */
-    Result UpdateState(BlobState newState, BlobState oldState);
+    Result UpdateState(BlobState newState, BlobState oldState = DEFAULT);
 
     /**
      * @brief Link a blob to this blob
@@ -94,7 +94,7 @@ private:
 inline Result MmcMemBlob::UpdateState(BlobState newState, BlobState oldState)
 {
     std::lock_guard<Spinlock> guard(spinlock_);
-    if (state_ == oldState) {
+    if (oldState == DEFAULT || state_ == oldState) {
         state_ = newState;
         return MMC_OK;
     } else {

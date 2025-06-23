@@ -12,6 +12,7 @@ namespace mmc {
  * @brief State of blob
  */
 enum BlobState : uint8_t {
+    DEFAULT,
     INIT,
     ALLOCATED,
     DATA_WRITING,

@@ -1,12 +1,12 @@
 #include "mmc_mem_obj_meta.h"
-#include "mmc_lookup_map.h" // just for test
 #include <algorithm>
 #include <chrono>
 
 namespace ock {
 namespace mmc {
 
-void MmcMemObjMeta::AddBlob(const MmcMemBlobPtr& blob)
+// TODO 添加blob时要检查size一致
+void MmcMemObjMeta::AddBlob(const MmcMemBlobPtr &blob)
 {
     std::lock_guard<Spinlock> guard(spinlock_);
     if (numBlobs_ < MAX_NUM_BLOB_CHAINS) {
@@ -27,7 +27,7 @@ void MmcMemObjMeta::AddBlob(const MmcMemBlobPtr& blob)
     }
 }
 
-Result MmcMemObjMeta::RemoveBlob(const MmcMemBlobPtr& blob)
+Result MmcMemObjMeta::RemoveBlob(const MmcMemBlobPtr &blob)
 {
     if (blob == nullptr) {
         return MMC_INVALID_PARAM;
@@ -51,6 +51,42 @@ Result MmcMemObjMeta::RemoveBlob(const MmcMemBlobPtr& blob)
         }
     }
     return MMC_ERROR;
+}
+
+MmcMetaInfoPtr MmcMemObjMeta::GetMetaInfo(BlobState state)
+{
+    std::lock_guard<Spinlock> guard(spinlock_);
+    std::vector<MmcBlobInfo> blobInfoList;
+    for (size_t i = 0; i < MAX_NUM_BLOB_CHAINS; ++i) {
+        auto curBlob = blobs_[i];
+        while (curBlob != nullptr && curBlob->State() == state) {
+            blobInfoList.emplace_back(curBlob->Rank(), curBlob->Gva(), curBlob->MediaType());
+            curBlob = curBlob->Next();
+        }
+    }
+    if (blobInfoList.empty()) {
+        return nullptr;
+    } else {
+        MmcMetaInfoPtr metaInfo = MmcMakeRef<MmcMetaInfo>(blobInfoList, state, size_, priority_, lease_, prot_);
+        /*         metaInfo->blobInfoList_ = blobInfoList;
+                metaInfo->state_ = state;
+                metaInfo->size_ = size_;
+                metaInfo->priority_ = priority_;
+                metaInfo->prot_ = prot_; */
+        return metaInfo;
+    }
+}
+
+std::vector<MmcMemBlobPtr> MmcMemObjMeta::GetBlobs(BlobState state)
+{
+    std::vector<MmcMemBlobPtr> blobs;
+    for (size_t i = 0; i < MAX_NUM_BLOB_CHAINS; ++i) {
+        auto curBlob = blobs_[i];
+        while (curBlob != nullptr && (state == DEFAULT || curBlob->State() == state)) {
+            blobs.push_back(curBlob);
+        }
+    }
+    return blobs;
 }
 
 } // namespace mmc
