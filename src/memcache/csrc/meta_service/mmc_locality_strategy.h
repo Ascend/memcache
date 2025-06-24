@@ -5,6 +5,7 @@
 #define MEM_FABRIC_MMC_LOCALITY_STRATEGY_H
 
 #include "mmc_mem_blob.h"
+#include "mmc_types.h"
 #include <vector>
 
 namespace ock {
@@ -14,11 +15,9 @@ struct AllocRequest {
     uint64_t blobSize_{0};
     uint32_t numBlobs_{0};
     uint16_t mediaType_{0};
-    uint32_t priorityRank_{0};
+    uint32_t preferredRank_{0};
     uint32_t flags_{0};
 };
-
-using MmcLocation = std::pair<uint32_t, uint16_t>;
 
 struct MmcLocalMemCurInfo {
     uint64_t capacity_;
