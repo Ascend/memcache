@@ -15,8 +15,8 @@ struct MmcLocalMemlInitInfo {
     uint64_t capacity_;
 };
 
-using MmcMemPoolInitInfo = std::map<std::pair<uint32_t, uint16_t>, MmcLocalMemlInitInfo>;
-using MmcAllocators = std::map<std::pair<uint32_t, uint16_t>, MmcBlobAllocatorPtr>;
+using MmcMemPoolInitInfo = std::map<MmcLocation, MmcLocalMemlInitInfo>;
+using MmcAllocators = std::map<MmcLocation, MmcBlobAllocatorPtr>;
 
 class MmcGlobalAllocator : public MmcReferable {
 public:
@@ -25,13 +25,13 @@ public:
         for (const auto &localInfo : mmcMemPoolInitInfo_) {
             mmcMemPoolCurInfo_[localInfo.first].capacity_ = localInfo.second.capacity_;
             allocators_[localInfo.first] = MmcMakeRef<MmcBlobAllocator>(
-                localInfo.first.first, localInfo.first.second, localInfo.second.bm_, localInfo.second.capacity_);
+                localInfo.first.rank_, localInfo.first.mediaType_, localInfo.second.bm_, localInfo.second.capacity_);
         }
     };
     Result Alloc(const AllocRequest &allocReq, std::vector<MmcMemBlobPtr> &blobs)
     {
         // todo: need to deal with the locks
-        std::vector<std::pair<uint32_t, uint16_t>> locations;
+        std::vector<MmcLocation> locations;
         Result ret = MmcLocalityStrategy::ArrangeLocality(mmcMemPoolCurInfo_, allocReq, locations);
         if (ret != MMC_OK) {
             return MMC_ERROR;
@@ -49,7 +49,7 @@ public:
     Result Free(MmcMemBlobPtr blob)
     {
         // todo: need to deal with the locks
-        MmcLocation location(blob->Rank(), blob->MediaType());
+        MmcLocation location{blob->Rank(), blob->MediaType()};
         auto allocator = allocators_[location];
         return allocator->Free(blob);
     };

@@ -35,7 +35,7 @@ private:
     MmcGlobalAllocatorPtr globalAllocator_;
     uint64_t defaultTtl_; /* defult ttl in miliseconds*/
 };
-} // namespace mmc
-} // namespace ock
+}  // namespace mmc
+}  // namespace ock
 
-#endif // MEM_FABRIC_MMC_META_MANAGER_H
+#endif  // MEM_FABRIC_MMC_META_MANAGER_H

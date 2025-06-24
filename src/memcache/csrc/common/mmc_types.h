@@ -45,8 +45,19 @@ constexpr uint32_t UN128 = 128;
 constexpr uint32_t UN65536 = 65536;
 constexpr uint32_t UN16777216 = 16777216;
 
-constexpr uint32_t MMC_DEFAUT_WAIT_TIME = 120; // 120s
-} // namespace mmc
-} // namespace ock
+constexpr uint32_t MMC_DEFAUT_WAIT_TIME = 120;  // 120s
 
-#endif // MEMFABRIC_HYBRID_MMC_TYPES_H
+struct MmcLocation {
+    uint32_t rank_;
+    uint16_t mediaType_;
+
+    bool operator<(const MmcLocation &other) const
+    {
+        return (rank_ < other.rank_) && (mediaType_ < other.mediaType_);
+    }
+};
+
+}  // namespace mmc
+}  // namespace ock
+
+#endif  // MEMFABRIC_HYBRID_MMC_TYPES_H

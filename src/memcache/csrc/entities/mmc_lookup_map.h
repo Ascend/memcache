@@ -25,9 +25,9 @@ public:
      */
     Result Insert(const Key &key, const Value &value)
     {
-        Bucket &bucket = GetBucket(key);
-        std::lock_guard<std::mutex> guard(bucket.mutex_);
-        auto ret = bucket.data_.emplace(key, value);
+        std::size_t index = GetIndex(key);
+        std::lock_guard<std::mutex> guard(locks_[index]);
+        auto ret = buckets_[index].emplace(key, value);
         if (ret.second) {
             return MMC_OK;
         }
@@ -43,10 +43,10 @@ public:
      */
     Result Find(const Key &key, Value &value)
     {
-        Bucket &bucket = GetBucket(key);
-        std::lock_guard<std::mutex> guard(bucket.mutex_);
-        auto iter = bucket.data_.find(key);
-        if (iter != bucket.data_.end()) {
+        std::size_t index = GetIndex(key);
+        std::lock_guard<std::mutex> guard(locks_[index]);
+        auto iter = buckets_[index].find(key);
+        if (iter != buckets_[index].end()) {
             value = iter->second;
             return MMC_OK;
         }
@@ -61,29 +61,25 @@ public:
      */
     Result Erase(const Key &key)
     {
-        Bucket &bucket = GetBucket(key);
-        std::lock_guard<std::mutex> guard(bucket.mutex_);
-        if (bucket.data_.erase(key) > 0) {
+        std::size_t index = GetIndex(key);
+        std::lock_guard<std::mutex> guard(locks_[index]);
+        if (buckets_[index].erase(key) > 0) {
             return MMC_OK;
         }
         return MMC_ERROR;
     }
 
 private:
-    struct Bucket {
-        std::unordered_map<Key, Value> data_;
-        std::mutex mutex_;
-    };
-
     std::hash<Key> keyHasher;
 
-    Bucket &GetBucket(Key key)
+    std::size_t GetIndex(Key key) const
     {
-        return buckets_[keyHasher(key) % numBuckets];
+        return keyHasher(key) % numBuckets;
     }
 
 private:
-    Bucket buckets_[numBuckets];
+    std::unordered_map<Key, Value> buckets_[numBuckets];
+    std::mutex locks_[numBuckets];
 };
 }  // namespace mmc
 }  // namespace ock
