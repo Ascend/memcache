@@ -650,6 +650,7 @@ int RdmaTransportManager::CreateQpWaitingReady(std::unordered_map<std::string, C
     attr.qp_attr.cap.max_recv_sge = 1;
     attr.qp_attr.qp_type = IBV_QPT_RC;
     attr.qp_attr.cap.max_send_wr = 128;
+    attr.data_plane_flag.bs.cq_cstm = 1;
 
     for (auto it = connections.begin(); it != connections.end(); ++it) {
         auto ret = DlHccpApi::RaQpAiCreate(rdmaHandle_, attr, it->second.aiQpInfo, it->second.qpHandle);
