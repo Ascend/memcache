@@ -191,50 +191,48 @@ public:
             /* do call */
             respLen = sizeof(RESP);
             respData = reinterpret_cast<char *>(&resp);
-            return Call(peerId, reinterpret_cast<char *>(const_cast<REQ *>(&req)), sizeof(REQ), &respData, respLen,
-                        userResult, timeoutInSecond);
+            return Call(peerId, reinterpret_cast<char *>(const_cast<REQ *>(&req)), sizeof(REQ), &respData, respLen, userResult,
+                        timeoutInSecond);
         } else if (std::is_pod<REQ>::value && !std::is_pod<RESP>::value) {
             /* do call */
             respLen = UINT32_MAX;
             respData = nullptr;
-            auto result = Call(peerId, reinterpret_cast<char *>(const_cast<REQ *>(&req)), sizeof(REQ), &respData,
-                               respLen, userResult, timeoutInSecond);
+            auto result = Call(peerId, reinterpret_cast<char *>(const_cast<REQ *>(&req)), sizeof(REQ), &respData, respLen, userResult, timeoutInSecond);
             MMC_RETURN_NOT_OK(result);
 
             /* deserialize */
             std::string respStr(respData, respLen);
             NetMsgUnpacker unpacker(respStr);
-            unpacker.Deserialize(resp);
+            result = resp.Deserialize(unpacker);
             MMC_LOG_ERROR_AND_RETURN_NOT_OK(result, "deserialize failed");
 
             return result;
         } else if (!std::is_pod<REQ>::value && std::is_pod<RESP>::value) {
             /* serialize request */
             NetMsgPacker packer;
-            packer.Serialize(req);
+            req.Serialize(packer);
             std::string serializedData = packer.String();
 
             /* do call */
             respLen = sizeof(RESP);
             char *respData = reinterpret_cast<char *>(&resp);
-            return Call(peerId, serializedData.c_str(), serializedData.length(), &respData, respLen, userResult,
-                        timeoutInSecond);
+            return Call(peerId, serializedData.c_str(), serializedData.length(), &respData, respLen,
+                        userResult, timeoutInSecond);
         } else {
             NetMsgPacker packer;
-            packer.Serialize(req);
+            req.Serialize(packer);
             std::string serializedData = packer.String();
 
             /* do call */
             respLen = sizeof(RESP);
             respData = nullptr;
-            Result result = Call(peerId, serializedData.c_str(), serializedData.length(), &respData, respLen,
-                                 userResult, timeoutInSecond);
+            Result result = Call(peerId, serializedData.c_str(), serializedData.length(), &respData, respLen, userResult, timeoutInSecond);
             MMC_RETURN_NOT_OK(result);
 
             /* deserialize */
             std::string respStr(respData, respLen);
             NetMsgUnpacker unpacker(respStr);
-            unpacker.Deserialize(resp);
+            result = resp.Deserialize(unpacker);
             MMC_LOG_ERROR_AND_RETURN_NOT_OK(result, "deserialize failed");
 
             return result;

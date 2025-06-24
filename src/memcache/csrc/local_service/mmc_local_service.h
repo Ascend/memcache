@@ -11,10 +11,14 @@ namespace ock {
 namespace mmc {
 class MmcLocalService : public MmcReferable {
 public:
-  virtual MmcErrorCode Start(mmc_local_service_config_t *config) = 0;
-  virtual void Stop() = 0;
+    virtual Result Start(const mmc_local_service_config_t &config) = 0;
+
+    virtual void Stop() = 0;
+
+    virtual const std::string &Name() const = 0;
+
+    virtual const mmc_local_service_config_t &Options() const = 0;
 };
-using MmcLocalServicePtr = MmcRef<MmcLocalService>;
 } // namespace mmc
 } // namespace ock
 

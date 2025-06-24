@@ -32,6 +32,8 @@ include_directories(
         ${PROJECT_MMC_SRC_BASE}/csrc/common
         ${PROJECT_MMC_SRC_BASE}/csrc/net
         ${PROJECT_MMC_SRC_BASE}/csrc/net/acc_links_impl
+        ${PROJECT_MMC_SRC_BASE}/csrc/meta_service
+        ${PROJECT_MMC_SRC_BASE}/csrc/local_service
         ${PROJECT_MMC_SRC_BASE}/csrc/proto
         ${PROJECT_MMC_SRC_BASE}/csrc/under_api/mf_smem
         ${PROJECT_MMC_SRC_BASE}/../util/csrc
@@ -101,3 +103,4 @@ set(TEST_SRC_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 set(TEST_DEPEND_LIBS gtest dl libacc_tcp_net.a mmc_static gcov pthread)
 
 add_subdirectory(testcase/memcache/csrc/net)
+add_subdirectory(testcase/memcache/csrc/meta_service)

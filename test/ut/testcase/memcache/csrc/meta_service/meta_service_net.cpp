@@ -1,0 +1,72 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ */
+#include <iostream>
+#include "gtest/gtest.h"
+#include "mmc_ref.h"
+#include "mmc_meta_service_default.h"
+#include "mmc_local_service_default.h"
+#include "mmc_msg_client_meta.h"
+
+using namespace testing;
+using namespace std;
+using namespace ock::mmc;
+
+class TestMmcMetaService : public testing::Test {
+public:
+    TestMmcMetaService();
+
+    void SetUp() override;
+
+    void TearDown() override;
+
+protected:
+};
+TestMmcMetaService::TestMmcMetaService() {}
+
+void TestMmcMetaService::SetUp()
+{
+    cout << "this is NetEngine TEST_F setup:";
+}
+
+void TestMmcMetaService::TearDown()
+{
+    cout << "this is NetEngine TEST_F teardown";
+}
+
+void UrlStringToChar(std::string &urlString, char *urlChar)
+{
+    for (uint32_t i = 0; i < urlString.length(); i++) {
+        urlChar[i] = urlString.at(i);
+    }
+    urlChar[urlString.length()] = '\0';
+}
+
+TEST_F(TestMmcMetaService, Init)
+{
+    std::string metaUrl = "tcp://127.0.0.1:5678";
+    std::string localUrl = "tcp://127.0.0.1:5679";
+    mmc_meta_service_config_t metaServiceConfig;
+    UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
+    auto metaServiceDefault = MmcMakeRef<MmcMetaServiceDefault>("testMetaService");
+    MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
+    ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
+
+    mmc_local_service_config_t localServiceConfig;
+    UrlStringToChar(localUrl, localServiceConfig.discoveryURL);
+    UrlStringToChar(metaUrl, localServiceConfig.metaServiceURL);
+    auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
+    MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
+    ASSERT_TRUE(localServicePtr->Start(localServiceConfig) == MMC_OK);
+
+    PingMsg req;
+    req.head.msgId = ML_PING_REQ;
+    req.num = 123;
+    PingMsg resp;
+    int16_t respRet;
+    ASSERT_TRUE(localServiceDefault->SyncCallMeta(req, resp, respRet, 30) == MMC_OK);
+    ASSERT_TRUE(respRet == MMC_OK);
+
+    metaServicePtr->Stop();
+    localServicePtr->Stop();
+}

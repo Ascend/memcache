@@ -21,6 +21,7 @@ typedef struct {
 
 typedef struct {
     char discoveryURL[1024];
+    char metaServiceURL[1024];
 } mmc_local_service_config_t;
 
 typedef struct {

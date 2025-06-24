@@ -4,6 +4,7 @@
 #ifndef MEMFABRIC_MMC_MSG_PACKER_H
 #define MEMFABRIC_MMC_MSG_PACKER_H
 
+#include <vector>
 #include "mmc_common_includes.h"
 
 namespace ock {

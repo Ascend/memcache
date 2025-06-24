@@ -44,7 +44,7 @@ int32_t HandleTestRequest(NetContextPtr &ctx)
     recv.num = 888;
 
     NetMsgPacker packer;
-    packer.Serialize(recv);
+    recv.Serialize(packer);
     std::string serializedData = packer.String();
     uint32_t retSize = serializedData.length();
     return ctx->Reply(0, const_cast<char* >(serializedData.c_str()), retSize);

@@ -17,6 +17,11 @@ struct MsgBase {
 enum MsgId : int16_t {
     PING_MSG = 0,
 };
+
+enum META_LOCAL_OPCODE_REQ : int16_t {
+    ML_PING_REQ = 0,
+    ML_ALLOC_REQ = 1,
+};
 }
 }
 

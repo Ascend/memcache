@@ -36,7 +36,7 @@ aux_source_directory(under_api/mf_smem MMC_SRC_UNDER_API_MF_SMEM)
 
 # set whole source for platform
 set(PLATFORM_SRC ${MMC_SRC_COMMON}
-        ${MMC_SRC_LOCAL_SERVICE}
+        ${MMC_SRC_CLIENT}
         ${MMC_SRC_LOCAL_SERVICE}
         ${MMC_SRC_ENTITIES}
         ${MMC_SRC_META_SERVICE}
