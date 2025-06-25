@@ -5,9 +5,13 @@
 namespace ock {
 namespace mmc {
 
-// TODO 添加blob时要检查size一致
-void MmcMemObjMeta::AddBlob(const MmcMemBlobPtr &blob)
+// TODO: 此处去重成本比较高，先不做
+Result MmcMemObjMeta::AddBlob(const MmcMemBlobPtr &blob)
 {
+    if (numBlobs_ != 0 && size_ != blob->Size()) {
+        return MMC_ERROR;
+    }
+
     std::lock_guard<Spinlock> guard(spinlock_);
     if (numBlobs_ < MAX_NUM_BLOB_CHAINS) {
         for (size_t i = 0; i < MAX_NUM_BLOB_CHAINS; ++i) {
@@ -25,69 +29,52 @@ void MmcMemObjMeta::AddBlob(const MmcMemBlobPtr &blob)
         last->Next(blob);
         numBlobs_++;
     }
+    return MMC_OK;
 }
 
-Result MmcMemObjMeta::RemoveBlob(const MmcMemBlobPtr &blob)
+Result MmcMemObjMeta::RemoveBlobs(const MmcBlobFilterPtr &filter, bool revert)
 {
-    if (blob == nullptr) {
-        return MMC_INVALID_PARAM;
-    }
-
     std::lock_guard<Spinlock> guard(spinlock_);
-    for (size_t i = 0; i < MAX_NUM_BLOB_CHAINS; ++i) {
-        if (blobs_[i] == blob) {
+    uint8_t oldNumBlobs = numBlobs_;
+    for (size_t i = 0; i < MAX_NUM_BLOB_CHAINS - 1; ++i) {
+        if (blobs_[i]->MatchFilter(filter) ^ revert) {
             blobs_[i] = nullptr;
             numBlobs_--;
-            return MMC_OK;
         }
     }
-    MmcMemBlobPtr last = blobs_[MAX_NUM_BLOB_CHAINS - 1];
-    while (last != nullptr) {
-        last = last->Next();
-        if (last == blob) {
-            last = nullptr;
+
+    MmcMemBlobPtr pre = blobs_[MAX_NUM_BLOB_CHAINS - 1];
+    while (pre->Next() != nullptr) {
+        MmcMemBlobPtr cur = pre->Next();
+        if (cur->MatchFilter(filter) ^ revert) {
+            pre->Next() = cur->Next();
+            cur = nullptr;
             numBlobs_--;
-            return MMC_OK;
         }
+        pre = pre->Next();
     }
-    return MMC_ERROR;
+
+    MmcMemBlobPtr head = blobs_[MAX_NUM_BLOB_CHAINS - 1];
+    if (head->MatchFilter(filter) ^ revert) {
+        blobs_[MAX_NUM_BLOB_CHAINS - 1] = head->Next();
+        head = nullptr;
+        numBlobs_--;
+    }
+
+    return numBlobs_ < oldNumBlobs ? MMC_OK : MMC_ERROR;
 }
 
-MmcMetaInfoPtr MmcMemObjMeta::GetMetaInfo(BlobState state)
-{
-    std::lock_guard<Spinlock> guard(spinlock_);
-    std::vector<MmcBlobInfo> blobInfoList;
-    for (size_t i = 0; i < MAX_NUM_BLOB_CHAINS; ++i) {
-        auto curBlob = blobs_[i];
-        while (curBlob != nullptr && curBlob->State() == state) {
-            blobInfoList.emplace_back(curBlob->Rank(), curBlob->Gva(), curBlob->MediaType());
-            curBlob = curBlob->Next();
-        }
-    }
-    if (blobInfoList.empty()) {
-        return nullptr;
-    } else {
-        MmcMetaInfoPtr metaInfo = MmcMakeRef<MmcMetaInfo>(blobInfoList, state, size_, priority_, lease_, prot_);
-        /*         metaInfo->blobInfoList_ = blobInfoList;
-                metaInfo->state_ = state;
-                metaInfo->size_ = size_;
-                metaInfo->priority_ = priority_;
-                metaInfo->prot_ = prot_; */
-        return metaInfo;
-    }
-}
-
-std::vector<MmcMemBlobPtr> MmcMemObjMeta::GetBlobs(BlobState state)
+std::vector<MmcMemBlobPtr> MmcMemObjMeta::GetBlobs(const MmcBlobFilterPtr &filter, bool revert)
 {
     std::vector<MmcMemBlobPtr> blobs;
     for (size_t i = 0; i < MAX_NUM_BLOB_CHAINS; ++i) {
         auto curBlob = blobs_[i];
-        while (curBlob != nullptr && (state == DEFAULT || curBlob->State() == state)) {
+        while (curBlob != nullptr && (curBlob->MatchFilter(filter) ^ revert)) {
             blobs.push_back(curBlob);
         }
     }
     return blobs;
 }
 
-} // namespace mmc
-} // namespace ock
+}  // namespace mmc
+}  // namespace ock

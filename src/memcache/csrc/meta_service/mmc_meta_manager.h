@@ -22,13 +22,27 @@ public:
     };
 
     /**
-     * @brief Get the metaInfo by key (filtered by DATA_READY state) & renew the lease
+     * @brief Get the meta object and extend the lease
      * @param key          [in] key of the meta object
-     * @param metaInfo     [out] metaInfo of the found meta object filltered by state
+     * @param objMeta      [out] the meta object obtained
      */
-    Result GetReadyBlobs(const std::string &key, MmcMetaInfoPtr &metaInfo);
+    Result Get(const std::string &key, MmcMemObjMetaPtr &objMeta);
+
+    /**
+     * @brief Alloc the global memeory space and create the meta object
+     * @param key          [in] key of the meta object
+     * @param metaInfo     [out] the meta object created
+     */
+
     Result Alloc(const std::string &key, const AllocRequest &allocReq, MmcMemObjMetaPtr &objMeta);
-    Result FreeStart(std::string key, uint32_t flags);
+
+    /**
+     * @brief Get the blobs by key and the filter, and renew the lease
+     * @param key          [in] key of the meta object
+     * @param filter       [in] filter used to choose the blobs
+     * @param blobs        [out] the blobs found by the key and filter
+     */
+    Result GetBlobs(const std::string &key, const MmcBlobFilterPtr &filter, std::vector<MmcMemBlobPtr> &blobs);
 
 private:
     MmcLookupMap<std::string, MmcMemObjMetaPtr, NUM_BUCKETS> objMetaLookupMap_;

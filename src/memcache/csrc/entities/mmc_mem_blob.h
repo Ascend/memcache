@@ -4,23 +4,26 @@
 #ifndef MEM_FABRIC_MMC_MEM_BLOB_H
 #define MEM_FABRIC_MMC_MEM_BLOB_H
 
-#include "mmc_common_includes.h"
 #include "mmc_blob_state.h"
+#include "mmc_common_includes.h"
 
 namespace ock {
 namespace mmc {
 class MmcMemBlob;
 using MmcMemBlobPtr = MmcRef<MmcMemBlob>;
 
+struct MmcBlobFilter : public MmcReferable {
+    uint32_t rank_{UINT32_MAX};
+    uint16_t mediaType_{UINT16_MAX};
+    BlobState state_{NONE};
+};
+using MmcBlobFilterPtr = MmcRef<MmcBlobFilter>;
+
 class MmcMemBlob final : public MmcReferable {
 public:
     MmcMemBlob() = delete;
     MmcMemBlob(const uint32_t rank, const uint64_t gva, const uint32_t size, const uint16_t mediaType)
-        : rank_(rank),
-          gva_(gva),
-          size_(size),
-          mediaType_(mediaType),
-          nextBlob_(nullptr)
+        : rank_(rank), gva_(gva), size_(size), mediaType_(mediaType), nextBlob_(nullptr)
     {
     }
     ~MmcMemBlob() override = default;
@@ -32,7 +35,7 @@ public:
      * @param oldState     [in] old state
      * @return 0 if new state not equal to old state, MMC_UNMATCHED_STATE if newState and old state are equal
      */
-    Result UpdateState(BlobState newState, BlobState oldState = DEFAULT);
+    Result UpdateState(BlobState newState, BlobState oldState = NONE);
 
     /**
      * @brief Link a blob to this blob
@@ -78,12 +81,20 @@ public:
      */
     BlobState State();
 
+    bool MatchFilter(const MmcBlobFilterPtr &filter)
+    {
+        if (filter == nullptr) {
+            return true;
+        }
+        return (rank_ == filter->rank_) && (mediaType_ == filter->mediaType_) && (state_ == filter->state_);
+    }
+
 private:
     const uint32_t rank_;              /* rank id of the blob located */
     const uint64_t gva_;               /* global virtual address */
     const uint32_t size_;              /* data size of the blob */
     const uint16_t mediaType_;         /* media type where blob located */
-    BlobState state_{BlobState::INIT}; /* state of the blob */
+    BlobState state_{BlobState::NONE}; /* state of the blob */
     uint16_t prot_{0};                 /* prot, i.e. access */
 
     MmcMemBlobPtr nextBlob_;
@@ -94,7 +105,7 @@ private:
 inline Result MmcMemBlob::UpdateState(BlobState newState, BlobState oldState)
 {
     std::lock_guard<Spinlock> guard(spinlock_);
-    if (oldState == DEFAULT || state_ == oldState) {
+    if (oldState == NONE || state_ == oldState) {
         state_ = newState;
         return MMC_OK;
     } else {

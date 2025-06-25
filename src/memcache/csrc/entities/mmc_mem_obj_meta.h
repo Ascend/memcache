@@ -12,37 +12,19 @@
 namespace ock {
 namespace mmc {
 
-static const uint16_t MAX_NUM_BLOB_CHAINS = 5; // to make sure MmcMemObjMeta <= 64 bytes
-
-struct MmcBlobInfo {
-    const uint32_t rank_{0};      /* rank id of the blob located */
-    const uint64_t gva_{0};       /* global virtual address */
-    const uint16_t mediaType_{0}; /* media type where blob located */
-    uint16_t prot_{0};            /* prot, i.e. access */
-
-    MmcBlobInfo(uint32_t rank, uint64_t gva, uint16_t mediaType) : rank_(rank), gva_(gva), mediaType_(mediaType) {}
-};
-
-struct MmcMetaInfo : public MmcReferable {
-    std::vector<MmcBlobInfo> blobInfoList_{};
-    BlobState state_{BlobState::INIT}; /* state of the blob */
-    uint32_t size_{0};                 /* byteSize of each blob */
-    uint8_t priority_{0};              /* priority of the memory object, used for eviction */
-    uint64_t lease_{0};                /* lease of the memory object */
-    uint16_t prot_{0};                 /* prot of the mem object, i.e. accessibility */
-
-    MmcMetaInfo(std::vector<MmcBlobInfo> &blobInfoList, BlobState state, uint32_t size, uint8_t priority,
-                uint64_t lease, uint16_t prot)
-        : blobInfoList_(blobInfoList), state_(state), size_(size), priority_(priority), lease_(lease), prot_(prot)
-    {
-    }
-};
-
-using MmcMetaInfoPtr = MmcRef<MmcMetaInfo>;
+static const uint16_t MAX_NUM_BLOB_CHAINS = 5;  // to make sure MmcMemObjMeta <= 64 bytes
 
 class MmcMemObjMeta : public MmcReferable {
 public:
     MmcMemObjMeta() = default;
+    MmcMemObjMeta(uint16_t prot, uint8_t priority, uint8_t numBlobs, std::vector<MmcMemBlobPtr> blobs, uint64_t lease,
+                  uint32_t size)
+        : prot_(prot), priority_(priority), numBlobs_(numBlobs), lease_(lease)
+    {
+        for (auto &blob : blobs) {
+            AddBlob(blob);
+        }
+    }
     ~MmcMemObjMeta() override = default;
 
     /**
@@ -51,15 +33,16 @@ public:
      *
      * @param blob         [in] blob pointer to be added
      */
-    void AddBlob(const MmcMemBlobPtr &blob);
+    Result AddBlob(const MmcMemBlobPtr &blob);
 
     /**
-     * @brief Remove a blob from the mem object
+     * @brief Remove a blob from the mem object by filter
      *
-     * @param blob         [in] blob pointer to be removed
+     * @param filter remove filter
+     * @param revert false: remove those matching the filter; true: remove those not matching the filter
      * @return 0 if removed
      */
-    Result RemoveBlob(const MmcMemBlobPtr &blob);
+    Result RemoveBlobs(const MmcBlobFilterPtr &filter, bool revert = false);
 
     /**
      * @brief Extend the lease
@@ -74,22 +57,40 @@ public:
     bool IsLeaseExpired();
 
     /**
+     * @brief Get the prot
+     * @return prot
+     */
+    uint16_t Prot();
+
+    /**
+     * @brief Get the priority
+     * @return priority
+     */
+    uint16_t Priority();
+
+    /**
      * @brief Get the number of blobs
      * @return number of blobs
      */
     uint16_t NumBlobs();
 
     /**
-     * @brief Get brief meta info based on state
-     * @return brief meta info
+     * @brief Get blobs with filter
+     * @return blobs passing the filter
      */
-    MmcMetaInfoPtr GetMetaInfo(BlobState state = DEFAULT);
+    std::vector<MmcMemBlobPtr> GetBlobs(const MmcBlobFilterPtr &filter, bool revert = false);
+
+        /**
+     * @brief Get the lease
+     * @return lease
+     */
+    uint16_t Lease();
 
     /**
-     * @brief Get blobs based on state
-     * @return blobs with the given state （if DEFAULT，do not filter by state)
+     * @brief Get the size
+     * @return size
      */
-    std::vector<MmcMemBlobPtr> GetBlobs(BlobState state = DEFAULT);
+    uint16_t Size();
 
 private:
     /* make sure the size of this class is 64 bytes */
@@ -122,13 +123,37 @@ inline bool MmcMemObjMeta::IsLeaseExpired()
     return (lease_ < nowMs);
 }
 
+inline uint16_t MmcMemObjMeta::Prot()
+{
+    std::lock_guard<Spinlock> guard(spinlock_);
+    return prot_;
+}
+
+inline uint16_t MmcMemObjMeta::Priority()
+{
+    std::lock_guard<Spinlock> guard(spinlock_);
+    return priority_;
+}
+
 inline uint16_t MmcMemObjMeta::NumBlobs()
 {
     std::lock_guard<Spinlock> guard(spinlock_);
     return numBlobs_;
 }
 
-} // namespace mmc
-} // namespace ock
+inline uint16_t MmcMemObjMeta::Lease()
+{
+    std::lock_guard<Spinlock> guard(spinlock_);
+    return lease_;
+}
 
-#endif // MEM_FABRIC_MMC_MEM_OBJ_META_H
+inline uint16_t MmcMemObjMeta::Size()
+{
+    std::lock_guard<Spinlock> guard(spinlock_);
+    return size_;
+}
+
+}  // namespace mmc
+}  // namespace ock
+
+#endif  // MEM_FABRIC_MMC_MEM_OBJ_META_H
