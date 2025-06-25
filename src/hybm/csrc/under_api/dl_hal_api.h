@@ -22,14 +22,6 @@ using halDevmmVirtGetHeapFromQueueFunc = void *(*)(void *, uint32_t, size_t);
 using halDevmmVirtNormalHeapUpdateInfoFunc = void (*)(void *, void *, void *, void *, uint64_t);
 using halDevmmVaToHeapFunc = void *(*)(uint64_t);
 
-using halGvaReserveMemoryFun = int32_t (*)(void **, size_t, int32_t, uint64_t);
-using halGvaUnreserveMemoryFun = int32_t (*)(void);
-using halGvaAllocFun = int32_t (*)(void *, size_t, uint64_t);
-using halGvaFreeFun = int32_t (*)(void *, size_t);
-using halGvaOpenFun = int32_t (*)(void *, const char *, size_t, uint64_t);
-using halGvaCloseFun = int32_t (*)(void *, uint64_t);
-
-
 class DlHalApi {
 public:
     static Result LoadLibrary();
@@ -100,36 +92,6 @@ public:
         return *pHalDevmmFd;
     }
 
-    static inline Result HalGvaReserveMemory(void **address, size_t size, int32_t deviceId, uint64_t flags)
-    {
-        return pHalGvaReserveMemory(address, size, deviceId, flags);
-    }
-
-    static inline Result HalGvaUnreserveMemory()
-    {
-        return pHalGvaUnreserveMemory();
-    }
-
-    static inline Result HalGvaAlloc(void *address, size_t size, uint64_t flags)
-    {
-        return pHalGvaAlloc(address, size, flags);
-    }
-
-    static inline Result HalGvaFree(void *address, size_t size)
-    {
-        return pHalGvaFree(address, size);
-    }
-
-    static inline Result HalGvaOpen(void *address, const char *name, size_t size, uint64_t flags)
-    {
-        return pHalGvaOpen(address, name, size, flags);
-    }
-
-    static inline Result HalGvaClose(void *address, uint64_t flags)
-    {
-        return pHalGvaClose(address, flags);
-    }
-
 private:
     static std::mutex gMutex;
     static bool gLoaded;
@@ -149,13 +111,6 @@ private:
     static halDevmmVirtNormalHeapUpdateInfoFunc pDevmmVirtNormalHeapUpdateInfo;
     static halDevmmVaToHeapFunc pDevmmVaToHeap;
     static int *pHalDevmmFd;
-
-    static halGvaReserveMemoryFun pHalGvaReserveMemory;
-    static halGvaUnreserveMemoryFun pHalGvaUnreserveMemory;
-    static halGvaAllocFun pHalGvaAlloc;
-    static halGvaFreeFun pHalGvaFree;
-    static halGvaOpenFun pHalGvaOpen;
-    static halGvaCloseFun pHalGvaClose;
 };
 
 }

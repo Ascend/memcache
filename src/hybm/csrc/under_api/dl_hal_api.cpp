@@ -27,13 +27,6 @@ halDevmmVirtNormalHeapUpdateInfoFunc DlHalApi::pDevmmVirtNormalHeapUpdateInfo = 
 halDevmmVaToHeapFunc DlHalApi::pDevmmVaToHeap = nullptr;
 int *DlHalApi::pHalDevmmFd = nullptr;
 
-halGvaReserveMemoryFun DlHalApi::pHalGvaReserveMemory = nullptr;
-halGvaUnreserveMemoryFun DlHalApi::pHalGvaUnreserveMemory = nullptr;
-halGvaAllocFun DlHalApi::pHalGvaAlloc = nullptr;
-halGvaFreeFun DlHalApi::pHalGvaFree = nullptr;
-halGvaOpenFun DlHalApi::pHalGvaOpen = nullptr;
-halGvaCloseFun DlHalApi::pHalGvaClose = nullptr;
-
 Result DlHalApi::LoadLibrary()
 {
     std::lock_guard<std::mutex> guard(gMutex);
@@ -68,13 +61,6 @@ Result DlHalApi::LoadLibrary()
     DL_LOAD_SYM(pDevmmVirtNormalHeapUpdateInfo, halDevmmVirtNormalHeapUpdateInfoFunc, halHandle,
                 "devmm_virt_normal_heap_update_info");
     DL_LOAD_SYM(pDevmmVaToHeap, halDevmmVaToHeapFunc, halHandle, "devmm_va_to_heap");
-
-    DL_LOAD_SYM(pHalGvaReserveMemory, halGvaReserveMemoryFun, halHandle, "halGvaReserveMemory");
-    DL_LOAD_SYM(pHalGvaUnreserveMemory, halGvaUnreserveMemoryFun, halHandle, "halGvaUnreserveMemory");
-    DL_LOAD_SYM(pHalGvaAlloc, halGvaAllocFun, halHandle, "halGvaAlloc");
-    DL_LOAD_SYM(pHalGvaFree, halGvaFreeFun, halHandle, "halGvaFree");
-    DL_LOAD_SYM(pHalGvaOpen, halGvaOpenFun, halHandle, "halGvaOpen");
-    DL_LOAD_SYM(pHalGvaClose, halGvaCloseFun, halHandle, "halGvaClose");
 
     gLoaded = true;
     return BM_OK;

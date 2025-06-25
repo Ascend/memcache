@@ -6,6 +6,7 @@
 #include "dl_api.h"
 #include "dl_hal_api.h"
 #include "dl_acl_api.h"
+#include "devmm_svm_gva.h"
 #include "hybm_logger.h"
 #include "hybm_ex_info_transfer.h"
 #include "hybm_devide_mem_segment.h"
@@ -37,10 +38,10 @@ Result MemSegmentDevice::PrepareVirtualMemory(uint32_t rankNo, uint32_t rankCnt,
         return BM_INVALID_PARAM;
     }
 
-    void *base = nullptr;
+    uint64_t base = 0;
     totalVirtualSize_ = rankCnt * options_.size;
-    auto ret = DlHalApi::HalGvaReserveMemory(&base, totalVirtualSize_, deviceId_, 0ULL);
-    if (ret != 0 || base == nullptr) {
+    auto ret = drv::HalGvaReserveMemory(&base, totalVirtualSize_, deviceId_, 0ULL);
+    if (ret != 0 || base == 0) {
         BM_LOG_ERROR("prepare virtual memory size(" << totalVirtualSize_ << ") failed. ret: " << ret);
         return BM_MALLOC_FAILED;
     }
@@ -50,7 +51,7 @@ Result MemSegmentDevice::PrepareVirtualMemory(uint32_t rankNo, uint32_t rankCnt,
     globalVirtualAddress_ = reinterpret_cast<uint8_t *>(base);
     allocatedSize_ = 0UL;
     sliceCount_ = 0;
-    *address = base;
+    *address = reinterpret_cast<void *>(base);
     return BM_OK;
 }
 
@@ -63,7 +64,7 @@ Result MemSegmentDevice::AllocMemory(uint64_t size, std::shared_ptr<MemSlice> &s
     }
 
     auto localVirtualBase = globalVirtualAddress_ + options_.size * rankIndex_;
-    auto ret = DlHalApi::HalGvaAlloc((void *)(localVirtualBase + allocatedSize_), size, 0);
+    auto ret = drv::HalGvaAlloc((uint64_t)(localVirtualBase + allocatedSize_), size, 0);
     if (ret != BM_OK) {
         BM_LOG_ERROR("HalGvaAlloc memory failed: " << ret);
         return BM_DL_FUNCTION_FAILED;
@@ -209,7 +210,7 @@ Result MemSegmentDevice::Mmap() noexcept
 
         BM_LOG_DEBUG("remote slice on rank(" << im.rankId << ") should map to: " << (void *)remoteAddress
                                             << ", size = " << im.size);
-        auto ret = DlHalApi::HalGvaOpen((void *)remoteAddress, im.shmName, im.size, 0);
+        auto ret = drv::HalGvaOpen((uint64_t)remoteAddress, im.shmName, im.size, 0);
         if (ret != BM_OK) {
             BM_LOG_ERROR("HalGvaOpen memory failed:" << ret);
             return -1;
@@ -228,7 +229,7 @@ Result MemSegmentDevice::Start() noexcept
 Result MemSegmentDevice::Stop() noexcept
 {
     for (auto va : mappedMem_) {
-        (void)DlHalApi::HalGvaClose((void *)va, 0);
+        (void)drv::HalGvaClose(va, 0);
     }
     mappedMem_.clear();
 
@@ -247,7 +248,7 @@ Result MemSegmentDevice::Leave(uint32_t rank) noexcept
     auto it = mappedMem_.lower_bound(addr);
     auto st = it;
     while (it != mappedMem_.end() && (*it) < addr + options_.size) {
-        (void)DlHalApi::HalGvaClose((void *)(*it), 0);
+        (void)drv::HalGvaClose((*it), 0);
         it++;
     }
 
