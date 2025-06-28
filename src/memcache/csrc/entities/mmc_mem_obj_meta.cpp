@@ -18,6 +18,7 @@ Result MmcMemObjMeta::AddBlob(const MmcMemBlobPtr &blob)
             if (blobs_[i] == nullptr) {
                 blobs_[i] = blob;
                 numBlobs_++;
+                size_ = blob->Size();
                 break;
             }
         }
@@ -69,7 +70,7 @@ std::vector<MmcMemBlobPtr> MmcMemObjMeta::GetBlobs(const MmcBlobFilterPtr &filte
     std::vector<MmcMemBlobPtr> blobs;
     for (size_t i = 0; i < MAX_NUM_BLOB_CHAINS; ++i) {
         auto curBlob = blobs_[i];
-        while (curBlob != nullptr && (curBlob->MatchFilter(filter) ^ revert)) {
+        if (curBlob != nullptr && (curBlob->MatchFilter(filter) ^ revert)) {
             blobs.push_back(curBlob);
         }
     }

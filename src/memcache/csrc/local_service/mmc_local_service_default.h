@@ -4,7 +4,7 @@
 #ifndef MEM_FABRIC_MMC_LOCAL_SERVICE_DEFAULT_H
 #define MEM_FABRIC_MMC_LOCAL_SERVICE_DEFAULT_H
 
-#include "mmc_local_meta_net_client.h"
+#include "mmc_meta_net_client.h"
 #include "mmc_local_common.h"
 #include "mmc_local_service.h"
 #include "mmc_def.h"

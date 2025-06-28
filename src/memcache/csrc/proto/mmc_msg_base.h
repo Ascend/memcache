@@ -12,6 +12,8 @@ struct MsgBase {
     int16_t msgVer = 0;
     int16_t msgId = -1;
     uint32_t destRankId = 0;
+    MsgBase(){}
+    MsgBase(int16_t ver, int16_t op, uint32_t dst): msgVer(ver), msgId(op), destRankId(dst){}
 };
 
 enum MsgId : int16_t {

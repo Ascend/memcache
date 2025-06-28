@@ -4,11 +4,11 @@
 #ifndef MEM_FABRIC_MMC_META_SERVICE_DEFAULT_H
 #define MEM_FABRIC_MMC_META_SERVICE_DEFAULT_H
 
-#include "mmc_meta_local_net_server.h"
+#include "mmc_meta_net_server.h"
 #include "mmc_meta_common.h"
 #include "mmc_meta_service.h"
 #include "mmc_def.h"
-
+#include "mmc_meta_manager.h"
 
 namespace ock {
 namespace mmc {
@@ -24,8 +24,14 @@ public:
 
     const mmc_meta_service_config_t &Options() const override;
 
+    MmcMetaMangerPtr GetMetaManger() const
+    {
+        return metaMangerPtr_;
+    }
+
 private:
     MetaNetServerPtr metaNetServer_;
+    MmcMetaMangerPtr metaMangerPtr_;
 
     std::mutex mutex_;
     bool start_ = false;
@@ -41,6 +47,7 @@ inline const mmc_meta_service_config_t &MmcMetaServiceDefault::Options() const
 {
     return options_;
 }
+using MmcMetaServiceDefaultPtr = MmcRef<MmcMetaServiceDefault>;
 }
 }
 

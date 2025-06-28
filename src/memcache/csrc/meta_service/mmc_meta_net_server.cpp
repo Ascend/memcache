@@ -3,8 +3,9 @@
  */
 #include "mmc_meta_service.h"
 #include "mmc_msg_base.h"
-#include "mmc_meta_local_net_server.h"
+#include "mmc_meta_net_server.h"
 #include "mmc_msg_client_meta.h"
+#include "mmc_meta_service_default.h"
 
 namespace ock {
 namespace mmc {
@@ -49,7 +50,15 @@ Result ock::mmc::MetaNetServer::Start()
 
 Result MetaNetServer::HandleAlloc(const NetContextPtr &context)
 {
-    return MMC_OK;
+    MmcMetaServiceDefaultPtr metaServiceDefaultPtr = Convert<MmcMetaService, MmcMetaServiceDefault>(metaService_);
+    auto metaMgr = metaServiceDefaultPtr->GetMetaManger();
+    AllocRequest req;
+    context->GetRequest<AllocRequest>(req);
+    MmcMemObjMetaPtr memObjMetaPtr = nullptr;
+    MMC_LOG_INFO("HandleAlloc key " << req.key_);
+    metaMgr->Alloc(req.key_, req.prot_, memObjMetaPtr);
+    MMC_LOG_INFO("HandleAlloc key " << req.key_);
+    return context->Reply(0, *memObjMetaPtr.Get());
 }
 
 Result MetaNetServer::HandlePing(const NetContextPtr &context)

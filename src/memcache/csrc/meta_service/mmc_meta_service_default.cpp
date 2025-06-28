@@ -2,7 +2,7 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
 #include "mmc_meta_service_default.h"
-#include "mmc_meta_local_net_server.h"
+#include "mmc_meta_net_server.h"
 namespace ock {
 namespace mmc {
 Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
@@ -17,6 +17,13 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     metaNetServer_ = MmcMakeRef<MetaNetServer>(this, name_ + "_MetaServer").Get();
     MMC_ASSERT_RETURN(metaNetServer_.Get() != nullptr, MMC_NEW_OBJECT_FAILED);
     MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetServer_->Start(), "Failed to start net server of meta service " << name_);
+
+    MmcMemPoolInitInfo poolInitInfo;
+    MmcLocation loc{0, 0};
+    MmcLocalMemlInitInfo locInfo{0, 1000000};
+    poolInitInfo[loc] = locInfo;
+    uint64_t defaultTtl = 2000;
+    metaMangerPtr_ = MmcMakeRef<MmcMetaManger>(poolInitInfo, defaultTtl);
 
     start_ = true;
     MMC_LOG_INFO("Started MetaService (" << name_ << ") at " << options_.discoveryURL);

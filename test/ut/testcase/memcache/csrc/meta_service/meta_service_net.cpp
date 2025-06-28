@@ -7,6 +7,8 @@
 #include "mmc_meta_service_default.h"
 #include "mmc_local_service_default.h"
 #include "mmc_msg_client_meta.h"
+#include "mmc_locality_strategy.h"
+#include "mmc_mem_obj_meta.h"
 
 using namespace testing;
 using namespace std;
@@ -67,6 +69,15 @@ TEST_F(TestMmcMetaService, Init)
     ASSERT_TRUE(localServiceDefault->SyncCallMeta(req, resp, respRet, 30) == MMC_OK);
     ASSERT_TRUE(respRet == MMC_OK);
 
+
+    AllocRequest reqAlloc;
+    reqAlloc.key_ = "test";
+    reqAlloc.prot_ = {SIZE_32K, 1, 0, 0, 0};
+    MmcMemObjMetaPtr objMeta = MmcMakeRef<MmcMemObjMeta>();
+    ASSERT_TRUE(localServiceDefault->SyncCallMeta(reqAlloc, *objMeta.Get(), respRet, 30) == MMC_OK);
+    ASSERT_TRUE(respRet == MMC_OK);
+    ASSERT_TRUE(objMeta->NumBlobs() == 1);
+    ASSERT_TRUE(objMeta->Size() == SIZE_32K);
     metaServicePtr->Stop();
     localServicePtr->Stop();
 }

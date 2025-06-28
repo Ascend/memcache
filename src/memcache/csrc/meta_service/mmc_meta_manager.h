@@ -12,7 +12,7 @@
 namespace ock {
 namespace mmc {
 
-static const uint16_t NUM_BUCKETS = 128;
+static const uint16_t NUM_BUCKETS = 8;
 
 class MmcMetaManger : public MmcReferable {
 public:
@@ -34,7 +34,7 @@ public:
      * @param metaInfo     [out] the meta object created
      */
 
-    Result Alloc(const std::string &key, const AllocRequest &allocReq, MmcMemObjMetaPtr &objMeta);
+    Result Alloc(const std::string &key, const AllocProperty &allocReq, MmcMemObjMetaPtr &objMeta);
 
     /**
      * @brief Get the blobs by key and the filter, and renew the lease
@@ -49,6 +49,7 @@ private:
     MmcGlobalAllocatorPtr globalAllocator_;
     uint64_t defaultTtl_; /* defult ttl in miliseconds*/
 };
+using MmcMetaMangerPtr = MmcRef<MmcMetaManger>;
 }  // namespace mmc
 }  // namespace ock
 

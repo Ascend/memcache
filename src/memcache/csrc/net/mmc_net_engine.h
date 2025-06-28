@@ -72,6 +72,34 @@ public:
      * @return data pointer
      */
     virtual void *Data() const = 0;
+
+    template<typename RESP>
+    int32_t Reply(int16_t responseCode, RESP &resp)
+    {
+        if (std::is_pod<RESP>::value) {
+            uint32_t retSize = sizeof(RESP);
+            return Reply(responseCode, (char*)(&resp), retSize);
+        } else {
+            NetMsgPacker packer;
+            resp.Serialize(packer);
+            std::string serializedData = packer.String();
+            uint32_t retSize = serializedData.length();
+            return Reply(responseCode, const_cast<char* >(serializedData.c_str()), retSize);
+        }
+    }
+
+    template<typename REQ>
+    int32_t GetRequest(REQ &req)
+    {
+        if (std::is_pod<REQ>::value) {
+            memcpy((void *)(&req), Data(), DataLen());
+        } else {
+            std::string str{(char *)Data(), DataLen()};
+            NetMsgUnpacker unpacker(str);
+            req.Deserialize(unpacker);
+        }
+        return MMC_OK;
+    }
 };
 
 class NetLink : public MmcReferable {

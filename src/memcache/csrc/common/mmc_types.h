@@ -29,6 +29,7 @@ enum MmcErrorCode : int32_t {
     MMC_EXCEED_CAPACITY = -3013,
     MMC_LINK_NOT_FOUND = -3014,
     MMC_NET_REQ_HANDLE_NO_FOUND = -3015,
+    MMC_NOT_ENOUGH_MEMORY = -3016,
 };
 
 constexpr int32_t N16 = 16;
@@ -53,7 +54,17 @@ struct MmcLocation {
 
     bool operator<(const MmcLocation &other) const
     {
-        return (rank_ < other.rank_) && (mediaType_ < other.mediaType_);
+        // 先比较 mediaType_
+        if (mediaType_ != other.mediaType_) {
+            return mediaType_ < other.mediaType_;
+        }
+        // mediaType_ 相等时比较 rank_
+        return rank_ < other.rank_;
+    }
+
+    bool operator==(const MmcLocation &other) const
+    {
+        return rank_ == other.rank_ && mediaType_ == other.mediaType_;
     }
 };
 

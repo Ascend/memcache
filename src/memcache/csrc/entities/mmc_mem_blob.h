@@ -81,6 +81,12 @@ public:
      */
     BlobState State();
 
+    /**
+     * @brief Get the state of the prot
+     * @return state
+     */
+    uint16_t Prot();
+
     bool MatchFilter(const MmcBlobFilterPtr &filter)
     {
         if (filter == nullptr) {
@@ -154,6 +160,12 @@ inline MmcMemBlobPtr MmcMemBlob::Next()
 {
     std::lock_guard<Spinlock> guard(spinlock_);
     return nextBlob_;
+}
+
+inline uint16_t MmcMemBlob::Prot()
+{
+    std::lock_guard<Spinlock> guard(spinlock_);
+    return prot_;
 }
 
 }  // namespace mmc

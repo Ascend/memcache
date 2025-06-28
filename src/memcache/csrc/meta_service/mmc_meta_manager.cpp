@@ -15,13 +15,16 @@ Result MmcMetaManger::Get(const std::string &key, MmcMemObjMetaPtr &objMeta)
     return ret;
 }
 
-Result MmcMetaManger::Alloc(const std::string &key, const AllocRequest &allocReq, MmcMemObjMetaPtr &objMeta)
+Result MmcMetaManger::Alloc(const std::string &key, const AllocProperty &allocReq, MmcMemObjMetaPtr &objMeta)
 {
+    objMeta = MmcMakeRef<MmcMemObjMeta>();
     std::vector<MmcMemBlobPtr> blobs;
+
     Result ret = globalAllocator_->Alloc(allocReq, blobs);
     if (ret == MMC_ERROR) {
         return MMC_ERROR;
     }
+    
     for (auto &blob : blobs) {
         objMeta->AddBlob(blob);
     }

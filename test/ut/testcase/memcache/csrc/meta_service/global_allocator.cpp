@@ -1,0 +1,282 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ */
+#include <iostream>
+#include "gtest/gtest.h"
+#include "mmc_ref.h"
+#include "mmc_global_allocator.h"
+
+
+using namespace testing;
+using namespace std;
+using namespace ock::mmc;
+
+class TestMmcGlobalAllocator : public testing::Test {
+public:
+    TestMmcGlobalAllocator();
+
+    void SetUp() override;
+
+    void TearDown() override;
+
+protected:
+};
+TestMmcGlobalAllocator::TestMmcGlobalAllocator() {}
+
+void TestMmcGlobalAllocator::SetUp()
+{
+    cout << "this is Allocator TEST_F setup:";
+}
+
+void TestMmcGlobalAllocator::TearDown()
+{
+    cout << "this is Allocator TEST_F teardown";
+}
+
+TEST_F(TestMmcGlobalAllocator, AllocOne)
+{
+    MmcMemPoolInitInfo mmcMemPoolInitInfo;
+    uint64_t size = SIZE_32K * 10;
+    for (int i = 0; i < 10; i++) {
+        MmcLocation loc;
+        MmcLocalMemlInitInfo info;
+        loc.mediaType_ = 0;
+        loc.rank_ = i;
+        info.bm_ = size * i;
+        info.capacity_ = size;
+        mmcMemPoolInitInfo[loc] = info;
+    }
+    for (int i = 0; i < 5; i++) {
+        MmcLocation loc;
+        MmcLocalMemlInitInfo info;
+        loc.mediaType_ = 1;
+        loc.rank_ = i;
+        info.bm_ = size * i;
+        info.capacity_ = size;
+        mmcMemPoolInitInfo[loc] = info;
+    }
+    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>(mmcMemPoolInitInfo);
+    
+    AllocProperty allocReq;
+    std::vector<MmcMemBlobPtr> blobs;
+
+    allocReq.blobSize_ = SIZE_32K;
+    allocReq.numBlobs_ = 1;
+    allocReq.preferredRank_ = 5;
+    allocReq.mediaType_ = 0;
+
+    Result ret = allocator->Alloc(allocReq, blobs);
+    EXPECT_EQ(ret, MMC_OK);
+    EXPECT_EQ(blobs.size(), 1);
+    EXPECT_EQ(blobs[0]->Rank(), allocReq.preferredRank_);
+    EXPECT_EQ(blobs[0]->Size(), allocReq.blobSize_);
+    EXPECT_EQ(blobs[0]->MediaType(), allocReq.mediaType_);
+    EXPECT_EQ(blobs[0]->Gva(), size * allocReq.preferredRank_);
+}
+
+TEST_F(TestMmcGlobalAllocator, AllocMulti)
+{
+    MmcMemPoolInitInfo mmcMemPoolInitInfo;
+    uint64_t size = SIZE_32K * 10;
+    for (int i = 0; i < 10; i++) {
+        MmcLocation loc;
+        MmcLocalMemlInitInfo info;
+        loc.mediaType_ = 0;
+        loc.rank_ = i;
+        info.bm_ = size * i;
+        info.capacity_ = size;
+        mmcMemPoolInitInfo[loc] = info;
+    }
+    for (int i = 0; i < 5; i++) {
+        MmcLocation loc;
+        MmcLocalMemlInitInfo info;
+        loc.mediaType_ = 1;
+        loc.rank_ = i;
+        info.bm_ = size * i;
+        info.capacity_ = size;
+        mmcMemPoolInitInfo[loc] = info;
+    }
+    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>(mmcMemPoolInitInfo);
+    
+    AllocProperty allocReq;
+    std::vector<MmcMemBlobPtr> blobs;
+
+    allocReq.blobSize_ = SIZE_32K;
+    allocReq.numBlobs_ = 10;
+    allocReq.preferredRank_ = 5;
+    allocReq.mediaType_ = 0;
+
+    Result ret = allocator->Alloc(allocReq, blobs);
+    EXPECT_EQ(ret, MMC_OK);
+    EXPECT_EQ(blobs.size(), 10);
+    for (size_t i = 0; i < blobs.size(); i++) {
+        EXPECT_EQ(blobs[i]->Rank(), allocReq.preferredRank_);
+        EXPECT_EQ(blobs[i]->Size(), allocReq.blobSize_);
+        EXPECT_EQ(blobs[i]->MediaType(), allocReq.mediaType_);
+        EXPECT_EQ(blobs[i]->Gva(), size * allocReq.preferredRank_ + i * allocReq.blobSize_);
+    }
+}
+
+TEST_F(TestMmcGlobalAllocator, AllocCrossRank)
+{
+    MmcMemPoolInitInfo mmcMemPoolInitInfo;
+    uint64_t size = SIZE_32K * 10;
+    for (int i = 0; i < 10; i++) {
+        MmcLocation loc;
+        MmcLocalMemlInitInfo info;
+        loc.mediaType_ = 0;
+        loc.rank_ = i;
+        info.bm_ = size * i;
+        info.capacity_ = size;
+        mmcMemPoolInitInfo[loc] = info;
+    }
+    for (int i = 0; i < 5; i++) {
+        MmcLocation loc;
+        MmcLocalMemlInitInfo info;
+        loc.mediaType_ = 1;
+        loc.rank_ = i;
+        info.bm_ = size * i;
+        info.capacity_ = size;
+        mmcMemPoolInitInfo[loc] = info;
+    }
+    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>(mmcMemPoolInitInfo);
+    
+    AllocProperty allocReq;
+    std::vector<MmcMemBlobPtr> blobs;
+
+    allocReq.blobSize_ = SIZE_32K;
+    allocReq.numBlobs_ = 12;
+    allocReq.preferredRank_ = 5;
+    allocReq.mediaType_ = 0;
+
+    Result ret = allocator->Alloc(allocReq, blobs);
+    EXPECT_EQ(ret, MMC_OK);
+    EXPECT_EQ(blobs.size(), 12);
+    for (int i = 0; i < 10; i++) {
+        EXPECT_EQ(blobs[i]->Rank(), allocReq.preferredRank_);
+        EXPECT_EQ(blobs[i]->Size(), allocReq.blobSize_);
+        EXPECT_EQ(blobs[i]->MediaType(), allocReq.mediaType_);
+        EXPECT_EQ(blobs[i]->Gva(), size * allocReq.preferredRank_ + i * allocReq.blobSize_);
+    }
+    for (int i = 10; i < 12; i++) {
+        EXPECT_EQ(blobs[i]->Rank(), allocReq.preferredRank_ + 1);
+        EXPECT_EQ(blobs[i]->Size(), allocReq.blobSize_);
+        EXPECT_EQ(blobs[i]->MediaType(), allocReq.mediaType_);
+        EXPECT_EQ(blobs[i]->Gva(), size * (allocReq.preferredRank_ + 1) + (i - 10) * allocReq.blobSize_);
+    }
+}
+
+TEST_F(TestMmcGlobalAllocator, FreeOne)
+{
+    MmcMemPoolInitInfo mmcMemPoolInitInfo;
+    uint64_t size = SIZE_32K * 10;
+    for (int i = 0; i < 10; i++) {
+        MmcLocation loc;
+        MmcLocalMemlInitInfo info;
+        loc.mediaType_ = 0;
+        loc.rank_ = i;
+        info.bm_ = size * i;
+        info.capacity_ = size;
+        mmcMemPoolInitInfo[loc] = info;
+    }
+    for (int i = 0; i < 5; i++) {
+        MmcLocation loc;
+        MmcLocalMemlInitInfo info;
+        loc.mediaType_ = 1;
+        loc.rank_ = i;
+        info.bm_ = size * i;
+        info.capacity_ = size;
+        mmcMemPoolInitInfo[loc] = info;
+    }
+    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>(mmcMemPoolInitInfo);
+    
+    AllocProperty allocReq;
+    std::vector<MmcMemBlobPtr> blobs;
+
+    allocReq.blobSize_ = SIZE_32K;
+    allocReq.numBlobs_ = 1;
+    allocReq.preferredRank_ = 5;
+    allocReq.mediaType_ = 0;
+
+    Result ret = allocator->Alloc(allocReq, blobs);
+    EXPECT_EQ(ret, MMC_OK);
+    EXPECT_EQ(blobs.size(), 1);
+    EXPECT_EQ(blobs[0]->Rank(), allocReq.preferredRank_);
+    EXPECT_EQ(blobs[0]->Size(), allocReq.blobSize_);
+    EXPECT_EQ(blobs[0]->MediaType(), allocReq.mediaType_);
+    EXPECT_EQ(blobs[0]->Gva(), size * allocReq.preferredRank_);
+
+    ret = allocator->Free(blobs[0]);
+    EXPECT_EQ(ret, MMC_OK);
+    blobs.clear();
+
+    ret = allocator->Alloc(allocReq, blobs);
+    EXPECT_EQ(ret, MMC_OK);
+    EXPECT_EQ(blobs.size(), 1);
+    EXPECT_EQ(blobs[0]->Rank(), allocReq.preferredRank_);
+    EXPECT_EQ(blobs[0]->Size(), allocReq.blobSize_);
+    EXPECT_EQ(blobs[0]->MediaType(), allocReq.mediaType_);
+    EXPECT_EQ(blobs[0]->Gva(), size * allocReq.preferredRank_ + allocReq.blobSize_);
+}
+
+TEST_F(TestMmcGlobalAllocator, FreeCrossRank)
+{
+    MmcMemPoolInitInfo mmcMemPoolInitInfo;
+    uint64_t size = SIZE_32K * 10;
+    for (int i = 0; i < 10; i++) {
+        MmcLocation loc;
+        MmcLocalMemlInitInfo info;
+        loc.mediaType_ = 0;
+        loc.rank_ = i;
+        info.bm_ = size * i;
+        info.capacity_ = size;
+        mmcMemPoolInitInfo[loc] = info;
+    }
+    for (int i = 0; i < 5; i++) {
+        MmcLocation loc;
+        MmcLocalMemlInitInfo info;
+        loc.mediaType_ = 1;
+        loc.rank_ = i;
+        info.bm_ = size * i;
+        info.capacity_ = size;
+        mmcMemPoolInitInfo[loc] = info;
+    }
+    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>(mmcMemPoolInitInfo);
+    
+    AllocProperty allocReq;
+    std::vector<MmcMemBlobPtr> blobs;
+
+    allocReq.blobSize_ = SIZE_32K;
+    allocReq.numBlobs_ = 12;
+    allocReq.preferredRank_ = 5;
+    allocReq.mediaType_ = 0;
+
+    Result ret = allocator->Alloc(allocReq, blobs);
+    EXPECT_EQ(ret, MMC_OK);
+    EXPECT_EQ(blobs.size(), 12);
+    for (int i = 0; i < 10; i++) {
+        EXPECT_EQ(blobs[i]->Rank(), allocReq.preferredRank_);
+        EXPECT_EQ(blobs[i]->Size(), allocReq.blobSize_);
+        EXPECT_EQ(blobs[i]->MediaType(), allocReq.mediaType_);
+        EXPECT_EQ(blobs[i]->Gva(), size * allocReq.preferredRank_ + i * allocReq.blobSize_);
+    }
+    for (int i = 10; i < 12; i++) {
+        EXPECT_EQ(blobs[i]->Rank(), allocReq.preferredRank_ + 1);
+        EXPECT_EQ(blobs[i]->Size(), allocReq.blobSize_);
+        EXPECT_EQ(blobs[i]->MediaType(), allocReq.mediaType_);
+        EXPECT_EQ(blobs[i]->Gva(), size * (allocReq.preferredRank_ + 1) + (i - 10) * allocReq.blobSize_);
+    }
+
+    ret = allocator->Free(blobs[3]);
+    EXPECT_EQ(ret, MMC_OK);
+    blobs.clear();
+
+    allocReq.numBlobs_ = 1;
+    ret = allocator->Alloc(allocReq, blobs);
+    EXPECT_EQ(ret, MMC_OK);
+    EXPECT_EQ(blobs.size(), 1);
+    EXPECT_EQ(blobs[0]->Rank(), allocReq.preferredRank_);
+    EXPECT_EQ(blobs[0]->Size(), allocReq.blobSize_);
+    EXPECT_EQ(blobs[0]->MediaType(), allocReq.mediaType_);
+    EXPECT_EQ(blobs[0]->Gva(), size * allocReq.preferredRank_ + 3 * allocReq.blobSize_);
+}

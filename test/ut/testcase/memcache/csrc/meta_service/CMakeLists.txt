@@ -1,8 +1,19 @@
 file(GLOB_RECURSE meta_service_src
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_meta_manager.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/meta_service_net.cpp
 )
 ADD_UNIT_TEST(test_meta_service
         FILES ${meta_service_src} ${TEST_SRC_PATHS}/ut_main.cpp
+        INCLUDE_PATHS  ${TEST_INCLUDE_PATHS}
+        LINK_LIBRARIES ${TEST_DEPEND_LIBS}
+        BUILD_FLAGS -fpermissive --coverage
+)
+
+file(GLOB_RECURSE global_allocator_src
+        ${CMAKE_CURRENT_SOURCE_DIR}/global_allocator.cpp
+)
+ADD_UNIT_TEST(test_global_allocator
+        FILES ${global_allocator_src} ${TEST_SRC_PATHS}/ut_main.cpp
         INCLUDE_PATHS  ${TEST_INCLUDE_PATHS}
         LINK_LIBRARIES ${TEST_DEPEND_LIBS}
         BUILD_FLAGS -fpermissive --coverage

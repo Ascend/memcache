@@ -2,8 +2,8 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
 
-#ifndef SMEM_MMC_META_LOCAL_NET_SERVER_H
-#define SMEM_MMC_META_LOCAL_NET_SERVER_H
+#ifndef SMEM_MMC_META_NET_SERVER_H
+#define SMEM_MMC_META_NET_SERVER_H
 #include "mmc_meta_common.h"
 #include "mmc_net_engine.h"
 namespace ock {
@@ -37,4 +37,4 @@ private:
 using MetaNetServerPtr = MmcRef<MetaNetServer>;
 }
 }
-#endif // SMEM_MMC_META_LOCAL_NET_SERVER_H
+#endif // SMEM_MMC_META_NET_SERVER_H

@@ -7,6 +7,7 @@
 #include "mmc_mem_blob.h"
 #include "mmc_ref.h"
 #include "mmc_spinlock.h"
+#include "mmc_msg_packer.h"
 #include <vector>
 
 namespace ock {
@@ -91,6 +92,53 @@ public:
      * @return size
      */
     uint16_t Size();
+
+    Result Serialize(NetMsgPacker &packer)
+    {
+        packer.Serialize(prot_);
+        packer.Serialize(priority_);
+        packer.Serialize(numBlobs_);
+        packer.Serialize(lease_);
+        packer.Serialize(size_);
+        MmcBlobFilterPtr filterPtr = nullptr;
+        auto blobs = GetBlobs(filterPtr);
+        for (auto iter = blobs.begin(); iter != blobs.end(); iter++) {
+            MmcMemBlobPtr blobPtr = *iter;
+            packer.Serialize(blobPtr->Rank());
+            packer.Serialize(blobPtr->Gva());
+            packer.Serialize(blobPtr->Size());
+            packer.Serialize(blobPtr->MediaType());
+            packer.Serialize(blobPtr->State());
+            packer.Serialize(blobPtr->Prot());
+        }
+        return MMC_OK;
+    }
+    Result Deserialize(NetMsgUnpacker &packer)
+    {
+        packer.Deserialize(prot_);
+        packer.Deserialize(priority_);
+        packer.Deserialize(numBlobs_);
+        packer.Deserialize(lease_);
+        packer.Deserialize(size_);
+        uint32_t rank;
+        uint64_t gva;
+        uint32_t size;
+        uint16_t mediaType;
+        BlobState state;
+        uint16_t prot;
+        for (uint32_t i = 0; i < numBlobs_; i++) {
+            packer.Deserialize(rank);
+            packer.Deserialize(gva);
+            packer.Deserialize(size);
+            packer.Deserialize(mediaType);
+            packer.Deserialize(state);
+            packer.Deserialize(prot);
+
+            MmcMemBlobPtr blobPtr = MmcMakeRef<MmcMemBlob>(rank, gva, size, mediaType);
+            blobPtr->UpdateState(state, NONE);
+        }
+        return MMC_OK;
+    }
 
 private:
     /* make sure the size of this class is 64 bytes */

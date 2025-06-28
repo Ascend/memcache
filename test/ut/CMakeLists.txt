@@ -13,6 +13,7 @@ file(GLOB_RECURSE UT_SOURCE_FILES *.cpp
         ${PROJECT_MMC_SRC_BASE}/csrc/common/*
         ${PROJECT_MMC_SRC_BASE}/csrc/local_service/*
         ${PROJECT_MMC_SRC_BASE}/csrc/meta_service/*
+        ${PROJECT_MMC_SRC_BASE}/csrc/entities/*
         ${PROJECT_MMC_SRC_BASE}/csrc/net/*
         ${PROJECT_MMC_SRC_BASE}/csrc/proto/*
         ${PROJECT_MMC_SRC_BASE}/csrc/under_api/*
@@ -31,8 +32,10 @@ include_directories(
         ${PROJECT_MMC_SRC_BASE}/include
         ${PROJECT_MMC_SRC_BASE}/csrc/common
         ${PROJECT_MMC_SRC_BASE}/csrc/net
+        ${PROJECT_MMC_SRC_BASE}/csrc/entities
         ${PROJECT_MMC_SRC_BASE}/csrc/net/acc_links_impl
         ${PROJECT_MMC_SRC_BASE}/csrc/meta_service
+        ${PROJECT_MMC_SRC_BASE}/csrc/entities
         ${PROJECT_MMC_SRC_BASE}/csrc/local_service
         ${PROJECT_MMC_SRC_BASE}/csrc/proto
         ${PROJECT_MMC_SRC_BASE}/csrc/under_api/mf_smem
