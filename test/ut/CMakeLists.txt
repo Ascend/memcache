@@ -108,3 +108,4 @@ set(TEST_DEPEND_LIBS gtest dl libacc_tcp_net.a mmc_static gcov pthread)
 
 add_subdirectory(testcase/memcache/csrc/net)
 add_subdirectory(testcase/memcache/csrc/meta_service)
+add_subdirectory(testcase/memcache/csrc/local_service)

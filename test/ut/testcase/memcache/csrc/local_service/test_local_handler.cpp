@@ -10,9 +10,9 @@ using namespace testing;
 using namespace std;
 using namespace ock::mmc;
 
-class TestMmcMetaManager : public testing::Test {
+class TestMmcMetaManager1 : public testing::Test {
 public:
-    TestMmcMetaManager();
+    TestMmcMetaManager1();
 
     void SetUp() override;
 
@@ -20,21 +20,21 @@ public:
 
 protected:
 };
-TestMmcMetaManager::TestMmcMetaManager()
+TestMmcMetaManager1::TestMmcMetaManager1()
 {
 }
 
-void TestMmcMetaManager::SetUp()
+void TestMmcMetaManager1::SetUp()
 {
     cout << "this is Meta Manger TEST_F setup:" << std::endl;
 }
 
-void TestMmcMetaManager::TearDown()
+void TestMmcMetaManager1::TearDown()
 {
     cout << "this is Meta Manager TEST_F teardown" << std::endl;
 }
 
-TEST_F(TestMmcMetaManager, Init)
+TEST_F(TestMmcMetaManager1, Init)
 {
     MmcMemPoolInitInfo poolInitInfo;
     MmcLocation loc{0, 0};
@@ -47,7 +47,7 @@ TEST_F(TestMmcMetaManager, Init)
     ASSERT_TRUE(metaMng != nullptr);
 }
 
-TEST_F(TestMmcMetaManager, Alloc)
+TEST_F(TestMmcMetaManager1, Alloc)
 {
     MmcMemPoolInitInfo poolInitInfo;
     MmcLocation loc{0, 0};

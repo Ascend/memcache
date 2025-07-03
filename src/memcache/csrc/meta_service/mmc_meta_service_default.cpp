@@ -3,6 +3,8 @@
  */
 #include "mmc_meta_service_default.h"
 #include "mmc_meta_net_server.h"
+#include "mmc_meta_mgr_proxy_impl.h"
+
 namespace ock {
 namespace mmc {
 Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
@@ -23,11 +25,15 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     MmcLocalMemlInitInfo locInfo{0, 1000000};
     poolInitInfo[loc] = locInfo;
     uint64_t defaultTtl = 2000;
-    metaMangerPtr_ = MmcMakeRef<MmcMetaManger>(poolInitInfo, defaultTtl);
+    metaMgrProxy_ = MmcMakeRef<MmcMetaMgrProxyImpl>(poolInitInfo, defaultTtl).Get();
 
     start_ = true;
     MMC_LOG_INFO("Started MetaService (" << name_ << ") at " << options_.discoveryURL);
     return MMC_OK;
+}
+
+MmcMetaMgrProxyPtr MmcMetaServiceDefault::GetMetaMgrProxy() const {
+    return metaMgrProxy_;
 }
 
 void MmcMetaServiceDefault::Stop()

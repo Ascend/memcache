@@ -6,6 +6,8 @@
 #define SMEM_MMC_META_NET_SERVER_H
 #include "mmc_meta_common.h"
 #include "mmc_net_engine.h"
+#include "mmc_meta_mgr_proxy.h"
+
 namespace ock {
 namespace mmc {
 class MetaNetServer : public MmcReferable {
@@ -25,9 +27,12 @@ private:
 
     Result HandlePing(const NetContextPtr &context);
 
+    Result HandleUpdate(const NetContextPtr &context);
+
 private:
     NetEnginePtr engine_;
     MmcMetaServicePtr metaService_;
+    MmcMetaMgrProxyPtr metaMgrProxy_;
 
     /* not hot used variables */
     std::mutex mutex_;

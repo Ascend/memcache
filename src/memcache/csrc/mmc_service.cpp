@@ -11,7 +11,7 @@ using namespace ock::mmc;
 
 MMC_API mmc_meta_service_t mmcs_meta_service_start(mmc_meta_service_config_t *config)
 {
-    auto *serviceDefault = new (std::nothrow)MmcMetaServiceDefault("meta_service");
+    MmcMetaService *serviceDefault = new (std::nothrow)MmcMetaServiceDefault("meta_service");
     if (serviceDefault != nullptr && serviceDefault->Start(*config) == MMC_OK) {
         return serviceDefault;
     }

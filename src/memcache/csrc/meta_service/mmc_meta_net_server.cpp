@@ -1,17 +1,17 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
+#include "mmc_meta_net_server.h"
 #include "mmc_meta_service.h"
 #include "mmc_msg_base.h"
-#include "mmc_meta_net_server.h"
 #include "mmc_msg_client_meta.h"
-#include "mmc_meta_service_default.h"
 
 namespace ock {
 namespace mmc {
 MetaNetServer::MetaNetServer(const MmcMetaServicePtr &metaService, const std::string inputName)
     : metaService_(metaService), name_(inputName)
-{}
+{
+}
 MetaNetServer::~MetaNetServer() {}
 Result ock::mmc::MetaNetServer::Start()
 {
@@ -25,7 +25,7 @@ Result ock::mmc::MetaNetServer::Start()
 
     /* init engine */
     NetEngineOptions options;
-    std::string url{ metaService_->Options().discoveryURL };
+    std::string url{metaService_->Options().discoveryURL};
     NetEngineOptions::ExtractIpPortFromUrl(url, options);
     options.name = name_;
     options.threadCount = 2;
@@ -33,10 +33,12 @@ Result ock::mmc::MetaNetServer::Start()
     options.startListener = true;
 
     NetEnginePtr server = NetEngine::Create();
-    server->RegRequestReceivedHandler(META_LOCAL_OPCODE_REQ::ML_ALLOC_REQ,
-        std::bind(&MetaNetServer::HandleAlloc, this, std::placeholders::_1));
-    server->RegRequestReceivedHandler(META_LOCAL_OPCODE_REQ::ML_PING_REQ,
+    server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_ALLOC_REQ,
+                                      std::bind(&MetaNetServer::HandleAlloc, this, std::placeholders::_1));
+    server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_PING_REQ,
                                       std::bind(&MetaNetServer::HandlePing, this, std::placeholders::_1));
+    server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_UPDATE_REQ,
+                                      std::bind(&MetaNetServer::HandleUpdate, this, std::placeholders::_1));
     server->RegNewLinkHandler(std::bind(&MetaNetServer::HandleNewLink, this, std::placeholders::_1));
 
     /* start engine */
@@ -44,21 +46,9 @@ Result ock::mmc::MetaNetServer::Start()
 
     engine_ = server;
     started_ = true;
+    metaMgrProxy_ = metaService_->GetMetaMgrProxy();
     MMC_LOG_INFO("initialize meta net server success [" << name_ << "]");
     return MMC_OK;
-}
-
-Result MetaNetServer::HandleAlloc(const NetContextPtr &context)
-{
-    MmcMetaServiceDefaultPtr metaServiceDefaultPtr = Convert<MmcMetaService, MmcMetaServiceDefault>(metaService_);
-    auto metaMgr = metaServiceDefaultPtr->GetMetaManger();
-    AllocRequest req;
-    context->GetRequest<AllocRequest>(req);
-    MmcMemObjMetaPtr memObjMetaPtr = nullptr;
-    MMC_LOG_INFO("HandleAlloc key " << req.key_);
-    metaMgr->Alloc(req.key_, req.prot_, memObjMetaPtr);
-    MMC_LOG_INFO("HandleAlloc key " << req.key_);
-    return context->Reply(0, *memObjMetaPtr.Get());
 }
 
 Result MetaNetServer::HandlePing(const NetContextPtr &context)
@@ -74,7 +64,7 @@ Result MetaNetServer::HandlePing(const NetContextPtr &context)
     recv.Serialize(packer);
     std::string serializedData = packer.String();
     uint32_t retSize = serializedData.length();
-    return context->Reply(0, const_cast<char* >(serializedData.c_str()), retSize);
+    return context->Reply(0, const_cast<char *>(serializedData.c_str()), retSize);
 }
 
 Result MetaNetServer::HandleNewLink(const NetLinkPtr &link)
@@ -83,9 +73,35 @@ Result MetaNetServer::HandleNewLink(const NetLinkPtr &link)
     return MMC_OK;
 }
 
+Result MetaNetServer::HandleAlloc(const NetContextPtr &context)
+{
+    AllocRequest req;
+    AllocResponse resp;
+    context->GetRequest<AllocRequest>(req);
+
+    MMC_LOG_INFO("HandleAlloc key " << req.key_);
+    metaMgrProxy_->Alloc(req, resp);
+    MMC_LOG_INFO("HandleAlloc key " << req.key_);
+
+    return context->Reply(0, resp);
+}
+
+Result MetaNetServer::HandleUpdate(const NetContextPtr &context)
+{
+    UpdateRequest req;
+    UpdateResponse resp;
+    context->GetRequest<UpdateRequest>(req);
+
+    MMC_LOG_INFO("HandleUpdate key " << req.key_);
+    metaMgrProxy_->UpdateState(req, resp);
+    MMC_LOG_INFO("HandleUpdate key " << req.key_);
+
+    return context->Reply(0, resp);
+}
+
 void MetaNetServer::Stop()
 {
     engine_->Stop();
 }
-}
-}
+}  // namespace mmc
+}  // namespace ock

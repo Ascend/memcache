@@ -6,7 +6,7 @@
 namespace ock {
 namespace mmc {
 
-Result MmcMetaManger::Get(const std::string &key, MmcMemObjMetaPtr &objMeta)
+Result MmcMetaManager::Get(const std::string &key, MmcMemObjMetaPtr &objMeta)
 {
     auto ret = objMetaLookupMap_.Find(key, objMeta);
     if (ret == MMC_OK) {
@@ -15,12 +15,12 @@ Result MmcMetaManger::Get(const std::string &key, MmcMemObjMetaPtr &objMeta)
     return ret;
 }
 
-Result MmcMetaManger::Alloc(const std::string &key, const AllocProperty &allocReq, MmcMemObjMetaPtr &objMeta)
+Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOpt, MmcMemObjMetaPtr &objMeta)
 {
     objMeta = MmcMakeRef<MmcMemObjMeta>();
     std::vector<MmcMemBlobPtr> blobs;
 
-    Result ret = globalAllocator_->Alloc(allocReq, blobs);
+    Result ret = globalAllocator_->Alloc(allocOpt, blobs);
     if (ret == MMC_ERROR) {
         return MMC_ERROR;
     }
@@ -33,8 +33,8 @@ Result MmcMetaManger::Alloc(const std::string &key, const AllocProperty &allocRe
     return MMC_OK;
 }
 
-Result MmcMetaManger::GetBlobs(const std::string &key, const MmcBlobFilterPtr &filter,
-                               std::vector<MmcMemBlobPtr> &blobs)
+Result MmcMetaManager::GetBlobs(const std::string &key, const MmcBlobFilterPtr &filter,
+                                std::vector<MmcMemBlobPtr> &blobs)
 {
     MmcMemObjMetaPtr objMeta;
     Result ret = objMetaLookupMap_.Find(key, objMeta);
@@ -45,6 +45,26 @@ Result MmcMetaManger::GetBlobs(const std::string &key, const MmcBlobFilterPtr &f
     } else {
         return MMC_ERROR;
     }
+}
+
+Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &loc, const BlobActionResult &actRet)
+{
+    std::vector<MmcMemBlobPtr> blobs;
+    MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(loc.rank_, loc.mediaType_, NONE);
+    if (GetBlobs(key, filter, blobs) != MMC_OK) {
+        MMC_LOG_ERROR("UpdateState: Cannot find blobs!");
+        return MMC_UNMATCHED_KEY;
+    }
+    if (blobs.size() != 1) {
+        MMC_LOG_ERROR("UpdateState: More than one blob in one position!");
+        return MMC_ERROR;
+    }
+    Result ret = blobs[0]->UpdateState(actRet);
+    if (ret != MMC_OK) {
+        MMC_LOG_WARN("UpdateState Fail!");
+        return ret;
+    }
+    return MMC_OK;
 }
 
 }  // namespace mmc

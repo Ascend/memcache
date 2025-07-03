@@ -28,7 +28,7 @@ public:
             allocators_[localInfo.first]->Initialize();
         }
     };
-    Result Alloc(const AllocProperty &allocReq, std::vector<MmcMemBlobPtr> &blobs)
+    Result Alloc(const AllocOptions &allocReq, std::vector<MmcMemBlobPtr> &blobs)
     {
         // todo: need to deal with the locks
         std::vector<MmcLocation> locations;

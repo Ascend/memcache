@@ -8,7 +8,6 @@
 #include "mmc_meta_common.h"
 #include "mmc_meta_service.h"
 #include "mmc_def.h"
-#include "mmc_meta_manager.h"
 
 namespace ock {
 namespace mmc {
@@ -24,14 +23,11 @@ public:
 
     const mmc_meta_service_config_t &Options() const override;
 
-    MmcMetaMangerPtr GetMetaManger() const
-    {
-        return metaMangerPtr_;
-    }
+    MmcMetaMgrProxyPtr GetMetaMgrProxy() const override;
 
 private:
     MetaNetServerPtr metaNetServer_;
-    MmcMetaMangerPtr metaMangerPtr_;
+    MmcMetaMgrProxyPtr metaMgrProxy_;
 
     std::mutex mutex_;
     bool start_ = false;
@@ -47,6 +43,7 @@ inline const mmc_meta_service_config_t &MmcMetaServiceDefault::Options() const
 {
     return options_;
 }
+
 using MmcMetaServiceDefaultPtr = MmcRef<MmcMetaServiceDefault>;
 }
 }

@@ -18,9 +18,9 @@ struct StateTransitionItem {
  * @brief State transition table of mem object meta in meta service
  */
 StateTransitionItem g_metaStateTransItemTable[]{
-    {ALLOCATED, MMC_RECV_LOC_SIGN_WRITE_OK, DATA_READY},
-    {ALLOCATED, MMC_REMOVE_START, REMOVING},  // data may be transfering at local; can only start remove
-    {DATA_READY, MMC_REMOVE_START, REMOVING},           // data may be transfering at local; can only start remove
+    {ALLOCATED, MMC_WRITE_OK, DATA_READY},
+    {ALLOCATED, MMC_REMOVE_START, REMOVING},   // data may be transfering at local; can only start remove
+    {DATA_READY, MMC_REMOVE_START, REMOVING},  // data may be transfering at local; can only start remove
     {REMOVING, MMC_RECV_LOC_SIGN_REMOVE_OK, FINAL},
 };
 
@@ -33,6 +33,16 @@ StateTransitionItem g_localStateTransItemTable[]{
     {DATA_READY, MMC_REMOVE_OK, FINAL},
     {ALLOCATED, MMC_REMOVE_OK, FINAL},
 };
+
+StateTransTable BlobStateMachine::GetGlobalTransTable()
+{
+    StateTransTable table;
+    for (size_t i = 0; i < sizeof(g_metaStateTransItemTable) / sizeof(StateTransitionItem); i++) {
+        table[g_metaStateTransItemTable[i].curState][g_metaStateTransItemTable[i].retCode] =
+            g_metaStateTransItemTable[i].nextState;
+    }
+    return table;
+}
 
 }  // namespace mmc
 }  // namespace ock

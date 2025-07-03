@@ -14,14 +14,14 @@
 namespace ock {
 namespace mmc {
 
-struct AllocProperty {
+struct AllocOptions {
     uint64_t blobSize_{0};
     uint32_t numBlobs_{0};
     uint16_t mediaType_{0};
     uint32_t preferredRank_{0};
     uint32_t flags_{0};
-    AllocProperty(){}
-    AllocProperty(uint64_t blobSize, uint32_t numBlobs, uint16_t mediaType, uint32_t preferredRank, uint32_t flags) :
+    AllocOptions(){}
+    AllocOptions(uint64_t blobSize, uint32_t numBlobs, uint16_t mediaType, uint32_t preferredRank, uint32_t flags) :
                   blobSize_(blobSize), numBlobs_(numBlobs), mediaType_(mediaType), preferredRank_(preferredRank),
                   flags_(flags){}
 };
@@ -36,7 +36,7 @@ using MmcAllocators = std::map<MmcLocation, MmcBlobAllocatorPtr>;
 
 class MmcLocalityStrategy : public MmcReferable {
 public:
-    static Result ArrangeLocality(const MmcAllocators &allocators, const AllocProperty &allocReq,
+    static Result ArrangeLocality(const MmcAllocators &allocators, const AllocOptions &allocReq,
                                   std::vector<MmcLocation> &locations)
     {
         MmcLocation location;

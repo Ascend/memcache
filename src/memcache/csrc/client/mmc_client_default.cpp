@@ -36,9 +36,9 @@ Result MmcClientDefault::Put(const char *key, mmc_buffer *buf, uint32_t flags)
     AllocRequest reqAlloc;
     int16_t respRet;
     reqAlloc.key_ = key;
-    reqAlloc.prot_ = {buf->hbm.width * buf->hbm.layerCount, 1, static_cast<uint16_t>(buf->type), rank, 0};
-    MmcMemObjMetaPtr objMeta = MmcMakeRef<MmcMemObjMeta>();
-    metaNetClient_->SyncCall(reqAlloc, *objMeta.Get(), respRet, 30);
+    reqAlloc.options_ = {buf->hbm.width * buf->hbm.layerCount, 1, static_cast<uint16_t>(buf->type), rank, 0};
+    AllocResponse respAlloc;
+    metaNetClient_->SyncCall(reqAlloc, respAlloc, respRet, 30);
 //    localClient_->
     //bm_copy()
     return 0;

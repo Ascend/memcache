@@ -8,15 +8,18 @@
 #include "mmc_lookup_map.h"
 #include "mmc_mem_obj_meta.h"
 #include "mmc_meta_service.h"
+#include "mmc_msg_packer.h"
 
 namespace ock {
 namespace mmc {
 
 static const uint16_t NUM_BUCKETS = 8;
 
-class MmcMetaManger : public MmcReferable {
+
+
+class MmcMetaManager : public MmcReferable {
 public:
-    MmcMetaManger(MmcMemPoolInitInfo mmcMemPoolInitInfo, uint64_t defaultTtl) : defaultTtl_(defaultTtl)
+    MmcMetaManager(MmcMemPoolInitInfo mmcMemPoolInitInfo, uint64_t defaultTtl) : defaultTtl_(defaultTtl)
     {
         globalAllocator_ = MmcMakeRef<MmcGlobalAllocator>(mmcMemPoolInitInfo);
     };
@@ -34,7 +37,7 @@ public:
      * @param metaInfo     [out] the meta object created
      */
 
-    Result Alloc(const std::string &key, const AllocProperty &allocReq, MmcMemObjMetaPtr &objMeta);
+    Result Alloc(const std::string &key, const AllocOptions &allocOpt, MmcMemObjMetaPtr &objMeta);
 
     /**
      * @brief Get the blobs by key and the filter, and renew the lease
@@ -44,12 +47,18 @@ public:
      */
     Result GetBlobs(const std::string &key, const MmcBlobFilterPtr &filter, std::vector<MmcMemBlobPtr> &blobs);
 
+    /**
+     * @brief Update the state
+     * @param req          [in] update state request
+     */
+    Result UpdateState(const std::string &key, const MmcLocation &loc, const BlobActionResult &actRet);
+
 private:
     MmcLookupMap<std::string, MmcMemObjMetaPtr, NUM_BUCKETS> objMetaLookupMap_;
     MmcGlobalAllocatorPtr globalAllocator_;
     uint64_t defaultTtl_; /* defult ttl in miliseconds*/
 };
-using MmcMetaMangerPtr = MmcRef<MmcMetaManger>;
+using MmcMetaManagerPtr = MmcRef<MmcMetaManager>;
 }  // namespace mmc
 }  // namespace ock
 

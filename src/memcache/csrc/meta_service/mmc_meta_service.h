@@ -6,6 +6,7 @@
 
 #include "mmc_common_includes.h"
 #include "mmc_def.h"
+#include "mmc_meta_mgr_proxy.h"
 
 namespace ock {
 namespace mmc {
@@ -18,9 +19,11 @@ public:
     virtual const std::string &Name() const = 0;
 
     virtual const mmc_meta_service_config_t &Options() const = 0;
+
+    virtual MmcMetaMgrProxyPtr GetMetaMgrProxy() const = 0;
 };
 using MmcMetaServicePtr = MmcRef<MmcMetaService>;
-}
-}
+}  // namespace mmc
+}  // namespace ock
 
-#endif  //MEM_FABRIC_MMC_META_SERVICE_H
+#endif  // MEM_FABRIC_MMC_META_SERVICE_H

@@ -31,8 +31,8 @@ Result MetaNetClient::Start()
     options.startListener = false;
 
     NetEnginePtr client = NetEngine::Create();
-    client->RegRequestReceivedHandler(META_LOCAL_OPCODE_REQ::ML_PING_REQ, nullptr);
-    client->RegRequestReceivedHandler(META_LOCAL_OPCODE_REQ::ML_ALLOC_REQ, nullptr);
+    client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_PING_REQ, nullptr);
+    client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_ALLOC_REQ, nullptr);
 
     /* start engine */
     MMC_ASSERT_RETURN(client->Start(options) == MMC_OK, MMC_NOT_STARTED);

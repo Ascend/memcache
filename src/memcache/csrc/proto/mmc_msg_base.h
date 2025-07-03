@@ -20,11 +20,18 @@ enum MsgId : int16_t {
     PING_MSG = 0,
 };
 
-enum META_LOCAL_OPCODE_REQ : int16_t {
+enum LOCAL_META_OPCODE_REQ : int16_t {
     ML_PING_REQ = 0,
     ML_ALLOC_REQ = 1,
+    ML_UPDATE_REQ = 2,
 };
-}
-}
 
-#endif  //MEMFABRIC_MMC_MSG_BASE_H
+enum LOCAL_META_OPCODE_RESP : int16_t {
+    ML_PING_RESP = 0,
+    ML_ALLOC_RESP = 1,
+    ML_UPDATE_RESP = 2,
+};
+}  // namespace mmc
+}  // namespace ock
+
+#endif  // MEMFABRIC_MMC_MSG_BASE_H

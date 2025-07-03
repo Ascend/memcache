@@ -70,7 +70,7 @@ TEST_F(TestMmcMetaService, Init)
 
     AllocRequest reqAlloc;
     reqAlloc.key_ = "test";
-    reqAlloc.prot_ = {SIZE_32K, 1, 0, 0, 0};
+    reqAlloc.options_ = {SIZE_32K, 1, 0, 0, 0};
     MmcMemObjMetaPtr objMeta = MmcMakeRef<MmcMemObjMeta>();
     ASSERT_TRUE(localServiceDefault->SyncCallMeta(reqAlloc, *objMeta.Get(), respRet, 30) == MMC_OK);
     ASSERT_TRUE(respRet == MMC_OK);

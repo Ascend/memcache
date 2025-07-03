@@ -16,14 +16,30 @@ struct MmcBlobFilter : public MmcReferable {
     uint32_t rank_{UINT32_MAX};
     uint16_t mediaType_{UINT16_MAX};
     BlobState state_{NONE};
+    MmcBlobFilter(const uint32_t &rank, const uint16_t &mediaType, const BlobState &state)
+        : rank_(rank), mediaType_(mediaType), state_(state) {};
 };
 using MmcBlobFilterPtr = MmcRef<MmcBlobFilter>;
+
+struct MmcMemBlobDesc {
+    uint32_t rank_;                    /* rank id of the blob located */
+    uint64_t gva_;                     /* global virtual address */
+    uint32_t size_;                    /* data size of the blob */
+    uint16_t mediaType_;               /* media type where blob located */
+    BlobState state_{BlobState::NONE}; /* state of the blob */
+    uint16_t prot_{0};                 /* prot, i.e. access */
+
+    MmcMemBlobDesc(const uint32_t &rank, const uint64_t &gva, const uint32_t &size, const uint16_t &mediaType,
+                   const BlobState &state, const uint16_t &prot)
+        : rank_(rank), gva_(gva), size_(size), mediaType_(mediaType), state_(state), prot_(prot) {};
+};
 
 class MmcMemBlob final : public MmcReferable {
 public:
     MmcMemBlob() = delete;
-    MmcMemBlob(const uint32_t rank, const uint64_t gva, const uint32_t size, const uint16_t mediaType)
-        : rank_(rank), gva_(gva), size_(size), mediaType_(mediaType), nextBlob_(nullptr)
+    MmcMemBlob(const uint32_t &rank, const uint64_t &gva, const uint32_t &size, const uint16_t &mediaType,
+               const BlobState &state = NONE)
+        : rank_(rank), gva_(gva), size_(size), mediaType_(mediaType), state_(state), nextBlob_(nullptr)
     {
     }
     ~MmcMemBlob() override = default;
@@ -31,11 +47,9 @@ public:
     /**
      * @brief Update the state of the blob
      *
-     * @param newState     [in] new state to be set
-     * @param oldState     [in] old state
-     * @return 0 if new state not equal to old state, MMC_UNMATCHED_STATE if newState and old state are equal
+     * @param ret     [in] BlobActionResult
      */
-    Result UpdateState(BlobState newState, BlobState oldState = NONE);
+    Result UpdateState(BlobActionResult ret);
 
     /**
      * @brief Link a blob to this blob
@@ -95,6 +109,12 @@ public:
         return (rank_ == filter->rank_) && (mediaType_ == filter->mediaType_) && (state_ == filter->state_);
     }
 
+    MmcMemBlobDesc GetDesc()
+    {
+        MmcMemBlobDesc blobDesc = MmcMemBlobDesc(rank_, gva_, size_, mediaType_, state_, prot_);
+        return blobDesc;
+    }
+
 private:
     const uint32_t rank_;              /* rank id of the blob located */
     const uint64_t gva_;               /* global virtual address */
@@ -106,17 +126,26 @@ private:
     MmcMemBlobPtr nextBlob_;
 
     Spinlock spinlock_;
+
+    static const StateTransTable stateTransTable_;
 };
 
-inline Result MmcMemBlob::UpdateState(BlobState newState, BlobState oldState)
+inline Result MmcMemBlob::UpdateState(BlobActionResult ret)
 {
     std::lock_guard<Spinlock> guard(spinlock_);
-    if (oldState == NONE || state_ == oldState) {
-        state_ = newState;
-        return MMC_OK;
-    } else {
+    auto curStateIter = stateTransTable_.find(state_);
+    if (curStateIter == stateTransTable_.end()) {
+        MMC_LOG_WARN("Cannot update state! The current state is not in the stateTransTable!");
         return MMC_UNMATCHED_STATE;
     }
+    auto retIter = curStateIter->second.find(ret);
+    if (retIter == curStateIter->second.end()) {
+        MMC_LOG_WARN("Cannot update state! Retcode dismatch!");
+        return MMC_UNMATCHED_RET;
+    }
+
+    state_ = retIter->second;
+    return MMC_OK;
 }
 
 inline Result MmcMemBlob::Next(const MmcMemBlobPtr &nextBlob)
