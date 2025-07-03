@@ -31,6 +31,7 @@ include_directories(
         ${PROJECT_SMEM_SRC_BASE}/csrc/under_api/hybm_core
         ${PROJECT_MMC_SRC_BASE}/include
         ${PROJECT_MMC_SRC_BASE}/csrc/common
+        ${PROJECT_MMC_SRC_BASE}/csrc/client
         ${PROJECT_MMC_SRC_BASE}/csrc/net
         ${PROJECT_MMC_SRC_BASE}/csrc/entities
         ${PROJECT_MMC_SRC_BASE}/csrc/net/acc_links_impl

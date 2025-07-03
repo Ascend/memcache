@@ -36,7 +36,7 @@ void TestMmcMetaService::TearDown()
     cout << "this is NetEngine TEST_F teardown";
 }
 
-void UrlStringToChar(std::string &urlString, char *urlChar)
+static void UrlStringToChar(std::string &urlString, char *urlChar)
 {
     for (uint32_t i = 0; i < urlString.length(); i++) {
         urlChar[i] = urlString.at(i);
@@ -47,7 +47,6 @@ void UrlStringToChar(std::string &urlString, char *urlChar)
 TEST_F(TestMmcMetaService, Init)
 {
     std::string metaUrl = "tcp://127.0.0.1:5678";
-    std::string localUrl = "tcp://127.0.0.1:5679";
     mmc_meta_service_config_t metaServiceConfig;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     auto metaServiceDefault = MmcMakeRef<MmcMetaServiceDefault>("testMetaService");
@@ -55,8 +54,7 @@ TEST_F(TestMmcMetaService, Init)
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig;
-    UrlStringToChar(localUrl, localServiceConfig.discoveryURL);
-    UrlStringToChar(metaUrl, localServiceConfig.metaServiceURL);
+    UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
     ASSERT_TRUE(localServicePtr->Start(localServiceConfig) == MMC_OK);

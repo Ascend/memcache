@@ -16,19 +16,24 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
         return MMC_OK;
     }
     options_ = config;
-    metaNetClient_ = MmcMakeRef<MetaNetClient>(this, name_ + "_MetaClient").Get();
+    metaNetClient_ = MetaNetClientFactory::GetInstance(this->options_.discoveryURL, "MetaClientCommon").Get();
     MMC_ASSERT_RETURN(metaNetClient_.Get() != nullptr, MMC_NEW_OBJECT_FAILED);
-    MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->Start(), "Failed to start net server of local service " << name_);
-    MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->Connect(metaNetServerId_, config.metaServiceURL),
-        "Failed to connect net server of local service " << name_);
+    if (!metaNetClient_->Status()) {
+        MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->Start(),
+                                        "Failed to start net server of local service " << name_);
+        MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->Connect(config.discoveryURL),
+                                        "Failed to connect net server of local service " << name_);
+    }
+    pid_ = getpid();
+
     start_ = true;
-    MMC_LOG_INFO("Started MetaService (" << name_ << ") at " << options_.discoveryURL);
+    MMC_LOG_INFO("Started LocalService (" << name_ << ") server " << options_.discoveryURL);
     return MMC_OK;
 }
 void MmcLocalServiceDefault::Stop()
 {
     metaNetClient_->Stop();
-    MMC_LOG_INFO("Stop MetaService (" << name_ << ") at " << options_.discoveryURL);
+    MMC_LOG_INFO("Stop LocalService (" << name_ << ") server " << options_.discoveryURL);
 }
 }
 }

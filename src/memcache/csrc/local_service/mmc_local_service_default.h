@@ -28,13 +28,14 @@ public:
     template <typename REQ, typename RESP>
     Result SyncCallMeta(const REQ &req, RESP &resp, int16_t &userResult, int32_t timeoutInSecond)
     {
-        return metaNetClient_->SyncCall(metaNetServerId_, req, resp, userResult, timeoutInSecond);
+        return metaNetClient_->SyncCall(req, resp, userResult, timeoutInSecond);
     }
 
+    inline MetaNetClientPtr GetMetaClient() const;
 private:
-    MetaNetClientPtr metaNetClient_;
-    uint16_t metaNetServerId_ = 0;
 
+    MetaNetClientPtr metaNetClient_;
+    int32_t pid_ = 0;
     std::mutex mutex_;
     bool start_ = false;
     std::string name_;
@@ -48,6 +49,11 @@ inline const std::string &MmcLocalServiceDefault::Name() const
 inline const mmc_local_service_config_t &MmcLocalServiceDefault::Options() const
 {
     return options_;
+}
+
+inline MetaNetClientPtr MmcLocalServiceDefault::GetMetaClient() const
+{
+    return (getpid() == pid_) ? metaNetClient_ : nullptr;
 }
 }
 }

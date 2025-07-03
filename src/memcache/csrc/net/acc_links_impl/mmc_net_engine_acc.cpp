@@ -310,10 +310,9 @@ Result NetEngineAcc::HandleNeqRequest(const TcpReqContext &context)
 {
     /* use result variable for real opcode */
     MMC_LOG_DEBUG("HandleNeqRequest Header " << context.Header().ToString());
-    NetContextAccPtr contextAcc = MmcMakeRef<NetContextAcc>(context);
-    MMC_ASSERT_RETURN(contextAcc != nullptr, MMC_NEW_OBJECT_FAILED);
-    NetContextPtr contextPtr = Convert<NetContextAcc, NetContext>(contextAcc);
-    int16_t opCode = contextAcc->OpCode();
+    NetContextPtr contextPtr = MmcMakeRef<NetContextAcc>(&context).Get();
+    MMC_ASSERT_RETURN(contextPtr != nullptr, MMC_NEW_OBJECT_FAILED);
+    int16_t opCode = contextPtr->OpCode();
     MMC_ASSERT_RETURN(opCode < gHandlerSize, MMC_NET_REQ_HANDLE_NO_FOUND);
     if (reqReceivedHandlers_[opCode]  == nullptr) {
         /*  client do reply response */

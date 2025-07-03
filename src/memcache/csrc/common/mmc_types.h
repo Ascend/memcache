@@ -30,6 +30,9 @@ enum MmcErrorCode : int32_t {
     MMC_LINK_NOT_FOUND = -3014,
     MMC_NET_REQ_HANDLE_NO_FOUND = -3015,
     MMC_NOT_ENOUGH_MEMORY = -3016,
+    MMC_NOT_CONNET_META = -3017,
+    MMC_NOT_CONNET_LOCAL = -3018,
+    MMC_CLIENT_NOT_INIT = -3019,
 };
 
 constexpr int32_t N16 = 16;

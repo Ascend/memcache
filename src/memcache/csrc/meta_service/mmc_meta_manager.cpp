@@ -24,7 +24,7 @@ Result MmcMetaManger::Alloc(const std::string &key, const AllocProperty &allocRe
     if (ret == MMC_ERROR) {
         return MMC_ERROR;
     }
-    
+
     for (auto &blob : blobs) {
         objMeta->AddBlob(blob);
     }

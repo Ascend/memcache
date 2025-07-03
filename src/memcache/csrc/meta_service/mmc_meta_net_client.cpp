@@ -7,9 +7,12 @@
 
 namespace ock {
 namespace mmc {
+std::map<std::string, MmcRef<MetaNetClient>> MetaNetClientFactory::instances_;
+std::mutex MetaNetClientFactory::instanceMutex_;
+
 MetaNetClient::~MetaNetClient() {}
-MetaNetClient::MetaNetClient(const MmcLocalServicePtr &loaclServiceDefaultPtr, const std::string inputName)
-    : localService_(loaclServiceDefaultPtr), name_(inputName)
+MetaNetClient::MetaNetClient(const std::string &serverUrl, const std::string inputName)
+    : serverUrl_(serverUrl), name_(inputName)
 {}
 
 Result MetaNetClient::Start()
@@ -20,12 +23,8 @@ Result MetaNetClient::Start()
         return MMC_OK;
     }
 
-    MMC_ASSERT_RETURN(localService_.Get() != nullptr, MMC_INVALID_PARAM);
-
     /* init engine */
     NetEngineOptions options;
-    std::string url{ localService_->Options().discoveryURL };
-    NetEngineOptions::ExtractIpPortFromUrl(url, options);
     options.name = name_;
     options.threadCount = 2;
     options.rankId = 0;
@@ -46,11 +45,11 @@ Result MetaNetClient::Start()
 
 void MetaNetClient::Stop() {}
 
-Result MetaNetClient::Connect(uint16_t peerId, const std::string &url)
+Result MetaNetClient::Connect(const std::string &url)
 {
     NetEngineOptions options;
     NetEngineOptions::ExtractIpPortFromUrl(url, options);
-    MMC_LOG_ERROR_AND_RETURN_NOT_OK(engine_->ConnectToPeer(peerId, options.ip, options.port, link2Index_, false),
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(engine_->ConnectToPeer(peerId_, options.ip, options.port, link2Index_, false),
         "MetaNetClient Connect " << url << " failed");
     return MMC_OK;
 }

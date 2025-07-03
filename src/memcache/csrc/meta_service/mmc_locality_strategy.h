@@ -69,7 +69,7 @@ public:
                     return MMC_ERROR;
                 }
             }
-            
+
         }
         return MMC_OK;
     };
