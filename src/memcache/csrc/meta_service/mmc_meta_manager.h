@@ -53,6 +53,13 @@ public:
      */
     Result UpdateState(const std::string &key, const MmcLocation &loc, const BlobActionResult &actRet);
 
+     /**
+     * @brief Alloc the global memeory space and create the meta object
+     * @param key          [in] key of the meta object
+     * @param metaInfo     [out] the meta object created
+     */
+    Result Remove(const std::string &key);
+
 private:
     MmcLookupMap<std::string, MmcMemObjMetaPtr, NUM_BUCKETS> objMetaLookupMap_;
     MmcGlobalAllocatorPtr globalAllocator_;

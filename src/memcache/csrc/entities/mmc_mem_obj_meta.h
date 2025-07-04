@@ -43,7 +43,7 @@ public:
      * @param revert false: remove those matching the filter; true: remove those not matching the filter
      * @return 0 if removed
      */
-    Result RemoveBlobs(const MmcBlobFilterPtr &filter, bool revert = false);
+    Result RemoveBlobs(const MmcBlobFilterPtr &filter=nullptr, bool revert = false);
 
     /**
      * @brief Extend the lease

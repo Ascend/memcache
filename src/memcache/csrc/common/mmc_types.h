@@ -35,6 +35,7 @@ enum MmcErrorCode : int32_t {
     MMC_UNMATCHED_STATE = -3101,
     MMC_UNMATCHED_KEY = -3102,
     MMC_UNMATCHED_RET = -3103,
+    MMC_LEASE_NOT_EXPIRED = -3104,
 };
 
 constexpr int32_t N16 = 16;

@@ -57,7 +57,7 @@ MmcMemBlobPtr MmcBlobAllocator::Alloc(uint64_t blobSize)
     }
     cur->next = nullptr;
     // 空间清零要在这做吗
-    return MmcMakeRef<MmcMemBlob>(rank_, bm_ + cur->blockPos * SIZE_32K, SIZE_32K, mediaType_);
+    return MmcMakeRef<MmcMemBlob>(rank_, bm_ + cur->blockPos * SIZE_32K, SIZE_32K, mediaType_, ALLOCATED);
 }
 
 Result MmcBlobAllocator::Free(MmcMemBlobPtr blob)

@@ -38,14 +38,14 @@ Result MmcMemObjMeta::RemoveBlobs(const MmcBlobFilterPtr &filter, bool revert)
     std::lock_guard<Spinlock> guard(spinlock_);
     uint8_t oldNumBlobs = numBlobs_;
     for (size_t i = 0; i < MAX_NUM_BLOB_CHAINS - 1; ++i) {
-        if (blobs_[i]->MatchFilter(filter) ^ revert) {
+        if (blobs_[i] != nullptr && blobs_[i]->MatchFilter(filter) ^ revert) {
             blobs_[i] = nullptr;
             numBlobs_--;
         }
     }
 
     MmcMemBlobPtr pre = blobs_[MAX_NUM_BLOB_CHAINS - 1];
-    while (pre->Next() != nullptr) {
+    while (pre != nullptr && pre->Next() != nullptr) {
         MmcMemBlobPtr cur = pre->Next();
         if (cur->MatchFilter(filter) ^ revert) {
             pre->Next() = cur->Next();
@@ -56,7 +56,7 @@ Result MmcMemObjMeta::RemoveBlobs(const MmcBlobFilterPtr &filter, bool revert)
     }
 
     MmcMemBlobPtr head = blobs_[MAX_NUM_BLOB_CHAINS - 1];
-    if (head->MatchFilter(filter) ^ revert) {
+    if (head != nullptr && head->MatchFilter(filter) ^ revert) {
         blobs_[MAX_NUM_BLOB_CHAINS - 1] = head->Next();
         head = nullptr;
         numBlobs_--;

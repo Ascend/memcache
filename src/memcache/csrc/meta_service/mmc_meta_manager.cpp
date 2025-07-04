@@ -15,6 +15,8 @@ Result MmcMetaManager::Get(const std::string &key, MmcMemObjMetaPtr &objMeta)
     return ret;
 }
 
+// TODO: Check threshold， if above， try to remove to free space
+// TODO: 检测不能是相同的key
 Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOpt, MmcMemObjMetaPtr &objMeta)
 {
     objMeta = MmcMakeRef<MmcMemObjMeta>();
@@ -65,6 +67,31 @@ Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &lo
         return ret;
     }
     return MMC_OK;
+}
+
+Result MmcMetaManager::Remove(const std::string &key)
+{
+    MmcMemObjMetaPtr objMeta;
+    auto ret = objMetaLookupMap_.Find(key, objMeta);
+    if (ret != MMC_OK) {
+        return MMC_UNMATCHED_KEY;
+    }
+    if (objMeta->IsLeaseExpired()) {
+        std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs();
+        for (size_t i = 0; i < blobs.size(); i++) {
+            Result ret = globalAllocator_->Free(blobs[i]);
+            if (ret != MMC_OK) {
+                MMC_LOG_ERROR("Error in free blobs!");
+                return ret;
+            }
+        }
+        ret = objMeta->RemoveBlobs();
+        objMetaLookupMap_.Erase(key);
+        objMeta = nullptr;
+        return MMC_OK;
+    } else {
+        return MMC_LEASE_NOT_EXPIRED;
+    }
 }
 
 }  // namespace mmc

@@ -5,6 +5,8 @@
 #include "mmc_ref.h"
 #include "gtest/gtest.h"
 #include <iostream>
+#include <chrono>
+#include <thread>
 
 using namespace testing;
 using namespace std;
@@ -20,9 +22,7 @@ public:
 
 protected:
 };
-TestMmcMetaManager::TestMmcMetaManager()
-{
-}
+TestMmcMetaManager::TestMmcMetaManager() {}
 
 void TestMmcMetaManager::SetUp()
 {
@@ -47,7 +47,7 @@ TEST_F(TestMmcMetaManager, Init)
     ASSERT_TRUE(metaMng != nullptr);
 }
 
-TEST_F(TestMmcMetaManager, Alloc)
+TEST_F(TestMmcMetaManager, AllocAndFreeFail)
 {
     MmcMemPoolInitInfo poolInitInfo;
     MmcLocation loc{0, 0};
@@ -62,4 +62,81 @@ TEST_F(TestMmcMetaManager, Alloc)
     ASSERT_TRUE(ret == MMC_OK);
     ASSERT_TRUE(objMeta->NumBlobs() == 1);
     ASSERT_TRUE(objMeta->Size() == SIZE_32K);
+
+    ret = metaMng->Remove("test_string");
+    ASSERT_TRUE(ret == MMC_LEASE_NOT_EXPIRED);
+}
+
+TEST_F(TestMmcMetaManager, AllocAndFreeOK)
+{
+    MmcMemPoolInitInfo poolInitInfo;
+    MmcLocation loc{0, 0};
+    MmcLocalMemlInitInfo locInfo{0, 1000000};
+    poolInitInfo[loc] = locInfo;
+    uint64_t defaultTtl = 2000;
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(poolInitInfo, defaultTtl);
+
+    uint16_t numKeys = 1U;
+    std::vector<std::string> keys;
+    std::vector<MmcMemObjMetaPtr> memMetaObjs;
+    AllocOptions allocReq{SIZE_32K, 1, 0, 0, 0};  // blobSize, numBlobs, mediaType, preferredRank, flags
+    Result ret;
+    for (int i = 0; i < numKeys; ++i) {
+        MmcMemObjMetaPtr objMeta;
+        string key = "testKey" + std::to_string(i);
+        ret = metaMng->Alloc(key, allocReq, objMeta);
+        memMetaObjs.push_back(objMeta);
+        keys.push_back(key);
+    }
+    ASSERT_TRUE(ret == MMC_OK);
+    ASSERT_TRUE(memMetaObjs[0]->NumBlobs() == 1);
+    ASSERT_TRUE(memMetaObjs[0]->Size() == SIZE_32K);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+
+    for (int i = 0; i < numKeys; ++i) {
+        ret = metaMng->Remove(keys[i]);
+    }
+    ASSERT_TRUE(ret == MMC_OK);
+    ASSERT_TRUE(memMetaObjs[0]->NumBlobs() == 0);
+}
+
+TEST_F(TestMmcMetaManager, GetAndUpdate)
+{
+    MmcMemPoolInitInfo poolInitInfo;
+    MmcLocation loc{0, 0};
+    MmcLocalMemlInitInfo locInfo{0, 1000000};
+    poolInitInfo[loc] = locInfo;
+    uint64_t defaultTtl = 2000;
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(poolInitInfo, defaultTtl);
+
+    uint16_t numKeys = 20U;
+    std::vector<std::string> keys;
+    std::vector<MmcMemObjMetaPtr> memMetaObjs;
+    AllocOptions allocReq{SIZE_32K, 1, 0, 0, 0};  // blobSize, numBlobs, mediaType, preferredRank, flags
+    Result ret;
+    for (int i = 0; i < numKeys; ++i) {
+        MmcMemObjMetaPtr objMeta;
+        string key = "testKey" + std::to_string(i);
+        ret = metaMng->Alloc(key, allocReq, objMeta);
+        memMetaObjs.push_back(objMeta);
+        keys.push_back(key);
+    }
+    ASSERT_TRUE(ret == MMC_OK);
+    ASSERT_TRUE(memMetaObjs[0]->NumBlobs() == 1);
+    ASSERT_TRUE(memMetaObjs[0]->Size() == SIZE_32K);
+
+    ret = metaMng->UpdateState(keys[2], loc, MMC_WRITE_FAIL);
+    ASSERT_TRUE(ret != MMC_OK);
+    ret = metaMng->UpdateState(keys[2], loc, MMC_WRITE_OK);
+    ASSERT_TRUE(ret == MMC_OK);
+
+    MmcMemObjMetaPtr objMeta2;
+    ret = metaMng->Get(keys[2], objMeta2);
+    ASSERT_TRUE(ret == MMC_OK);
+    std::vector<MmcMemBlobPtr> blobs;
+    ret = metaMng->GetBlobs(keys[2], nullptr, blobs);
+    ASSERT_TRUE(ret == MMC_OK);
+    ASSERT_TRUE(blobs.size() == 1);
+    ASSERT_TRUE(blobs[0]->State() == DATA_READY);
 }

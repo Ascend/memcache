@@ -106,7 +106,8 @@ public:
         if (filter == nullptr) {
             return true;
         }
-        return (rank_ == filter->rank_) && (mediaType_ == filter->mediaType_) && (state_ == filter->state_);
+        return (rank_ == filter->rank_) && (mediaType_ == filter->mediaType_) &&
+               (filter->state_ == NONE || state_ == filter->state_);
     }
 
     MmcMemBlobDesc GetDesc()
