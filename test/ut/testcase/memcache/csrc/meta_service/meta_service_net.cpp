@@ -60,7 +60,7 @@ TEST_F(TestMmcMetaService, Init)
     ASSERT_TRUE(localServicePtr->Start(localServiceConfig) == MMC_OK);
 
     PingMsg req;
-    req.head.msgId = ML_PING_REQ;
+    req.msgId = ML_PING_REQ;
     req.num = 123;
     PingMsg resp;
     int16_t respRet;
@@ -71,11 +71,11 @@ TEST_F(TestMmcMetaService, Init)
     AllocRequest reqAlloc;
     reqAlloc.key_ = "test";
     reqAlloc.options_ = {SIZE_32K, 1, 0, 0, 0};
-    MmcMemObjMetaPtr objMeta = MmcMakeRef<MmcMemObjMeta>();
-    ASSERT_TRUE(localServiceDefault->SyncCallMeta(reqAlloc, *objMeta.Get(), respRet, 30) == MMC_OK);
+    AllocResponse respAlloc;
+    ASSERT_TRUE(localServiceDefault->SyncCallMeta(reqAlloc, respAlloc, respRet, 30) == MMC_OK);
     ASSERT_TRUE(respRet == MMC_OK);
-    ASSERT_TRUE(objMeta->NumBlobs() == 1);
-    ASSERT_TRUE(objMeta->Size() == SIZE_32K);
+    ASSERT_TRUE(respAlloc.numBlobs_ == 1);
+    ASSERT_TRUE(respAlloc.blobs_[0].size_ == SIZE_32K);
     metaServicePtr->Stop();
     localServicePtr->Stop();
 }

@@ -13,8 +13,14 @@ namespace mmc {
 class MmcMetaMgrProxy : public MmcReferable {
 public:
     virtual ~MmcMetaMgrProxy() = default;
+
     virtual Result Alloc(const AllocRequest &allocReq, AllocResponse &allocResp) = 0;
-    virtual Result UpdateState(const UpdateRequest &updateReq, UpdateResponse &upddateResp) = 0;
+
+    virtual Result UpdateState(const UpdateRequest &updateReq, Response &upddateResp) = 0;
+
+    virtual Result Get(const GetRequest &updateReq, AllocResponse &upddateResp) = 0;
+
+    virtual Result Remove(const RemoveRequest &updateReq, Response &upddateResp) = 0;
 };
 using MmcMetaMgrProxyPtr = MmcRef<MmcMetaMgrProxy>;
 }  // namespace mmc

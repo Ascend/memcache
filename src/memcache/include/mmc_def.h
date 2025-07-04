@@ -25,6 +25,8 @@ typedef struct {
 
 typedef struct {
     char discoveryURL[1024];
+    uint32_t rankId;
+    uint32_t timeOut;
 } mmc_client_config_t;
 
 typedef struct {

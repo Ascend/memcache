@@ -38,7 +38,6 @@ inline int32_t NetContextAcc::Reply(int16_t responseCode, char *respData, uint32
     MMC_ASSERT_RETURN(dataBuf->AllocIfNeed(), MMC_NEW_OBJECT_FAILED);
     memcpy(dataBuf->DataPtrVoid(), static_cast<void *>(const_cast<char *>(respData)), respDataLen);
     dataBuf->SetDataSize(respDataLen);
-    MMC_LOG_INFO("DATA len " << respDataLen);
     return realContext->Reply(responseCode, dataBuf);
 }
 

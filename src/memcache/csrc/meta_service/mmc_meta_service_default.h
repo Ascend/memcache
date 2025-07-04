@@ -30,7 +30,7 @@ private:
     MmcMetaMgrProxyPtr metaMgrProxy_;
 
     std::mutex mutex_;
-    bool start_ = false;
+    bool started_ = false;
     std::string name_;
     mmc_meta_service_config_t options_;
 };

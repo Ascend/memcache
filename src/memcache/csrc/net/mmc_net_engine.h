@@ -211,7 +211,8 @@ public:
      * @return
      */
     template <typename REQ, typename RESP>
-    Result Call(uint32_t peerId, const REQ &req, RESP &resp, int16_t &userResult, int32_t timeoutInSecond)
+    Result Call(uint32_t peerId, int16_t opCode, const REQ &req, RESP &resp, int16_t &userResult,
+                int32_t timeoutInSecond)
     {
         char *respData = nullptr;
         uint32_t respLen = 0;
@@ -219,13 +220,14 @@ public:
             /* do call */
             respLen = sizeof(RESP);
             respData = reinterpret_cast<char *>(&resp);
-            return Call(peerId, reinterpret_cast<char *>(const_cast<REQ *>(&req)), sizeof(REQ), &respData, respLen, userResult,
-                        timeoutInSecond);
+            return Call(peerId, opCode, reinterpret_cast<char *>(const_cast<REQ *>(&req)), sizeof(REQ), &respData,
+                        respLen, userResult, timeoutInSecond);
         } else if (std::is_pod<REQ>::value && !std::is_pod<RESP>::value) {
             /* do call */
             respLen = UINT32_MAX;
             respData = nullptr;
-            auto result = Call(peerId, reinterpret_cast<char *>(const_cast<REQ *>(&req)), sizeof(REQ), &respData, respLen, userResult, timeoutInSecond);
+            auto result = Call(peerId, opCode, reinterpret_cast<char *>(const_cast<REQ *>(&req)), sizeof(REQ),
+                               &respData, respLen, userResult, timeoutInSecond);
             MMC_RETURN_NOT_OK(result);
 
             /* deserialize */
@@ -244,7 +246,7 @@ public:
             /* do call */
             respLen = sizeof(RESP);
             char *respData = reinterpret_cast<char *>(&resp);
-            return Call(peerId, serializedData.c_str(), serializedData.length(), &respData, respLen,
+            return Call(peerId, opCode, serializedData.c_str(), serializedData.length(), &respData, respLen,
                         userResult, timeoutInSecond);
         } else {
             NetMsgPacker packer;
@@ -254,7 +256,8 @@ public:
             /* do call */
             respLen = sizeof(RESP);
             respData = nullptr;
-            Result result = Call(peerId, serializedData.c_str(), serializedData.length(), &respData, respLen, userResult, timeoutInSecond);
+            Result result = Call(peerId, opCode, serializedData.c_str(), serializedData.length(), &respData, respLen,
+                                 userResult, timeoutInSecond);
             MMC_RETURN_NOT_OK(result);
 
             /* deserialize */
@@ -305,7 +308,7 @@ public:
      * @param timeoutInSecond [in] timeout in second
      * @return 0 if successful, MMC_TIMEOUT for timeout, negative value for inner local size error
      */
-    virtual Result Call(uint32_t targetId, const char *reqData, uint32_t reqDataLen, char **respData,
+    virtual Result Call(uint32_t targetId, int16_t opCode, const char *reqData, uint32_t reqDataLen, char **respData,
                         uint32_t &respDataLen, int16_t &userResult, int32_t timeoutInSecond) = 0;
 
     /**

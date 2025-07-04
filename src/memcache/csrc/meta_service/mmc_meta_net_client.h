@@ -23,7 +23,7 @@ public:
     template <typename REQ, typename RESP>
     Result SyncCall(const REQ &req, RESP &resp, int16_t &userResult, int32_t timeoutInSecond)
     {
-        return engine_->Call(peerId_, req, resp, userResult, timeoutInSecond);
+        return engine_->Call(peerId_, req.msgId, req, resp, userResult, timeoutInSecond);
     }
 
     inline bool Status();

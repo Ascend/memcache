@@ -5,6 +5,7 @@
 #define MEMFABRIC_MMC_MSG_BASE_H
 
 #include "mmc_common_includes.h"
+#include "mmc_msg_packer.h"
 
 namespace ock {
 namespace mmc {
@@ -14,6 +15,8 @@ struct MsgBase {
     uint32_t destRankId = 0;
     MsgBase(){}
     MsgBase(int16_t ver, int16_t op, uint32_t dst): msgVer(ver), msgId(op), destRankId(dst){}
+    virtual Result Serialize(NetMsgPacker &packer) const = 0;
+    virtual Result Deserialize(NetMsgUnpacker &packer) = 0;
 };
 
 enum MsgId : int16_t {
@@ -24,6 +27,8 @@ enum LOCAL_META_OPCODE_REQ : int16_t {
     ML_PING_REQ = 0,
     ML_ALLOC_REQ = 1,
     ML_UPDATE_REQ = 2,
+    ML_GET_REQ = 3,
+    ML_REMOVE_REQ = 4,
 };
 
 enum LOCAL_META_OPCODE_RESP : int16_t {

@@ -11,46 +11,112 @@
 
 namespace ock {
 namespace mmc {
-struct PingMsg {
-    MsgBase head;
+struct PingMsg : public MsgBase {
     uint64_t num;
-    Result Serialize(NetMsgPacker &packer) const
+    PingMsg() : MsgBase{0, ML_PING_REQ, 0}{}
+    Result Serialize(NetMsgPacker &packer) const override
     {
+        packer.Serialize(msgVer);
+        packer.Serialize(msgId);
+        packer.Serialize(destRankId);
         packer.Serialize(num);
         return MMC_OK;
     }
-    Result Deserialize(NetMsgUnpacker &packer)
+    Result Deserialize(NetMsgUnpacker &packer) override
     {
+        packer.Deserialize(msgVer);
+        packer.Deserialize(msgId);
+        packer.Deserialize(destRankId);
         packer.Deserialize(num);
         return MMC_OK;
     }
 };
 
-struct AllocRequest : MsgBase {
+struct AllocRequest : public MsgBase {
 
     std::string key_;
     AllocOptions options_;
 
-    AllocRequest() = default;
+    AllocRequest() : MsgBase{0, ML_ALLOC_REQ, 0}{}
     AllocRequest(const std::string &key, const AllocOptions &prot)
         : MsgBase{0, ML_ALLOC_REQ, 0}, key_(key), options_(prot) {};
 
-    Result Serialize(NetMsgPacker &packer) const
+    Result Serialize(NetMsgPacker &packer) const override
     {
+        packer.Serialize(msgVer);
+        packer.Serialize(msgId);
+        packer.Serialize(destRankId);
         packer.Serialize(key_);
         packer.Serialize(options_);
         return MMC_OK;
     }
 
-    Result Deserialize(NetMsgUnpacker &packer)
+    Result Deserialize(NetMsgUnpacker &packer) override
     {
+        packer.Deserialize(msgVer);
+        packer.Deserialize(msgId);
+        packer.Deserialize(destRankId);
         packer.Deserialize(key_);
         packer.Deserialize(options_);
         return MMC_OK;
     }
 };
 
-struct AllocResponse : MsgBase {
+struct GetRequest : public MsgBase {
+
+    std::string key_;
+
+    GetRequest() : MsgBase{0, ML_GET_REQ, 0}{}
+    explicit GetRequest(const std::string &key) : MsgBase{0, ML_GET_REQ, 0}, key_(key) {};
+
+    Result Serialize(NetMsgPacker &packer) const override
+    {
+        packer.Serialize(msgVer);
+        packer.Serialize(msgId);
+        packer.Serialize(destRankId);
+        packer.Serialize(key_);
+        return MMC_OK;
+    }
+
+    Result Deserialize(NetMsgUnpacker &packer) override
+    {
+        packer.Deserialize(msgVer);
+        packer.Deserialize(msgId);
+        packer.Deserialize(destRankId);
+        packer.Deserialize(key_);
+        return MMC_OK;
+    }
+};
+
+
+struct RemoveRequest : public MsgBase {
+
+    std::string key_;
+
+    RemoveRequest() : MsgBase{0, ML_REMOVE_REQ, 0}{}
+    explicit RemoveRequest(const std::string &key) : MsgBase{0, ML_REMOVE_REQ, 0}, key_(key) {};
+
+    Result Serialize(NetMsgPacker &packer) const override
+    {
+        packer.Serialize(msgVer);
+        packer.Serialize(msgId);
+        packer.Serialize(destRankId);
+        packer.Serialize(key_);
+        return MMC_OK;
+    }
+
+    Result Deserialize(NetMsgUnpacker &packer) override
+    {
+        packer.Deserialize(msgVer);
+        packer.Deserialize(msgId);
+        packer.Deserialize(destRankId);
+        packer.Deserialize(key_);
+        return MMC_OK;
+    }
+};
+
+
+struct AllocResponse : public MsgBase {
 
     std::vector<MmcMemBlobDesc> blobs_; /* pointers of blobs */
     uint8_t numBlobs_{0};               /* number of blob that the memory object, i.e. replica count */
@@ -58,12 +124,15 @@ struct AllocResponse : MsgBase {
     uint8_t priority_{0};               /* priority of the memory object, used for eviction */
     uint64_t lease_{0};                 /* lease of the memory object */
 
-    AllocResponse() = default;
+    AllocResponse() : MsgBase{0, ML_ALLOC_RESP, 0}{}
     AllocResponse(const uint8_t &numBlobs, const uint16_t &prot, const uint8_t &priority, const uint64_t &lease)
         : MsgBase{0, ML_ALLOC_RESP, 0}, numBlobs_(numBlobs), prot_(prot), priority_(priority), lease_(lease) {};
 
-    Result Serialize(NetMsgPacker &packer)
+    Result Serialize(NetMsgPacker &packer) const override
     {
+        packer.Serialize(msgVer);
+        packer.Serialize(msgId);
+        packer.Serialize(destRankId);
         packer.Serialize(prot_);
         packer.Serialize(priority_);
         packer.Serialize(lease_);
@@ -80,8 +149,12 @@ struct AllocResponse : MsgBase {
         }
         return MMC_OK;
     }
-    Result Deserialize(NetMsgUnpacker &packer)
+
+    Result Deserialize(NetMsgUnpacker &packer) override
     {
+        packer.Deserialize(msgVer);
+        packer.Deserialize(msgId);
+        packer.Deserialize(destRankId);
         packer.Deserialize(prot_);
         packer.Deserialize(priority_);
         packer.Deserialize(lease_);
@@ -106,20 +179,23 @@ struct AllocResponse : MsgBase {
     }
 };
 
-struct UpdateRequest : MsgBase {
+struct UpdateRequest : public MsgBase {
 
     BlobActionResult actionResult_{MMC_RESULT_NONE};
     std::string key_{""};
     uint32_t rank_{UINT32_MAX};
     uint16_t mediaType_{UINT16_MAX};
 
-    UpdateRequest() = default;
+    UpdateRequest() : MsgBase{0, ML_UPDATE_REQ, 0}{}
     UpdateRequest(const BlobActionResult &result, const std::string &key, const uint32_t &rank,
                   const uint16_t &mediaType)
         : MsgBase{0, ML_UPDATE_REQ, 0}, actionResult_(result), key_(key), rank_(rank), mediaType_(mediaType) {};
 
-    Result Serialize(NetMsgPacker &packer)
+    Result Serialize(NetMsgPacker &packer) const override
     {
+        packer.Serialize(msgVer);
+        packer.Serialize(msgId);
+        packer.Serialize(destRankId);
         packer.Serialize(actionResult_);
         packer.Serialize(key_);
         packer.Serialize(rank_);
@@ -127,8 +203,11 @@ struct UpdateRequest : MsgBase {
         return MMC_OK;
     }
 
-    Result Deserialize(NetMsgUnpacker &packer)
+    Result Deserialize(NetMsgUnpacker &packer) override
     {
+        packer.Deserialize(msgVer);
+        packer.Deserialize(msgId);
+        packer.Deserialize(destRankId);
         packer.Deserialize(actionResult_);
         packer.Deserialize(key_);
         packer.Deserialize(rank_);
@@ -137,21 +216,27 @@ struct UpdateRequest : MsgBase {
     }
 };
 
-struct UpdateResponse : MsgBase {
+struct Response : public MsgBase {
 
     Result ret_;
 
-    UpdateResponse() = default;
-    UpdateResponse(const Result &ret) : MsgBase{0, ML_UPDATE_REQ, 0}, ret_(ret) {};
+    Response() : MsgBase{0, ML_UPDATE_REQ, 0}{}
+    Response(const Result &ret) : MsgBase{0, ML_UPDATE_REQ, 0}, ret_(ret) {};
 
-    Result Serialize(NetMsgPacker &packer)
+    Result Serialize(NetMsgPacker &packer) const override
     {
+        packer.Serialize(msgVer);
+        packer.Serialize(msgId);
+        packer.Serialize(destRankId);
         packer.Serialize(ret_);
         return MMC_OK;
     }
 
-    Result Deserialize(NetMsgUnpacker &packer)
+    Result Deserialize(NetMsgUnpacker &packer) override
     {
+        packer.Deserialize(msgVer);
+        packer.Deserialize(msgId);
+        packer.Deserialize(destRankId);
         packer.Deserialize(ret_);
         return MMC_OK;
     }

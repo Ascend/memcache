@@ -39,8 +39,8 @@ int32_t HandleTestRequest(NetContextPtr &ctx)
 {
     std::cout << "HandleTestRequest ut test" << std::endl;
     PingMsg recv;
-    recv.head.destRankId = 0;
-    recv.head.msgId = MsgId::PING_MSG;
+    recv.destRankId = 0;
+    recv.msgId = MsgId::PING_MSG;
     recv.num = 888;
 
     NetMsgPacker packer;
@@ -86,15 +86,15 @@ TEST_F(MMcNetEngine, Init)
     NetLinkPtr linkPtr;
     ASSERT_TRUE(client->ConnectToPeer(options.rankId, options.ip, options.port, linkPtr, false) == MMC_OK);
     PingMsg send;
-    send.head.destRankId = 0;
-    send.head.msgId = MsgId::PING_MSG;
+    send.destRankId = 0;
+    send.msgId = MsgId::PING_MSG;
     send.num = 888;
     PingMsg recv;
-    recv.head.destRankId = 0;
-    recv.head.msgId = MsgId::PING_MSG;
+    recv.destRankId = 0;
+    recv.msgId = MsgId::PING_MSG;
     recv.num = 666;
     int16_t rspResult = 0;
-    ASSERT_TRUE(client->Call(options.rankId, send, recv, rspResult, 30) == MMC_OK);
+    ASSERT_TRUE(client->Call(options.rankId, send.msgId, send, recv, rspResult, 30) == MMC_OK);
     ASSERT_TRUE(recv.num == 888);
     server->Stop();
     client->Stop();

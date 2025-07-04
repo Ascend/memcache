@@ -120,7 +120,7 @@ Result NetEngineAcc::StopInner()
     return MMC_OK;
 }
 
-Result NetEngineAcc::Call(uint32_t targetId, const char *reqData, uint32_t reqDataLen, char **respData,
+Result NetEngineAcc::Call(uint32_t targetId, int16_t opCode, const char *reqData, uint32_t reqDataLen, char **respData,
                           uint32_t &respDataLen, int16_t &userResult, int32_t timeoutInSecond)
 {
     MMC_ASSERT_RETURN(started_, MMC_NOT_STARTED);
@@ -129,7 +129,6 @@ Result NetEngineAcc::Call(uint32_t targetId, const char *reqData, uint32_t reqDa
     MMC_ASSERT_RETURN(respData != nullptr, MMC_INVALID_PARAM);
 
     // TODO
-    int16_t opCode = reinterpret_cast<MsgBase*>(const_cast<char*>(reqData))->msgId;
     MMC_LOG_INFO("Send op " << opCode);
     MMC_ASSERT_RETURN(opCode != -1, MMC_INVALID_PARAM);
 

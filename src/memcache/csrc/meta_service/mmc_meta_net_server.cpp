@@ -39,6 +39,10 @@ Result ock::mmc::MetaNetServer::Start()
                                       std::bind(&MetaNetServer::HandlePing, this, std::placeholders::_1));
     server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_UPDATE_REQ,
                                       std::bind(&MetaNetServer::HandleUpdate, this, std::placeholders::_1));
+    server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_GET_REQ,
+                                      std::bind(&MetaNetServer::HandleGet, this, std::placeholders::_1));
+    server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_REMOVE_REQ,
+                                      std::bind(&MetaNetServer::HandleRemove, this, std::placeholders::_1));
     server->RegNewLinkHandler(std::bind(&MetaNetServer::HandleNewLink, this, std::placeholders::_1));
 
     /* start engine */
@@ -46,7 +50,6 @@ Result ock::mmc::MetaNetServer::Start()
 
     engine_ = server;
     started_ = true;
-    metaMgrProxy_ = metaService_->GetMetaMgrProxy();
     MMC_LOG_INFO("initialize meta net server success [" << name_ << "]");
     return MMC_OK;
 }
@@ -80,7 +83,8 @@ Result MetaNetServer::HandleAlloc(const NetContextPtr &context)
     context->GetRequest<AllocRequest>(req);
 
     MMC_LOG_INFO("HandleAlloc key " << req.key_);
-    metaMgrProxy_->Alloc(req, resp);
+    MmcMetaMgrProxyPtr metaMgrProxy = metaService_->GetMetaMgrProxy();
+    metaMgrProxy->Alloc(req, resp);
     MMC_LOG_INFO("HandleAlloc key " << req.key_);
 
     return context->Reply(0, resp);
@@ -89,19 +93,54 @@ Result MetaNetServer::HandleAlloc(const NetContextPtr &context)
 Result MetaNetServer::HandleUpdate(const NetContextPtr &context)
 {
     UpdateRequest req;
-    UpdateResponse resp;
+    Response resp;
     context->GetRequest<UpdateRequest>(req);
 
     MMC_LOG_INFO("HandleUpdate key " << req.key_);
-    metaMgrProxy_->UpdateState(req, resp);
+    MmcMetaMgrProxyPtr metaMgrProxy = metaService_->GetMetaMgrProxy();
+    metaMgrProxy->UpdateState(req, resp);
     MMC_LOG_INFO("HandleUpdate key " << req.key_);
+
+    return context->Reply(0, resp);
+}
+
+Result MetaNetServer::HandleGet(const NetContextPtr &context)
+{
+    GetRequest req;
+    AllocResponse resp;
+    context->GetRequest<GetRequest>(req);
+
+    MMC_LOG_INFO("HandleGet key " << req.key_);
+    MmcMetaMgrProxyPtr metaMgrProxy = metaService_->GetMetaMgrProxy();
+    metaMgrProxy->Get(req, resp);
+    MMC_LOG_INFO("HandleGet key " << req.key_);
+
+    return context->Reply(0, resp);
+}
+
+Result MetaNetServer::HandleRemove(const NetContextPtr &context)
+{
+    RemoveRequest req;
+    Response resp;
+    context->GetRequest<RemoveRequest>(req);
+
+    MMC_LOG_INFO("HandleRemove key " << req.key_);
+    MmcMetaMgrProxyPtr metaMgrProxy = metaService_->GetMetaMgrProxy();
+    metaMgrProxy->Remove(req, resp);
+    MMC_LOG_INFO("HandleRemove key " << req.key_);
 
     return context->Reply(0, resp);
 }
 
 void MetaNetServer::Stop()
 {
+    std::lock_guard<std::mutex> guard(mutex_);
+    if (!started_) {
+        MMC_LOG_WARN("MetaNetServer has not been started");
+        return;
+    }
     engine_->Stop();
+    started_ = false;
 }
 }  // namespace mmc
 }  // namespace ock

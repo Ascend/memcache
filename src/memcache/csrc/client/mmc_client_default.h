@@ -27,9 +27,17 @@ public:
 
     Result Get(const char *key, mmc_buffer *buf, uint32_t flags);
 
+    mmc_location_t GetLocation(const char *key, uint32_t flags);
+
+    Result Remove(const char *key, uint32_t flags);
+
 private:
+    std::mutex mutex_;
+    bool started_ = false;
     MetaNetClientPtr metaNetClient_;
     std::string name_;
+    uint32_t randId_;
+    uint32_t timeOut_ = 60;
 };
 using MmcClientDefaultPtr = MmcRef<MmcClientDefault>;
 }

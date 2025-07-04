@@ -11,7 +11,7 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
 {
     MMC_LOG_INFO("Starting meta service " << name_);
     std::lock_guard<std::mutex> guard(mutex_);
-    if (start_) {
+    if (started_) {
         MMC_LOG_INFO("MetaService " << name_ << " already started");
         return MMC_OK;
     }
@@ -27,7 +27,7 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     uint64_t defaultTtl = 2000;
     metaMgrProxy_ = MmcMakeRef<MmcMetaMgrProxyImpl>(poolInitInfo, defaultTtl).Get();
 
-    start_ = true;
+    started_ = true;
     MMC_LOG_INFO("Started MetaService (" << name_ << ") at " << options_.discoveryURL);
     return MMC_OK;
 }
@@ -38,8 +38,14 @@ MmcMetaMgrProxyPtr MmcMetaServiceDefault::GetMetaMgrProxy() const {
 
 void MmcMetaServiceDefault::Stop()
 {
+    std::lock_guard<std::mutex> guard(mutex_);
+    if (!started_) {
+        MMC_LOG_WARN("MmcClientDefault has not been started");
+        return;
+    }
     metaNetServer_->Stop();
-    MMC_LOG_INFO("Stop MetaService (" << name_ << ") at " << options_.discoveryURL);
+    MMC_LOG_INFO("Stop MmcMetaServiceDefault (" << name_ << ") at " << options_.discoveryURL);
+    started_ = false;
 }
 }
 }

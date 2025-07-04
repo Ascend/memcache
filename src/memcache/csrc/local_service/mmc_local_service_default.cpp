@@ -11,7 +11,7 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
 {
     MMC_LOG_INFO("Starting meta service " << name_);
     std::lock_guard<std::mutex> guard(mutex_);
-    if (start_) {
+    if (started_) {
         MMC_LOG_INFO("MetaService " << name_ << " already started");
         return MMC_OK;
     }
@@ -26,14 +26,19 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
     }
     pid_ = getpid();
 
-    start_ = true;
+    started_ = true;
     MMC_LOG_INFO("Started LocalService (" << name_ << ") server " << options_.discoveryURL);
     return MMC_OK;
 }
 void MmcLocalServiceDefault::Stop()
-{
+{    std::lock_guard<std::mutex> guard(mutex_);
+    if (!started_) {
+        MMC_LOG_WARN("MmcClientDefault has not been started");
+        return;
+    }
     metaNetClient_->Stop();
-    MMC_LOG_INFO("Stop LocalService (" << name_ << ") server " << options_.discoveryURL);
+    MMC_LOG_INFO("Stop MmcClientDefault (" << name_ << ") server " << options_.discoveryURL);
+    started_ = false;
 }
 }
 }

@@ -4,6 +4,7 @@
 #ifndef MEM_FABRIC_MMC_META_PROXY_IMPL_H
 #define MEM_FABRIC_MMC_META_PROXY_IMPL_H
 
+#include <glob.h>
 #include "mmc_meta_manager.h"
 #include "mmc_meta_service.h"
 #include "mmc_msg_client_meta.h"
@@ -24,22 +25,22 @@ public:
      * @param metaInfo     [out] the meta object created
      */
 
-    Result Alloc(const AllocRequest &allocReq, AllocResponse &allocResp)
+    Result Alloc(const AllocRequest &req, AllocResponse &resp)
     {
         MmcMemObjMetaPtr objMeta;
-        Result ret = metaMangerPtr_->Alloc(allocReq.key_, allocReq.options_, objMeta);
+        Result ret = metaMangerPtr_->Alloc(req.key_, req.options_, objMeta);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("Meta Alloc Fail!");
             return MMC_ERROR;
         }
-        allocResp.numBlobs_ = objMeta->NumBlobs();
-        allocResp.prot_ = objMeta->Prot();
-        allocResp.priority_ = objMeta->Priority();
-        allocResp.lease_ = objMeta->Lease();
+        resp.numBlobs_ = objMeta->NumBlobs();
+        resp.prot_ = objMeta->Prot();
+        resp.priority_ = objMeta->Priority();
+        resp.lease_ = objMeta->Lease();
 
         std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs();
         for (size_t i = 0; i < blobs.size(); i++) {
-            allocResp.blobs_.push_back(blobs[i]->GetDesc());
+            resp.blobs_.push_back(blobs[i]->GetDesc());
         }
 
         // TODO: send a copy of the meta data to local service
@@ -47,19 +48,45 @@ public:
         return MMC_OK;
     };
 
-    Result UpdateState(const UpdateRequest &updateReq, UpdateResponse &upddateResp)
+    Result UpdateState(const UpdateRequest &req, Response &resp)
     {
 
         // const std::string &key, const MmcLocation &loc, const BlobActionResult &actRet
-        MmcLocation loc{updateReq.rank_, updateReq.mediaType_};
-        Result ret = metaMangerPtr_->UpdateState(updateReq.key_, loc, updateReq.actionResult_);
-        upddateResp.ret_ = ret;
+        MmcLocation loc{req.rank_, req.mediaType_};
+        Result ret = metaMangerPtr_->UpdateState(req.key_, loc, req.actionResult_);
+        resp.ret_ = ret;
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("Meta Update State Fail!");
             return MMC_ERROR;
         } else {
             return MMC_OK;
         }
+    }
+
+    Result Get(const GetRequest &req, AllocResponse &resp)
+    {
+
+        MmcMemObjMetaPtr objMeta;
+        metaMangerPtr_->Get(req.key_, objMeta);
+        resp.numBlobs_ = objMeta->NumBlobs();
+        resp.prot_ = objMeta->Prot();
+        resp.priority_ = objMeta->Priority();
+        resp.lease_ = objMeta->Lease();
+
+        std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs();
+        for (size_t i = 0; i < blobs.size(); i++) {
+            resp.blobs_.push_back(blobs[i]->GetDesc());
+        }
+        return MMC_OK;
+    }
+
+    Result Remove(const RemoveRequest &req, Response &resp)
+    {
+
+        MmcMemObjMetaPtr objMeta;
+        //metaMangerPtr_->(updateReq.key_, objMeta);
+        resp.ret_ = MMC_OK;
+        return MMC_OK;
     }
 
 private:

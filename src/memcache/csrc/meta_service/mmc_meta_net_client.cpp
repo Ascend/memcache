@@ -33,6 +33,9 @@ Result MetaNetClient::Start()
     NetEnginePtr client = NetEngine::Create();
     client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_PING_REQ, nullptr);
     client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_ALLOC_REQ, nullptr);
+    client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_UPDATE_REQ, nullptr);
+    client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_GET_REQ, nullptr);
+    client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_REMOVE_REQ, nullptr);
 
     /* start engine */
     MMC_ASSERT_RETURN(client->Start(options) == MMC_OK, MMC_NOT_STARTED);
@@ -43,7 +46,16 @@ Result MetaNetClient::Start()
     return MMC_OK;
 }
 
-void MetaNetClient::Stop() {}
+void MetaNetClient::Stop()
+{
+    std::lock_guard<std::mutex> guard(mutex_);
+    if (!started_) {
+        MMC_LOG_WARN("MetaNetClient has not been started");
+        return;
+    }
+    engine_->Stop();
+    started_ = false;
+}
 
 Result MetaNetClient::Connect(const std::string &url)
 {

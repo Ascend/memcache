@@ -29,10 +29,13 @@ private:
 
     Result HandleUpdate(const NetContextPtr &context);
 
+    Result HandleGet(const NetContextPtr &context);
+
+    Result HandleRemove(const NetContextPtr &context);
+
 private:
     NetEnginePtr engine_;
     MmcMetaServicePtr metaService_;
-    MmcMetaMgrProxyPtr metaMgrProxy_;
 
     /* not hot used variables */
     std::mutex mutex_;

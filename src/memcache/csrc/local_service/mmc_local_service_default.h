@@ -37,7 +37,7 @@ private:
     MetaNetClientPtr metaNetClient_;
     int32_t pid_ = 0;
     std::mutex mutex_;
-    bool start_ = false;
+    bool started_ = false;
     std::string name_;
     mmc_local_service_config_t options_;
 };
