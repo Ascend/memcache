@@ -43,10 +43,10 @@ struct GroupListenContext {
 
 class SmemNetGroupEngine : public SmReferable {
 public:
-    static SmemGroupEnginePtr Create(const StorePtr& store, const SmemGroupOption &option);
+    static SmemGroupEnginePtr Create(const StorePtr &store, const SmemGroupOption &option);
 
 public:
-    SmemNetGroupEngine(const StorePtr& store, const SmemGroupOption &option) : store_(store), option_(option)
+    SmemNetGroupEngine(const StorePtr &store, const SmemGroupOption &option) : store_(store), option_(option)
     {
         joined_ = !option_.dynamic;
         if (option_.dynamic) {
@@ -70,6 +70,7 @@ public:
     uint32_t GetRankSize() const;
 
 private:
+    bool IsDigit(const std::string& str);
     void GroupListenEvent();
     void UpdateGroupVersion(int32_t ver);
     void GroupWatchCb(int result, const std::string &key, const std::string &value);

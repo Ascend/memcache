@@ -23,11 +23,7 @@ endif()
 set(SMEM_INCLUDE_DIR ${MF_PATH}/aarch64-linux/include/smem/device/)
 
 ascendc_library(shm_rdma_test_kernel SHARED ${CMAKE_CURRENT_LIST_DIR}/shm_rdma_test_dev.cpp)
-ascendc_include_directories(shm_rdma_test_kernel
-        PUBLIC
-        ${SMEM_INCLUDE_DIR}/lowlevel
-        ${SMEM_INCLUDE_DIR}/highlevel
-)
+ascendc_include_directories(shm_rdma_test_kernel PUBLIC ${SMEM_INCLUDE_DIR})
 
 add_executable(shm_example ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 

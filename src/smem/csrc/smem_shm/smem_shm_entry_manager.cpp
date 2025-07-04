@@ -2,10 +2,11 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 #include <vector>
+#include "hybm.h"
+#include "hybm_transport.h"
 #include "smem_shm_entry_manager.h"
 #include "smem_net_common.h"
 #include "smem_store_factory.h"
-#include "hybm_core_api.h"
 
 namespace ock {
 namespace smem {
@@ -139,7 +140,7 @@ struct TransportAddressExchange {
 
 Result SmemShmEntryManager::PrepareTransport(uint32_t rankId, uint32_t rankCount, uint64_t localSize, void *gva)
 {
-    auto ret = HybmCoreApi::HybmTransportInit(rankId, rankCount);
+    auto ret = hybm_transport_init(rankId, rankCount);
     if (ret != 0) {
         SM_LOG_AND_SET_LAST_ERROR("init transport failed: " << ret);
         return SM_ERROR;
@@ -155,14 +156,14 @@ Result SmemShmEntryManager::PrepareTransport(uint32_t rankId, uint32_t rankCount
         return ret;
     }
 
-    ret = HybmCoreApi::HybmTransportMakeConnections();
+    ret = hybm_transport_make_connections();
     if (ret != 0) {
         SM_LOG_ERROR("make connections for transport failed: " << ret);
         return ret;
     }
 
     void *qpInfoAddress;
-    ret = HybmCoreApi::HybmTransportAiQpInfoAddress(0, qpInfoAddress);
+    ret = hybm_transport_ai_qp_info_address(0, &qpInfoAddress);
     if (ret != 0) {
         SM_LOG_ERROR("get qp info address for transport failed: " << ret);
         return ret;
@@ -174,7 +175,7 @@ Result SmemShmEntryManager::PrepareTransport(uint32_t rankId, uint32_t rankCount
 Result SmemShmEntryManager::ExchangeTransportAddress(uint32_t rankId, uint32_t rankCount)
 {
     uint64_t address;
-    auto ret = HybmCoreApi::HybmTransportGetAddress(address);
+    auto ret = hybm_transport_get_address(&address);
     if (ret != 0) {
         SM_LOG_AND_SET_LAST_ERROR("get transport address failed: " << ret);
         return SM_ERROR;
@@ -218,7 +219,7 @@ Result SmemShmEntryManager::ExchangeTransportAddress(uint32_t rankId, uint32_t r
         addresses[transportInfo[i].rankId] = transportInfo[i].address;
     }
 
-    ret = HybmCoreApi::HybmTransportSetAddresses(addresses.data(), rankCount);
+    ret = hybm_transport_set_addresses(addresses.data(), rankCount);
     if (ret != 0) {
         SM_LOG_ERROR("set address for transport failed: " << ret);
         return ret;
@@ -233,7 +234,7 @@ Result SmemShmEntryManager::ExchangeTransportMemRegion(uint32_t rankId, uint32_t
     hybm_transport_mr_info localMR;
     localMR.addr = (ptrdiff_t)gva + localSize * rankId;
     localMR.size = localSize;
-    auto ret = HybmCoreApi::HybmTransportRegMR(localMR.addr, localSize, localMR.lkey, localMR.rkey);
+    auto ret = hybm_transport_register_mr(localMR.addr, localSize, &localMR.lkey, &localMR.rkey);
     if (ret != 0) {
         SM_LOG_ERROR("transport register MR failed: " << ret);
         return ret;
@@ -277,7 +278,7 @@ Result SmemShmEntryManager::ExchangeTransportMemRegion(uint32_t rankId, uint32_t
         mrInfos[index] = mrs[i];
     }
 
-    ret = HybmCoreApi::HybmTransportSetGMR(mrInfos.data(), mrInfos.size());
+    ret = hybm_transport_set_mrs(mrInfos.data(), mrInfos.size());
     if (ret != 0) {
         SM_LOG_ERROR("set global MR information failed: " << ret);
         return ret;

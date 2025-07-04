@@ -6,9 +6,7 @@ file(GLOB_RECURSE UT_SOURCE_FILES *.cpp
         ${PROJECT_SMEM_SRC_BASE}/csrc/net/*
         ${PROJECT_SMEM_SRC_BASE}/csrc/smem_bm/*
         ${PROJECT_SMEM_SRC_BASE}/csrc/smem_shm/*
-        ${PROJECT_SMEM_SRC_BASE}/csrc/under_api/*
         ${PROJECT_SMEM_SRC_BASE}/csrc/smem.cpp
-
         ${PROJECT_MMC_SRC_BASE}/csrc/client/*
         ${PROJECT_MMC_SRC_BASE}/csrc/common/*
         ${PROJECT_MMC_SRC_BASE}/csrc/local_service/*
@@ -108,4 +106,3 @@ set(TEST_DEPEND_LIBS gtest dl libacc_tcp_net.a mmc_static gcov pthread)
 
 add_subdirectory(testcase/memcache/csrc/net)
 add_subdirectory(testcase/memcache/csrc/meta_service)
-add_subdirectory(testcase/memcache/csrc/local_service)

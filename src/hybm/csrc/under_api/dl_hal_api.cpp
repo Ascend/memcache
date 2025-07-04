@@ -13,6 +13,13 @@ void *DlHalApi::halHandle;
 
 const char *DlHalApi::gAscendHalLibName = "libascend_hal.so";
 
+halGvaReserveMemoryFun DlHalApi::pHalGvaReserveMemory = nullptr;
+halGvaUnreserveMemoryFun DlHalApi::pHalGvaUnreserveMemory = nullptr;
+halGvaAllocFun DlHalApi::pHalGvaAlloc = nullptr;
+halGvaFreeFun DlHalApi::pHalGvaFree = nullptr;
+halGvaOpenFun DlHalApi::pHalGvaOpen = nullptr;
+halGvaCloseFun DlHalApi::pHalGvaClose = nullptr;
+
 halSvmModuleAllocedSizeIncFunc DlHalApi::pSvmModuleAllocedSizeInc = nullptr;
 halDevmmVirtAllocMemFromBaseFunc DlHalApi::pDevmmVirtAllocMemFromBase = nullptr;
 halDevmmIoctlEnableHeapFunc DlHalApi::pDevmmIoctlEnableHeap = nullptr;
@@ -45,6 +52,12 @@ Result DlHalApi::LoadLibrary()
     }
 
     /* load sym */
+    DL_LOAD_SYM(pHalGvaReserveMemory, halGvaReserveMemoryFun, halHandle, "halGvaReserveMemory");
+    DL_LOAD_SYM(pHalGvaUnreserveMemory, halGvaUnreserveMemoryFun, halHandle, "halGvaUnreserveMemory");
+    DL_LOAD_SYM(pHalGvaAlloc, halGvaAllocFun, halHandle, "halGvaAlloc");
+    DL_LOAD_SYM(pHalGvaFree, halGvaFreeFun, halHandle, "halGvaFree");
+    DL_LOAD_SYM(pHalGvaOpen, halGvaOpenFun, halHandle, "halGvaOpen");
+    DL_LOAD_SYM(pHalGvaClose, halGvaCloseFun, halHandle, "halGvaClose");
     DL_LOAD_SYM(pHalDevmmFd, int *, halHandle, "g_devmm_mem_dev");
     DL_LOAD_SYM(pSvmModuleAllocedSizeInc, halSvmModuleAllocedSizeIncFunc, halHandle, "svm_module_alloced_size_inc");
     DL_LOAD_SYM(pDevmmVirtAllocMemFromBase, halDevmmVirtAllocMemFromBaseFunc, halHandle,
@@ -64,6 +77,39 @@ Result DlHalApi::LoadLibrary()
 
     gLoaded = true;
     return BM_OK;
+}
+
+void DlHalApi::CleanupLibrary()
+{
+    std::lock_guard<std::mutex> guard(gMutex);
+    if (!gLoaded) {
+        return;
+    }
+
+    pHalGvaReserveMemory = nullptr;
+    pHalGvaUnreserveMemory = nullptr;
+    pHalGvaAlloc = nullptr;
+    pHalGvaFree = nullptr;
+    pHalGvaOpen = nullptr;
+    pHalGvaClose = nullptr;
+    pHalDevmmFd = nullptr;
+    pSvmModuleAllocedSizeInc = nullptr;
+    pDevmmVirtAllocMemFromBase = nullptr;
+    pDevmmIoctlEnableHeap = nullptr;
+    pDevmmGetHeapListByType = nullptr;
+    pDevmmVirtSetHeapIdle = nullptr;
+    pDevmmVirtDestroyHeap = nullptr;
+    pDevmmVirtGetHeapMgmt = nullptr;
+    pDevmmIoctlFreePages = nullptr;
+    pDevmmVaToHeapIdx = nullptr;
+    pDevmmVirtGetHeapFromQueue = nullptr;
+    pDevmmVirtNormalHeapUpdateInfo = nullptr;
+    pDevmmVaToHeap = nullptr;
+
+    if (halHandle != nullptr) {
+        dlclose(halHandle);
+        halHandle = nullptr;
+    }
 }
 }
 }

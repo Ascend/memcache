@@ -2,11 +2,17 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
 #include <string>
+#include <cstring>
 #include <iostream>
-#include "hybm_core_api.h"
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include "hybm_big_mem.h"
+#include "hybm_data_op.h"
 
-namespace ock {
-namespace smem {
+const char UT_SHM_NAME2[] = "/mfhy_ut_shm_128M";
+const uint64_t UT_SHM_SIZE2 = 128 * 1024 * 1024ULL;
 
 int32_t hybm_init(uint16_t deviceId, uint64_t flags)
 {
@@ -37,6 +43,7 @@ const char *hybm_get_error_string(int32_t errCode)
 struct HybmMgrStub {
     uint32_t rankId;
     uint32_t ranksize;
+    int shmFd = -1;
 };
 
 hybm_entity_t hybm_create_entity(uint16_t id, const hybm_options *options, uint32_t flags)
@@ -53,13 +60,26 @@ hybm_entity_t hybm_create_entity(uint16_t id, const hybm_options *options, uint3
 void hybm_destroy_entity(hybm_entity_t e, uint32_t flags)
 {
     HybmMgrStub *mgr = reinterpret_cast<HybmMgrStub *>(e);
+    if (mgr->shmFd >= 0) {
+        close(mgr->shmFd);
+    }
     delete mgr;
     return;
 }
 
 int32_t hybm_reserve_mem_space(hybm_entity_t e, uint32_t flags, void **reservedMem)
 {
-    *reservedMem = reinterpret_cast<void *>(0x123456ULL);
+    int fd = shm_open(UT_SHM_NAME2, O_RDWR, 0666);
+    if (fd < 0) {
+        return -1;
+    }
+    *reservedMem = mmap(NULL, UT_SHM_SIZE2, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (*reservedMem == MAP_FAILED) {
+        close(fd);
+        return -1;
+    }
+    HybmMgrStub *mgr = reinterpret_cast<HybmMgrStub *>(e);
+    mgr->shmFd = fd;
     return 0;
 }
 
@@ -100,7 +120,9 @@ int32_t hybm_import(hybm_entity_t e, const hybm_exchange_info allExInfo[], uint3
 
     for (uint32_t i = 0; i < mgr->ranksize; i++) {
         std::string base = std::to_string(mgr->ranksize) + "_" + std::to_string(i);
-        std::string input((const char *)allExInfo[i].desc, allExInfo[i].descLen);
+        printf(" %u descLen:%u\n", i, allExInfo[i].descLen);
+        std::string input;
+        input.assign(reinterpret_cast<const char*>(allExInfo[i].desc), allExInfo[i].descLen);
 
         if (base.compare(0, input.size(), input) != 0) {
             std::cout << "import failed, export_desc: " << base << " input_desc: " << input << std::endl;
@@ -111,12 +133,7 @@ int32_t hybm_import(hybm_entity_t e, const hybm_exchange_info allExInfo[], uint3
     return 0;
 }
 
-int32_t hybm_start(hybm_entity_t e, uint32_t flags)
-{
-    return 0;
-}
-
-void hybm_stop(hybm_entity_t e, uint32_t flags)
+void hybm_unmap(hybm_entity_t e, uint32_t flags)
 {
     return;
 }
@@ -126,12 +143,7 @@ int32_t hybm_mmap(hybm_entity_t e, uint32_t flags)
     return 0;
 }
 
-int32_t hybm_join(hybm_entity_t e, uint32_t rank, uint32_t flags)
-{
-    return 0;
-}
-
-int32_t hybm_leave(hybm_entity_t e, uint32_t rank, uint32_t flags)
+int32_t hybm_remove_imported(hybm_entity_t e, uint32_t rank, uint32_t flags)
 {
     return 0;
 }
@@ -142,10 +154,24 @@ int32_t hybm_set_extra_context(hybm_entity_t e, const void *context, uint32_t si
 }
 
 int32_t hybm_data_copy(hybm_entity_t e, const void *src, void *dest, size_t count, hybm_data_copy_direction direction,
-                       uint32_t flags)
+                       void *stream, uint32_t flags)
 {
+    memcpy(dest, src, count);
     return 0;
 }
+
+int32_t hybm_data_copy_2d(hybm_entity_t e, const void *src, uint64_t spitch,
+                          void *dest, uint64_t dpitch, uint64_t width, uint64_t height,
+                          hybm_data_copy_direction direction, void *stream, uint32_t flags)
+{
+    auto srcAddr = (uint64_t)src;
+    auto destAddr = (uint64_t)dest;
+    for (uint64_t i = 0; i < height; i++) {
+        memcpy((void *)(destAddr + i * dpitch), (const void *)(srcAddr + i * spitch), width);
+    }
+    return 0;
+}
+
 
 // transport API stubs
 int hybm_transport_init(uint32_t rankId, uint32_t rankCount)
@@ -181,41 +207,4 @@ int hybm_transport_make_connections(void)
 int hybm_transport_ai_qp_info_address(uint32_t shmId, void **address)
 {
     return 0;
-}
-
-bool HybmCoreApi::gLoaded = true;
-std::mutex HybmCoreApi::gMutex;
-void *HybmCoreApi::coreHandle = nullptr;
-const char *HybmCoreApi::gHybmCoreLibName = "libmf_hybm_core.so";
-
-hybmInitFunc HybmCoreApi::pHybmInit = hybm_init;
-hybmUninitFunc HybmCoreApi::pHybmUninit = hybm_uninit;
-hybmSetLoggerFunc HybmCoreApi::pHybmSetLogger = hybm_set_extern_logger;
-hybmSetLogLevelFunc HybmCoreApi::pHybmSetLogLevel = hybm_set_log_level;
-hybmGetErrorFunc HybmCoreApi::pHybmGetError = hybm_get_error_string;
-
-hybmCreateEntityFunc HybmCoreApi::pHybmCreateEntity = hybm_create_entity;
-hybmDestroyEntityFunc HybmCoreApi::pHybmDestroyEntity = hybm_destroy_entity;
-hybmReserveMemFunc HybmCoreApi::pHybmReserveMem = hybm_reserve_mem_space;
-hybmUnreserveMemFunc HybmCoreApi::pHybmUnreserveMem = hybm_unreserve_mem_space;
-hybmAllocLocalMemFunc HybmCoreApi::pHybmAllocLocalMem = hybm_alloc_local_memory;
-hybmFreeLocalMemFunc HybmCoreApi::pHybmFreeLocalMem = hybm_free_local_memory;
-hybmExportFunc HybmCoreApi::pHybmExport = hybm_export;
-hybmImportFunc HybmCoreApi::pHybmImport = hybm_import;
-hybmSetExtraContextFunc HybmCoreApi::pHybmSetExtraContext = hybm_set_extra_context;
-hybmStartFunc HybmCoreApi::pHybmStart = hybm_start;
-hybmStopFunc HybmCoreApi::pHybmStop = hybm_stop;
-hybmMmapFunc HybmCoreApi::pHybmMmap = hybm_mmap;
-hybmJoinFunc HybmCoreApi::pHybmJoin = hybm_join;
-hybmLeaveFunc HybmCoreApi::pHybmLeave = hybm_leave;
-hybmDataCopyFunc HybmCoreApi::pHybmDataCopy = hybm_data_copy;
-
-hybmTransportInitFunc HybmCoreApi::gHybmTransportInit = hybm_transport_init;
-hybmTransportRegMrFunc HybmCoreApi::gHybmTransportRegMr = hybm_transport_register_mr;
-hybmTransportSetGMRFunc HybmCoreApi::gHybmTransportSetGMR = hybm_transport_set_mrs;
-hybmTransportGetAddressFunc HybmCoreApi::gHybmTransportGetAddress = hybm_transport_get_address;
-hybmTransportSetAddressesFunc HybmCoreApi::gHybmTransportSetAddresses = hybm_transport_set_addresses;
-hybmTransportMakeConnectionsFunc HybmCoreApi::gHybmTransportMakeConnections = hybm_transport_make_connections;
-hybmTransportAiQpInfoAddressFunc HybmCoreApi::gHybmTransportAiQpInfoAddress = hybm_transport_ai_qp_info_address;
-}
 }

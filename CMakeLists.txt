@@ -3,6 +3,7 @@ project(MF_HYBRID VERSION 1.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 11)
 
+option(BUILD_EXAMPLE "build example or not" ON)
 option(BUILD_TESTS "build test or not" OFF)
 option(BUILD_OPEN_ABI "build open _GLIBCXX_USE_CXX11_ABI" ON)
 option(ENABLE_CPU_MONOTONIC "enable monotonic time using cpu hard instruction" OFF)
@@ -11,6 +12,7 @@ option(BUILD_GIT_COMMIT_GEN_FILE "generate commit log file" ON)
 option(INSTALL_HIGH_LEVEL_API "add device high level api into pkg" ON)
 option(BUILD_PYTHON "build python file" ON)
 
+message(STATUS "BUILD_EXAMPLE = ${BUILD_EXAMPLE}")
 message(STATUS "BUILD_TESTS = ${BUILD_TESTS}")
 message(STATUS "BUILD_USE_CXX11_ABI = ${BUILD_OPEN_ABI}")
 message(STATUS "ENABLE_CPU_MONOTONIC = ${ENABLE_CPU_MONOTONIC}")
@@ -30,16 +32,21 @@ add_compile_options(-hno-unused-parameter -lno-unused-function -Wunused-variable
 add_compile_options(-Wcast-qual -Winvalid-pch -Wwrite-strings -Wsign-compare -Wfloat-equal -Wextra)
 
 if (${CMAKE_BUILD_TYPE} MATCHES "RELEASE")
-    add_compile_options(-O2)
     add_compile_options(-fvisibility=hidden -fvisibility-inlines-hidden)
     add_compile_options(-fstack-protector-strong)
     add_compile_options(-Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -fPIE -fPIC -ftrapv -s)
+    add_compile_options(-D_FORTIFY_SOURCE=2 -O2)
+    add_link_options(-Wl,-z,noexecstack,-z,relro,-z,now)
+    add_link_options(-s)
+    set(CMAKE_SKIP_RPATH TRUE)
     message(STATUS "build type set to RELEASE")
 else ()
     add_compile_options(-g -rdynamic)
 endif ()
 
 if(BUILD_TESTS STREQUAL "ON")
+    add_compile_options(-fprofile-arcs -ftest-coverage)
+    add_link_options(-lgcov --coverage)
     set(BUILD_OPEN_ABI "ON")
 endif()
 
@@ -114,7 +121,6 @@ set(PROJECT_MMC_OUTPUT ${PROJECT_SOURCE_DIR}/output/memcache)
 # set src base dir and output dir of smem
 set(PROJECT_HYBM_SRC_BASE ${PROJECT_SOURCE_DIR}/src/hybm)
 set(PROJECT_HYBM_OUTPUT ${PROJECT_SOURCE_DIR}/output/hybm)
-
 # set install target top dir
 message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
 if (${CMAKE_INSTALL_PREFIX} MATCHES "/usr/local")
@@ -125,6 +131,14 @@ else ()
     set(TARGET_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/)
 endif ()
 message(STATUS "install dir ${TARGET_INSTALL_DIR}")
+
+#set(PROJECT_PLATFORM_SRC_BASE ${PROJECT_SOURCE_DIR}/src/platform)
+#set(PROJECT_PLATFORM_OUTPUT ${PROJECT_SOURCE_DIR}/output/platform)
+
+include_directories(
+        ${PROJECT_SMEM_SRC_BASE}/include/host
+        ${PROJECT_SOURCE_DIR}/include/hybm
+)
 
 add_subdirectory(src)
 add_subdirectory(3rdparty)

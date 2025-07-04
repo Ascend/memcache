@@ -9,6 +9,12 @@
 
 namespace ock {
 namespace mf {
+using halGvaReserveMemoryFun = int32_t (*)(void **, size_t, int32_t, uint64_t);
+using halGvaUnreserveMemoryFun = int32_t (*)(void);
+using halGvaAllocFun = int32_t (*)(void *, size_t, uint64_t);
+using halGvaFreeFun = int32_t (*)(void *, size_t);
+using halGvaOpenFun = int32_t (*)(void *, const char *, size_t, uint64_t);
+using halGvaCloseFun = int32_t (*)(void *, uint64_t);
 using halSvmModuleAllocedSizeIncFunc = void (*)(void *, uint32_t, uint32_t, uint64_t);
 using halDevmmVirtAllocMemFromBaseFunc = uint64_t (*)(void *, size_t, uint32_t, uint64_t);
 using halDevmmIoctlEnableHeapFunc = int32_t (*)(uint32_t, uint32_t, uint32_t, uint64_t, uint32_t);
@@ -25,6 +31,55 @@ using halDevmmVaToHeapFunc = void *(*)(uint64_t);
 class DlHalApi {
 public:
     static Result LoadLibrary();
+    static void CleanupLibrary();
+
+    static inline Result HalGvaReserveMemory(void **address, size_t size, int32_t deviceId, uint64_t flags)
+    {
+        if (pHalGvaReserveMemory == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pHalGvaReserveMemory(address, size, deviceId, flags);
+    }
+
+    static inline Result HalGvaUnreserveMemory()
+    {
+        if (pHalGvaUnreserveMemory == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pHalGvaUnreserveMemory();
+    }
+
+    static inline Result HalGvaAlloc(void *address, size_t size, uint64_t flags)
+    {
+        if (pHalGvaAlloc == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pHalGvaAlloc(address, size, flags);
+    }
+
+    static inline Result HalGvaFree(void *address, size_t size)
+    {
+        if (pHalGvaFree == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pHalGvaFree(address, size);
+    }
+
+    static inline Result HalGvaOpen(void *address, const char *name, size_t size, uint64_t flags)
+    {
+        if (pHalGvaOpen == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pHalGvaOpen(address, name, size, flags);
+    }
+
+    static inline Result HalGvaClose(void *address, uint64_t flags)
+    {
+        if (pHalGvaClose == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pHalGvaClose(address, flags);
+    }
 
     static inline void HalSvmModuleAllocedSizeInc(void *type, uint32_t devid, uint32_t moduleId, uint64_t size)
     {
@@ -91,12 +146,18 @@ public:
     {
         return *pHalDevmmFd;
     }
-
 private:
     static std::mutex gMutex;
     static bool gLoaded;
     static void *halHandle;
     static const char *gAscendHalLibName;
+
+    static halGvaReserveMemoryFun pHalGvaReserveMemory;
+    static halGvaUnreserveMemoryFun pHalGvaUnreserveMemory;
+    static halGvaAllocFun pHalGvaAlloc;
+    static halGvaFreeFun pHalGvaFree;
+    static halGvaOpenFun pHalGvaOpen;
+    static halGvaCloseFun pHalGvaClose;
 
     static halSvmModuleAllocedSizeIncFunc pSvmModuleAllocedSizeInc;
     static halDevmmVirtAllocMemFromBaseFunc pDevmmVirtAllocMemFromBase;

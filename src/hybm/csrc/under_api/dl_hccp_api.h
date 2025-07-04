@@ -44,6 +44,7 @@ using tsdOpenFunc = uint32_t (*)(uint32_t, uint32_t);
 class DlHccpApi {
 public:
     static Result LoadLibrary();
+    static void CleanupLibrary();
 
     static inline int RaGetInterfaceVersion(uint32_t deviceId, uint32_t opcode, uint32_t &version)
     {

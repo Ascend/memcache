@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
-#include "hybm_core_api.h"
+#include "hybm_big_mem.h"
 #include "smem_shm.h"
 #include "smem_logger.h"
 #include "smem_shm_entry.h"
@@ -37,13 +37,12 @@ SMEM_API smem_shm_t smem_shm_create(uint32_t id, uint32_t rankSize, uint32_t ran
     }
 
     hybm_options options;
-    options.bmType = HyBM_TYPE_HBM_AI_CORE_INITIATE;
-    options.bmDataOpType = HyBM_DOP_TYPE_MTE;
-    options.bmScope = HyBM_SCOPE_CROSS_NODE;
-    options.bmRankType = HyBM_RANK_TYPE_STATIC;
+    options.bmType = HYBM_TYPE_HBM_AI_CORE_INITIATE;
+    options.bmDataOpType = HYBM_DOP_TYPE_MTE;
+    options.bmScope = HYBM_SCOPE_CROSS_NODE;
+    options.bmRankType = HYBM_RANK_TYPE_STATIC;
     options.rankCount = rankSize;
     options.rankId = rankId;
-    options.devId = SmemShmEntryManager::Instance().GetDeviceId();
     options.singleRankVASpace = symmetricSize;
     options.preferredGVA = 0;
 
@@ -205,7 +204,7 @@ SMEM_API int32_t smem_shm_init(const char *configStoreIpPort, uint32_t worldSize
         return SM_ERROR;
     }
 
-    ret = HybmCoreApi::HybmCoreInit(deviceId, config->flags);
+    ret = hybm_init(deviceId, config->flags);
     if (ret != 0) {
         SM_LOG_AND_SET_LAST_ERROR("init hybm failed, result: " << ret << ", flags: 0x" << std::hex << config->flags);
         return SM_ERROR;
@@ -227,7 +226,7 @@ SMEM_API void smem_shm_uninit(uint32_t flags)
         return;
     }
 
-    HybmCoreApi::HybmCoreUninit();
+    hybm_uninit();
     SM_LOG_INFO("smem_shm_uninit finished");
 }
 

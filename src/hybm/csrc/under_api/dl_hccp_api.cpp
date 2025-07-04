@@ -98,7 +98,7 @@ Result DlHccpApi::LoadLibrary()
     DL_LOAD_SYM(gRaQpAiCreate, raQpAiCreateFunc, raHandle, "ra_ai_qp_create");
     DL_LOAD_SYM(gRaQpDestroy, raQpDestroyFunc, raHandle, "ra_qp_destroy");
     DL_LOAD_SYM(gRaGetQpStatus, raGetQpStatusFunc, raHandle, "ra_get_qp_status");
-    DL_LOAD_SYM(gRaQpConnectAsync, raQpConnectAsyncFunc , raHandle, "ra_qp_connect_async");
+    DL_LOAD_SYM(gRaQpConnectAsync, raQpConnectAsyncFunc, raHandle, "ra_qp_connect_async");
     DL_LOAD_SYM(gRaRegisterMR, raRegisterMrFunc, raHandle, "ra_register_mr");
     DL_LOAD_SYM(gRaDeregisterMR, raDeregisterMrFunc, raHandle, "ra_deregister_mr");
     DL_LOAD_SYM(gRaMrReg, raMrRegFunc, raHandle, "ra_mr_reg");
@@ -108,6 +108,53 @@ Result DlHccpApi::LoadLibrary()
 
     gLoaded = true;
     return BM_OK;
+}
+
+void DlHccpApi::CleanupLibrary()
+{
+    std::lock_guard<std::mutex> guard(gMutex);
+    if (!gLoaded) {
+        return;
+    }
+
+    gRaRdevGetHandle = nullptr;
+    gRaInit = nullptr;
+    gRaGetInterfaceVersion = nullptr;
+    gRaSocketInit = nullptr;
+    gRaSocketDeinit = nullptr;
+    gRaRdevInitV2 = nullptr;
+    gRaSocketBatchConnect = nullptr;
+    gRaSocketBatchClose = nullptr;
+    gRaSocketBatchAbort = nullptr;
+    gRaSocketListenStart = nullptr;
+    gRaSocketListenStop = nullptr;
+    gRaGetSockets = nullptr;
+    gRaSocketSend = nullptr;
+    gRaSocketRecv = nullptr;
+    gRaGetIfNum = nullptr;
+    gRaGetIfAddrs = nullptr;
+    gRaSocketWhiteListAdd = nullptr;
+    gRaSocketWhiteListDel = nullptr;
+    gRaQpCreate = nullptr;
+    gRaQpAiCreate = nullptr;
+    gRaQpDestroy = nullptr;
+    gRaGetQpStatus = nullptr;
+    gRaQpConnectAsync = nullptr;
+    gRaRegisterMR = nullptr;
+    gRaDeregisterMR = nullptr;
+    gRaMrReg = nullptr;
+    gRaMrDereg = nullptr;
+    gTsdOpen = nullptr;
+
+    if (raHandle != nullptr) {
+        dlclose(raHandle);
+        raHandle = nullptr;
+    }
+
+    if (tsdHandle != nullptr) {
+        dlclose(tsdHandle);
+        tsdHandle = nullptr;
+    }
 }
 }
 }
