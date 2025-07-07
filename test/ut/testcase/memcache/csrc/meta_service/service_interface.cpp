@@ -98,7 +98,8 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     buffer.dram.offset = 0;
     buffer.dram.len = SIZE_32K;
 
-    ret = mmcc_put(test.c_str(), &buffer, 0);
+    mmc_put_options options{0, NATIVE_AFFINITY};
+    ret = mmcc_put(test.c_str(), &buffer, options, 0);
     ASSERT_TRUE(ret == 0);
 
     mmc_buffer readBuffer;

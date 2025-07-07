@@ -70,11 +70,11 @@ public:
     }
 
 private:
-    std::hash<Key> keyHasher;
+    std::hash<Key> keyHasher_;
 
-    std::size_t GetIndex(Key key) const
+    std::size_t GetIndex(const Key &key) const
     {
-        return keyHasher(key) % numBuckets;
+        return keyHasher_(key) % numBuckets;
     }
 
 private:

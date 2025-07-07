@@ -7,6 +7,7 @@
 #include "mmc_meta_net_client.h"
 #include "mmc_local_common.h"
 #include "mmc_local_service.h"
+#include "mmc_bm_proxy.h"
 #include "mmc_def.h"
 #include "smem.h"
 #include "smem_bm.h"
@@ -39,6 +40,7 @@ public:
 private:
 
     MetaNetClientPtr metaNetClient_;
+    MmcBmProxyPtr bmProxyPtr_;
     int32_t pid_ = 0;
     std::mutex mutex_;
     bool started_ = false;

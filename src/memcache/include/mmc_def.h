@@ -59,6 +59,15 @@ typedef struct {
     };
 } mmc_buffer;
 
+enum affinity_policy : int {
+    NATIVE_AFFINITY = 0,
+};
+
+typedef struct {
+    uint16_t mediaType;
+    affinity_policy policy;
+} mmc_put_options;
+
 typedef struct {
     int32_t xx;  // TODO
 } mmc_location_t;

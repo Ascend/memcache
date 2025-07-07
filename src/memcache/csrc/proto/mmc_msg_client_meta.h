@@ -243,10 +243,10 @@ struct Response : public MsgBase {
 };
 
 struct BmRegisterRequest : public MsgBase {
-    uint32_t rank_;
-    uint16_t mediaType_;
-    uint64_t bm_;
-    uint64_t capacity_;
+    uint32_t rank_{UINT32_MAX};
+    uint16_t mediaType_{UINT16_MAX};
+    uint64_t addr_{UINT64_MAX};
+    uint64_t capacity_{UINT64_MAX};
 
     BmRegisterRequest() : MsgBase{0, ML_BM_REGISTER_REQ, 0}{}
 
@@ -257,7 +257,7 @@ struct BmRegisterRequest : public MsgBase {
         packer.Serialize(destRankId);
         packer.Serialize(rank_);
         packer.Serialize(mediaType_);
-        packer.Serialize(bm_);
+        packer.Serialize(addr_);
         packer.Serialize(capacity_);
         return MMC_OK;
     }
@@ -268,7 +268,7 @@ struct BmRegisterRequest : public MsgBase {
         packer.Deserialize(destRankId);
         packer.Deserialize(rank_);
         packer.Deserialize(mediaType_);
-        packer.Deserialize(bm_);
+        packer.Deserialize(addr_);
         packer.Deserialize(capacity_);
         return MMC_OK;
     }

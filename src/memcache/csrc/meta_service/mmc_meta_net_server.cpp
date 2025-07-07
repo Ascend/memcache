@@ -63,7 +63,7 @@ Result MetaNetServer::HandleBmRegister(const NetContextPtr &context)
     BmRegisterRequest req;
     context->GetRequest<BmRegisterRequest>(req);
     MMC_LOG_INFO("HandleBmRegister  " << req.rank_);
-    auto result = metaServiceDefaultPtr->BmRegister(req.rank_, req.mediaType_, req.bm_, req.capacity_);
+    auto result = metaServiceDefaultPtr->BmRegister(req.rank_, req.mediaType_, req.addr_, req.capacity_);
     MMC_LOG_INFO("HandleBmRegister  " << req.rank_);
     Response resp;
     resp.ret_ = result;

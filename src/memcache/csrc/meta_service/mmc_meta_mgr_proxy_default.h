@@ -12,12 +12,12 @@
 namespace ock {
 namespace mmc {
 
-class MmcMetaMgrProxyImpl : public MmcMetaMgrProxy {
+class MmcMetaMgrProxyDefault : public MmcMetaMgrProxy {
 public:
-    MmcMetaMgrProxyImpl(MmcMemPoolInitInfo mmcMemPoolInitInfo, uint64_t defaultTtl)
+    MmcMetaMgrProxyDefault(MmcMemPoolInitInfo mmcMemPoolInitInfo, uint64_t defaultTtl)
     {
         metaMangerPtr_ = MmcMakeRef<MmcMetaManager>(mmcMemPoolInitInfo, defaultTtl);
-    };
+    }
 
     /**
      * @brief Alloc the global memeory space and create the meta object
@@ -46,7 +46,7 @@ public:
         // TODO: send a copy of the meta data to local service
 
         return MMC_OK;
-    };
+    }
 
     Result UpdateState(const UpdateRequest &req, Response &resp)
     {
@@ -92,7 +92,7 @@ public:
 private:
     MmcMetaManagerPtr metaMangerPtr_;
 };
-using MmcMetaMgrProxyImplPtr = MmcRef<MmcMetaMgrProxyImpl>;
+using MmcMetaMgrProxyDefaultPtr = MmcRef<MmcMetaMgrProxyDefault>;
 
 }  // namespace mmc
 }  // namespace ock

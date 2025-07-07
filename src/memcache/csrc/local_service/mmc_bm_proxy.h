@@ -5,10 +5,12 @@
 #define MEM_FABRIC_MMC_BM_PROXY_H
 
 #include <mutex>
+#include <map>
 #include "smem.h"
 #include "smem_bm.h"
 #include "mmc_def.h"
 #include "mmc_types.h"
+#include "mmc_ref.h"
 #include "mmc_meta_common.h"
 
 typedef struct {
@@ -30,35 +32,48 @@ typedef struct {
 
 namespace ock {
 namespace mmc {
-class MmcBmProxy {
+class MmcBmProxy : public MmcReferable{
 public:
+    MmcBmProxy(const std::string &name) : name_(name) {}
+    ~MmcBmProxy() {}
     // 删除拷贝构造函数和赋值运算符
     MmcBmProxy(const MmcBmProxy&) = delete;
     MmcBmProxy& operator=(const MmcBmProxy&) = delete;
 
-    // 获取单例实例的静态方法
-    static MmcBmProxy& GetInstance()
-    {
-        static MmcBmProxy instance;  // C++11 保证静态局部变量线程安全
-        return instance;
-    }
-
     Result InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_create_config_t &createConfig);
     void DestoryBm();
-    Result Put(mmc_buffer *buf, uint64_t bmAddr);
+    Result Put(mmc_buffer *buf, uint64_t bmAddr, uint64_t size);
     Result Get(mmc_buffer *buf, uint64_t bmAddr);
-
     uint64_t GetGva() const { return reinterpret_cast<uint64_t>(gva_); }
 
 private:
-    MmcBmProxy() {}
-    ~MmcBmProxy() {}
-
     void *gva_ = nullptr;
     smem_bm_t handle_ = nullptr;
+    std::string name_;
+    bool started_ = false;
     std::mutex mutex_;
 };
+using MmcBmProxyPtr = MmcRef<MmcBmProxy>;
 
+class MmcBmProxyFactory : public MmcReferable {
+public:
+    static MmcBmProxyPtr GetInstance(const std::string inputName = "")
+    {
+        std::lock_guard<std::mutex> lock(instanceMutex_);
+        std::string key = inputName;
+        auto it = instances_.find(key);
+        if (it == instances_.end()) {
+            MmcRef<MmcBmProxy> instance = new (std::nothrow)MmcBmProxy("bmProxy");
+            instances_[key] = instance;
+            return instance;
+        }
+        return it->second;
+    }
+
+private:
+    static std::map<std::string, MmcRef<MmcBmProxy>> instances_;
+    static std::mutex instanceMutex_;
+};
 }
 }
 

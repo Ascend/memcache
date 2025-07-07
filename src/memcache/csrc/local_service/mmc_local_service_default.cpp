@@ -6,6 +6,7 @@
 #include "mmc_msg_client_meta.h"
 #include "mmc_bm_proxy.h"
 
+
 namespace ock {
 namespace mmc {
 MmcLocalServiceDefault::~MmcLocalServiceDefault() {}
@@ -41,7 +42,7 @@ void MmcLocalServiceDefault::Stop()
         return;
     }
     metaNetClient_->Stop();
-    MmcBmProxy::GetInstance().DestoryBm();
+    bmProxyPtr_->DestoryBm();
     MMC_LOG_INFO("Stop MmcClientDefault (" << name_ << ") server " << options_.discoveryURL);
     started_ = false;
 }
@@ -53,8 +54,8 @@ Result MmcLocalServiceDefault::InitBm(const mmc_local_service_config_t &config)
     mmc_bm_create_config_t createConfig = {config.createId, config.worldSize, config.dataOpType,
                                            config.localDRAMSize, config.localHBMSize, config.flags};
 
-    MmcBmProxy& bmProxy = MmcBmProxy::GetInstance();
-    Result ret = bmProxy.InitBm(initConfig, createConfig);
+    MmcBmProxyPtr bmProxy = MmcBmProxyFactory::GetInstance("bmProxyDefault");
+    Result ret = bmProxy->InitBm(initConfig, createConfig);
     if (ret != MMC_OK) {
         return ret;
     }
@@ -62,13 +63,17 @@ Result MmcLocalServiceDefault::InitBm(const mmc_local_service_config_t &config)
     BmRegisterRequest req;
     req.rank_ = initConfig.rankId;
     req.mediaType_ = (uint16_t)(createConfig.localHBMSize == 0);
-    req.bm_ = bmProxy.GetGva();
+    req.addr_ = bmProxy->GetGva();
     req.capacity_ = createConfig.localDRAMSize + createConfig.localHBMSize;
 
     Response resp;
     int16_t respRet;
 
-    return SyncCallMeta(req, resp, respRet, 30);
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(SyncCallMeta(req, resp, respRet, 30), "bm init register failed!");
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(resp.ret_, "bm init register failed!");
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(respRet, "bm init register failed!");
+    bmProxyPtr_ = bmProxy;
+    return ret;
 }
 }
 }

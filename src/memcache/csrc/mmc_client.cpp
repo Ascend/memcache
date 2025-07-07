@@ -25,10 +25,10 @@ MMC_API void mmcc_uninit()
     return;
 }
 
-MMC_API int32_t mmcc_put(const char *key, mmc_buffer *buf, uint32_t flags)
+MMC_API int32_t mmcc_put(const char *key, mmc_buffer *buf, mmc_put_options options, uint32_t flags)
 {
     MMC_ASSERT_RETURN(mmmcClientHandler != nullptr, MMC_CLIENT_NOT_INIT);
-    MMC_LOG_ERROR_AND_RETURN_NOT_OK(mmmcClientHandler->Put(key, buf, flags),
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(mmmcClientHandler->Put(key, buf, options, flags),
                                     mmmcClientHandler->Name() << " put key " << key << " failed!");
     return MMC_OK;
 }

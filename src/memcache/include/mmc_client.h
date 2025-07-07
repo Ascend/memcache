@@ -33,7 +33,7 @@ void mmcc_uninit();
  * @param flags            [in] optional flags, reserved
  * @return 0 if successful
  */
-int32_t mmcc_put(const char *key, mmc_buffer *buf, uint32_t flags);
+int32_t mmcc_put(const char *key, mmc_buffer *buf, mmc_put_options options, uint32_t flags);
 
 /**
  * @brief Get data of object by key from Distributed Memory Cache
@@ -45,6 +45,28 @@ int32_t mmcc_put(const char *key, mmc_buffer *buf, uint32_t flags);
  * @return 0 if successful
  */
 int32_t mmcc_get(const char *key, mmc_buffer *buf, uint32_t flags);
+
+/**
+ * @brief Put data of object with key into Distributed Memory Cache
+ * This data operation supports both sync and async
+ *
+ * @param key              [in] key of data, less than 256
+ * @param buf              [in] data to be put
+ * @param flags            [in] optional flags, reserved
+ * @return 0 if successful
+ */
+int32_t mmcc_batch_put(const char *key, mmc_buffer *buf, mmc_put_options options, uint32_t flags);
+
+/**
+ * @brief Get data of object by key from Distributed Memory Cache
+ * This data operation supports both sync and async
+ *
+ * @param key              [in] key of data, less than 256
+ * @param buf              [in] data to be gotten
+ * @param flags            [in] optional flags, reserved
+ * @return 0 if successful
+ */
+int32_t mmcc_batch_get(const char *key, mmc_buffer *buf, uint32_t flags);
 
 /**
  * @brief Get the locations of object

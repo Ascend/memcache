@@ -2,12 +2,20 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
 #include "mmc_bm_proxy.h"
+#include "mmc_logger.h"
 
 namespace ock {
 namespace mmc {
+std::map<std::string, MmcRef<MmcBmProxy>> MmcBmProxyFactory::instances_;
+std::mutex MmcBmProxyFactory::instanceMutex_;
+
 Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_create_config_t &createConfig)
 {
     std::lock_guard<std::mutex> lock(mutex_);
+    if (started_) {
+        MMC_LOG_INFO("MmcBmProxy " << name_ << " already init");
+        return MMC_OK;
+    }
     if (handle_ != nullptr) {
         MMC_LOG_ERROR("Bm proxy has been initialized");
         return MMC_ERROR;
@@ -56,13 +64,18 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
         MMC_LOG_ERROR("Failed to join smem bm");
         return ret;
     }
-
+    started_ = true;
     return MMC_OK;
 }
 
 void MmcBmProxy::DestoryBm()
 {
     std::lock_guard<std::mutex> lock(mutex_);
+    if (!started_) {
+        MMC_LOG_ERROR("MmcBmProxy (" << name_ << ") is not init");
+        return ;
+    }
+
     if (handle_ != nullptr) {
         smem_bm_destroy(handle_);
         smem_bm_uninit(0);
@@ -70,8 +83,8 @@ void MmcBmProxy::DestoryBm()
         gva_ = nullptr;
     }
 }
-
-Result MmcBmProxy::Put(mmc_buffer *buf, uint64_t bmAddr)
+// todo size校验
+Result MmcBmProxy::Put(mmc_buffer *buf, uint64_t bmAddr, uint64_t size)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     if (handle_ == nullptr) {

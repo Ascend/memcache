@@ -13,9 +13,7 @@
 namespace ock {
 namespace mmc {
 
-static const uint16_t NUM_BUCKETS = 8;
-
-
+static const uint16_t NUM_BUCKETS = 29;
 
 class MmcMetaManager : public MmcReferable {
 public:

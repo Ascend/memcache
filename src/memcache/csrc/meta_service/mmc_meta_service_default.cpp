@@ -3,7 +3,7 @@
  */
 #include "mmc_meta_service_default.h"
 #include "mmc_meta_net_server.h"
-#include "mmc_meta_mgr_proxy_impl.h"
+#include "mmc_meta_mgr_proxy_default.h"
 
 namespace ock {
 namespace mmc {
@@ -42,9 +42,11 @@ Result MmcMetaServiceDefault::BmRegister(uint32_t rank, uint16_t mediaType, uint
     MmcLocalMemlInitInfo locInfo{bm, capacity};
     poolInitInfo_[loc] = locInfo;
     registerRank_++;
+
+    // todo 不用等所有卡register
     if (registerRank_ == worldSize_) {
         uint64_t defaultTtl = 2000;
-        metaMgrProxy_ = MmcMakeRef<MmcMetaMgrProxyImpl>(poolInitInfo_, defaultTtl).Get();
+        metaMgrProxy_ = MmcMakeRef<MmcMetaMgrProxyDefault>(poolInitInfo_, defaultTtl).Get();
         bmStart_ = true;
     }
     return MMC_OK;

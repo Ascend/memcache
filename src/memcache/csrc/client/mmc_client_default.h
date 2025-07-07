@@ -7,6 +7,7 @@
 #include "mmc_common_includes.h"
 #include "mmc_meta_net_client.h"
 #include "mmc_def.h"
+#include "mmc_bm_proxy.h"
 
 namespace ock {
 namespace mmc {
@@ -23,7 +24,7 @@ public:
 
     const std::string &Name() const;
 
-    Result Put(const char *key, mmc_buffer *buf, uint32_t flags);
+    Result Put(const char *key, mmc_buffer *buf, mmc_put_options &options, uint32_t flags);
 
     Result Get(const char *key, mmc_buffer *buf, uint32_t flags);
 
@@ -32,13 +33,25 @@ public:
     Result Remove(const char *key, uint32_t flags);
 
 private:
+    inline uint32_t RankId(const affinity_policy &policy);
     std::mutex mutex_;
     bool started_ = false;
     MetaNetClientPtr metaNetClient_;
+    MmcBmProxyPtr bmProxy_;
     std::string name_;
     uint32_t randId_;
     uint32_t timeOut_ = 60;
 };
+
+uint32_t MmcClientDefault::RankId(const affinity_policy &policy)
+{
+    if (policy == NATIVE_AFFINITY) {
+        return randId_;
+    } else {
+        MMC_LOG_ERROR("affinity policy " << policy <<" not supported");
+        return 0;
+    }
+}
 using MmcClientDefaultPtr = MmcRef<MmcClientDefault>;
 }
 }
