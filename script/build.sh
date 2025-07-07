@@ -36,13 +36,15 @@ cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_TESTS="${BUILD_TESTS}" -DBUILD_
 make install -j5 -C build/
 
 mkdir -p "${PROJ_DIR}/src/smem/python/mf_smem/lib"
+mkdir -p "${PROJ_DIR}/src/memcache/python/pymmc/lib"
 \cp -v "${PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${PROJ_DIR}/src/smem/python/mf_smem/lib"
+\cp -v "${PROJ_DIR}/output/memcache/lib64/libmf_memcache.so" "${PROJ_DIR}/src/memcache/python/pymmc/lib"
 
-  if [ "${BUILD_PYTHON}" != "ON" ]; then
+if [ "${BUILD_PYTHON}" != "ON" ]; then
     echo "========= skip build python ============"
-      cd ${CURRENT_DIR}
-      exit 0
-  fi
+        cd ${CURRENT_DIR}
+        exit 0
+fi
 
 
 GIT_COMMIT=$(cat script/git_last_commit.txt)
@@ -50,11 +52,15 @@ GIT_COMMIT=$(cat script/git_last_commit.txt)
   echo "smem version info:"
   echo "smem version: 1.0.0"
   echo "git: ${GIT_COMMIT}"
-} > "${PROJ_DIR}/src/smem/python/mf_smem/VERSION"
+} > VERSION
+
+cp VERSION "${PROJ_DIR}/src/smem/python/mf_smem/"
+cp VERSION "${PROJ_DIR}/src/memcache/python/pymmc/"
+rm -f VERSION
 
 readonly BACK_PATH_EVN=$PATH
 python_path_list=("/opt/buildtools/python-3.8.5" "/opt/buildtools/python-3.9.11" "/opt/buildtools/python-3.10.2" "/opt/buildtools/python-3.11.4")
-for python_path in ${python_path_list[@]}
+for python_path in "${python_path_list[@]}"
 do
     if [ -n "${multiple_python}" ]; then
         export PYTHON_HOME=${python_path}
@@ -63,19 +69,23 @@ do
         export PATH=$PYTHON_HOME/bin:$BACK_PATH_EVN
     fi
 
-    rm -rf "${PROJ_DIR}"/src/smem/python/mf_smem/_pymf_smem.cpython*.so
-    rm -f "${PROJ_DIR}"/build/src/smem/csrc/python_wrapper/_pymf_smem.cpython*.so
+    rm -f "${PROJ_DIR}"/src/smem/python/mf_smem/_pymf_smem.cpython*.so
+    rm -f "${PROJ_DIR}"/src/memcache/python/pymmc/pymmc.cpython*.so
 
     rm -rf build/
     mkdir build/
     cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -S . -B build/
-    make -j5 -C build _pysmem
+    make -j5 -C build _pysmem _pymmc
+
     \cp -v "${PROJ_DIR}"/build/src/smem/csrc/python_wrapper/_pymf_smem.cpython*.so "${PROJ_DIR}"/src/smem/python/mf_smem
+    \cp -v "${PROJ_DIR}"/build/src/memcache/csrc/python_wrapper/_pymmc.cpython*.so "${PROJ_DIR}"/src/memcache/python/pymmc
 
     cd "${PROJ_DIR}/src/smem/python"
     rm -rf build mf_smem.egg-info
     python3 setup.py bdist_wheel
-    cd "${PROJ_DIR}"
+    cd "${PROJ_DIR}/src/memcache/python"
+    rm -rf build pymmc.egg-info
+    python3 setup.py bdist_wheel
 
     if [ -z "${multiple_python}" ];then
         break
@@ -84,5 +94,7 @@ done
 
 mkdir -p "${PROJ_DIR}/output/smem/wheel"
 cp "${PROJ_DIR}"/src/smem/python/dist/*.whl "${PROJ_DIR}/output/smem/wheel"
+mkdir -p "${PROJ_DIR}/output/memcache/wheel"
+cp "${PROJ_DIR}"/src/memcache/python/dist/*.whl "${PROJ_DIR}/output/memcache/wheel"
 
 cd ${CURRENT_DIR}

@@ -207,7 +207,7 @@ int DistributedObjectStore::put_from(const std::string &key, void *buffer, size_
     return 0;
 }
 
-PYBIND11_MODULE(pymmc, m) {
+PYBIND11_MODULE(_pymmc, m) {
     // Define the SliceBuffer class
     py::class_<SliceBuffer, std::shared_ptr<SliceBuffer>>(m, "SliceBuffer",
                                                           py::buffer_protocol())
@@ -247,7 +247,7 @@ PYBIND11_MODULE(pymmc, m) {
         });
 
     // Define the DistributedObjectStore class
-    py::class_<DistributedObjectStore>(m, "DistributedOjbectStore")
+    py::class_<DistributedObjectStore>(m, "DistributedObjectStore")
         .def(py::init<>())
         .def("setup", &DistributedObjectStore::setup)
         .def("init_all", &DistributedObjectStore::initAll)

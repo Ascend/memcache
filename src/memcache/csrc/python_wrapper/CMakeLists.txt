@@ -8,13 +8,13 @@ string(STRIP ${PYTHON_SYS_PATH} PYTHON_SYS_PATH)
 
 include_directories("../../include")
 
-set(PYTHON_PACKAGE_NAME "pymmc")
+set(PYTHON_PACKAGE_NAME "_pymmc")
 
 find_package(pybind11 REQUIRED)
 
-pybind11_add_module(pymmc ${SOURCES} pymmc.cpp)
+pybind11_add_module(_pymmc ${SOURCES} pymmc.cpp)
 
-install(TARGETS pymmc
+install(TARGETS _pymmc
         LIBRARY DESTINATION ${TARGET_INSTALL_DIR}/memcache/lib64
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
 )
