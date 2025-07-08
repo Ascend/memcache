@@ -173,7 +173,7 @@ SMEM_API int32_t smem_shm_topology_can_reach(smem_shm_t handle, uint32_t remoteR
         return SM_INVALID_PARAM;
     }
     // TODO: 待实现
-    *reachInfo = SMEMS_DATA_OP_MTE;
+    *reachInfo = SMEMS_DATA_OP_MTE | SMEMS_DATA_OP_ROCE;
     return SM_OK;
 }
 

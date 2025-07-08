@@ -14,6 +14,8 @@
 #include "under_api/dl_api.h"
 #include "under_api/dl_acl_api.h"
 #include "under_api/dl_hal_api.h"
+#include "devmm_svm_gva.h"
+#include "hybm_cmd.h"
 #include "hybm.h"
 
 using namespace ock::mf;
@@ -229,17 +231,18 @@ HYBM_API int32_t hybm_init(uint16_t deviceId, uint64_t flags)
 
     void *globalMemoryBase = nullptr;
     size_t allocSize = HYBM_DEVICE_INFO_SIZE;  // 申请meta空间
-    ret = DlHalApi::HalGvaReserveMemory(&globalMemoryBase, allocSize, (int32_t)deviceId, flags);
+    drv::HybmInitialize(deviceId, DlHalApi::GetDevmmFd());
+    ret = drv::HalGvaReserveMemory((uint64_t *)&globalMemoryBase, allocSize, (int32_t)deviceId, flags);
     if (ret != 0) {
         DlApi::CleanupLibrary();
         BM_LOG_ERROR("initialize mete memory with size: " << allocSize << ", flag: " << flags << " failed: " << ret);
         return -1;
     }
 
-    ret = DlHalApi::HalGvaAlloc((void *)HYBM_DEVICE_META_ADDR, HYBM_DEVICE_INFO_SIZE, 0);
+    ret = drv::HalGvaAlloc(HYBM_DEVICE_META_ADDR, HYBM_DEVICE_INFO_SIZE, 0);
     if (ret != BM_OK) {
         DlApi::CleanupLibrary();
-        (void)DlHalApi::HalGvaUnreserveMemory();
+        (void)drv::HalGvaUnreserveMemory();
         BM_LOG_ERROR("HalGvaAlloc hybm meta memory failed: " << ret);
         return BM_MALLOC_FAILED;
     }
@@ -262,7 +265,7 @@ HYBM_API void hybm_uninit()
         return;
     }
 
-    auto ret = DlHalApi::HalGvaUnreserveMemory();
+    auto ret = drv::HalGvaUnreserveMemory();
     BM_LOG_INFO("uninitialize GVA memory return: " << ret);
     DlApi::CleanupLibrary();
     initialized = 0;
