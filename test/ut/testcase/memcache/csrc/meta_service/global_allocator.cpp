@@ -1,11 +1,10 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
  */
-#include <iostream>
-#include "gtest/gtest.h"
-#include "mmc_ref.h"
 #include "mmc_global_allocator.h"
-
+#include "mmc_ref.h"
+#include "gtest/gtest.h"
+#include <iostream>
 
 using namespace testing;
 using namespace std;
@@ -35,7 +34,8 @@ void TestMmcGlobalAllocator::TearDown()
 
 TEST_F(TestMmcGlobalAllocator, AllocOne)
 {
-    MmcMemPoolInitInfo mmcMemPoolInitInfo;
+    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>();
+    // MmcMemPoolInitInfo mmcMemPoolInitInfo;
     uint64_t size = SIZE_32K * 10;
     for (int i = 0; i < 10; i++) {
         MmcLocation loc;
@@ -44,7 +44,8 @@ TEST_F(TestMmcGlobalAllocator, AllocOne)
         loc.rank_ = i;
         info.bm_ = size * i;
         info.capacity_ = size;
-        mmcMemPoolInitInfo[loc] = info;
+        allocator->Mount(loc, info);
+        /* mmcMemPoolInitInfo[loc] = info; */
     }
     for (int i = 0; i < 5; i++) {
         MmcLocation loc;
@@ -53,9 +54,9 @@ TEST_F(TestMmcGlobalAllocator, AllocOne)
         loc.rank_ = i;
         info.bm_ = size * i;
         info.capacity_ = size;
-        mmcMemPoolInitInfo[loc] = info;
+        allocator->Mount(loc, info);
+        // mmcMemPoolInitInfo[loc] = info;
     }
-    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>(mmcMemPoolInitInfo);
 
     AllocOptions allocReq;
     std::vector<MmcMemBlobPtr> blobs;
@@ -76,7 +77,8 @@ TEST_F(TestMmcGlobalAllocator, AllocOne)
 
 TEST_F(TestMmcGlobalAllocator, AllocMulti)
 {
-    MmcMemPoolInitInfo mmcMemPoolInitInfo;
+    // MmcMemPoolInitInfo mmcMemPoolInitInfo;
+    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>();
     uint64_t size = SIZE_32K * 10;
     for (int i = 0; i < 10; i++) {
         MmcLocation loc;
@@ -85,7 +87,8 @@ TEST_F(TestMmcGlobalAllocator, AllocMulti)
         loc.rank_ = i;
         info.bm_ = size * i;
         info.capacity_ = size;
-        mmcMemPoolInitInfo[loc] = info;
+        allocator->Mount(loc, info);
+        // mmcMemPoolInitInfo[loc] = info;
     }
     for (int i = 0; i < 5; i++) {
         MmcLocation loc;
@@ -94,9 +97,9 @@ TEST_F(TestMmcGlobalAllocator, AllocMulti)
         loc.rank_ = i;
         info.bm_ = size * i;
         info.capacity_ = size;
-        mmcMemPoolInitInfo[loc] = info;
+        allocator->Mount(loc, info);
+        // mmcMemPoolInitInfo[loc] = info;
     }
-    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>(mmcMemPoolInitInfo);
 
     AllocOptions allocReq;
     std::vector<MmcMemBlobPtr> blobs;
@@ -119,7 +122,8 @@ TEST_F(TestMmcGlobalAllocator, AllocMulti)
 
 TEST_F(TestMmcGlobalAllocator, AllocCrossRank)
 {
-    MmcMemPoolInitInfo mmcMemPoolInitInfo;
+    // MmcMemPoolInitInfo mmcMemPoolInitInfo;
+    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>();
     uint64_t size = SIZE_32K * 10;
     for (int i = 0; i < 10; i++) {
         MmcLocation loc;
@@ -128,7 +132,8 @@ TEST_F(TestMmcGlobalAllocator, AllocCrossRank)
         loc.rank_ = i;
         info.bm_ = size * i;
         info.capacity_ = size;
-        mmcMemPoolInitInfo[loc] = info;
+        allocator->Mount(loc, info);
+        // mmcMemPoolInitInfo[loc] = info;
     }
     for (int i = 0; i < 5; i++) {
         MmcLocation loc;
@@ -137,9 +142,9 @@ TEST_F(TestMmcGlobalAllocator, AllocCrossRank)
         loc.rank_ = i;
         info.bm_ = size * i;
         info.capacity_ = size;
-        mmcMemPoolInitInfo[loc] = info;
+        allocator->Mount(loc, info);
+        // mmcMemPoolInitInfo[loc] = info;
     }
-    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>(mmcMemPoolInitInfo);
 
     AllocOptions allocReq;
     std::vector<MmcMemBlobPtr> blobs;
@@ -168,7 +173,8 @@ TEST_F(TestMmcGlobalAllocator, AllocCrossRank)
 
 TEST_F(TestMmcGlobalAllocator, FreeOne)
 {
-    MmcMemPoolInitInfo mmcMemPoolInitInfo;
+    // MmcMemPoolInitInfo mmcMemPoolInitInfo;
+    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>();
     uint64_t size = SIZE_32K * 10;
     for (int i = 0; i < 10; i++) {
         MmcLocation loc;
@@ -177,7 +183,8 @@ TEST_F(TestMmcGlobalAllocator, FreeOne)
         loc.rank_ = i;
         info.bm_ = size * i;
         info.capacity_ = size;
-        mmcMemPoolInitInfo[loc] = info;
+        allocator->Mount(loc, info);
+        // mmcMemPoolInitInfo[loc] = info;
     }
     for (int i = 0; i < 5; i++) {
         MmcLocation loc;
@@ -186,9 +193,9 @@ TEST_F(TestMmcGlobalAllocator, FreeOne)
         loc.rank_ = i;
         info.bm_ = size * i;
         info.capacity_ = size;
-        mmcMemPoolInitInfo[loc] = info;
+        allocator->Mount(loc, info);
+        // mmcMemPoolInitInfo[loc] = info;
     }
-    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>(mmcMemPoolInitInfo);
 
     AllocOptions allocReq;
     std::vector<MmcMemBlobPtr> blobs;
@@ -221,7 +228,8 @@ TEST_F(TestMmcGlobalAllocator, FreeOne)
 
 TEST_F(TestMmcGlobalAllocator, FreeCrossRank)
 {
-    MmcMemPoolInitInfo mmcMemPoolInitInfo;
+    // MmcMemPoolInitInfo mmcMemPoolInitInfo;
+    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>();
     uint64_t size = SIZE_32K * 10;
     for (int i = 0; i < 10; i++) {
         MmcLocation loc;
@@ -230,7 +238,8 @@ TEST_F(TestMmcGlobalAllocator, FreeCrossRank)
         loc.rank_ = i;
         info.bm_ = size * i;
         info.capacity_ = size;
-        mmcMemPoolInitInfo[loc] = info;
+        allocator->Mount(loc, info);
+        // mmcMemPoolInitInfo[loc] = info;
     }
     for (int i = 0; i < 5; i++) {
         MmcLocation loc;
@@ -239,9 +248,9 @@ TEST_F(TestMmcGlobalAllocator, FreeCrossRank)
         loc.rank_ = i;
         info.bm_ = size * i;
         info.capacity_ = size;
-        mmcMemPoolInitInfo[loc] = info;
+        allocator->Mount(loc, info);
+        // mmcMemPoolInitInfo[loc] = info;
     }
-    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>(mmcMemPoolInitInfo);
 
     AllocOptions allocReq;
     std::vector<MmcMemBlobPtr> blobs;

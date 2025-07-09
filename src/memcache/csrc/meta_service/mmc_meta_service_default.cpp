@@ -2,8 +2,8 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
 #include "mmc_meta_service_default.h"
-#include "mmc_meta_net_server.h"
 #include "mmc_meta_mgr_proxy_default.h"
+#include "mmc_meta_net_server.h"
 
 namespace ock {
 namespace mmc {
@@ -26,7 +26,8 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     return MMC_OK;
 }
 
-MmcMetaMgrProxyPtr MmcMetaServiceDefault::GetMetaMgrProxy() const {
+MmcMetaMgrProxyPtr MmcMetaServiceDefault::GetMetaMgrProxy() const
+{
     return metaMgrProxy_;
 }
 
@@ -40,18 +41,10 @@ Result MmcMetaServiceDefault::BmRegister(uint32_t rank, uint16_t mediaType, uint
 
     MmcLocation loc{rank, mediaType};
     MmcLocalMemlInitInfo locInfo{bm, capacity};
-    poolInitInfo_[loc] = locInfo;
+    metaMgrProxy_->Mount(loc, locInfo);
     registerRank_++;
-
-    // todo 不用等所有卡register
-    if (registerRank_ == worldSize_) {
-        uint64_t defaultTtl = 2000;
-        metaMgrProxy_ = MmcMakeRef<MmcMetaMgrProxyDefault>(poolInitInfo_, defaultTtl).Get();
-        bmStart_ = true;
-    }
     return MMC_OK;
 }
-
 
 void MmcMetaServiceDefault::Stop()
 {
@@ -64,5 +57,5 @@ void MmcMetaServiceDefault::Stop()
     MMC_LOG_INFO("Stop MmcMetaServiceDefault (" << name_ << ") at " << options_.discoveryURL);
     started_ = false;
 }
-}
-}
+}  // namespace mmc
+}  // namespace ock

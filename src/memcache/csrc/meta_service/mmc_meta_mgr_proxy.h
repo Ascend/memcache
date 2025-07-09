@@ -21,6 +21,10 @@ public:
     virtual Result Get(const GetRequest &updateReq, AllocResponse &upddateResp) = 0;
 
     virtual Result Remove(const RemoveRequest &updateReq, Response &upddateResp) = 0;
+
+    virtual Result Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo &localMemInitInfo) = 0;
+
+    virtual Result Unmount(const MmcLocation &loc) = 0;
 };
 using MmcMetaMgrProxyPtr = MmcRef<MmcMetaMgrProxy>;
 }  // namespace mmc

@@ -36,25 +36,27 @@ void TestMmcMetaManager::TearDown()
 
 TEST_F(TestMmcMetaManager, Init)
 {
-    MmcMemPoolInitInfo poolInitInfo;
+    // MmcMemPoolInitInfo poolInitInfo;
     MmcLocation loc{0, 0};
     MmcLocalMemlInitInfo locInfo{100, 1000};
-    poolInitInfo[loc] = locInfo;
+    // poolInitInfo[loc] = locInfo;
 
     uint64_t defaultTtl = 2000;
 
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(poolInitInfo, defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Mount(loc, locInfo);
     ASSERT_TRUE(metaMng != nullptr);
 }
 
 TEST_F(TestMmcMetaManager, AllocAndFreeFail)
 {
-    MmcMemPoolInitInfo poolInitInfo;
+    // MmcMemPoolInitInfo poolInitInfo;
     MmcLocation loc{0, 0};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
-    poolInitInfo[loc] = locInfo;
+    // poolInitInfo[loc] = locInfo;
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(poolInitInfo, defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Mount(loc, locInfo);
 
     AllocOptions allocReq{SIZE_32K, 1, 0, 0, 0};
     MmcMemObjMetaPtr objMeta;
@@ -69,12 +71,13 @@ TEST_F(TestMmcMetaManager, AllocAndFreeFail)
 
 TEST_F(TestMmcMetaManager, AllocAndFreeOK)
 {
-    MmcMemPoolInitInfo poolInitInfo;
+    // MmcMemPoolInitInfo poolInitInfo;
     MmcLocation loc{0, 0};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
-    poolInitInfo[loc] = locInfo;
+    // poolInitInfo[loc] = locInfo;
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(poolInitInfo, defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Mount(loc, locInfo);
 
     uint16_t numKeys = 1U;
     std::vector<std::string> keys;
@@ -103,12 +106,13 @@ TEST_F(TestMmcMetaManager, AllocAndFreeOK)
 
 TEST_F(TestMmcMetaManager, GetAndUpdate)
 {
-    MmcMemPoolInitInfo poolInitInfo;
+    // MmcMemPoolInitInfo poolInitInfo;
     MmcLocation loc{0, 0};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
-    poolInitInfo[loc] = locInfo;
+    // poolInitInfo[loc] = locInfo;
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(poolInitInfo, defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Mount(loc, locInfo);
 
     uint16_t numKeys = 20U;
     std::vector<std::string> keys;

@@ -36,25 +36,27 @@ void TestMmcMetaManager1::TearDown()
 
 TEST_F(TestMmcMetaManager1, Init)
 {
-    MmcMemPoolInitInfo poolInitInfo;
+    // MmcMemPoolInitInfo poolInitInfo;
     MmcLocation loc{0, 0};
     MmcLocalMemlInitInfo locInfo{100, 1000};
-    poolInitInfo[loc] = locInfo;
+    //poolInitInfo[loc] = locInfo;
 
     uint64_t defaultTtl = 2000;
 
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(poolInitInfo, defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Mount(loc, locInfo);
     ASSERT_TRUE(metaMng != nullptr);
 }
 
 TEST_F(TestMmcMetaManager1, Alloc)
 {
-    MmcMemPoolInitInfo poolInitInfo;
+    //MmcMemPoolInitInfo poolInitInfo;
     MmcLocation loc{0, 0};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
-    poolInitInfo[loc] = locInfo;
+    //poolInitInfo[loc] = locInfo;
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(poolInitInfo, defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Mount(loc, locInfo);
 
     AllocOptions allocReq{SIZE_32K, 1, 0, 0, 0};
     MmcMemObjMetaPtr objMeta;

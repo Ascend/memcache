@@ -74,6 +74,11 @@ struct MmcLocation {
     }
 };
 
+struct MmcLocalMemlInitInfo {
+    uint64_t bm_;
+    uint64_t capacity_;
+};
+
 }  // namespace mmc
 }  // namespace ock
 

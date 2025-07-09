@@ -4,19 +4,19 @@
 #ifndef MEM_FABRIC_MMC_META_PROXY_IMPL_H
 #define MEM_FABRIC_MMC_META_PROXY_IMPL_H
 
-#include <glob.h>
 #include "mmc_meta_manager.h"
 #include "mmc_meta_service.h"
 #include "mmc_msg_client_meta.h"
+#include <glob.h>
 
 namespace ock {
 namespace mmc {
 
 class MmcMetaMgrProxyDefault : public MmcMetaMgrProxy {
 public:
-    MmcMetaMgrProxyDefault(MmcMemPoolInitInfo mmcMemPoolInitInfo, uint64_t defaultTtl)
+    MmcMetaMgrProxyDefault(uint64_t defaultTtl)
     {
-        metaMangerPtr_ = MmcMakeRef<MmcMetaManager>(mmcMemPoolInitInfo, defaultTtl);
+        metaMangerPtr_ = MmcMakeRef<MmcMetaManager>(defaultTtl);
     }
 
     /**
@@ -92,6 +92,16 @@ public:
         } else {
             return MMC_OK;
         }
+    }
+
+    Result Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo &localMemInitInfo)
+    {
+        return metaMangerPtr_->Mount(loc, localMemInitInfo);
+    }
+
+    Result Unmount(const MmcLocation &loc)
+    {
+        return metaMangerPtr_->Unmount(loc);
     }
 
 private:

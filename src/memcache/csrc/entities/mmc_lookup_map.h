@@ -11,11 +11,67 @@
 namespace ock {
 namespace mmc {
 
-template <typename Key, typename Value, uint32_t numBuckets>
-class MmcLookupMap {
+template <typename Key, typename Value, uint32_t numBuckets> class MmcLookupMap {
     static_assert(numBuckets > 0, "numBuckets must be positive");
+    using BucketPtr = std::unordered_map<Key, Value> *;
+    using MapIterator = typename std::unordered_map<Key, Value>::iterator;
 
 public:
+    class Iterator {
+    public:
+        Iterator(BucketPtr begin, BucketPtr end) : curBucket_(begin), endBucket_(end)
+        {
+            if (curBucket_ != endBucket_) {
+                mapIter_ = curBucket_->begin();
+                SkipEmptyBuckets();
+            }
+        }
+
+        std::pair<const Key, Value> &operator*() const
+        {
+            return *mapIter_;
+        }
+
+        Iterator &operator++()
+        {
+            mapIter_++;
+            SkipEmptyBuckets();
+            return *this;
+        }
+
+        bool operator!=(const Iterator &other) const
+        {
+            return curBucket_ != other.curBucket_;
+        }
+
+    private:
+        BucketPtr curBucket_;
+        BucketPtr endBucket_;
+        MapIterator mapIter_;
+
+        // use to jump between buckets
+        void SkipEmptyBuckets()
+        {
+            // while current bucket is not the last bucket AND mapIter is at the end of current bucket
+            while (curBucket_ != endBucket_ && mapIter_ == curBucket_->end()) {
+                curBucket_++;  // go to next bucket
+                if (curBucket_ != endBucket_) {
+                    mapIter_ = curBucket_->begin();
+                }
+            }
+        }
+    };
+
+    Iterator begin()
+    {
+        return Iterator(buckets_, buckets_ + numBuckets);
+    }
+
+    Iterator end()
+    {
+        return Iterator(buckets_ + numBuckets, buckets_ + numBuckets);
+    }
+
     /**
      * @brief Insert a value into this concurrent hash map
      *

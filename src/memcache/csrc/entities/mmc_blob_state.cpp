@@ -21,7 +21,7 @@ StateTransitionItem g_metaStateTransItemTable[]{
     {ALLOCATED, MMC_WRITE_OK, DATA_READY},
     {ALLOCATED, MMC_REMOVE_START, REMOVING},   // data may be transfering at local; can only start remove
     {DATA_READY, MMC_REMOVE_START, REMOVING},  // data may be transfering at local; can only start remove
-    {REMOVING, MMC_RECV_LOC_SIGN_REMOVE_OK, FINAL},
+    {REMOVING, MMC_REMOVE_OK, FINAL},
 };
 
 /**

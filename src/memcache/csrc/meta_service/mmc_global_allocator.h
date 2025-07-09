@@ -6,31 +6,20 @@
 
 #include "mmc_blob_allocator.h"
 #include "mmc_locality_strategy.h"
+#include "mmc_read_write_lock.h"
 
 namespace ock {
 namespace mmc {
-
-struct MmcLocalMemlInitInfo {
-    uint64_t bm_;
-    uint64_t capacity_;
-};
 
 using MmcMemPoolInitInfo = std::map<MmcLocation, MmcLocalMemlInitInfo>;
 
 class MmcGlobalAllocator : public MmcReferable {
 public:
-    MmcGlobalAllocator(MmcMemPoolInitInfo mmcMemPoolInitInfo) : mmcMemPoolInitInfo_(mmcMemPoolInitInfo)
-    {
-        for (const auto &localInfo : mmcMemPoolInitInfo_) {
-            mmcMemPoolCurInfo_[localInfo.first].capacity_ = localInfo.second.capacity_;
-            allocators_[localInfo.first] = MmcMakeRef<MmcBlobAllocator>(
-                localInfo.first.rank_, localInfo.first.mediaType_, localInfo.second.bm_, localInfo.second.capacity_);
-            allocators_[localInfo.first]->Initialize();
-        }
-    };
+    MmcGlobalAllocator() = default;
+
     Result Alloc(const AllocOptions &allocReq, std::vector<MmcMemBlobPtr> &blobs)
     {
-        // todo: need to deal with the locks
+        globalAllocLock_.LockRead();
         std::vector<MmcLocation> locations;
         Result ret = MmcLocalityStrategy::ArrangeLocality(allocators_, allocReq, locations);
         if (ret != MMC_OK) {
@@ -44,27 +33,56 @@ public:
                 return MMC_ERROR;
             }
         }
+        globalAllocLock_.UnlockRead();
         return MMC_OK;
     };
+
     Result Free(MmcMemBlobPtr blob)
     {
-        // todo: need to deal with the locks
+        globalAllocLock_.LockRead();
         MmcLocation location{blob->Rank(), blob->MediaType()};
         auto allocator = allocators_[location];
-        return allocator->Free(blob);
+        Result ret = allocator->Free(blob);
+        globalAllocLock_.UnlockRead();
+        return ret;
     };
 
-private:
-    Result UpdateMemPoolInfo() { return MMC_OK; };
+    Result Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo &localMemInitInfo)
+    {
+        globalAllocLock_.LockWrite();
+        auto iter = allocators_.find(loc);
+        if (iter != allocators_.end()) {
+            MMC_LOG_WARN("Cannot mount at the existing position!");
+            return MMC_INVALID_PARAM;
+        }
+        allocators_[loc] =
+            MmcMakeRef<MmcBlobAllocator>(loc.rank_, loc.mediaType_, localMemInitInfo.bm_, localMemInitInfo.capacity_);
+        allocators_[loc]->Initialize();
+        globalAllocLock_.UnlockWrite();
+        return MMC_OK;
+    }
 
-    MmcMemPoolInitInfo mmcMemPoolInitInfo_;
-    MmcMemPoolCurInfo mmcMemPoolCurInfo_;
+    Result Unmount(const MmcLocation &loc)
+    {
+        globalAllocLock_.LockWrite();
+        auto iter = allocators_.find(loc);
+        if (iter != allocators_.end()) {
+            MMC_LOG_WARN("Cannot find the given location in the mem pool!");
+            return MMC_INVALID_PARAM;
+        }
+        allocators_.erase(iter);
+        globalAllocLock_.UnlockWrite();
+        return MMC_OK;
+    }
+
+private:
     MmcAllocators allocators_;
+    ReadWriteLock globalAllocLock_;
 };
 
 using MmcGlobalAllocatorPtr = MmcRef<MmcGlobalAllocator>;
 
-} // namespace mmc
-} // namespace ock
+}  // namespace mmc
+}  // namespace ock
 
-#endif // MEM_FABRIC_MMC_GLOBAL_ALLOCATOR_H
+#endif  // MEM_FABRIC_MMC_GLOBAL_ALLOCATOR_H

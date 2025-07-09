@@ -4,17 +4,22 @@
 #ifndef MEM_FABRIC_MMC_META_SERVICE_DEFAULT_H
 #define MEM_FABRIC_MMC_META_SERVICE_DEFAULT_H
 
-#include "mmc_meta_net_server.h"
-#include "mmc_meta_common.h"
-#include "mmc_meta_service.h"
 #include "mmc_def.h"
 #include "mmc_global_allocator.h"
+#include "mmc_meta_common.h"
+#include "mmc_meta_net_server.h"
+#include "mmc_meta_service.h"
+#include "mmc_meta_mgr_proxy_default.h"
 
 namespace ock {
 namespace mmc {
 class MmcMetaServiceDefault : public MmcMetaService {
 public:
-    explicit MmcMetaServiceDefault(const std::string &name) : name_(name) {}
+    explicit MmcMetaServiceDefault(const std::string &name) : name_(name)
+    {
+        uint64_t defaultTtl = 2000;
+        metaMgrProxy_ = MmcMakeRef<MmcMetaMgrProxyDefault>(defaultTtl).Get();
+    }
 
     Result Start(const mmc_meta_service_config_t &options) override;
 
@@ -34,11 +39,9 @@ private:
 
     std::mutex mutex_;
     bool started_ = false;
-    bool bmStart_ = false;
     std::string name_;
     uint32_t worldSize_;
     uint32_t registerRank_ = 0;
-    MmcMemPoolInitInfo poolInitInfo_;
     mmc_meta_service_config_t options_;
 };
 inline const std::string &MmcMetaServiceDefault::Name() const
@@ -52,7 +55,7 @@ inline const mmc_meta_service_config_t &MmcMetaServiceDefault::Options() const
 }
 
 using MmcMetaServiceDefaultPtr = MmcRef<MmcMetaServiceDefault>;
-}
-}
+}  // namespace mmc
+}  // namespace ock
 
-#endif  //MEM_FABRIC_MMC_META_SERVICE_DEFAULT_H
+#endif  // MEM_FABRIC_MMC_META_SERVICE_DEFAULT_H

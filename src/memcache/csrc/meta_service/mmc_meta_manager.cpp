@@ -1,7 +1,10 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
+
 #include "mmc_meta_manager.h"
+#include <chrono>
+#include <thread>
 
 namespace ock {
 namespace mmc {
@@ -92,6 +95,61 @@ Result MmcMetaManager::Remove(const std::string &key)
     } else {
         return MMC_LEASE_NOT_EXPIRED;
     }
+}
+
+Result MmcMetaManager::ForceRemoveBlobs(const MmcMemObjMetaPtr &objMeta, const MmcBlobFilterPtr &filter)
+{
+    Result ret;
+    std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs(filter);
+    for (auto &blob : blobs) {
+        ret = blob->UpdateState(MMC_REMOVE_START);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("Fail to update state in ForceRemove!");
+            return MMC_UNMATCHED_STATE;
+        }
+    }
+    if (!objMeta->IsLeaseExpired()) {
+        const uint64_t nowMs =
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
+                .count();
+        uint64_t timeLeft = objMeta->Lease() > nowMs ? objMeta->Lease() - nowMs : 0U;
+        std::chrono::milliseconds leaseLeft(timeLeft);
+        std::this_thread::sleep_for(leaseLeft);
+    }
+    for (size_t i = 0; i < blobs.size(); i++) {
+        Result ret = globalAllocator_->Free(blobs[i]);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("Error in free blobs!");
+            return ret;
+        }
+    }
+    ret = objMeta->RemoveBlobs(filter);
+    return MMC_OK;
+}
+
+Result MmcMetaManager::Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo &localMemInitInfo)
+{
+    return globalAllocator_->Mount(loc, localMemInitInfo);
+}
+
+Result MmcMetaManager::Unmount(const MmcLocation &loc)
+{
+    Result ret;
+    // Force delete the blobs
+    MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(loc.rank_, loc.mediaType_, NONE);
+
+    for (auto iter = objMetaLookupMap_.begin(); iter != objMetaLookupMap_.end(); ++iter) {
+        ret = ForceRemoveBlobs((*iter).second, filter);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("Fail to force remove blobs in MmcMetaManager::Unmount!");
+            return MMC_ERROR;
+        }
+        if ((*iter).second->NumBlobs() == 0) {
+            objMetaLookupMap_.Erase((*iter).first);
+        }
+    }
+    ret = globalAllocator_->Unmount(loc);
+    return ret;
 }
 
 }  // namespace mmc

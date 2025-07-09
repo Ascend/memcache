@@ -17,9 +17,9 @@ static const uint16_t NUM_BUCKETS = 29;
 
 class MmcMetaManager : public MmcReferable {
 public:
-    MmcMetaManager(MmcMemPoolInitInfo mmcMemPoolInitInfo, uint64_t defaultTtl) : defaultTtl_(defaultTtl)
+    MmcMetaManager(uint64_t defaultTtl) : defaultTtl_(defaultTtl)
     {
-        globalAllocator_ = MmcMakeRef<MmcGlobalAllocator>(mmcMemPoolInitInfo);
+        globalAllocator_ = MmcMakeRef<MmcGlobalAllocator>();
     };
 
     /**
@@ -51,14 +51,33 @@ public:
      */
     Result UpdateState(const std::string &key, const MmcLocation &loc, const BlobActionResult &actRet);
 
-     /**
-     * @brief Alloc the global memeory space and create the meta object
-     * @param key          [in] key of the meta object
-     * @param metaInfo     [out] the meta object created
+    /**
+     * @brief remove the meta object
+     * @param key          [in] key of the to-be-removed meta object
      */
     Result Remove(const std::string &key);
 
+    /**
+     * @brief unmount new mem pool contributor
+     * @param loc               [in] location of the new mem pool contributor
+     * @param localMemInitInfo  [in] info of the new mem pool contributor
+     */
+    Result Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo &localMemInitInfo);
+
+    /**
+     * @brief unmount the mempool contributor at given location
+     * @param loc          [in] location of the mem pool contributor to be unmounted
+     */
+    Result Unmount(const MmcLocation &loc);
+
 private:
+    /**
+     * @brief force remove the blobs and object meta(if all its blobs are removed)
+     * @param key          [in] key of the to-be-removed meta object
+     * @param filter       [in] filter used to choose the to-be-removed blobs
+     */
+    Result ForceRemoveBlobs(const MmcMemObjMetaPtr &objMeta, const MmcBlobFilterPtr &filter = nullptr);
+
     MmcLookupMap<std::string, MmcMemObjMetaPtr, NUM_BUCKETS> objMetaLookupMap_;
     MmcGlobalAllocatorPtr globalAllocator_;
     uint64_t defaultTtl_; /* defult ttl in miliseconds*/

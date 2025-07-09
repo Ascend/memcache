@@ -37,7 +37,7 @@ public:
     Result AddBlob(const MmcMemBlobPtr &blob);
 
     /**
-     * @brief Remove a blob from the mem object by filter
+     * @brief Remove blobs from the mem object by filter
      *
      * @param filter remove filter
      * @param revert false: remove those matching the filter; true: remove those not matching the filter
