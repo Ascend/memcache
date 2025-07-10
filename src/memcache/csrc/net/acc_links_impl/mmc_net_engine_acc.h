@@ -22,7 +22,7 @@ public:
                          bool isForce) override;
 
     Result Call(uint32_t targetId, int16_t opCode, const char *reqData, uint32_t reqDataLen, char **respData,
-                        uint32_t &respDataLen, int16_t &userResult, int32_t timeoutInSecond) override;
+                        uint32_t &respDataLen, int32_t timeoutInSecond) override;
 
     Result Send(uint32_t peerId, const char *reqData, uint32_t reqDataLen, int32_t timeoutInSecond) override;
 

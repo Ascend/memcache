@@ -31,9 +31,9 @@ public:
     const mmc_local_service_config_t &Options() const override;
 
     template <typename REQ, typename RESP>
-    Result SyncCallMeta(const REQ &req, RESP &resp, int16_t &userResult, int32_t timeoutInSecond)
+    Result SyncCallMeta(const REQ &req, RESP &resp, int32_t timeoutInSecond)
     {
-        return metaNetClient_->SyncCall(req, resp, userResult, timeoutInSecond);
+        return metaNetClient_->SyncCall(req, resp, timeoutInSecond);
     }
 
     inline MetaNetClientPtr GetMetaClient() const;

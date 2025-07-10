@@ -82,6 +82,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     ASSERT_TRUE(local_service != nullptr);
 
     mmc_client_config_t clientConfig;
+    clientConfig.rankId = 0;
     UrlStringToChar(metaUrl, clientConfig.discoveryURL);
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_TRUE(ret == 0);

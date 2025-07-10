@@ -137,16 +137,7 @@ struct AllocResponse : public MsgBase {
         packer.Serialize(priority_);
         packer.Serialize(lease_);
         packer.Serialize(numBlobs_);
-
-        for (auto iter = blobs_.begin(); iter != blobs_.end(); iter++) {
-            MmcMemBlobDesc blobDesc = *iter;
-            packer.Serialize(blobDesc.rank_);
-            packer.Serialize(blobDesc.gva_);
-            packer.Serialize(blobDesc.size_);
-            packer.Serialize(blobDesc.mediaType_);
-            packer.Serialize(blobDesc.state_);
-            packer.Serialize(blobDesc.prot_);
-        }
+        packer.Serialize(blobs_);
         return MMC_OK;
     }
 
@@ -159,22 +150,7 @@ struct AllocResponse : public MsgBase {
         packer.Deserialize(priority_);
         packer.Deserialize(lease_);
         packer.Deserialize(numBlobs_);
-        uint32_t rank;
-        uint64_t gva;
-        uint32_t size;
-        uint16_t mediaType;
-        BlobState state;
-        uint16_t prot;
-        for (uint32_t i = 0; i < numBlobs_; i++) {
-            packer.Deserialize(rank);
-            packer.Deserialize(gva);
-            packer.Deserialize(size);
-            packer.Deserialize(mediaType);
-            packer.Deserialize(state);
-            packer.Deserialize(prot);
-
-            blobs_.push_back(MmcMemBlobDesc(rank, gva, size, mediaType, state, prot));
-        }
+        packer.Deserialize(blobs_);
         return MMC_OK;
     }
 };
@@ -270,6 +246,44 @@ struct BmRegisterRequest : public MsgBase {
         packer.Deserialize(mediaType_);
         packer.Deserialize(addr_);
         packer.Deserialize(capacity_);
+        return MMC_OK;
+    }
+};
+
+struct MetaReplicateRequest : public MsgBase {
+
+    std::string key_{""};
+    MmcMemBlobDesc blob_;              /* pointers of blobs */
+    uint16_t prot_{0};                  /* prot of the mem object, i.e. accessibility */
+    uint8_t priority_{0};               /* priority of the memory object, used for eviction */
+    uint64_t lease_{0};                 /* lease of the memory object */
+
+    MetaReplicateRequest() : MsgBase{0, LM_META_REPLICATE_REQ, 0}{}
+    MetaReplicateRequest(const std::string &key, const MmcMemBlobDesc &blobDesc, const uint16_t &prot,
+                         const uint8_t &priority, const uint64_t &lease) : MsgBase{0, LM_META_REPLICATE_REQ, 0},
+                         key_(key), blob_(blobDesc), prot_(prot), priority_(priority), lease_(lease) {};
+
+    Result Serialize(NetMsgPacker &packer) const override
+    {
+        packer.Serialize(msgVer);
+        packer.Serialize(msgId);
+        packer.Serialize(destRankId);
+        packer.Serialize(prot_);
+        packer.Serialize(priority_);
+        packer.Serialize(lease_);
+        packer.Serialize(blob_);
+        return MMC_OK;
+    }
+
+    Result Deserialize(NetMsgUnpacker &packer) override
+    {
+        packer.Deserialize(msgVer);
+        packer.Deserialize(msgId);
+        packer.Deserialize(destRankId);
+        packer.Deserialize(prot_);
+        packer.Deserialize(priority_);
+        packer.Deserialize(lease_);
+        packer.Deserialize(blob_);
         return MMC_OK;
     }
 };

@@ -14,25 +14,27 @@ public:
 
     ~MetaNetClient() override;
 
-    Result Start();
+    Result Start(uint16_t rankId);
 
     void Stop();
 
     Result Connect(const std::string &url);
 
     template <typename REQ, typename RESP>
-    Result SyncCall(const REQ &req, RESP &resp, int16_t &userResult, int32_t timeoutInSecond)
+    Result SyncCall(const REQ &req, RESP &resp, int32_t timeoutInSecond)
     {
-        return engine_->Call(peerId_, req.msgId, req, resp, userResult, timeoutInSecond);
+        return engine_->Call(rankId_, req.msgId, req, resp, timeoutInSecond);
     }
 
     inline bool Status();
 
 private:
+    Result HandleMetaReplicate(const NetContextPtr &context);
+    Result HandlePing(const NetContextPtr &context);
     NetEnginePtr engine_;
     std::string serverUrl_;
     NetLinkPtr link2Index_ = nullptr;
-    const uint16_t peerId_ = 0;
+    uint16_t rankId_;
 
     /* not hot used variables */
     std::mutex mutex_;

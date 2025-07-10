@@ -67,7 +67,7 @@ public:
      * @brief Get the priority
      * @return priority
      */
-    uint16_t Priority();
+    uint8_t Priority();
 
     /**
      * @brief Get the number of blobs
@@ -130,7 +130,7 @@ inline uint16_t MmcMemObjMeta::Prot()
     return prot_;
 }
 
-inline uint16_t MmcMemObjMeta::Priority()
+inline uint8_t MmcMemObjMeta::Priority()
 {
     std::lock_guard<Spinlock> guard(spinlock_);
     return priority_;

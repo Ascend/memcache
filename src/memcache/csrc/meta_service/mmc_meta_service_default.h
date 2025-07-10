@@ -18,7 +18,7 @@ public:
     explicit MmcMetaServiceDefault(const std::string &name) : name_(name)
     {
         uint64_t defaultTtl = 2000;
-        metaMgrProxy_ = MmcMakeRef<MmcMetaMgrProxyDefault>(defaultTtl).Get();
+        metaMgrProxy_ = MmcMakeRef<MmcMetaMgrProxyDefault>(defaultTtl, metaNetServer_).Get();
     }
 
     Result Start(const mmc_meta_service_config_t &options) override;

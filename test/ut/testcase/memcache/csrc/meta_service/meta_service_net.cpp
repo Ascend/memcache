@@ -65,17 +65,14 @@ TEST_F(TestMmcMetaService, Init)
     req.msgId = ML_PING_REQ;
     req.num = 123;
     PingMsg resp;
-    int16_t respRet;
-    ASSERT_TRUE(localServiceDefault->SyncCallMeta(req, resp, respRet, 30) == MMC_OK);
-    ASSERT_TRUE(respRet == MMC_OK);
+    ASSERT_TRUE(localServiceDefault->SyncCallMeta(req, resp, 30) == MMC_OK);
 
 
     AllocRequest reqAlloc;
     reqAlloc.key_ = "test";
     reqAlloc.options_ = {SIZE_32K, 1, 0, 0, 0};
     AllocResponse respAlloc;
-    ASSERT_TRUE(localServiceDefault->SyncCallMeta(reqAlloc, respAlloc, respRet, 30) == MMC_OK);
-    ASSERT_TRUE(respRet == MMC_OK);
+    ASSERT_TRUE(localServiceDefault->SyncCallMeta(reqAlloc, respAlloc, 30) == MMC_OK);
     ASSERT_TRUE(respAlloc.numBlobs_ == 1);
     ASSERT_TRUE(respAlloc.blobs_.size() == 1);
     ASSERT_TRUE(respAlloc.blobs_[0].size_ == SIZE_32K);

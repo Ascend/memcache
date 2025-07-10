@@ -22,7 +22,7 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
     metaNetClient_ = MetaNetClientFactory::GetInstance(this->options_.discoveryURL, "MetaClientCommon").Get();
     MMC_ASSERT_RETURN(metaNetClient_.Get() != nullptr, MMC_NEW_OBJECT_FAILED);
     if (!metaNetClient_->Status()) {
-        MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->Start(),
+        MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->Start(config.rankId),
                                         "Failed to start net server of local service " << name_);
         MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->Connect(config.discoveryURL),
                                         "Failed to connect net server of local service " << name_);
@@ -67,11 +67,9 @@ Result MmcLocalServiceDefault::InitBm(const mmc_local_service_config_t &config)
     req.capacity_ = createConfig.localDRAMSize + createConfig.localHBMSize;
 
     Response resp;
-    int16_t respRet;
 
-    MMC_LOG_ERROR_AND_RETURN_NOT_OK(SyncCallMeta(req, resp, respRet, 30), "bm init register failed!");
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(SyncCallMeta(req, resp, 30), "bm init register failed!");
     MMC_LOG_ERROR_AND_RETURN_NOT_OK(resp.ret_, "bm init register failed!");
-    MMC_LOG_ERROR_AND_RETURN_NOT_OK(respRet, "bm init register failed!");
     bmProxyPtr_ = bmProxy;
     return ret;
 }

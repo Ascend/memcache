@@ -46,6 +46,8 @@ Result ock::mmc::MetaNetServer::Start()
                                       std::bind(&MetaNetServer::HandleGet, this, std::placeholders::_1));
     server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_REMOVE_REQ,
                                       std::bind(&MetaNetServer::HandleRemove, this, std::placeholders::_1));
+    server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::LM_PING_REQ, nullptr);
+    server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::LM_META_REPLICATE_REQ, nullptr);
     server->RegNewLinkHandler(std::bind(&MetaNetServer::HandleNewLink, this, std::placeholders::_1));
 
     /* start engine */
@@ -67,7 +69,7 @@ Result MetaNetServer::HandleBmRegister(const NetContextPtr &context)
     MMC_LOG_INFO("HandleBmRegister  " << req.rank_);
     Response resp;
     resp.ret_ = result;
-    return context->Reply(0, resp);
+    return context->Reply(req.msgId, resp);
 }
 
 Result MetaNetServer::HandlePing(const NetContextPtr &context)
@@ -83,12 +85,12 @@ Result MetaNetServer::HandlePing(const NetContextPtr &context)
     recv.Serialize(packer);
     std::string serializedData = packer.String();
     uint32_t retSize = serializedData.length();
-    return context->Reply(0, const_cast<char *>(serializedData.c_str()), retSize);
+    return context->Reply(req.msgId, const_cast<char *>(serializedData.c_str()), retSize);
 }
 
 Result MetaNetServer::HandleNewLink(const NetLinkPtr &link)
 {
-    MMC_LOG_INFO("new link " << name_);
+    MMC_LOG_INFO("new link " << name_ << " addr " << link.Get() );
     return MMC_OK;
 }
 
@@ -103,7 +105,7 @@ Result MetaNetServer::HandleAlloc(const NetContextPtr &context)
     metaMgrProxy->Alloc(req, resp);
     MMC_LOG_INFO("HandleAlloc key " << req.key_);
 
-    return context->Reply(0, resp);
+    return context->Reply(req.msgId, resp);
 }
 
 Result MetaNetServer::HandleUpdate(const NetContextPtr &context)
@@ -117,7 +119,7 @@ Result MetaNetServer::HandleUpdate(const NetContextPtr &context)
     metaMgrProxy->UpdateState(req, resp);
     MMC_LOG_INFO("HandleUpdate key " << req.key_);
 
-    return context->Reply(0, resp);
+    return context->Reply(req.msgId, resp);
 }
 
 Result MetaNetServer::HandleGet(const NetContextPtr &context)
@@ -131,7 +133,7 @@ Result MetaNetServer::HandleGet(const NetContextPtr &context)
     metaMgrProxy->Get(req, resp);
     MMC_LOG_INFO("HandleGet key " << req.key_);
 
-    return context->Reply(0, resp);
+    return context->Reply(req.msgId, resp);
 }
 
 Result MetaNetServer::HandleRemove(const NetContextPtr &context)
@@ -145,7 +147,7 @@ Result MetaNetServer::HandleRemove(const NetContextPtr &context)
     metaMgrProxy->Remove(req, resp);
     MMC_LOG_INFO("HandleRemove key " << req.key_);
 
-    return context->Reply(0, resp);
+    return context->Reply(req.msgId, resp);
 }
 
 void MetaNetServer::Stop()

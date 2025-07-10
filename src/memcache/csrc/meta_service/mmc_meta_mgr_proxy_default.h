@@ -7,6 +7,7 @@
 #include "mmc_meta_manager.h"
 #include "mmc_meta_service.h"
 #include "mmc_msg_client_meta.h"
+#include "mmc_meta_net_server.h"
 #include <glob.h>
 
 namespace ock {
@@ -14,7 +15,8 @@ namespace mmc {
 
 class MmcMetaMgrProxyDefault : public MmcMetaMgrProxy {
 public:
-    MmcMetaMgrProxyDefault(uint64_t defaultTtl)
+    MmcMetaMgrProxyDefault(uint64_t defaultTtl, MetaNetServerPtr &netServerPtr)
+                           : netServerPtr_(netServerPtr)
     {
         metaMangerPtr_ = MmcMakeRef<MmcMetaManager>(defaultTtl);
     }
@@ -25,74 +27,13 @@ public:
      * @param metaInfo     [out] the meta object created
      */
 
-    Result Alloc(const AllocRequest &req, AllocResponse &resp)
-    {
-        MmcMemObjMetaPtr objMeta;
-        Result ret = metaMangerPtr_->Alloc(req.key_, req.options_, objMeta);
-        if (ret != MMC_OK) {
-            MMC_LOG_ERROR("Meta Alloc Fail!");
-            return MMC_ERROR;
-        }
-        resp.numBlobs_ = objMeta->NumBlobs();
-        resp.prot_ = objMeta->Prot();
-        resp.priority_ = objMeta->Priority();
-        resp.lease_ = objMeta->Lease();
+    Result Alloc(const AllocRequest &req, AllocResponse &resp);
 
-        std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs();
-        for (size_t i = 0; i < blobs.size(); i++) {
-            resp.blobs_.push_back(blobs[i]->GetDesc());
-        }
+    Result UpdateState(const UpdateRequest &req, Response &resp);
 
-        // TODO: send a copy of the meta data to local service
+    Result Get(const GetRequest &req, AllocResponse &resp);
 
-        return MMC_OK;
-    }
-
-    Result UpdateState(const UpdateRequest &req, Response &resp)
-    {
-
-        // const std::string &key, const MmcLocation &loc, const BlobActionResult &actRet
-        MmcLocation loc{req.rank_, req.mediaType_};
-        Result ret = metaMangerPtr_->UpdateState(req.key_, loc, req.actionResult_);
-        resp.ret_ = ret;
-        if (ret != MMC_OK) {
-            MMC_LOG_ERROR("Meta Update State Fail!");
-            return MMC_ERROR;
-        } else {
-            return MMC_OK;
-        }
-    }
-
-    Result Get(const GetRequest &req, AllocResponse &resp)
-    {
-
-        MmcMemObjMetaPtr objMeta;
-        metaMangerPtr_->Get(req.key_, objMeta);
-        resp.numBlobs_ = objMeta->NumBlobs();
-        resp.prot_ = objMeta->Prot();
-        resp.priority_ = objMeta->Priority();
-        resp.lease_ = objMeta->Lease();
-
-        std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs();
-        for (size_t i = 0; i < blobs.size(); i++) {
-            resp.blobs_.push_back(blobs[i]->GetDesc());
-        }
-        return MMC_OK;
-    }
-
-    Result Remove(const RemoveRequest &req, Response &resp)
-    {
-
-        MmcMemObjMetaPtr objMeta;
-        Result ret = metaMangerPtr_->Remove(req.key_);
-        resp.ret_ = ret;
-        if (ret != MMC_OK) {
-            MMC_LOG_ERROR("Remove failed for key: " << req.key_ << " error: " << ret);
-            return MMC_ERROR;
-        } else {
-            return MMC_OK;
-        }
-    }
+    Result Remove(const RemoveRequest &req, Response &resp);
 
     Result Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo &localMemInitInfo)
     {
@@ -106,6 +47,8 @@ public:
 
 private:
     MmcMetaManagerPtr metaMangerPtr_;
+    MetaNetServerPtr netServerPtr_;
+    const int32_t timeOut_ = 60;
 };
 using MmcMetaMgrProxyDefaultPtr = MmcRef<MmcMetaMgrProxyDefault>;
 

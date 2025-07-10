@@ -29,6 +29,7 @@ struct MmcMemBlobDesc {
     BlobState state_{BlobState::NONE}; /* state of the blob */
     uint16_t prot_{0};                 /* prot, i.e. access */
 
+    MmcMemBlobDesc(){}
     MmcMemBlobDesc(const uint32_t &rank, const uint64_t &gva, const uint32_t &size, const uint16_t &mediaType,
                    const BlobState &state, const uint16_t &prot)
         : rank_(rank), gva_(gva), size_(size), mediaType_(mediaType), state_(state), prot_(prot) {};

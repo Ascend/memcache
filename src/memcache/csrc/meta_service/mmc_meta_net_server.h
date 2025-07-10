@@ -20,6 +20,11 @@ public:
 
     void Stop();
 
+    template <typename REQ, typename RESP>
+    Result SyncCall(uint16_t randId, const REQ &req, RESP &resp, int32_t timeoutInSecond)
+    {
+        return engine_->Call(randId, req.msgId, req, resp, timeoutInSecond);
+    }
 private:
     Result HandleNewLink(const NetLinkPtr &link);
     /* message handle function */

@@ -19,10 +19,6 @@ struct MsgBase {
     virtual Result Deserialize(NetMsgUnpacker &packer) = 0;
 };
 
-enum MsgId : int16_t {
-    PING_MSG = 0,
-};
-
 enum LOCAL_META_OPCODE_REQ : int16_t {
     ML_PING_REQ = 0,
     ML_ALLOC_REQ = 1,
@@ -30,7 +26,11 @@ enum LOCAL_META_OPCODE_REQ : int16_t {
     ML_GET_REQ = 3,
     ML_REMOVE_REQ = 4,
     ML_BM_REGISTER_REQ = 5,
+    LM_PING_REQ = 6,
+    LM_META_REPLICATE_REQ = 7,
 };
+
+
 
 enum LOCAL_META_OPCODE_RESP : int16_t {
     ML_PING_RESP = 0,

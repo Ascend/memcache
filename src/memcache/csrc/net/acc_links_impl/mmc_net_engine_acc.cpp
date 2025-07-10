@@ -121,7 +121,7 @@ Result NetEngineAcc::StopInner()
 }
 
 Result NetEngineAcc::Call(uint32_t targetId, int16_t opCode, const char *reqData, uint32_t reqDataLen, char **respData,
-                          uint32_t &respDataLen, int16_t &userResult, int32_t timeoutInSecond)
+                          uint32_t &respDataLen, int32_t timeoutInSecond)
 {
     MMC_ASSERT_RETURN(started_, MMC_NOT_STARTED);
     MMC_ASSERT_RETURN(reqData != nullptr, MMC_INVALID_PARAM);
@@ -129,7 +129,6 @@ Result NetEngineAcc::Call(uint32_t targetId, int16_t opCode, const char *reqData
     MMC_ASSERT_RETURN(respData != nullptr, MMC_INVALID_PARAM);
 
     // TODO
-    MMC_LOG_INFO("Send op " << opCode);
     MMC_ASSERT_RETURN(opCode != -1, MMC_INVALID_PARAM);
 
     /* step1: do serialization */
@@ -142,7 +141,6 @@ Result NetEngineAcc::Call(uint32_t targetId, int16_t opCode, const char *reqData
     if (!result) {
         return MMC_LINK_NOT_FOUND; /* need to connect */
     }
-
     /* step3: copy data */
     auto dataBuf = MmcMakeRef<ock::acc::AccDataBuffer>(reqDataLen);
     MMC_ASSERT_RETURN(dataBuf.Get() != nullptr, MMC_NEW_OBJECT_FAILED);
@@ -184,7 +182,7 @@ Result NetEngineAcc::Call(uint32_t targetId, int16_t opCode, const char *reqData
     auto& data = waiter->Data();
     MMC_ASSERT_RETURN(data.Get() != nullptr, MMC_ERROR);
     /* set response code */
-    userResult = waiter->GetResult();
+    // userResult = waiter->GetResult();
     /* deserialize */
 //    result = response->Deserialize(data->DataIntPtr(), data->DataLen());
 //    if (result != K_OK) {
@@ -294,10 +292,12 @@ Result NetEngineAcc::HandleNewLink(const TcpConnReq &req, const TcpLinkPtr &link
 
     auto newLinkAcc = MmcMakeRef<NetLinkAcc>(peerId, link);
     MMC_ASSERT_RETURN(newLinkAcc != nullptr, MMC_NEW_OBJECT_FAILED);
+    MMC_LOG_INFO("NEW Link " << newLinkAcc.Get());
 
     /* add into peer link map */
     peerLinkMap_->Add(peerId, newLinkAcc);
     MMC_LOG_DEBUG("HandleNewLink with peer id: " << req.rankId);
+    MMC_LOG_INFO("HandleNewLink with peer id: " << req.rankId);
     Result ret = MMC_OK;
     if (newLinkHandler_ != nullptr) {
         ret = newLinkHandler_(Convert<NetLinkAcc, NetLink>(newLinkAcc));
