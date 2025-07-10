@@ -61,7 +61,7 @@ inline const char *MmcLastError::GetAndClear(bool clear)
 
     return emptyString.c_str();
 }
-}  // namespace smem
+}  // namespace mmc
 }  // namespace ock
 
 #endif  //MEMFABRIC_HYBRID_MMC_LAST_ERROR_H

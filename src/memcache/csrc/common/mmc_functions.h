@@ -76,6 +76,6 @@ inline Result Func::LibraryRealPath(const std::string &libDirPath, const std::st
     realPath = tmpFullPath;
     return MMC_OK;
 }
-}  // namespace smem
+}  // namespace mmc
 }  // namespace ock
 #endif  // MEM_FABRIC_HYBRID_SMEM_COMMON_FUNC_H

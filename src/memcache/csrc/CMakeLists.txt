@@ -1,6 +1,7 @@
 include_directories(
         ${PROJECT_MMC_SRC_BASE}/include/
         ${PROJECT_MMC_SRC_BASE}/csrc/common
+        ${PROJECT_MMC_SRC_BASE}/csrc/config
         ${PROJECT_MMC_SRC_BASE}/csrc/client
         ${PROJECT_MMC_SRC_BASE}/csrc/local_service
         ${PROJECT_MMC_SRC_BASE}/csrc/entities
@@ -26,6 +27,7 @@ set(MMC_SRC_UNDER_API_MF_SMEM "")
 
 ## add files into src variables
 aux_source_directory(common MMC_SRC_COMMON)
+aux_source_directory(config MMC_SRC_CONFIG)
 aux_source_directory(client MMC_SRC_CLIENT)
 aux_source_directory(local_service MMC_SRC_LOCAL_SERVICE)
 aux_source_directory(entities MMC_SRC_ENTITIES)
@@ -37,6 +39,7 @@ aux_source_directory(under_api/mf_smem MMC_SRC_UNDER_API_MF_SMEM)
 
 # set whole source for platform
 set(PLATFORM_SRC ${MMC_SRC_COMMON}
+        ${MMC_SRC_CONFIG}
         ${MMC_SRC_CLIENT}
         ${MMC_SRC_LOCAL_SERVICE}
         ${MMC_SRC_ENTITIES}
@@ -68,6 +71,7 @@ target_link_libraries(mmc_shared PUBLIC pthread libacc_tcp_net.a)
 if(BUILD_PYTHON STREQUAL "ON")
     add_subdirectory(python_wrapper)
 endif()
+add_subdirectory(daemon)
 
 #install
 file(GLOB HEADER_FILES ../include/*.h)

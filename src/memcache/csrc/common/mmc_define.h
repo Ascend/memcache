@@ -4,6 +4,10 @@
 #ifndef MEM_FABRIC_HYBRID_MMC_DEFINE_H
 #define MEM_FABRIC_HYBRID_MMC_DEFINE_H
 
+using HRESULT = uint32_t;
+#define OK (HRESULT(0x00000000L))
+#define FAIL (HRESULT(0x00000001L))
+
 namespace ock {
 namespace mmc {
 // macro for gcc optimization for prediction of if/else
@@ -50,7 +54,17 @@ namespace mmc {
 
 #define MMC_API __attribute__((visibility("default")))
 
-}  // namespace smem
+inline bool RESULT_OK(const HRESULT hr) { return ((hr) | OK) == OK; }
+
+inline bool RESULT_FAIL(const HRESULT hr) { return (static_cast<HRESULT>(hr) & FAIL) == FAIL; }
+
+#define SAFE_DELETE(p) \
+    do {               \
+        delete (p);    \
+        p = nullptr;   \
+    } while (0)
+
+}  // namespace mmc
 }  // namespace ock
 
 #endif  //MEM_FABRIC_HYBRID_MMC_DEFINE_H

@@ -5,9 +5,6 @@
 #define MEMFABRIC_HYBRID_MMC_REF_H
 
 #include <cstdint>
-#include <utility>
-#include <new>
-#include <string.h>
 #include <new>
 
 namespace ock {
