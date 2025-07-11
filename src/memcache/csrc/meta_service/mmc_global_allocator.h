@@ -20,29 +20,21 @@ public:
     Result Alloc(const AllocOptions &allocReq, std::vector<MmcMemBlobPtr> &blobs)
     {
         globalAllocLock_.LockRead();
-        std::vector<MmcLocation> locations;
-        Result ret = MmcLocalityStrategy::ArrangeLocality(allocators_, allocReq, locations);
-        if (ret != MMC_OK) {
-            return MMC_ERROR;
-        }
-        for (auto loc : locations) {
-            MmcMemBlobPtr blob = allocators_[loc]->Alloc(allocReq.blobSize_);
-            if (blob != nullptr) {
-                blobs.push_back(blob);
-            } else {
-                return MMC_ERROR;
-            }
-        }
+        Result ret = MmcLocalityStrategy::ArrangeLocality(allocators_, allocReq, blobs);
         globalAllocLock_.UnlockRead();
-        return MMC_OK;
+        return ret;
     };
 
     Result Free(MmcMemBlobPtr blob)
     {
         globalAllocLock_.LockRead();
         MmcLocation location{blob->Rank(), blob->MediaType()};
+        if (allocators_.find(location) == allocators_.end()) {
+            globalAllocLock_.UnlockRead();
+            return MMC_ERROR;
+        }
         auto allocator = allocators_[location];
-        Result ret = allocator->Free(blob);
+        Result ret = allocator->Release(blob);
         globalAllocLock_.UnlockRead();
         return ret;
     };
@@ -53,11 +45,11 @@ public:
         auto iter = allocators_.find(loc);
         if (iter != allocators_.end()) {
             MMC_LOG_WARN("Cannot mount at the existing position!");
+            globalAllocLock_.UnlockWrite();
             return MMC_INVALID_PARAM;
         }
         allocators_[loc] =
             MmcMakeRef<MmcBlobAllocator>(loc.rank_, loc.mediaType_, localMemInitInfo.bm_, localMemInitInfo.capacity_);
-        allocators_[loc]->Initialize();
         globalAllocLock_.UnlockWrite();
         return MMC_OK;
     }
@@ -66,8 +58,9 @@ public:
     {
         globalAllocLock_.LockWrite();
         auto iter = allocators_.find(loc);
-        if (iter != allocators_.end()) {
+        if (iter == allocators_.end()) {
             MMC_LOG_WARN("Cannot find the given location in the mem pool!");
+            globalAllocLock_.UnlockWrite();
             return MMC_INVALID_PARAM;
         }
         allocators_.erase(iter);

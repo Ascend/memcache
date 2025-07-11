@@ -46,7 +46,7 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
         return ret;
     }
 
-    smem_bm_data_op_type opType;
+    smem_bm_data_op_type opType = SMEMB_DATA_OP_SDMA;
     if (createConfig.dataOpType == "sdma") {
         opType = SMEMB_DATA_OP_SDMA;
     } else if (createConfig.dataOpType == "roce") {
@@ -96,9 +96,17 @@ Result MmcBmProxy::Put(mmc_buffer *buf, uint64_t bmAddr, uint64_t size)
         return MMC_ERROR;
     }
     if (buf->type == 0) {
+        if (buf->dram.len > size) {
+            MMC_LOG_ERROR("Failed to put data to smem bm, buf size is larger than bm block size");
+            return MMC_ERROR;
+        }
         return smem_bm_copy(handle_, (void *)(buf->addr + buf->dram.offset), (void *)bmAddr, buf->dram.len,
             SMEMB_COPY_H2G, 0);
     } else if (buf->type == 1) {
+        if (buf->hbm.width * buf->hbm.layerNum > size) {
+            MMC_LOG_ERROR("Failed to put data to smem bm, buf size is larger than bm block size");
+            return MMC_ERROR;
+        }
         if (buf->hbm.dpitch == buf->hbm.width) {
             return smem_bm_copy(handle_, (void *)(buf->addr + buf->hbm.dpitch * buf->hbm.layerOffset), (void *)bmAddr,
                 buf->hbm.width * buf->hbm.layerNum, SMEMB_COPY_L2G, 0);

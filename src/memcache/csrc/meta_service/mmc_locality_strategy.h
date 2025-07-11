@@ -37,40 +37,35 @@ using MmcAllocators = std::map<MmcLocation, MmcBlobAllocatorPtr>;
 class MmcLocalityStrategy : public MmcReferable {
 public:
     static Result ArrangeLocality(const MmcAllocators &allocators, const AllocOptions &allocReq,
-                                  std::vector<MmcLocation> &locations)
+                                  std::vector<MmcMemBlobPtr> &blobs)
     {
-        // todo 改为迭代器遍历
         MmcLocation location;
         location.mediaType_ = allocReq.mediaType_;
         location.rank_ = allocReq.preferredRank_;
-        bool isEnd = false;
+        auto itPrefer = allocators.find(location);
+        if (itPrefer == allocators.end()) {
+            itPrefer = allocators.begin();
+        }
+        auto it = itPrefer;
         for (uint32_t i = 0; i < allocReq.numBlobs_; i++) {
             while (true) {
-                auto it = allocators.find(location);
-                if (it != allocators.end()) {
+                if (it->first.mediaType_ == allocReq.mediaType_) {
                     auto allocator = it->second;
-                    auto result = allocator->PreAlloc(allocReq.blobSize_);
-                    if (result == MMC_OK) {
-                        locations.push_back(location);
+                    MmcMemBlobPtr blob = allocator->Alloc(allocReq.blobSize_);
+                    if (blob != nullptr) {
+                        blobs.push_back(blob);
                         break;
-                    } else if (result == MMC_NOT_ENOUGH_MEMORY) {
-                        location.rank_++;
-                    } else {
-                        return MMC_ERROR;
-                    }
-                } else {
-                    if (isEnd == false) {
-                        isEnd = true;
-                        location.rank_ = 0;
-                    } else {
-                        return MMC_ERROR;
                     }
                 }
-                if (location.rank_ == allocReq.preferredRank_) {
+                ++it;
+                if (it == allocators.end()) {
+                    it = allocators.begin();
+                }
+                if (it == itPrefer) {
+                    MMC_LOG_ERROR("Cannot allocate blob");
                     return MMC_ERROR;
                 }
             }
-
         }
         return MMC_OK;
     };

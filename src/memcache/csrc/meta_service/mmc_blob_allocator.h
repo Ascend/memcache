@@ -12,25 +12,38 @@ namespace mmc {
 
 #define SIZE_32K (uint64_t)(32 * 1024)
 
-typedef struct MmcBlock {
-    uint32_t blockPos;
-    struct MmcBlock *next;
-} mmcBlock_t;
+struct SpaceRange {
+    const uint64_t offset_;
+    const uint64_t size_;
+
+    SpaceRange(uint64_t offset, uint64_t size) : offset_(offset), size_(size) {}
+};
+
+struct RangeSizeFirst {
+    bool operator()(const SpaceRange &sr1, const SpaceRange &sr2) const
+    {
+        if (sr1.size_ != sr2.size_) {
+            return sr1.size_ < sr2.size_;
+        }
+        return sr1.offset_ < sr2.offset_;
+    }
+};
 
 class MmcBlobAllocator : public MmcReferable {
 public:
     MmcBlobAllocator(uint32_t rank, uint16_t mediaType, uint64_t bm, uint64_t capacity)
-        : rank_(rank), mediaType_(mediaType), bm_(bm), capacity_(capacity) {};
-    ~MmcBlobAllocator()
+        : rank_(rank), mediaType_(mediaType), bm_(bm), capacity_(capacity)
     {
-        if (blocks_ != nullptr) {
-            delete[] blocks_;
-        }
+        addressTree_[0] = capacity;
+        sizeTree_.insert({0,capacity});
     }
-    Result Initialize();
-    Result PreAlloc(uint64_t blobSize);
+    ~MmcBlobAllocator() {}
+    bool CanAlloc(uint64_t blobSize);
     MmcMemBlobPtr Alloc(uint64_t blobSize);
-    Result Free(MmcMemBlobPtr blob);
+    Result Release(MmcMemBlobPtr blob);
+
+private:
+    static uint64_t AllocSizeAlignUp(uint64_t size);
 
 private:
     const uint32_t rank_;      /* rank id of the space */
@@ -38,13 +51,8 @@ private:
     const uint64_t bm_;        /* bm address */
     const uint64_t capacity_;  /* capacity of the space */
 
-    uint64_t totalSize_ = 0;
-    uint64_t usedSize_ = 0;
-    uint32_t totalBlocks_ = 0;
-
-    mmcBlock_t *blocks_ = nullptr;
-    mmcBlock_t *head_ = nullptr;
-    mmcBlock_t *tail_ = nullptr;
+    std::map<uint64_t, uint64_t> addressTree_;
+    std::set<SpaceRange, RangeSizeFirst> sizeTree_;
 
     Spinlock spinlock_;
 };

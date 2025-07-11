@@ -6,83 +6,97 @@
 
 namespace ock {
 namespace mmc {
-
-Result MmcBlobAllocator::Initialize()
+bool MmcBlobAllocator::CanAlloc(uint64_t blobSize)
 {
-    totalSize_ = (capacity_ / SIZE_32K) * SIZE_32K;
-    totalBlocks_ = totalSize_ / SIZE_32K;
-    blocks_ = new mmcBlock_t[totalBlocks_];
-    if (blocks_ == nullptr) {
-        return MMC_MALLOC_FAILED;
-    }
-    for (uint32_t i = 0; i < totalBlocks_; i++) {
-        blocks_[i].blockPos = i;
-        if (i == totalBlocks_ - 1) {
-            blocks_[i].next = nullptr;
-        } else {
-            blocks_[i].next = &blocks_[i + 1];
-        }
-    }
-    head_ = &blocks_[0];
-    tail_ = &blocks_[totalBlocks_ - 1];
+    SpaceRange anchor{0, AllocSizeAlignUp(blobSize)};
 
-    return MMC_OK;
-}
+    spinlock_.lock();
+    bool exists = (sizeTree_.lower_bound(anchor) != sizeTree_.end());
+    spinlock_.unlock();
 
-Result MmcBlobAllocator::PreAlloc(uint64_t blobSize)
-{
-    std::lock_guard<Spinlock> guard(spinlock_);
-    if (blobSize > SIZE_32K) {
-        return MMC_ERROR;
-    }
-    if (totalSize_ == usedSize_) {
-        return MMC_NOT_ENOUGH_MEMORY;
-    }
-    usedSize_ += SIZE_32K;
-    return MMC_OK;
+    return exists;
 }
 
 MmcMemBlobPtr MmcBlobAllocator::Alloc(uint64_t blobSize)
 {
-    std::lock_guard<Spinlock> guard(spinlock_);
-    if (blobSize > SIZE_32K) {
+    auto alignedSize = AllocSizeAlignUp(blobSize);
+    SpaceRange anchor{0, alignedSize};
+
+    spinlock_.lock();
+    auto sizePos = sizeTree_.lower_bound(anchor);
+    if (sizePos == sizeTree_.end()) {
+        spinlock_.unlock();
         return nullptr;
     }
-    mmcBlock_t *cur = head_;
-    if (head_ == tail_) {
-        head_ = nullptr;
-        tail_ = nullptr;
-    } else {
-        head_ = head_->next;
+
+    auto targetOffset = sizePos->offset_;
+    auto targetSize = sizePos->size_;
+    auto addrPos = addressTree_.find(targetOffset);
+    if (addrPos == addressTree_.end()) {
+        spinlock_.unlock();
+        return nullptr;
     }
-    cur->next = nullptr;
-    // 空间清零要在这做吗
-    return MmcMakeRef<MmcMemBlob>(rank_, bm_ + cur->blockPos * SIZE_32K, SIZE_32K, mediaType_, ALLOCATED);
+
+    sizeTree_.erase(sizePos);
+    addressTree_.erase(addrPos);
+    if (targetSize > alignedSize) {
+        SpaceRange left{targetOffset + alignedSize, targetSize - alignedSize};
+        addressTree_.emplace(left.offset_, left.size_);
+        sizeTree_.emplace(left);
+    }
+    spinlock_.unlock();
+
+    return MmcMakeRef<MmcMemBlob>(rank_, bm_ + targetOffset, blobSize, mediaType_, ALLOCATED);
 }
 
-Result MmcBlobAllocator::Free(MmcMemBlobPtr blob)
+Result MmcBlobAllocator::Release(MmcMemBlobPtr blob)
 {
-    std::lock_guard<Spinlock> guard(spinlock_);
     if (blob == nullptr) {
+        MMC_LOG_ERROR("blob is null");
         return MMC_ERROR;
     }
-    if (blob->Size() > SIZE_32K) {
-        return MMC_ERROR;
-    }
-    if (bm_ > blob->Gva() || bm_ + totalSize_ < blob->Gva() + blob->Size()) {
+    auto alignedSize = AllocSizeAlignUp(blob->Size());
+    auto blobAddr = blob->Gva();
+    if (blobAddr < bm_ || blobAddr + alignedSize > bm_ + capacity_) {
+        MMC_LOG_ERROR("blob address not in allocator");
         return MMC_ERROR;
     }
 
-    if (tail_ == nullptr) {
-        head_ = &blocks_[(blob->Gva() - bm_) / SIZE_32K];
-        tail_ = &blocks_[(blob->Gva() - bm_) / SIZE_32K];
-    } else {
-        tail_->next = &blocks_[(blob->Gva() - bm_) / SIZE_32K];
-        tail_ = tail_->next;
+    auto offset = blobAddr - bm_;
+    uint64_t finalOffset = offset;
+    uint64_t finalSize = alignedSize;
+
+    spinlock_.lock();
+    auto prevAddrPos = addressTree_.lower_bound(offset);
+    if (prevAddrPos != addressTree_.begin()) {
+        --prevAddrPos;
+        if (prevAddrPos != addressTree_.end() && prevAddrPos->first + prevAddrPos->second == offset) { // 合并前一个range
+            finalOffset = prevAddrPos->first;
+            finalSize += prevAddrPos->second;
+            sizeTree_.erase(SpaceRange{prevAddrPos->first, prevAddrPos->second});
+            addressTree_.erase(prevAddrPos);
+        }
     }
-    tail_->next = nullptr;
-    usedSize_ -= SIZE_32K;
+
+    auto nextAddrPos = addressTree_.find(offset + alignedSize);
+    if (nextAddrPos != addressTree_.end()) {
+        finalSize += nextAddrPos->second;
+        sizeTree_.erase(SpaceRange{nextAddrPos->first, nextAddrPos->second});
+        addressTree_.erase(nextAddrPos);
+    }
+
+    addressTree_.emplace(finalOffset, finalSize);
+    sizeTree_.emplace(SpaceRange{finalOffset, finalSize});
+
+    spinlock_.unlock();
     return MMC_OK;
+}
+
+uint64_t MmcBlobAllocator::AllocSizeAlignUp(uint64_t size)
+{
+    constexpr uint64_t alignSize = 4096UL;
+    constexpr uint64_t alignSizeMask = ~(alignSize - 1UL);
+    return (size + alignSize - 1UL) & alignSizeMask;
 }
 }
 }
