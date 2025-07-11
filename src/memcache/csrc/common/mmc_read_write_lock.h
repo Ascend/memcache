@@ -55,6 +55,44 @@ private:
     bool isWriting_{false};   // whether currently have write threads
 };
 
+class ReadLock {
+public:
+    explicit ReadLock(ReadWriteLock &rwLock) : rwLock_(rwLock)
+    {
+        rwLock_.LockRead();
+    }
+    ~ReadLock()
+    {
+        rwLock_.UnlockRead();
+    }
+
+    // forbid copy like the standard library
+    ReadLock(const ReadLock &) = delete;
+    ReadLock &operator=(const ReadLock &) = delete;
+
+private:
+    ReadWriteLock &rwLock_;
+};
+
+class WriteLock {
+public:
+    explicit WriteLock(ReadWriteLock &rwLock) : rwLock_(rwLock)
+    {
+        rwLock_.LockWrite();
+    }
+    ~WriteLock()
+    {
+        rwLock_.UnlockWrite();
+    }
+
+    // forbid copy like the standard library
+    WriteLock(const ReadLock &) = delete;
+    WriteLock &operator=(const ReadLock &) = delete;
+
+private:
+    ReadWriteLock &rwLock_;
+};
+
 }  // namespace mmc
 }  // namespace ock
 

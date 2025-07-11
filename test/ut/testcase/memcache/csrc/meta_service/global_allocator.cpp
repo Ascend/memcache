@@ -35,7 +35,6 @@ void TestMmcGlobalAllocator::TearDown()
 TEST_F(TestMmcGlobalAllocator, AllocOne)
 {
     MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>();
-    // MmcMemPoolInitInfo mmcMemPoolInitInfo;
     uint64_t size = SIZE_32K * 10;
     for (int i = 0; i < 10; i++) {
         MmcLocation loc;
@@ -45,7 +44,6 @@ TEST_F(TestMmcGlobalAllocator, AllocOne)
         info.bm_ = size * i;
         info.capacity_ = size;
         allocator->Mount(loc, info);
-        /* mmcMemPoolInitInfo[loc] = info; */
     }
     for (int i = 0; i < 5; i++) {
         MmcLocation loc;
@@ -55,7 +53,6 @@ TEST_F(TestMmcGlobalAllocator, AllocOne)
         info.bm_ = size * i;
         info.capacity_ = size;
         allocator->Mount(loc, info);
-        // mmcMemPoolInitInfo[loc] = info;
     }
 
     AllocOptions allocReq;
@@ -77,7 +74,7 @@ TEST_F(TestMmcGlobalAllocator, AllocOne)
 
 TEST_F(TestMmcGlobalAllocator, AllocMulti)
 {
-    // MmcMemPoolInitInfo mmcMemPoolInitInfo;
+
     MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>();
     uint64_t size = SIZE_32K * 10;
     for (int i = 0; i < 10; i++) {
@@ -88,7 +85,6 @@ TEST_F(TestMmcGlobalAllocator, AllocMulti)
         info.bm_ = size * i;
         info.capacity_ = size;
         allocator->Mount(loc, info);
-        // mmcMemPoolInitInfo[loc] = info;
     }
     for (int i = 0; i < 5; i++) {
         MmcLocation loc;
@@ -98,7 +94,6 @@ TEST_F(TestMmcGlobalAllocator, AllocMulti)
         info.bm_ = size * i;
         info.capacity_ = size;
         allocator->Mount(loc, info);
-        // mmcMemPoolInitInfo[loc] = info;
     }
 
     AllocOptions allocReq;
@@ -122,7 +117,7 @@ TEST_F(TestMmcGlobalAllocator, AllocMulti)
 
 TEST_F(TestMmcGlobalAllocator, AllocCrossRank)
 {
-    // MmcMemPoolInitInfo mmcMemPoolInitInfo;
+
     MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>();
     uint64_t size = SIZE_32K * 10;
     for (int i = 0; i < 10; i++) {
@@ -133,7 +128,6 @@ TEST_F(TestMmcGlobalAllocator, AllocCrossRank)
         info.bm_ = size * i;
         info.capacity_ = size;
         allocator->Mount(loc, info);
-        // mmcMemPoolInitInfo[loc] = info;
     }
     for (int i = 0; i < 5; i++) {
         MmcLocation loc;
@@ -143,7 +137,6 @@ TEST_F(TestMmcGlobalAllocator, AllocCrossRank)
         info.bm_ = size * i;
         info.capacity_ = size;
         allocator->Mount(loc, info);
-        // mmcMemPoolInitInfo[loc] = info;
     }
 
     AllocOptions allocReq;
@@ -173,7 +166,7 @@ TEST_F(TestMmcGlobalAllocator, AllocCrossRank)
 
 TEST_F(TestMmcGlobalAllocator, FreeOne)
 {
-    // MmcMemPoolInitInfo mmcMemPoolInitInfo;
+
     MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>();
     uint64_t size = SIZE_32K * 10;
     for (int i = 0; i < 10; i++) {
@@ -184,7 +177,6 @@ TEST_F(TestMmcGlobalAllocator, FreeOne)
         info.bm_ = size * i;
         info.capacity_ = size;
         allocator->Mount(loc, info);
-        // mmcMemPoolInitInfo[loc] = info;
     }
     for (int i = 0; i < 5; i++) {
         MmcLocation loc;
@@ -194,7 +186,6 @@ TEST_F(TestMmcGlobalAllocator, FreeOne)
         info.bm_ = size * i;
         info.capacity_ = size;
         allocator->Mount(loc, info);
-        // mmcMemPoolInitInfo[loc] = info;
     }
 
     AllocOptions allocReq;
@@ -228,7 +219,7 @@ TEST_F(TestMmcGlobalAllocator, FreeOne)
 
 TEST_F(TestMmcGlobalAllocator, FreeCrossRank)
 {
-    // MmcMemPoolInitInfo mmcMemPoolInitInfo;
+
     MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>();
     uint64_t size = SIZE_32K * 10;
     for (int i = 0; i < 10; i++) {
@@ -239,7 +230,6 @@ TEST_F(TestMmcGlobalAllocator, FreeCrossRank)
         info.bm_ = size * i;
         info.capacity_ = size;
         allocator->Mount(loc, info);
-        // mmcMemPoolInitInfo[loc] = info;
     }
     for (int i = 0; i < 5; i++) {
         MmcLocation loc;
@@ -249,7 +239,6 @@ TEST_F(TestMmcGlobalAllocator, FreeCrossRank)
         info.bm_ = size * i;
         info.capacity_ = size;
         allocator->Mount(loc, info);
-        // mmcMemPoolInitInfo[loc] = info;
     }
 
     AllocOptions allocReq;

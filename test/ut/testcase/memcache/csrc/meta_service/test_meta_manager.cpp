@@ -4,8 +4,8 @@
 #include "mmc_meta_manager.h"
 #include "mmc_ref.h"
 #include "gtest/gtest.h"
-#include <iostream>
 #include <chrono>
+#include <iostream>
 #include <thread>
 
 using namespace testing;
@@ -36,10 +36,9 @@ void TestMmcMetaManager::TearDown()
 
 TEST_F(TestMmcMetaManager, Init)
 {
-    // MmcMemPoolInitInfo poolInitInfo;
+
     MmcLocation loc{0, 0};
     MmcLocalMemlInitInfo locInfo{100, 1000};
-    // poolInitInfo[loc] = locInfo;
 
     uint64_t defaultTtl = 2000;
 
@@ -50,10 +49,10 @@ TEST_F(TestMmcMetaManager, Init)
 
 TEST_F(TestMmcMetaManager, AllocAndFreeFail)
 {
-    // MmcMemPoolInitInfo poolInitInfo;
+
     MmcLocation loc{0, 0};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
-    // poolInitInfo[loc] = locInfo;
+
     uint64_t defaultTtl = 2000;
     MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
     metaMng->Mount(loc, locInfo);
@@ -71,10 +70,10 @@ TEST_F(TestMmcMetaManager, AllocAndFreeFail)
 
 TEST_F(TestMmcMetaManager, AllocAndFreeOK)
 {
-    // MmcMemPoolInitInfo poolInitInfo;
+
     MmcLocation loc{0, 0};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
-    // poolInitInfo[loc] = locInfo;
+
     uint64_t defaultTtl = 2000;
     MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
     metaMng->Mount(loc, locInfo);

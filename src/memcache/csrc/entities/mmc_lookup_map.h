@@ -39,6 +39,17 @@ public:
             return *this;
         }
 
+        bool operator==(const Iterator &other) const
+        {
+            if (curBucket_ != other.curBucket_) {
+                return false;
+            }
+            if (curBucket_ == endBucket_) {
+                return true;
+            }
+            return mapIter_ == other.mapIter_;
+        }
+
         bool operator!=(const Iterator &other) const
         {
             return curBucket_ != other.curBucket_;

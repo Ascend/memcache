@@ -20,9 +20,7 @@ public:
 
 protected:
 };
-TestMmcMetaManager1::TestMmcMetaManager1()
-{
-}
+TestMmcMetaManager1::TestMmcMetaManager1() {}
 
 void TestMmcMetaManager1::SetUp()
 {
@@ -36,10 +34,8 @@ void TestMmcMetaManager1::TearDown()
 
 TEST_F(TestMmcMetaManager1, Init)
 {
-    // MmcMemPoolInitInfo poolInitInfo;
     MmcLocation loc{0, 0};
     MmcLocalMemlInitInfo locInfo{100, 1000};
-    //poolInitInfo[loc] = locInfo;
 
     uint64_t defaultTtl = 2000;
 
@@ -50,10 +46,8 @@ TEST_F(TestMmcMetaManager1, Init)
 
 TEST_F(TestMmcMetaManager1, Alloc)
 {
-    //MmcMemPoolInitInfo poolInitInfo;
     MmcLocation loc{0, 0};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
-    //poolInitInfo[loc] = locInfo;
     uint64_t defaultTtl = 2000;
     MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
     metaMng->Mount(loc, locInfo);
