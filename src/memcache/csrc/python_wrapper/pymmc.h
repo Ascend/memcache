@@ -10,7 +10,6 @@
 #include <string>
 #include <unordered_set>
 
-#include "types.h"
 #include "mmc_def.h"
 
 
@@ -99,6 +98,8 @@ public:
     friend class SliceBuffer;  // Allow SliceBuffer to access private members
     DistributedObjectStore();
     ~DistributedObjectStore();
+
+    int init(const std::string &discoveryURL, u_int32_t rankId, u_int32_t timeOut=5);
 
     int setup(const std::string &local_hostname,
               const std::string &metadata_server,
@@ -214,10 +215,4 @@ public:
      */
     int64_t getSize(const std::string &key);
 
-//    std::shared_ptr<mooncake::Client> client_ = nullptr;
-//    std::unique_ptr<mooncake::SimpleAllocator> client_buffer_allocator_ = nullptr;
-
-    std::string protocol;
-    std::string device_name;
-    std::string local_hostname;
 };

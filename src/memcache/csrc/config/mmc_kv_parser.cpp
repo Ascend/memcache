@@ -34,13 +34,13 @@ HRESULT KVParser::FromFile(const std::string &filePath)
 {
     char path[PATH_MAX + 1] = {0};
     if (filePath.size() > PATH_MAX || realpath(filePath.c_str(), path) == nullptr) {
-        return FAIL;
+        return MMC_FAIL;
     }
     /* open file to read */
     std::ifstream inConfFile(path);
     if (!mf::FileUtil::CheckFileSize(inConfFile, MAX_CONF_FILE_SIZE)) {
         inConfFile.close();
-        return FAIL;
+        return MMC_FAIL;
     }
     std::string strLine;
     HRESULT hr = OK;
@@ -52,7 +52,7 @@ HRESULT KVParser::FromFile(const std::string &filePath)
         }
         if (strLine.size() > MAX_LINE_LENGTH) {
             std::cerr << "Configuration file <" << path << "> strLine is too long." << std::endl;
-            hr = FAIL;
+            hr = MMC_FAIL;
             break;
         }
 
@@ -67,12 +67,12 @@ HRESULT KVParser::FromFile(const std::string &filePath)
         OckTrimString(strValue);
 
         if (strKey.empty() || strValue.empty()) {
-            hr = FAIL;
+            hr = MMC_FAIL;
             std::cerr << "Configuration item has empty key or value." << std::endl;
             break;
         }
         if (RESULT_FAIL(SetItem(strKey, strValue))) {
-            hr = FAIL;
+            hr = MMC_FAIL;
             break;
         }
     }
@@ -90,12 +90,12 @@ HRESULT KVParser::GetItem(const std::string &key, std::string &outValue)
     if (iter != mItemsIndex.end()) {
         const auto itemPtr = mItems.at(iter->second);
         if (itemPtr == nullptr) {
-            return FAIL;
+            return MMC_FAIL;
         }
         outValue = itemPtr->value;
         return OK;
     }
-    return FAIL;
+    return MMC_FAIL;
 }
 
 HRESULT KVParser::SetItem(const std::string &key, const std::string &value)
@@ -104,12 +104,12 @@ HRESULT KVParser::SetItem(const std::string &key, const std::string &value)
     const auto iter = mItemsIndex.find(key);
     if (iter != mItemsIndex.end()) {
         std::cerr << "Key <" << key << "> in configuration file is repeated." << std::endl;
-        return FAIL;
+        return MMC_FAIL;
     }
     auto *kv = new (std::nothrow) KvPair();
     if (kv == nullptr) {
         std::cerr << "Parse lines in configuration file failed, maybe out of memory." << std::endl;
-        return FAIL;
+        return MMC_FAIL;
     }
     kv->name = key;
     kv->value = value;

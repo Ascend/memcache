@@ -66,7 +66,7 @@ target_link_libraries(mmc_static PUBLIC pthread libacc_tcp_net.a)
 add_library(mmc_shared SHARED $<TARGET_OBJECTS:mmc_objects>)
 set_target_properties(mmc_shared PROPERTIES OUTPUT_NAME "mf_memcache")
 target_link_directories(mmc_shared PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/lib)
-target_link_libraries(mmc_shared PUBLIC pthread libacc_tcp_net.a)
+target_link_libraries(mmc_shared PUBLIC smem_shared pthread libacc_tcp_net.a)
 
 if(BUILD_PYTHON STREQUAL "ON")
     add_subdirectory(python_wrapper)
@@ -82,5 +82,5 @@ install(FILES ${HEADER_FILES} DESTINATION ${TARGET_INSTALL_DIR}/memcache/include
 # install library
 install(TARGETS mmc_shared
         LIBRARY DESTINATION ${TARGET_INSTALL_DIR}/memcache/lib64
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        PERMISSIONS OWNER_READ OWNER_EXECUTE
 )

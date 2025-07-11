@@ -38,6 +38,8 @@ make install -j5 -C build/
 mkdir -p "${PROJ_DIR}/src/smem/python/mf_smem/lib"
 mkdir -p "${PROJ_DIR}/src/memcache/python/pymmc/lib"
 \cp -v "${PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${PROJ_DIR}/src/smem/python/mf_smem/lib"
+\cp -v "${PROJ_DIR}/output/hybm/lib/libmf_hybm_core.so" "${PROJ_DIR}/src/memcache/python/pymmc/lib"
+\cp -v "${PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${PROJ_DIR}/src/memcache/python/pymmc/lib"
 \cp -v "${PROJ_DIR}/output/memcache/lib64/libmf_memcache.so" "${PROJ_DIR}/src/memcache/python/pymmc/lib"
 
 if [ "${BUILD_PYTHON}" != "ON" ]; then

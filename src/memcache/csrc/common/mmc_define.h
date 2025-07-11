@@ -6,7 +6,7 @@
 
 using HRESULT = uint32_t;
 #define OK (HRESULT(0x00000000L))
-#define FAIL (HRESULT(0x00000001L))
+#define MMC_FAIL (HRESULT(0x00000001L))
 
 namespace ock {
 namespace mmc {
@@ -56,7 +56,7 @@ namespace mmc {
 
 inline bool RESULT_OK(const HRESULT hr) { return ((hr) | OK) == OK; }
 
-inline bool RESULT_FAIL(const HRESULT hr) { return (static_cast<HRESULT>(hr) & FAIL) == FAIL; }
+inline bool RESULT_FAIL(const HRESULT hr) { return (static_cast<HRESULT>(hr) & MMC_FAIL) == MMC_FAIL; }
 
 #define SAFE_DELETE(p) \
     do {               \

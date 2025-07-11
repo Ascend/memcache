@@ -6,6 +6,9 @@
 
 #include <iostream>
 
+#include "mmc_client.h"
+#include "mmc.h"
+
 namespace py = pybind11;
 
 // ResourceTracker implementation using singleton pattern
@@ -49,8 +52,7 @@ void ResourceTracker::cleanupAllResources() {
 
     // Perform cleanup outside the lock to avoid potential deadlocks
     for (void *instance : instances_) {
-        DistributedObjectStore *store =
-            static_cast<DistributedObjectStore *>(instance);
+        auto *store = static_cast<DistributedObjectStore *>(instance);
         if (store) {
             std::cout << "Cleaning up DistributedObjectStore instance" << std::endl;
             store->tearDownAll();
@@ -84,6 +86,14 @@ DistributedObjectStore::~DistributedObjectStore() {
     ResourceTracker::getInstance().unregisterInstance(this);
 }
 
+int DistributedObjectStore::init(const std::string &discoveryURL, u_int32_t rankId, u_int32_t timeOut) {
+    mmc_client_config_t config;
+    strncpy(config.discoveryURL, discoveryURL.c_str(), DISCOVERY_URL_SIZE);
+    config.rankId = rankId;
+    config.timeOut = timeOut;
+    return mmcc_init(&config);
+}
+
 int DistributedObjectStore::setup(const std::string &local_hostname,
                                   const std::string &metadata_server,
                                   size_t global_segment_size,
@@ -101,6 +111,7 @@ int DistributedObjectStore::initAll(const std::string &protocol,
 }
 
 int DistributedObjectStore::tearDownAll() {
+    mmcc_uninit();
     return 0;
 }
 
@@ -249,6 +260,7 @@ PYBIND11_MODULE(_pymmc, m) {
     // Define the DistributedObjectStore class
     py::class_<DistributedObjectStore>(m, "DistributedObjectStore")
         .def(py::init<>())
+        .def("init", &DistributedObjectStore::init)
         .def("setup", &DistributedObjectStore::setup)
         .def("init_all", &DistributedObjectStore::initAll)
         .def("get", &DistributedObjectStore::get)
@@ -342,7 +354,7 @@ PYBIND11_MODULE(_pymmc, m) {
                 py::gil_scoped_release release;
                 return self.put(key, mmc_buffer{
                     .addr=reinterpret_cast<uint64_t>(info.ptr), \
-                    .type=0, 
+                    .type=0,
                     .dram={.offset=0, .len=static_cast<uint64_t>(info.size)}});
             })
         .def("put_parts",
@@ -361,8 +373,8 @@ PYBIND11_MODULE(_pymmc, m) {
                         throw std::runtime_error("parts must be 1-D bytes-like");
 
                     buffers.emplace_back(mmc_buffer{
-                        .addr=reinterpret_cast<uint64_t>(info.ptr), 
-                        .type=0, 
+                        .addr=reinterpret_cast<uint64_t>(info.ptr),
+                        .type=0,
                         .dram={.offset=0, .len=static_cast<uint64_t>(info.size)}});
                 }
 
