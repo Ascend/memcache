@@ -8,7 +8,7 @@
 
 namespace ock {
 namespace mmc {
-Result MmcClientDefault::Start(const mmc_client_config_t& config)
+Result MmcClientDefault::Start(const mmc_client_config_t &config)
 {
     MMC_LOG_INFO("Starting client " << name_);
     std::lock_guard<std::mutex> guard(mutex_);
@@ -16,17 +16,20 @@ Result MmcClientDefault::Start(const mmc_client_config_t& config)
         MMC_LOG_INFO("MetaService " << name_ << " already started");
         return MMC_OK;
     }
-    metaNetClient_ = MetaNetClientFactory::GetInstance(config.discoveryURL, "MetaClientCommon").Get();
-    MMC_ASSERT_RETURN(metaNetClient_.Get() != nullptr, MMC_NEW_OBJECT_FAILED);
-    if (!metaNetClient_->Status()) {
-        MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->Start(config.rankId),
+
+    auto tmpNetClient  = MetaNetClientFactory::GetInstance(config.discoveryURL, "MetaClientCommon").Get();
+    MMC_ASSERT_RETURN(tmpNetClient != nullptr, MMC_NEW_OBJECT_FAILED);
+    if (!tmpNetClient->Status()) {
+        MMC_LOG_ERROR_AND_RETURN_NOT_OK(tmpNetClient->Start(config.rankId),
                                         "Failed to start net server of local service " << name_);
-        MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->Connect(config.discoveryURL),
+        MMC_LOG_ERROR_AND_RETURN_NOT_OK(tmpNetClient->Connect(config.discoveryURL),
                                         "Failed to connect net server of local service " << name_);
     }
-    MMC_ASSERT_RETURN(metaNetClient_.Get() != nullptr, MMC_NOT_CONNET_META);
+
     randId_ = config.rankId;
     bmProxy_ = MmcBmProxyFactory::GetInstance("bmProxyDefault");
+
+    metaNetClient_ = tmpNetClient;
     started_ = true;
     return MMC_OK;
 }
@@ -38,12 +41,14 @@ void MmcClientDefault::Stop()
         MMC_LOG_WARN("MmcClientDefault has not been started");
         return;
     }
-    metaNetClient_->Stop();
-    started_ = false;
 
+    if (metaNetClient_ != nullptr) {
+        metaNetClient_->Stop();
+    }
+    started_ = false;
 }
 
-const std::string& MmcClientDefault::Name() const
+const std::string &MmcClientDefault::Name() const
 {
     return name_;
 }
@@ -70,7 +75,7 @@ Result MmcClientDefault::Put(const char *key, mmc_buffer *buf, mmc_put_options &
     return MMC_OK;
 }
 
-Result MmcClientDefault::Get(const char *key, mmc_buffer *buf, uint32_t flags)
+Result MmcClientDefault::Get(const char *key, mmc_buffer *buf, uint32_t flags) const
 {
     GetRequest request{key};
     AllocResponse response;
@@ -86,15 +91,15 @@ Result MmcClientDefault::Get(const char *key, mmc_buffer *buf, uint32_t flags)
     return MMC_OK;
 }
 
-mmc_location_t MmcClientDefault::GetLocation(const char* key, uint32_t flags)
+mmc_location_t MmcClientDefault::GetLocation(const char *key, uint32_t flags) const
 {
     GetRequest request{key};
     AllocResponse response;
     MMC_ASSERT_RETURN(metaNetClient_->SyncCall(request, response, timeOut_) == MMC_OK, {-1});
-    return mmc_location_t();
+    return {};
 }
 
-Result MmcClientDefault::Remove(const char* key, uint32_t flags)
+Result MmcClientDefault::Remove(const char *key, uint32_t flags) const
 {
     RemoveRequest request{key};
     Response response;
@@ -103,7 +108,7 @@ Result MmcClientDefault::Remove(const char* key, uint32_t flags)
     return 0;
 }
 
-Result MmcClientDefault::IsExist(const std::string &key, uint32_t flags)
+Result MmcClientDefault::IsExist(const std::string &key, uint32_t flags) const
 {
     IsExistRequest request{key};
     Response response;
@@ -112,7 +117,8 @@ Result MmcClientDefault::IsExist(const std::string &key, uint32_t flags)
     return response.ret_;
 }
 
-Result MmcClientDefault::BatchIsExist(const std::vector<std::string> &keys, std::vector<Result> &exist_results, uint32_t flags)
+Result MmcClientDefault::BatchIsExist(const std::vector<std::string> &keys, std::vector<Result> &exist_results,
+                                      uint32_t flags) const
 {
     BatchIsExistRequest request{keys};
     BatchIsExistResponse response;
@@ -120,16 +126,15 @@ Result MmcClientDefault::BatchIsExist(const std::vector<std::string> &keys, std:
                                     "client " << name_ << " BatchIsExist failed");
 
     if (response.results_.size() != keys.size()) {
-        MMC_LOG_ERROR("BatchIsExist response size mismatch. Expected: "
-                       << keys.size()
-                       << ", Got: " << response.results_.size());
+        MMC_LOG_ERROR("BatchIsExist response size mismatch. Expected: " << keys.size()
+                                                                        << ", Got: " << response.results_.size());
         std::fill(exist_results.begin(), exist_results.end(), MMC_ERROR);
         return MMC_ERROR;
     }
 
     exist_results.resize(keys.size());
     exist_results = response.results_;
-    
+
     return response.ret_;
 }
 }

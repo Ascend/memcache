@@ -12,7 +12,7 @@ std::map<std::string, MmcRef<MetaNetClient>> MetaNetClientFactory::instances_;
 std::mutex MetaNetClientFactory::instanceMutex_;
 
 MetaNetClient::~MetaNetClient() {}
-MetaNetClient::MetaNetClient(const std::string &serverUrl, const std::string inputName)
+MetaNetClient::MetaNetClient(const std::string &serverUrl, const std::string& inputName)
     : serverUrl_(serverUrl), name_(inputName)
 {}
 

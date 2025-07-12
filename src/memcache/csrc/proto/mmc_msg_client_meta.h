@@ -12,8 +12,9 @@
 namespace ock {
 namespace mmc {
 struct PingMsg : public MsgBase {
-    uint64_t num;
-    PingMsg() : MsgBase{0, ML_PING_REQ, 0}{}
+    uint64_t num = UINT64_MAX;
+    PingMsg() : MsgBase{0, ML_PING_REQ, 0} {}
+
     Result Serialize(NetMsgPacker &packer) const override
     {
         packer.Serialize(msgVer);
@@ -22,6 +23,7 @@ struct PingMsg : public MsgBase {
         packer.Serialize(num);
         return MMC_OK;
     }
+
     Result Deserialize(NetMsgUnpacker &packer) override
     {
         packer.Deserialize(msgVer);
@@ -32,14 +34,15 @@ struct PingMsg : public MsgBase {
     }
 };
 
-struct AllocRequest : public MsgBase {
-
+struct AllocRequest : MsgBase {
     std::string key_;
     AllocOptions options_;
 
-    AllocRequest() : MsgBase{0, ML_ALLOC_REQ, 0}{}
+    AllocRequest() : MsgBase{0, ML_ALLOC_REQ, 0} {}
     AllocRequest(const std::string &key, const AllocOptions &prot)
-        : MsgBase{0, ML_ALLOC_REQ, 0}, key_(key), options_(prot) {};
+        : MsgBase{0, ML_ALLOC_REQ, 0},
+          key_(key),
+          options_(prot){};
 
     Result Serialize(NetMsgPacker &packer) const override
     {
@@ -62,12 +65,11 @@ struct AllocRequest : public MsgBase {
     }
 };
 
-struct GetRequest : public MsgBase {
-
+struct GetRequest : MsgBase {
     std::string key_;
 
-    GetRequest() : MsgBase{0, ML_GET_REQ, 0}{}
-    explicit GetRequest(const std::string &key) : MsgBase{0, ML_GET_REQ, 0}, key_(key) {};
+    GetRequest() : MsgBase{0, ML_GET_REQ, 0} {}
+    explicit GetRequest(const std::string &key) : MsgBase{0, ML_GET_REQ, 0}, key_(key){};
 
     Result Serialize(NetMsgPacker &packer) const override
     {
@@ -88,13 +90,11 @@ struct GetRequest : public MsgBase {
     }
 };
 
-
-struct RemoveRequest : public MsgBase {
-
+struct RemoveRequest : MsgBase {
     std::string key_;
 
-    RemoveRequest() : MsgBase{0, ML_REMOVE_REQ, 0}{}
-    explicit RemoveRequest(const std::string &key) : MsgBase{0, ML_REMOVE_REQ, 0}, key_(key) {};
+    RemoveRequest() : MsgBase{0, ML_REMOVE_REQ, 0} {}
+    explicit RemoveRequest(const std::string &key) : MsgBase{0, ML_REMOVE_REQ, 0}, key_(key){};
 
     Result Serialize(NetMsgPacker &packer) const override
     {
@@ -115,18 +115,20 @@ struct RemoveRequest : public MsgBase {
     }
 };
 
-
-struct AllocResponse : public MsgBase {
-
+struct AllocResponse : MsgBase {
     std::vector<MmcMemBlobDesc> blobs_; /* pointers of blobs */
     uint8_t numBlobs_{0};               /* number of blob that the memory object, i.e. replica count */
     uint16_t prot_{0};                  /* prot of the mem object, i.e. accessibility */
     uint8_t priority_{0};               /* priority of the memory object, used for eviction */
     uint64_t lease_{0};                 /* lease of the memory object */
 
-    AllocResponse() : MsgBase{0, ML_ALLOC_RESP, 0}{}
+    AllocResponse() : MsgBase{0, ML_ALLOC_RESP, 0} {}
     AllocResponse(const uint8_t &numBlobs, const uint16_t &prot, const uint8_t &priority, const uint64_t &lease)
-        : MsgBase{0, ML_ALLOC_RESP, 0}, numBlobs_(numBlobs), prot_(prot), priority_(priority), lease_(lease) {};
+        : MsgBase{0, ML_ALLOC_RESP, 0},
+          numBlobs_(numBlobs),
+          prot_(prot),
+          priority_(priority),
+          lease_(lease){};
 
     Result Serialize(NetMsgPacker &packer) const override
     {
@@ -155,17 +157,20 @@ struct AllocResponse : public MsgBase {
     }
 };
 
-struct UpdateRequest : public MsgBase {
-
+struct UpdateRequest : MsgBase {
     BlobActionResult actionResult_{MMC_RESULT_NONE};
-    std::string key_{""};
+    std::string key_;
     uint32_t rank_{UINT32_MAX};
     uint16_t mediaType_{UINT16_MAX};
 
-    UpdateRequest() : MsgBase{0, ML_UPDATE_REQ, 0}{}
+    UpdateRequest() : MsgBase{0, ML_UPDATE_REQ, 0} {}
     UpdateRequest(const BlobActionResult &result, const std::string &key, const uint32_t &rank,
                   const uint16_t &mediaType)
-        : MsgBase{0, ML_UPDATE_REQ, 0}, actionResult_(result), key_(key), rank_(rank), mediaType_(mediaType) {};
+        : MsgBase{0, ML_UPDATE_REQ, 0},
+          actionResult_(result),
+          key_(key),
+          rank_(rank),
+          mediaType_(mediaType){};
 
     Result Serialize(NetMsgPacker &packer) const override
     {
@@ -192,12 +197,11 @@ struct UpdateRequest : public MsgBase {
     }
 };
 
-struct Response : public MsgBase {
+struct Response : MsgBase {
+    Result ret_ = 0;
 
-    Result ret_;
-
-    Response() : MsgBase{0, ML_UPDATE_REQ, 0}{}
-    Response(const Result &ret) : MsgBase{0, ML_UPDATE_REQ, 0}, ret_(ret) {};
+    Response() : MsgBase{0, ML_UPDATE_REQ, 0} {}
+    explicit Response(const Result &ret) : MsgBase{0, ML_UPDATE_REQ, 0}, ret_(ret){};
 
     Result Serialize(NetMsgPacker &packer) const override
     {
@@ -218,13 +222,13 @@ struct Response : public MsgBase {
     }
 };
 
-struct BmRegisterRequest : public MsgBase {
+struct BmRegisterRequest : MsgBase {
     uint32_t rank_{UINT32_MAX};
     uint16_t mediaType_{UINT16_MAX};
     uint64_t addr_{UINT64_MAX};
     uint64_t capacity_{UINT64_MAX};
 
-    BmRegisterRequest() : MsgBase{0, ML_BM_REGISTER_REQ, 0}{}
+    BmRegisterRequest() : MsgBase{0, ML_BM_REGISTER_REQ, 0} {}
 
     Result Serialize(NetMsgPacker &packer) const override
     {
@@ -237,7 +241,8 @@ struct BmRegisterRequest : public MsgBase {
         packer.Serialize(capacity_);
         return MMC_OK;
     }
-    Result Deserialize(NetMsgUnpacker &packer)
+
+    Result Deserialize(NetMsgUnpacker &packer) override
     {
         packer.Deserialize(msgVer);
         packer.Deserialize(msgId);
@@ -251,17 +256,21 @@ struct BmRegisterRequest : public MsgBase {
 };
 
 struct MetaReplicateRequest : public MsgBase {
+    std::string key_;
+    MmcMemBlobDesc blob_; /* pointers of blobs */
+    uint16_t prot_{0};    /* prot of the mem object, i.e. accessibility */
+    uint8_t priority_{0}; /* priority of the memory object, used for eviction */
+    uint64_t lease_{0};   /* lease of the memory object */
 
-    std::string key_{""};
-    MmcMemBlobDesc blob_;              /* pointers of blobs */
-    uint16_t prot_{0};                  /* prot of the mem object, i.e. accessibility */
-    uint8_t priority_{0};               /* priority of the memory object, used for eviction */
-    uint64_t lease_{0};                 /* lease of the memory object */
-
-    MetaReplicateRequest() : MsgBase{0, LM_META_REPLICATE_REQ, 0}{}
+    MetaReplicateRequest() : MsgBase{0, LM_META_REPLICATE_REQ, 0} {}
     MetaReplicateRequest(const std::string &key, const MmcMemBlobDesc &blobDesc, const uint16_t &prot,
-                         const uint8_t &priority, const uint64_t &lease) : MsgBase{0, LM_META_REPLICATE_REQ, 0},
-                         key_(key), blob_(blobDesc), prot_(prot), priority_(priority), lease_(lease) {};
+                         const uint8_t &priority, const uint64_t &lease)
+        : MsgBase{0, LM_META_REPLICATE_REQ, 0},
+          key_(key),
+          blob_(blobDesc),
+          prot_(prot),
+          priority_(priority),
+          lease_(lease){};
 
     Result Serialize(NetMsgPacker &packer) const override
     {
@@ -288,10 +297,10 @@ struct MetaReplicateRequest : public MsgBase {
     }
 };
 
-struct IsExistRequest : public MsgBase {
+struct IsExistRequest : MsgBase {
     std::string key_;
 
-    IsExistRequest() : MsgBase{0, ML_IS_EXIST_REQ, 0}{}
+    IsExistRequest() : MsgBase{0, ML_IS_EXIST_REQ, 0} {}
     explicit IsExistRequest(std::string key) : MsgBase{0, ML_IS_EXIST_REQ, 0}, key_(std::move(key)) {}
 
     Result Serialize(NetMsgPacker &packer) const override
@@ -312,12 +321,15 @@ struct IsExistRequest : public MsgBase {
     }
 };
 
-struct BatchIsExistRequest : public MsgBase {
+struct BatchIsExistRequest : MsgBase {
     std::vector<std::string> keys_;
 
-    BatchIsExistRequest() : MsgBase{0, ML_BATCH_IS_EXIST_REQ, 0}{}
-    explicit BatchIsExistRequest(const std::vector<std::string>& keys) : 
-        MsgBase{0, ML_BATCH_IS_EXIST_REQ, 0}, keys_(keys) {}
+    BatchIsExistRequest() : MsgBase{0, ML_BATCH_IS_EXIST_REQ, 0} {}
+    explicit BatchIsExistRequest(const std::vector<std::string> &keys)
+        : MsgBase{0, ML_BATCH_IS_EXIST_REQ, 0},
+          keys_(keys)
+    {
+    }
 
     Result Serialize(NetMsgPacker &packer) const override
     {
@@ -337,13 +349,17 @@ struct BatchIsExistRequest : public MsgBase {
     }
 };
 
-struct BatchIsExistResponse : public MsgBase {
-    Result ret_;
+struct BatchIsExistResponse : MsgBase {
+    Result ret_ = 0;
     std::vector<Result> results_;
 
-    BatchIsExistResponse() : MsgBase{0, ML_BATCH_IS_EXIST_RESP, 0}{}
-    explicit BatchIsExistResponse(const Result &ret, const std::vector<Result> &results) : 
-        MsgBase{0, ML_BATCH_IS_EXIST_RESP, 0}, ret_(ret), results_(results) {}
+    BatchIsExistResponse() : MsgBase{0, ML_BATCH_IS_EXIST_RESP, 0} {}
+    explicit BatchIsExistResponse(const Result &ret, const std::vector<Result> &results)
+        : MsgBase{0, ML_BATCH_IS_EXIST_RESP, 0},
+          ret_(ret),
+          results_(results)
+    {
+    }
 
     Result Serialize(NetMsgPacker &packer) const override
     {
@@ -354,6 +370,7 @@ struct BatchIsExistResponse : public MsgBase {
         packer.Serialize(results_);
         return MMC_OK;
     }
+
     Result Deserialize(NetMsgUnpacker &packer) override
     {
         packer.Deserialize(msgVer);

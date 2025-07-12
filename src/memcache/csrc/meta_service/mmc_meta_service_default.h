@@ -31,7 +31,7 @@ public:
 
     const mmc_meta_service_config_t &Options() const override;
 
-    MmcMetaMgrProxyPtr GetMetaMgrProxy() const override;
+    const MmcMetaMgrProxyPtr& GetMetaMgrProxy() const override;
 
 private:
     MetaNetServerPtr metaNetServer_;
@@ -52,6 +52,11 @@ inline const std::string &MmcMetaServiceDefault::Name() const
 inline const mmc_meta_service_config_t &MmcMetaServiceDefault::Options() const
 {
     return options_;
+}
+
+inline const MmcMetaMgrProxyPtr& MmcMetaServiceDefault::GetMetaMgrProxy() const
+{
+    return metaMgrProxy_;
 }
 
 using MmcMetaServiceDefaultPtr = MmcRef<MmcMetaServiceDefault>;

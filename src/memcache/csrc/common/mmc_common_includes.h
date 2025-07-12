@@ -11,6 +11,7 @@
 
 #include "mmc_define.h"
 #include "mmc_functions.h"
+#include "mmc_last_error.h"
 #include "mmc_logger.h"
 #include "mmc_types.h"
 #include "mmc_ref.h"

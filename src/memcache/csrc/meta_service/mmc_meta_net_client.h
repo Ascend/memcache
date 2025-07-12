@@ -10,31 +10,63 @@ namespace ock {
 namespace mmc {
 class MetaNetClient : public MmcReferable {
 public:
-    explicit MetaNetClient(const std::string &serverUrl, const std::string inputName = "");
+    explicit MetaNetClient(const std::string &serverUrl, const std::string &inputName = "");
 
     ~MetaNetClient() override;
 
+    /**
+     * @brief Start the net client to meta net server
+     *
+     * @param rankId       [in] rankId of client
+     * @return 0 if successful
+     */
     Result Start(uint16_t rankId);
 
+    /**
+     * @brief Stop the net client
+     */
     void Stop();
 
+    /**
+     * @brief Connect to net server
+     *
+     * @param url          [in] url of net server
+     * @return 0 if successful
+     */
     Result Connect(const std::string &url);
 
+    /**
+     * @brief Do sync call to net server, returned if server response or timeout
+     *
+     * @tparam REQ         [in] request class type
+     * @tparam RESP        [in] response class type
+     * @param req          [in] request
+     * @param resp         [in/out] response
+     * @param timeoutInSecond [in] timeout in second
+     * @return
+     */
     template <typename REQ, typename RESP>
     Result SyncCall(const REQ &req, RESP &resp, int32_t timeoutInSecond)
     {
         return engine_->Call(rankId_, req.msgId, req, resp, timeoutInSecond);
     }
 
-    inline bool Status();
+    /**
+     * @brief Get status of net client
+     *
+     * @return status
+     */
+    bool Status();
 
 private:
     Result HandleMetaReplicate(const NetContextPtr &context);
     Result HandlePing(const NetContextPtr &context);
+
+private:
     NetEnginePtr engine_;
-    std::string serverUrl_;
     NetLinkPtr link2Index_ = nullptr;
-    uint16_t rankId_;
+    uint16_t rankId_ = UINT16_MAX;
+    std::string serverUrl_;
 
     /* not hot used variables */
     std::mutex mutex_;
@@ -50,7 +82,7 @@ inline bool MetaNetClient::Status()
 
 using MetaNetClientPtr = MmcRef<MetaNetClient>;
 
-class MetaNetClientFactory: public MmcReferable {
+class MetaNetClientFactory : public MmcReferable {
 public:
     static MmcRef<MetaNetClient> GetInstance(const std::string &serverUrl, const std::string inputName = "")
     {
@@ -58,7 +90,11 @@ public:
         std::string key = serverUrl + inputName;
         auto it = instances_.find(key);
         if (it == instances_.end()) {
-            MmcRef<MetaNetClient> instance = new (std::nothrow)MetaNetClient(serverUrl, inputName);
+            MmcRef<MetaNetClient> instance = new (std::nothrow) MetaNetClient(serverUrl, inputName);
+            if (instance == nullptr) {
+                MMC_LOG_ERROR("new MetaNetClient failed, probably out of memory");
+                return nullptr;
+            }
             instances_[key] = instance;
             return instance;
         }
@@ -71,4 +107,4 @@ private:
 };
 }
 }
-#endif // SMEM_MMC_META_NET_CLIENT_H
+#endif  // SMEM_MMC_META_NET_CLIENT_H

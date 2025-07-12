@@ -11,30 +11,34 @@ using namespace ock::mmc;
 
 MMC_API mmc_meta_service_t mmcs_meta_service_start(mmc_meta_service_config_t *config)
 {
-    MmcMetaService *serviceDefault = new (std::nothrow)MmcMetaServiceDefault("meta_service");
+    MmcMetaService *serviceDefault = new (std::nothrow) MmcMetaServiceDefault("meta_service");
     if (serviceDefault != nullptr && serviceDefault->Start(*config) == MMC_OK) {
+        MMC_LOG_AND_SET_LAST_ERROR("create or start meta service failed");
         return serviceDefault;
     }
+
     return nullptr;
 }
 
 MMC_API void mmcs_meta_service_stop(mmc_meta_service_t handle)
 {
-    static_cast<MmcMetaServiceDefault*>(handle)->Stop();
-    return;
+    MMC_VALIDATE_RETURN_VOID(handle != nullptr, "invalid param, handle is nullptr");
+    static_cast<MmcMetaServiceDefault *>(handle)->Stop();
 }
 
 MMC_API mmc_local_service_t mmcs_local_service_start(mmc_local_service_config_t *config)
 {
-    auto *serviceDefault = new (std::nothrow)MmcLocalServiceDefault("local_service");
+    auto *serviceDefault = new (std::nothrow) MmcLocalServiceDefault("local_service");
     if (serviceDefault != nullptr && serviceDefault->Start(*config) == MMC_OK) {
+        MMC_LOG_AND_SET_LAST_ERROR("create or start local service failed");
         return serviceDefault;
     }
+
     return nullptr;
 }
 
 MMC_API void mmcs_local_service_stop(mmc_local_service_t handle)
 {
-    static_cast<MmcLocalServiceDefault*>(handle)->Stop();
-    return;
+    MMC_VALIDATE_RETURN_VOID(handle != nullptr, "invalid param, handle is nullptr");
+    static_cast<MmcLocalServiceDefault *>(handle)->Stop();
 }

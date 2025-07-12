@@ -26,11 +26,6 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     return MMC_OK;
 }
 
-MmcMetaMgrProxyPtr MmcMetaServiceDefault::GetMetaMgrProxy() const
-{
-    return metaMgrProxy_;
-}
-
 Result MmcMetaServiceDefault::BmRegister(uint32_t rank, uint16_t mediaType, uint64_t bm, uint64_t capacity)
 {
     std::lock_guard<std::mutex> guard(mutex_);

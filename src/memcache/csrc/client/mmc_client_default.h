@@ -12,13 +12,12 @@
 namespace ock {
 namespace mmc {
 class MmcClientDefault : public MmcReferable {
-
 public:
-    explicit MmcClientDefault(const std::string inputName) : name_(inputName){}
+    explicit MmcClientDefault(const std::string& name) : name_(name) {}
 
-    ~MmcClientDefault() override{}
+    ~MmcClientDefault() override = default;
 
-    Result Start(const mmc_client_config_t& config);
+    Result Start(const mmc_client_config_t &config);
 
     void Stop();
 
@@ -26,24 +25,26 @@ public:
 
     Result Put(const char *key, mmc_buffer *buf, mmc_put_options &options, uint32_t flags);
 
-    Result Get(const char *key, mmc_buffer *buf, uint32_t flags);
+    Result Get(const char *key, mmc_buffer *buf, uint32_t flags) const;
 
-    mmc_location_t GetLocation(const char *key, uint32_t flags);
+    mmc_location_t GetLocation(const char *key, uint32_t flags) const;
 
-    Result Remove(const char *key, uint32_t flags);
+    Result Remove(const char *key, uint32_t flags) const;
 
-    Result IsExist(const std::string& key, uint32_t flags);
+    Result IsExist(const std::string &key, uint32_t flags) const;
 
-    Result BatchIsExist(const std::vector<std::string>& keys, std::vector<Result>& exist_results, uint32_t flags);
+    Result BatchIsExist(const std::vector<std::string> &keys, std::vector<Result> &exist_results, uint32_t flags) const;
 
 private:
     inline uint32_t RankId(const affinity_policy &policy);
+
+private:
     std::mutex mutex_;
     bool started_ = false;
     MetaNetClientPtr metaNetClient_;
     MmcBmProxyPtr bmProxy_;
     std::string name_;
-    uint32_t randId_;
+    uint32_t randId_{UINT32_MAX};
     uint32_t timeOut_ = 60;
 };
 
@@ -52,7 +53,7 @@ uint32_t MmcClientDefault::RankId(const affinity_policy &policy)
     if (policy == NATIVE_AFFINITY) {
         return randId_;
     } else {
-        MMC_LOG_ERROR("affinity policy " << policy <<" not supported");
+        MMC_LOG_ERROR("affinity policy " << policy << " not supported");
         return 0;
     }
 }
@@ -60,4 +61,4 @@ using MmcClientDefaultPtr = MmcRef<MmcClientDefault>;
 }
 }
 
-#endif //MEM_FABRIC_MMC_CLIENT_DEFAULT_H
+#endif  //MEM_FABRIC_MMC_CLIENT_DEFAULT_H

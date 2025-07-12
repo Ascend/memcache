@@ -17,22 +17,31 @@ struct MmcBlobFilter : public MmcReferable {
     uint16_t mediaType_{UINT16_MAX};
     BlobState state_{NONE};
     MmcBlobFilter(const uint32_t &rank, const uint16_t &mediaType, const BlobState &state)
-        : rank_(rank), mediaType_(mediaType), state_(state) {};
+        : rank_(rank),
+          mediaType_(mediaType),
+          state_(state){};
 };
 using MmcBlobFilterPtr = MmcRef<MmcBlobFilter>;
 
 struct MmcMemBlobDesc {
-    uint32_t rank_;                    /* rank id of the blob located */
-    uint64_t gva_;                     /* global virtual address */
-    uint32_t size_;                    /* data size of the blob */
-    uint16_t mediaType_;               /* media type where blob located */
-    BlobState state_{BlobState::NONE}; /* state of the blob */
-    uint16_t prot_{0};                 /* prot, i.e. access */
+    uint32_t rank_ = UINT32_MAX;        /* rank id of the blob located */
+    uint32_t size_ = 0;                 /* data size of the blob */
+    uint64_t gva_ = UINT64_MAX;         /* global virtual address */
+    uint16_t mediaType_ = UINT16_MAX;   /* media type where blob located */
+    uint16_t prot_ = 0;                 /* prot, i.e. access */
+    BlobState state_ = BlobState::NONE; /* state of the blob */
 
-    MmcMemBlobDesc(){}
+    MmcMemBlobDesc() = default;
     MmcMemBlobDesc(const uint32_t &rank, const uint64_t &gva, const uint32_t &size, const uint16_t &mediaType,
                    const BlobState &state, const uint16_t &prot)
-        : rank_(rank), gva_(gva), size_(size), mediaType_(mediaType), state_(state), prot_(prot) {};
+        : rank_(rank),
+          size_(size),
+          gva_(gva),
+          mediaType_(mediaType),
+          prot_(prot),
+          state_(state)
+    {
+    }
 };
 
 class MmcMemBlob final : public MmcReferable {
@@ -40,7 +49,12 @@ public:
     MmcMemBlob() = delete;
     MmcMemBlob(const uint32_t &rank, const uint64_t &gva, const uint32_t &size, const uint16_t &mediaType,
                const BlobState &state = NONE)
-        : rank_(rank), gva_(gva), size_(size), mediaType_(mediaType), state_(state), nextBlob_(nullptr)
+        : rank_(rank),
+          gva_(gva),
+          size_(size),
+          mediaType_(mediaType),
+          state_(state),
+          nextBlob_(nullptr)
     {
     }
     ~MmcMemBlob() override = default;
@@ -102,20 +116,9 @@ public:
      */
     uint16_t Prot();
 
-    bool MatchFilter(const MmcBlobFilterPtr &filter)
-    {
-        if (filter == nullptr) {
-            return true;
-        }
-        return (rank_ == filter->rank_) && (mediaType_ == filter->mediaType_) &&
-               (filter->state_ == NONE || state_ == filter->state_);
-    }
+    bool MatchFilter(const MmcBlobFilterPtr &filter) const;
 
-    MmcMemBlobDesc GetDesc()
-    {
-        MmcMemBlobDesc blobDesc = MmcMemBlobDesc(rank_, gva_, size_, mediaType_, state_, prot_);
-        return blobDesc;
-    }
+    MmcMemBlobDesc GetDesc() const;
 
 private:
     const uint32_t rank_;              /* rank id of the blob located */
@@ -140,7 +143,8 @@ inline Result MmcMemBlob::UpdateState(BlobActionResult ret)
         MMC_LOG_WARN("Cannot update state! The current state is not in the stateTransTable!");
         return MMC_UNMATCHED_STATE;
     }
-    auto retIter = curStateIter->second.find(ret);
+
+    const auto retIter = curStateIter->second.find(ret);
     if (retIter == curStateIter->second.end()) {
         MMC_LOG_WARN("Cannot update state! Retcode dismatch!");
         return MMC_UNMATCHED_RET;
@@ -197,6 +201,21 @@ inline uint16_t MmcMemBlob::Prot()
 {
     std::lock_guard<Spinlock> guard(spinlock_);
     return prot_;
+}
+
+inline bool MmcMemBlob::MatchFilter(const MmcBlobFilterPtr &filter) const
+{
+    if (filter == nullptr) {
+        return true;
+    }
+
+    return (rank_ == filter->rank_) && (mediaType_ == filter->mediaType_) &&
+           (filter->state_ == NONE || state_ == filter->state_);
+}
+
+inline MmcMemBlobDesc MmcMemBlob::GetDesc() const
+{
+    return MmcMemBlobDesc{rank_, gva_, size_, mediaType_, state_, prot_};
 }
 
 }  // namespace mmc

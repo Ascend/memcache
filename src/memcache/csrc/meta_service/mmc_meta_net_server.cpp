@@ -10,7 +10,8 @@
 namespace ock {
 namespace mmc {
 MetaNetServer::MetaNetServer(const MmcMetaServicePtr &metaService, const std::string inputName)
-    : metaService_(metaService), name_(inputName)
+    : metaService_(metaService),
+      name_(inputName)
 {
 }
 MetaNetServer::~MetaNetServer() {}
@@ -65,7 +66,7 @@ Result ock::mmc::MetaNetServer::Start()
 
 Result MetaNetServer::HandleBmRegister(const NetContextPtr &context)
 {
-    MmcMetaServiceDefaultPtr metaServiceDefaultPtr = Convert<MmcMetaService, MmcMetaServiceDefault>(metaService_);
+    auto metaServiceDefaultPtr = Convert<MmcMetaService, MmcMetaServiceDefault>(metaService_);
     BmRegisterRequest req;
     context->GetRequest<BmRegisterRequest>(req);
     MMC_LOG_INFO("HandleBmRegister  " << req.rank_);
@@ -78,7 +79,7 @@ Result MetaNetServer::HandleBmRegister(const NetContextPtr &context)
 
 Result MetaNetServer::HandlePing(const NetContextPtr &context)
 {
-    std::string str{(char *)context->Data(), context->DataLen()};
+    std::string str{static_cast<char *>(context->Data()), context->DataLen()};
     NetMsgUnpacker unpacker(str);
     PingMsg req;
     req.Deserialize(unpacker);
@@ -94,7 +95,7 @@ Result MetaNetServer::HandlePing(const NetContextPtr &context)
 
 Result MetaNetServer::HandleNewLink(const NetLinkPtr &link)
 {
-    MMC_LOG_INFO("new link " << name_ << " addr " << link.Get() );
+    MMC_LOG_INFO("new link " << name_ << " addr " << link.Get());
     return MMC_OK;
 }
 
@@ -105,7 +106,7 @@ Result MetaNetServer::HandleAlloc(const NetContextPtr &context)
     context->GetRequest<AllocRequest>(req);
 
     MMC_LOG_INFO("HandleAlloc key " << req.key_);
-    MmcMetaMgrProxyPtr metaMgrProxy = metaService_->GetMetaMgrProxy();
+    auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
     metaMgrProxy->Alloc(req, resp);
     MMC_LOG_INFO("HandleAlloc key " << req.key_);
 
@@ -119,7 +120,7 @@ Result MetaNetServer::HandleUpdate(const NetContextPtr &context)
     context->GetRequest<UpdateRequest>(req);
 
     MMC_LOG_INFO("HandleUpdate key " << req.key_);
-    MmcMetaMgrProxyPtr metaMgrProxy = metaService_->GetMetaMgrProxy();
+    auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
     metaMgrProxy->UpdateState(req, resp);
     MMC_LOG_INFO("HandleUpdate key " << req.key_);
 
@@ -133,7 +134,7 @@ Result MetaNetServer::HandleGet(const NetContextPtr &context)
     context->GetRequest<GetRequest>(req);
 
     MMC_LOG_INFO("HandleGet key " << req.key_);
-    MmcMetaMgrProxyPtr metaMgrProxy = metaService_->GetMetaMgrProxy();
+    auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
     metaMgrProxy->Get(req, resp);
     MMC_LOG_INFO("HandleGet key " << req.key_);
 
@@ -147,7 +148,7 @@ Result MetaNetServer::HandleRemove(const NetContextPtr &context)
     context->GetRequest<RemoveRequest>(req);
 
     MMC_LOG_INFO("HandleRemove key " << req.key_);
-    MmcMetaMgrProxyPtr metaMgrProxy = metaService_->GetMetaMgrProxy();
+    auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
     metaMgrProxy->Remove(req, resp);
     MMC_LOG_INFO("HandleRemove key " << req.key_);
 
@@ -161,7 +162,7 @@ Result MetaNetServer::HandleIsExist(const NetContextPtr &context)
     context->GetRequest<IsExistRequest>(req);
 
     MMC_LOG_INFO("HandleIsExist key " << req.key_);
-    MmcMetaMgrProxyPtr metaMgrProxy = metaService_->GetMetaMgrProxy();
+    auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
     metaMgrProxy->ExistKey(req, resp);
     MMC_LOG_INFO("HandleIsExist key " << req.key_);
 
@@ -175,7 +176,7 @@ Result MetaNetServer::HandleBatchIsExist(const NetContextPtr &context)
     context->GetRequest<BatchIsExistRequest>(req);
 
     MMC_LOG_INFO("HandleBatchIsExist keys");
-    MmcMetaMgrProxyPtr metaMgrProxy = metaService_->GetMetaMgrProxy();
+    auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
     metaMgrProxy->BatchExistKey(req, resp);
     MMC_LOG_INFO("HandleBatchIsExist keys");
 

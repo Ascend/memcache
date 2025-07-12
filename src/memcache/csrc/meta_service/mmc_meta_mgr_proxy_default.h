@@ -21,26 +21,22 @@ public:
         metaMangerPtr_ = MmcMakeRef<MmcMetaManager>(defaultTtl);
     }
 
-    /**
-     * @brief Alloc the global memeory space and create the meta object
-     * @param key          [in] key of the meta object
-     * @param metaInfo     [out] the meta object created
-     */
+    ~MmcMetaMgrProxyDefault() override = default;
 
-    Result Alloc(const AllocRequest &req, AllocResponse &resp);
+    Result Alloc(const AllocRequest &req, AllocResponse &resp) override;
 
-    Result UpdateState(const UpdateRequest &req, Response &resp);
+    Result UpdateState(const UpdateRequest &req, Response &resp) override;
 
-    Result Get(const GetRequest &req, AllocResponse &resp);
+    Result Get(const GetRequest &req, AllocResponse &resp) override;
 
-    Result Remove(const RemoveRequest &req, Response &resp);
+    Result Remove(const RemoveRequest &req, Response &resp) override;
 
-    Result Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo &localMemInitInfo)
+    Result Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo &localMemInitInfo) override
     {
         return metaMangerPtr_->Mount(loc, localMemInitInfo);
     }
 
-    Result Unmount(const MmcLocation &loc)
+    Result Unmount(const MmcLocation &loc) override
     {
         return metaMangerPtr_->Unmount(loc);
     }

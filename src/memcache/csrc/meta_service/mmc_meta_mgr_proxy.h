@@ -12,23 +12,23 @@ namespace mmc {
 /* interface */
 class MmcMetaMgrProxy : public MmcReferable {
 public:
-    virtual ~MmcMetaMgrProxy() = default;
+    ~MmcMetaMgrProxy() override = default;
 
-    virtual Result Alloc(const AllocRequest &allocReq, AllocResponse &allocResp) = 0;
+    virtual Result Alloc(const AllocRequest &req, AllocResponse &resp) = 0;
 
-    virtual Result UpdateState(const UpdateRequest &updateReq, Response &upddateResp) = 0;
+    virtual Result UpdateState(const UpdateRequest &req, Response &resp) = 0;
 
-    virtual Result Get(const GetRequest &updateReq, AllocResponse &upddateResp) = 0;
+    virtual Result Get(const GetRequest &req, AllocResponse &resp) = 0;
 
-    virtual Result Remove(const RemoveRequest &updateReq, Response &upddateResp) = 0;
+    virtual Result Remove(const RemoveRequest &req, Response &resp) = 0;
 
     virtual Result Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo &localMemInitInfo) = 0;
 
     virtual Result Unmount(const MmcLocation &loc) = 0;
 
-    virtual Result ExistKey(const IsExistRequest &updateReq, Response &upddateResp) = 0;
+    virtual Result ExistKey(const IsExistRequest &req, Response &resp) = 0;
 
-    virtual Result BatchExistKey(const BatchIsExistRequest &updateReq, BatchIsExistResponse &upddateResp) = 0;
+    virtual Result BatchExistKey(const BatchIsExistRequest &req, BatchIsExistResponse &resp) = 0;
 };
 using MmcMetaMgrProxyPtr = MmcRef<MmcMetaMgrProxy>;
 }  // namespace mmc

@@ -94,7 +94,7 @@ int32_t mmcc_remove(const char *key, uint32_t flags);
  * @param timeoutSec       [in] timeout of wait, in seconds
  * @return 0 if successfully, 1 if timeout, positive value if error happens
  */
-int32_t mobsc_wait(int32_t waitHandle, int32_t timeoutSec);
+int32_t mmcc_wait(int32_t waitHandle, int32_t timeoutSec);
 
 /**
  * @brief Determine whether the key is within the BM
@@ -102,7 +102,7 @@ int32_t mobsc_wait(int32_t waitHandle, int32_t timeoutSec);
  * @param key              [in] key of data, less than 256
  * @return 0 if successfully, 1 if failed, positive value if error happens
  */
-int32_t mmcc_exist(const std::string& key, uint32_t flags);
+int32_t mmcc_exist(const char* key, uint32_t flags);
 
 /**
  * @brief Determine whether the list of keys is within the BM

@@ -16,7 +16,7 @@ namespace ock {
 namespace mmc {
 class MmcLocalServiceDefault : public MmcLocalService {
 public:
-    explicit MmcLocalServiceDefault(const std::string &name) : name_(name) {}
+    explicit MmcLocalServiceDefault(const std::string &name) : name_(name), options_() {}
 
     ~MmcLocalServiceDefault() override;
 
@@ -37,8 +37,8 @@ public:
     }
 
     inline MetaNetClientPtr GetMetaClient() const;
-private:
 
+private:
     MetaNetClientPtr metaNetClient_;
     MmcBmProxyPtr bmProxyPtr_;
     int32_t pid_ = 0;

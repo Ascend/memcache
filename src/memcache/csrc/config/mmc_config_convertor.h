@@ -1,9 +1,8 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
-
-#pragma once
-
+#ifndef MEMFABRIC_MMC_CONFIG_CONVERTOR_H
+#define MEMFABRIC_MMC_CONFIG_CONVERTOR_H
 #include <string>
 
 #include "mmc_ref.h"
@@ -15,7 +14,7 @@ class Converter : public MmcReferable {
 public:
     ~Converter() override = default;
 
-    virtual std::string Convert(const std::string& str)
+    virtual std::string Convert(const std::string &str)
     {
         return str;
     }
@@ -25,3 +24,5 @@ using ConverterPtr = MmcRef<Converter>;
 
 }
 }
+
+#endif

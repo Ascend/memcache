@@ -25,15 +25,17 @@ public:
         return ret;
     };
 
-    Result Free(MmcMemBlobPtr blob)
+    Result Free(const MmcMemBlobPtr& blob)
     {
         globalAllocLock_.LockRead();
-        MmcLocation location{blob->Rank(), blob->MediaType()};
-        if (allocators_.find(location) == allocators_.end()) {
+        const MmcLocation location{blob->Rank(), blob->MediaType()};
+        const auto iter = allocators_.find(location);
+        if (iter == allocators_.end()) {
             globalAllocLock_.UnlockRead();
             return MMC_ERROR;
         }
-        auto allocator = allocators_[location];
+
+        const auto &allocator = iter->second;
         Result ret = allocator->Release(blob);
         globalAllocLock_.UnlockRead();
         return ret;
@@ -44,10 +46,11 @@ public:
         globalAllocLock_.LockWrite();
         auto iter = allocators_.find(loc);
         if (iter != allocators_.end()) {
-            MMC_LOG_WARN("Cannot mount at the existing position!");
+            MMC_LOG_WARN("Cannot mount at the existing position");
             globalAllocLock_.UnlockWrite();
             return MMC_INVALID_PARAM;
         }
+
         allocators_[loc] =
             MmcMakeRef<MmcBlobAllocator>(loc.rank_, loc.mediaType_, localMemInitInfo.bm_, localMemInitInfo.capacity_);
         globalAllocLock_.UnlockWrite();

@@ -43,19 +43,21 @@ Result MmcMetaManager::GetBlobs(const std::string &key, const MmcBlobFilterPtr &
 {
     MmcMemObjMetaPtr objMeta;
     Result ret = objMetaLookupMap_.Find(key, objMeta);
+    /* TODO check ret firstly, then get blobs from objMeta in case of objMeta is nullptr */
     blobs = objMeta->GetBlobs(filter);
     if (ret == MMC_OK && !blobs.empty()) {
         objMeta->ExtendLease(1000U);
         return MMC_OK;
-    } else {
-        return MMC_ERROR;
     }
+
+    return MMC_ERROR;
 }
 
 Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &loc, const BlobActionResult &actRet)
 {
     std::vector<MmcMemBlobPtr> blobs;
     MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(loc.rank_, loc.mediaType_, NONE);
+    MMC_ASSERT(filter != nullptr);
     if (GetBlobs(key, filter, blobs) != MMC_OK) {
         MMC_LOG_ERROR("UpdateState: Cannot find blobs!");
         return MMC_UNMATCHED_KEY;

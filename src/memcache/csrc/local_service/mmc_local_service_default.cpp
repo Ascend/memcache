@@ -62,7 +62,7 @@ Result MmcLocalServiceDefault::InitBm(const mmc_local_service_config_t &config)
 
     BmRegisterRequest req;
     req.rank_ = initConfig.rankId;
-    req.mediaType_ = (uint16_t)(createConfig.localHBMSize == 0);
+    req.mediaType_ = static_cast<uint16_t>(createConfig.localHBMSize == 0);
     req.addr_ = bmProxy->GetGva();
     req.capacity_ = createConfig.localDRAMSize + createConfig.localHBMSize;
 

@@ -1,8 +1,8 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
-
-#pragma once
+#ifndef MMC_PYMMC_H
+#define MMC_PYMMC_H
 
 #include <pybind11/pybind11.h>
 #include <csignal>
@@ -216,3 +216,5 @@ public:
     int64_t getSize(const std::string &key);
 
 };
+
+#endif

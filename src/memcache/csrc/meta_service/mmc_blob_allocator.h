@@ -13,10 +13,10 @@ namespace mmc {
 #define SIZE_32K (uint64_t)(32 * 1024)
 
 struct SpaceRange {
-    const uint64_t offset_;
-    const uint64_t size_;
+    const uint64_t offset_ = 0;
+    const uint64_t size_ = 0;
 
-    SpaceRange(uint64_t offset, uint64_t size) : offset_(offset), size_(size) {}
+    SpaceRange(const uint64_t offset, const uint64_t size) : offset_(offset), size_(size) {}
 };
 
 struct RangeSizeFirst {
@@ -31,16 +31,20 @@ struct RangeSizeFirst {
 
 class MmcBlobAllocator : public MmcReferable {
 public:
-    MmcBlobAllocator(uint32_t rank, uint16_t mediaType, uint64_t bm, uint64_t capacity)
-        : rank_(rank), mediaType_(mediaType), bm_(bm), capacity_(capacity)
+    MmcBlobAllocator(const uint32_t rank, const uint16_t mediaType, const uint64_t bm, const uint64_t capacity)
+        : rank_(rank),
+          mediaType_(mediaType),
+          bm_(bm),
+          capacity_(capacity)
     {
         addressTree_[0] = capacity;
-        sizeTree_.insert({0,capacity});
+        sizeTree_.insert({0, capacity});
     }
-    ~MmcBlobAllocator() {}
+    ~MmcBlobAllocator() override = default;
+
     bool CanAlloc(uint64_t blobSize);
     MmcMemBlobPtr Alloc(uint64_t blobSize);
-    Result Release(MmcMemBlobPtr blob);
+    Result Release(const MmcMemBlobPtr& blob);
 
 private:
     static uint64_t AllocSizeAlignUp(uint64_t size);
@@ -59,7 +63,7 @@ private:
 
 using MmcBlobAllocatorPtr = MmcRef<MmcBlobAllocator>;
 
-} // namespace mmc
-} // namespace ock
+}  // namespace mmc
+}  // namespace ock
 
-#endif // MEM_FABRIC_MMC_BLOB_ALLOCATOR_H
+#endif  // MEM_FABRIC_MMC_BLOB_ALLOCATOR_H

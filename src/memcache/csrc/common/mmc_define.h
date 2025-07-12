@@ -19,45 +19,98 @@ namespace mmc {
 #define UNLIKELY(x) (__builtin_expect(!!(x), 0) != 0)
 #endif
 
+/**
+ * @brief Set last error message and log it
+ *
+ * @param msg              [in] message to be set and log
+ */
 #define MMC_LOG_AND_SET_LAST_ERROR(msg)  \
-    do {                                \
-        std::stringstream tmpStr;       \
-        tmpStr << msg;                  \
-        MOLastError::Set(tmpStr.str()); \
+    do {                                 \
+        std::stringstream tmpStr;        \
+        tmpStr << msg;                   \
+        MmcLastError::Set(tmpStr.str()); \
         MMC_LOG_ERROR(tmpStr.str());     \
     } while (0)
 
+/**
+ * @brief Set last error message
+ *
+ * @param msg              [in] message to be set
+ */
 #define MMC_SET_LAST_ERROR(msg)          \
-    do {                                \
-        std::stringstream tmpStr;       \
-        tmpStr << msg;                  \
-        MOLastError::Set(tmpStr.str()); \
+    do {                                 \
+        std::stringstream tmpStr;        \
+        tmpStr << msg;                   \
+        MmcLastError::Set(tmpStr.str()); \
     } while (0)
 
+/**
+ * @brief Set last error message and print to stdout
+ *
+ * @param msg              [in] message to be set and printed
+ */
 #define MMC_COUT_AND_SET_LAST_ERROR(msg) \
-    do {                                \
-        std::stringstream tmpStr;       \
-        tmpStr << msg;                  \
-        MOLastError::Set(tmpStr.str()); \
-        std::cout << msg << std::endl;  \
+    do {                                 \
+        std::stringstream tmpStr;        \
+        tmpStr << msg;                   \
+        MmcLastError::Set(tmpStr.str()); \
+        std::cout << msg << std::endl;   \
     } while (0)
 
-// if expression is false, print error
-#define MMC_PARAM_VALIDATE(expression, msg, returnValue) \
-    do {                                                \
-        if (!(expression)) {                             \
-            MMC_SET_LAST_ERROR(msg);                     \
-            MMC_LOG_ERROR(msg);                          \
-            return returnValue;                         \
-        }                                               \
+/**
+* @brief Validate expression, if expression is false then
+ * 1 set last error message
+ * 2 log an error message
+ * 3 return the specified value
+ *
+ * @param expression       [in] expression to be validated
+ * @param msg              [in] message to set and log
+ * @param returnValue      [in] return value
+ */
+#define MMC_VALIDATE_RETURN(expression, msg, returnValue) \
+    do {                                                  \
+        if (UNLIKELY(!(expression))) {                    \
+            MMC_SET_LAST_ERROR(msg);                      \
+            MMC_LOG_ERROR(msg);                           \
+            return returnValue;                           \
+        }                                                 \
+    } while (0)
+
+/**
+ * @brief Validate expression, if expression is false then
+ * 1 set last error message
+ * 2 log an error message
+ * 3 return
+ *
+ * @param expression       [in] expression to be validated
+ * @param msg              [in] message to set and log
+ */
+#define MMC_VALIDATE_RETURN_VOID(expression, msg) \
+    do {                                          \
+        if (UNLIKELY(!(expression))) {            \
+            MMC_SET_LAST_ERROR(msg);              \
+            MMC_LOG_ERROR(msg);                   \
+            return;                               \
+        }                                         \
     } while (0)
 
 #define MMC_API __attribute__((visibility("default")))
 
-inline bool RESULT_OK(const HRESULT hr) { return ((hr) | OK) == OK; }
+inline bool RESULT_OK(const HRESULT hr)
+{
+    return ((hr) | OK) == OK;
+}
 
-inline bool RESULT_FAIL(const HRESULT hr) { return (static_cast<HRESULT>(hr) & MMC_FAIL) == MMC_FAIL; }
+inline bool RESULT_FAIL(const HRESULT hr)
+{
+    return (static_cast<HRESULT>(hr) & MMC_FAIL) == MMC_FAIL;
+}
 
+/**
+ * @brief Delete a ptr safely, i.e. delete and set to nullptr
+ *
+ * @param p                [in] ptr to be deleted
+ */
 #define SAFE_DELETE(p) \
     do {               \
         delete (p);    \

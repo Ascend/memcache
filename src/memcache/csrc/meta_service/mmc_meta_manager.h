@@ -17,10 +17,11 @@ static const uint16_t NUM_BUCKETS = 29;
 
 class MmcMetaManager : public MmcReferable {
 public:
-    MmcMetaManager(uint64_t defaultTtl) : defaultTtl_(defaultTtl)
+    explicit MmcMetaManager(uint64_t defaultTtl) : defaultTtl_(defaultTtl)
     {
         globalAllocator_ = MmcMakeRef<MmcGlobalAllocator>();
-    };
+        MMC_ASSERT(globalAllocator_ != nullptr);
+    }
 
     /**
      * @brief Get the meta object and extend the lease

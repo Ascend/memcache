@@ -34,8 +34,9 @@ namespace ock {
 namespace mmc {
 class MmcBmProxy : public MmcReferable{
 public:
-    MmcBmProxy(const std::string &name) : name_(name) {}
-    ~MmcBmProxy() {}
+    explicit MmcBmProxy(const std::string &name) : name_(name) {}
+    ~MmcBmProxy() override = default;
+
     // 删除拷贝构造函数和赋值运算符
     MmcBmProxy(const MmcBmProxy&) = delete;
     MmcBmProxy& operator=(const MmcBmProxy&) = delete;
@@ -57,13 +58,16 @@ using MmcBmProxyPtr = MmcRef<MmcBmProxy>;
 
 class MmcBmProxyFactory : public MmcReferable {
 public:
-    static MmcBmProxyPtr GetInstance(const std::string inputName = "")
+    static MmcBmProxyPtr GetInstance(const std::string& key = "")
     {
         std::lock_guard<std::mutex> lock(instanceMutex_);
-        std::string key = inputName;
-        auto it = instances_.find(key);
+        const auto it = instances_.find(key);
         if (it == instances_.end()) {
             MmcRef<MmcBmProxy> instance = new (std::nothrow)MmcBmProxy("bmProxy");
+            if (instance == nullptr) {
+                MMC_LOG_ERROR("new object failed, probably out of memory");
+                return nullptr;
+            }
             instances_[key] = instance;
             return instance;
         }

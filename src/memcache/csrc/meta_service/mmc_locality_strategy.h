@@ -20,7 +20,7 @@ struct AllocOptions {
     uint16_t mediaType_{0};
     uint32_t preferredRank_{0};
     uint32_t flags_{0};
-    AllocOptions(){}
+    AllocOptions() = default;
     AllocOptions(uint64_t blobSize, uint32_t numBlobs, uint16_t mediaType, uint32_t preferredRank, uint32_t flags) :
                   blobSize_(blobSize), numBlobs_(numBlobs), mediaType_(mediaType), preferredRank_(preferredRank),
                   flags_(flags){}
@@ -39,7 +39,7 @@ public:
     static Result ArrangeLocality(const MmcAllocators &allocators, const AllocOptions &allocReq,
                                   std::vector<MmcMemBlobPtr> &blobs)
     {
-        MmcLocation location;
+        MmcLocation location{};
         location.mediaType_ = allocReq.mediaType_;
         location.rank_ = allocReq.preferredRank_;
         auto itPrefer = allocators.find(location);

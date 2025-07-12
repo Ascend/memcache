@@ -30,7 +30,7 @@ public:
      */
     void Serialize(const std::string &val)
     {
-        uint32_t size = val.size();
+        const uint32_t size = val.size();
         outStream_.write(reinterpret_cast<const char *>(&size), sizeof(size));
         outStream_.write(val.data(), size);
     }

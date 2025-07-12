@@ -49,7 +49,7 @@ MmcMemBlobPtr MmcBlobAllocator::Alloc(uint64_t blobSize)
     return MmcMakeRef<MmcMemBlob>(rank_, bm_ + targetOffset, blobSize, mediaType_, ALLOCATED);
 }
 
-Result MmcBlobAllocator::Release(MmcMemBlobPtr blob)
+Result MmcBlobAllocator::Release(const MmcMemBlobPtr &blob)
 {
     if (blob == nullptr) {
         MMC_LOG_ERROR("blob is null");
@@ -70,7 +70,8 @@ Result MmcBlobAllocator::Release(MmcMemBlobPtr blob)
     auto prevAddrPos = addressTree_.lower_bound(offset);
     if (prevAddrPos != addressTree_.begin()) {
         --prevAddrPos;
-        if (prevAddrPos != addressTree_.end() && prevAddrPos->first + prevAddrPos->second == offset) { // 合并前一个range
+        if (prevAddrPos != addressTree_.end() &&
+            prevAddrPos->first + prevAddrPos->second == offset) {  // 合并前一个range
             finalOffset = prevAddrPos->first;
             finalSize += prevAddrPos->second;
             sizeTree_.erase(SpaceRange{prevAddrPos->first, prevAddrPos->second});

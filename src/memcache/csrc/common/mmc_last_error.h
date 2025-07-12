@@ -32,8 +32,8 @@ public:
     static const char *GetAndClear(bool clear);
 
 private:
-    static thread_local bool have_;
-    static thread_local std::string msg_;
+    static thread_local bool have_;       /* thread local flag that indicates if there is last error */
+    static thread_local std::string msg_; /* last error message */
 };
 
 inline void MmcLastError::Set(const std::string &msg)

@@ -34,7 +34,7 @@ public:
 
         Iterator &operator++()
         {
-            mapIter_++;
+            ++mapIter_;
             SkipEmptyBuckets();
             return *this;
         }
@@ -65,7 +65,7 @@ public:
         {
             // while current bucket is not the last bucket AND mapIter is at the end of current bucket
             while (curBucket_ != endBucket_ && mapIter_ == curBucket_->end()) {
-                curBucket_++;  // go to next bucket
+                ++curBucket_;  // go to next bucket
                 if (curBucket_ != endBucket_) {
                     mapIter_ = curBucket_->begin();
                 }

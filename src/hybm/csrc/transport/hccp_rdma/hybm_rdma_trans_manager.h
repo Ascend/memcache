@@ -29,7 +29,7 @@ struct ChannelConnection {
     HccpAiQpInfo aiQpInfo{};
     int qpStatus{-1};
 
-    ChannelConnection(in_addr ip) : ChannelConnection{ip, nullptr} {}
+    explicit ChannelConnection(const in_addr ip) : ChannelConnection{ip, nullptr} {}
     ChannelConnection(in_addr ip, void *sock) : remoteIp{ip}, socketHandle{sock} {}
 };
 

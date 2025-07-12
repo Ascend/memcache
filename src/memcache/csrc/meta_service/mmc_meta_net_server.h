@@ -25,6 +25,7 @@ public:
     {
         return engine_->Call(randId, req.msgId, req, resp, timeoutInSecond);
     }
+
 private:
     Result HandleNewLink(const NetLinkPtr &link);
     /* message handle function */
@@ -56,4 +57,4 @@ private:
 using MetaNetServerPtr = MmcRef<MetaNetServer>;
 }
 }
-#endif // SMEM_MMC_META_NET_SERVER_H
+#endif  // SMEM_MMC_META_NET_SERVER_H

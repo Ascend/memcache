@@ -1,7 +1,8 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
-#pragma once
+#ifndef MEM_FABRIC_MMC_CONFIG_CONST_H
+#define MEM_FABRIC_MMC_CONFIG_CONST_H
 
 #include <utility>
 
@@ -15,5 +16,7 @@ constexpr auto OCK_MMC_META_SERVICE_WORLD_SIZE = std::make_pair("ock.mmc.meta_se
 constexpr int MIN_META_SERVICE_WORLD_SIZE = 1;
 constexpr int MAX_META_SERVICE_WORLD_SIZE = 64;
 }
-} // namespace mmc
-} // namespace ock
+}  // namespace mmc
+}  // namespace ock
+
+#endif
