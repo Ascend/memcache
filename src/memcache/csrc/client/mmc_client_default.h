@@ -27,11 +27,13 @@ public:
 
     Result Get(const char *key, mmc_buffer *buf, uint32_t flags) const;
 
+    Result BatchGet(const std::vector<std::string> &keys, std::vector<mmc_buffer> &bufs, uint32_t flags) const;
+
     mmc_location_t GetLocation(const char *key, uint32_t flags) const;
 
     Result Remove(const char *key, uint32_t flags) const;
 
-    Result BatchRemove(const std::vector<std::string>& keys, std::vector<Result>& remove_results, uint32_t flags);
+    Result BatchRemove(const std::vector<std::string>& keys, std::vector<Result>& remove_results, uint32_t flags) const;
 
     Result IsExist(const std::string &key, uint32_t flags) const;
 

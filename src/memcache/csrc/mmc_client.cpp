@@ -109,3 +109,14 @@ MMC_API int32_t mmcc_batch_remove(const std::vector<std::string>& keys, std::vec
                                     gClientHandler->Name() << " batch_remove failed!");
     return MMC_OK;
 }
+
+MMC_API int32_t mmcc_batch_get(const std::vector<std::string>& keys, std::vector<mmc_buffer>& bufs, uint32_t flags)
+{
+    MMC_VALIDATE_RETURN(!keys.empty(), "invalid param, keys is empty", MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(bufs.size() == keys.size(), "invalid param, bufs size mismatch", MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(gClientHandler != nullptr, "client is not initialize", MMC_CLIENT_NOT_INIT);
+
+    Result result = gClientHandler->BatchGet(keys, bufs, flags);
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(result != MMC_OK, gClientHandler->Name() << " batch_get failed!");
+    return MMC_OK;
+}

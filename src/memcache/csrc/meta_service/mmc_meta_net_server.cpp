@@ -45,6 +45,8 @@ Result ock::mmc::MetaNetServer::Start()
                                       std::bind(&MetaNetServer::HandleUpdate, this, std::placeholders::_1));
     server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_GET_REQ,
                                       std::bind(&MetaNetServer::HandleGet, this, std::placeholders::_1));
+    server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_BATCH_GET_REQ,
+                                      std::bind(&MetaNetServer::HandleBatchGet, this, std::placeholders::_1));
     server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_REMOVE_REQ,
                                       std::bind(&MetaNetServer::HandleRemove, this, std::placeholders::_1));
     server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_BATCH_REMOVE_REQ,
@@ -154,6 +156,20 @@ Result MetaNetServer::HandleGet(const NetContextPtr &context)
     auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
     metaMgrProxy->Get(req, resp);
     MMC_LOG_INFO("HandleGet key " << req.key_);
+
+    return context->Reply(req.msgId, resp);
+}
+
+Result MetaNetServer::HandleBatchGet(const NetContextPtr &context)
+{
+    BatchGetRequest req;
+    BatchAllocResponse resp;
+    context->GetRequest<BatchGetRequest>(req);
+
+    MMC_LOG_INFO("HandleBatchGet keys");
+    auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
+    metaMgrProxy->BatchGet(req, resp);
+    MMC_LOG_INFO("HandleBatchGet keys processed");
 
     return context->Reply(req.msgId, resp);
 }

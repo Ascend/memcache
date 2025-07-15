@@ -91,6 +91,46 @@ Result MmcClientDefault::Get(const char *key, mmc_buffer *buf, uint32_t flags) c
     return MMC_OK;
 }
 
+Result MmcClientDefault::BatchGet(const std::vector<std::string> &keys, 
+                                  std::vector<mmc_buffer> &bufs, uint32_t flags) const 
+{
+    BatchGetRequest request{keys};
+    BatchAllocResponse response;
+
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(
+        metaNetClient_->SyncCall(request, response, timeOut_),
+        "client " << name_ << " batch get failed"
+    );
+
+    if (response.blobs_.size() != keys.size()) {
+        MMC_LOG_ERROR("client " << name_ << " batch get response size mismatch: expected " << keys.size() << ", got " 
+                       << response.blobs_.size());
+        return MMC_ERROR;
+    };
+
+    for (size_t i = 0; i < keys.size(); ++i) {
+        const auto &blobs = response.blobs_[i];
+        uint8_t numBlobs = response.numBlobs_[i];
+
+        if (numBlobs > 0) {
+            if (i >= bufs.size()) {
+                MMC_LOG_ERROR("client " << name_ << " batch get buffer size mismatch for key " << keys[i]);
+                return MMC_ERROR;
+            }
+
+            MMC_LOG_ERROR_AND_RETURN_NOT_OK(
+                bmProxy_->Get(&bufs[i], blobs[0].gva_),
+                "client " << name_ << " batch get failed for key " << keys[i]
+            );
+        } else {
+            MMC_LOG_ERROR("client " << name_ << " batch get failed for key " << keys[i]);
+            return MMC_ERROR;
+        }
+    }
+
+    return MMC_OK;
+}
+
 mmc_location_t MmcClientDefault::GetLocation(const char *key, uint32_t flags) const
 {
     GetRequest request{key};
@@ -108,7 +148,9 @@ Result MmcClientDefault::Remove(const char *key, uint32_t flags) const
     return 0;
 }
 
-Result MmcClientDefault::BatchRemove(const std::vector<std::string>& keys, std::vector<Result>& remove_results, uint32_t flags) {
+Result MmcClientDefault::BatchRemove(const std::vector<std::string>& keys, 
+                                     std::vector<Result>& remove_results, uint32_t flags) const
+{
     BatchRemoveRequest request{keys};
     BatchRemoveResponse response;
     
@@ -118,7 +160,8 @@ Result MmcClientDefault::BatchRemove(const std::vector<std::string>& keys, std::
     );
 
     if (response.results_.size() != keys.size()) {
-        MMC_LOG_ERROR("BatchRemove response size mismatch. Expected: " << keys.size() << ", Got: " << response.results_.size());
+        MMC_LOG_ERROR("BatchRemove response size mismatch. Expected: " 
+                      << keys.size() << ", Got: " << response.results_.size());
         std::fill(remove_results.begin(), remove_results.end(), MMC_ERROR);
         return MMC_ERROR;
     }

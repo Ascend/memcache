@@ -29,9 +29,11 @@ public:
 
     Result Get(const GetRequest &req, AllocResponse &resp) override;
 
+    Result BatchGet(const BatchGetRequest &req, BatchAllocResponse &resp) override;
+
     Result Remove(const RemoveRequest &req, Response &resp) override;
 
-    Result BatchRemove(const BatchRemoveRequest &req, BatchRemoveResponse &resp);
+    Result BatchRemove(const BatchRemoveRequest &req, BatchRemoveResponse &resp) override;
 
     Result Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo &localMemInitInfo) override
     {

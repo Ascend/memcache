@@ -66,6 +66,51 @@ Result MmcMetaMgrProxyDefault::Get(const GetRequest &req, AllocResponse &resp)
     return MMC_OK;
 }
 
+Result MmcMetaMgrProxyDefault::BatchGet(const BatchGetRequest &req, BatchAllocResponse &resp)
+{
+    std::vector<MmcMemObjMetaPtr> objMetas;
+    std::vector<Result> getResults;
+
+    Result ret = metaMangerPtr_->BatchGet(req.keys_, objMetas, getResults);
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("BatchGet Fail, error:" << ret);
+        return ret;
+    }
+
+    if (objMetas.size() != req.keys_.size()) {
+        MMC_LOG_ERROR("BatchGet response size mismatch: expected " << req.keys_.size() << ", got " << objMetas.size());
+        return MMC_ERROR;
+    }
+
+    resp.numBlobs_.resize(req.keys_.size());
+    resp.prots_.resize(req.keys_.size());
+    resp.priorities_.resize(req.keys_.size());
+    resp.leases_.resize(req.keys_.size());
+    resp.blobs_.resize(req.keys_.size());
+
+    for (size_t i = 0; i < req.keys_.size(); ++i) {
+        if (getResults[i] == MMC_OK) {
+            const MmcMemObjMetaPtr &objMeta = objMetas[i];
+            resp.numBlobs_[i] = objMeta->NumBlobs();
+            resp.prots_[i] = objMeta->Prot();
+            resp.priorities_[i] = objMeta->Priority();
+            resp.leases_[i] = objMeta->Lease();
+
+            std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs();
+            for (const auto &blob : blobs) {
+                resp.blobs_[i].push_back(blob->GetDesc());
+            }
+        } else {
+            resp.numBlobs_[i] = 0;
+            resp.prots_[i] = 0;
+            resp.priorities_[i] = 0;
+            resp.leases_[i] = 0;
+            MMC_LOG_DEBUG("Key " << req.keys_[i] << " not found");
+        }
+    }
+    return MMC_OK;
+}
+
 Result MmcMetaMgrProxyDefault::Remove(const RemoveRequest &req, Response &resp)
 {
 

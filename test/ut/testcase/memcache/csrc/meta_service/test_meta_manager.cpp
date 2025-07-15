@@ -290,3 +290,61 @@ TEST_F(TestMmcMetaManager, BatchRemove)
         ASSERT_TRUE(result == MMC_LEASE_NOT_EXPIRED);
     }
 }
+
+TEST_F(TestMmcMetaManager, BatchGet)
+{
+    MmcLocation loc{0, 0};
+    MmcLocalMemlInitInfo locInfo{0, 1000000};
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(2000);
+    metaMng->Mount(loc, locInfo);
+
+    const uint16_t numKeys = 20U;
+    std::vector<std::string> keys;
+    std::vector<MmcMemObjMetaPtr> memMetaObjs;
+    AllocOptions allocReq{SIZE_32K, 1, 0, 0, 0};  // blobSize, numBlobs, mediaType, preferredRank, flags
+    Result ret;
+
+    for (int i = 0; i < numKeys; ++i) {
+        MmcMemObjMetaPtr objMeta;
+        std::string key = "testKey" + std::to_string(i);
+        ret = metaMng->Alloc(key, allocReq, objMeta);
+        memMetaObjs.push_back(objMeta);
+        keys.push_back(key);
+    }
+    ASSERT_TRUE(ret == MMC_OK);
+    ASSERT_TRUE(memMetaObjs[0]->NumBlobs() == 1);
+    ASSERT_TRUE(memMetaObjs[0]->Size() == SIZE_32K);
+
+    std::vector<MmcMemObjMetaPtr> objMetas;
+    std::vector<Result> getResults;
+    ret = metaMng->BatchGet(keys, objMetas, getResults);
+    ASSERT_TRUE(ret == MMC_OK);
+
+    for (size_t i = 0; i < keys.size(); ++i) {
+        ASSERT_TRUE(getResults[i] == MMC_OK) << "Key " << keys[i] << " failed";
+        ASSERT_TRUE(objMetas[i] != nullptr) << "Key " << keys[i] << " objMeta is null";
+        ASSERT_TRUE(objMetas[i]->NumBlobs() == 1) << "Key " << keys[i] << " blob count mismatch";
+        ASSERT_TRUE(objMetas[i]->Size() == SIZE_32K) << "Key " << keys[i] << " size mismatch";
+    }
+
+    std::vector<std::string> partialKeys = {keys[0], "nonexistentKey"};
+    std::vector<MmcMemObjMetaPtr> partialObjMetas;
+    std::vector<Result> partialGetResults;
+    ret = metaMng->BatchGet(partialKeys, partialObjMetas, partialGetResults);
+
+    ASSERT_TRUE(partialGetResults[0] == MMC_OK) << "Partial key " << partialKeys[0] << " failed";
+    ASSERT_TRUE(partialGetResults[1] == MMC_ERROR) << "Partial key " << partialKeys[1] << " not unmatched";
+
+    std::vector<std::string> nonExistentKeys = {"nonexistentKey1", "nonexistentKey2"};
+    std::vector<MmcMemObjMetaPtr> nonExistentObjMetas;
+    std::vector<Result> nonExistentGetResults;
+    ret = metaMng->BatchGet(nonExistentKeys, nonExistentObjMetas, nonExistentGetResults);
+
+    for (size_t i = 0; i < nonExistentKeys.size(); ++i) {
+        ASSERT_TRUE(nonExistentGetResults[i] == MMC_ERROR) << "Nonexistent key " << nonExistentKeys[i] << " not unmatched";
+    }
+
+    for (const auto& key : keys) {
+        metaMng->Remove(key);
+    }
+}

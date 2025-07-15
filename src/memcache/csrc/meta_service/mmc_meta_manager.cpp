@@ -18,6 +18,37 @@ Result MmcMetaManager::Get(const std::string &key, MmcMemObjMetaPtr &objMeta)
     return ret;
 }
 
+Result MmcMetaManager::BatchGet(const std::vector<std::string>& keys, 
+                                std::vector<MmcMemObjMetaPtr>& objMetas, 
+                                std::vector<Result>& getResults)
+{
+    objMetas.resize(keys.size());
+    getResults.resize(keys.size());
+    
+    for (size_t i = 0; i < keys.size(); ++i) {
+        const std::string& key = keys[i];
+        MmcMemObjMetaPtr objMeta;
+        Result ret = objMetaLookupMap_.Find(key, objMeta);
+        getResults[i] = ret;
+        
+        if (ret == MMC_OK) {
+            objMeta->ExtendLease(1000U);
+            objMetas[i] = objMeta;
+            MMC_LOG_DEBUG("Key " << key << " found successfully");
+        } else {
+            objMetas[i] = nullptr;
+            MMC_LOG_DEBUG("Key " << key << " not found");
+        }
+    }
+    
+    for (const Result& r : getResults) {
+        if (r != MMC_OK) {
+            return r;
+        }
+    }
+    return MMC_OK;
+}
+
 // TODO: Check threshold， if above， try to remove to free space
 // TODO: 检测不能是相同的key
 Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOpt, MmcMemObjMetaPtr &objMeta)

@@ -41,6 +41,8 @@ private:
 
     Result HandleGet(const NetContextPtr &context);
 
+    Result HandleBatchGet(const NetContextPtr &context);
+
     Result HandleRemove(const NetContextPtr &context);
 
     Result HandleIsExist(const NetContextPtr &context);

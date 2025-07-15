@@ -31,11 +31,19 @@ public:
     Result Get(const std::string &key, MmcMemObjMetaPtr &objMeta);
 
     /**
+    * @brief Get multiple meta objects and extend their leases
+    * @param keys          [in] List of keys for the meta objects to retrieve
+    * @param objMetas      [out] Vector of pointers to the retrieved meta objects, corresponding to the keys in order
+    * @param getResults    [out] Vector of results indicating the success/failure of retrieving each key's meta object
+    */
+    Result BatchGet(const std::vector<std::string>& keys, 
+                   std::vector<MmcMemObjMetaPtr>& objMetas, 
+                   std::vector<Result>& getResults);
+    /**
      * @brief Alloc the global memeory space and create the meta object
      * @param key          [in] key of the meta object
      * @param metaInfo     [out] the meta object created
      */
-
     Result Alloc(const std::string &key, const AllocOptions &allocOpt, MmcMemObjMetaPtr &objMeta);
 
     /**

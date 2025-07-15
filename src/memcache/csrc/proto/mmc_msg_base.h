@@ -33,8 +33,10 @@ enum LOCAL_META_OPCODE_REQ : int16_t {
     LM_META_REPLICATE_REQ = 7, /* get replicate list of object by key */
     ML_IS_EXIST_REQ = 8,       /* check if object exists*/
     ML_BATCH_IS_EXIST_REQ = 9, /* check if objects exist in batch */
-    ML_BATCH_REMOVE_REQ = 10,  /* remove objects by keys in batch*/
+    ML_BATCH_REMOVE_REQ = 10,  /* remove objects by keys in batch */
     ML_BM_UNREGISTER_REQ = 11, /* unregister local bm to meta service */
+    ML_BATCH_GET_REQ = 12,     /* get object info by keys in batch */
+
 };
 
 enum LOCAL_META_OPCODE_RESP : int16_t {
@@ -46,6 +48,7 @@ enum LOCAL_META_OPCODE_RESP : int16_t {
     ML_BATCH_IS_EXIST_RESP = 5,
     ML_BATCH_REMOVE_RESP = 6,
     ML_BM_UNREGISTER_RESP = 7,  // unused
+    ML_BATCH_ALLOC_RESP = 8,
 };
 }  // namespace mmc
 }  // namespace ock
