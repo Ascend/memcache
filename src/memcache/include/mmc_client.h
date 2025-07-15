@@ -47,6 +47,17 @@ int32_t mmcc_put(const char *key, mmc_buffer *buf, mmc_put_options options, uint
 int32_t mmcc_get(const char *key, mmc_buffer *buf, uint32_t flags);
 
 /**
+ * @brief Get data info of object by key from Distributed Memory Cache
+ * This data operation supports both sync and async
+ *
+ * @param key              [in] key of data, less than 256
+ * @param info             [in] data to be gotten
+ * @param flags            [in] optional flags, reserved
+ * @return 0 if successful
+ */
+int32_t mmcc_query(const char* key, mmc_data_info *info, uint32_t flags);
+
+/**
  * @brief Put data of object with key into Distributed Memory Cache
  * This data operation supports both sync and async
  *

@@ -8,6 +8,7 @@
 
 #include "mmc_client.h"
 #include "mmc.h"
+#include "mmc_logger.h"
 #include "mmc_service.h"
 #include "mmc_types.h"
 
@@ -142,15 +143,15 @@ int DistributedObjectStore::initAll(const std::string &protocol,
 }
 
 int DistributedObjectStore::tearDownAll() {
-    mmcc_uninit();
     if (local_service_ != nullptr) {
         mmcs_local_service_stop(local_service_);
         local_service_ = nullptr;
     }
+    mmcc_uninit();
     return 0;
 }
 
-int DistributedObjectStore::put(const std::string &key, mmc_buffer buffer) {
+int DistributedObjectStore::put(const std::string &key, mmc_buffer &buffer) {
     mmc_put_options options = {.mediaType = 0, .policy = NATIVE_AFFINITY};
     return mmcc_put(key.c_str(), &buffer, options, 0);
 }
@@ -166,10 +167,38 @@ int DistributedObjectStore::put_parts(const std::string &key, std::vector<mmc_bu
 }
 
 pybind11::bytes DistributedObjectStore::get(const std::string &key) {
-    const auto kNullString = pybind11::bytes("\0", 0);
-    py::gil_scoped_release release_gil;
+    mmc_data_info info;
+    auto res = mmcc_query(key.c_str(), &info, 0);
+    if (res != MMC_OK) {
+        MMC_LOG_ERROR("Failed to query key " << key << ", error code: " << res);
+        py::gil_scoped_acquire acquire_gil;
+        return {"\0", 0};
+    }
+
+    const auto data_ptr = std::shared_ptr<char[]>(new char[info.size]);
+    if (data_ptr == nullptr) {
+        MMC_LOG_ERROR("Failed to allocate dynamic memory. ");
+        py::gil_scoped_acquire acquire_gil;
+        return {"\0", 0};
+    }
+    mmc_buffer buffer = {
+        .addr = reinterpret_cast<uintptr_t>(data_ptr.get()),
+        .type = 0,
+        .dram = {
+            .offset = 0,
+            .len = info.size,
+        }
+    };
+
+    res = mmcc_get(key.c_str(), &buffer, 0);
+    if (res != MMC_OK) {
+        MMC_LOG_ERROR("Failed to get key " << key << ", error code: " << res);
+        py::gil_scoped_acquire acquire_gil;
+        return {"\0", 0};
+    }
+
     py::gil_scoped_acquire acquire_gil;
-    return kNullString;
+    return {reinterpret_cast<const char *>(buffer.addr), buffer.dram.len};
 }
 
 std::vector<pybind11::bytes> DistributedObjectStore::get_batch(const std::vector<std::string> &keys) {
@@ -178,7 +207,7 @@ std::vector<pybind11::bytes> DistributedObjectStore::get_batch(const std::vector
 }
 
 int DistributedObjectStore::remove(const std::string &key) {
-    return 0;
+    return mmcc_remove(key.c_str(), 0);
 }
 
 long DistributedObjectStore::removeAll() {
@@ -396,16 +425,18 @@ PYBIND11_MODULE(_pymmc, m) {
             "Put object data directly from pre-allocated buffers for multiple "
             "keys")
         .def("put",
-            [](DistributedObjectStore &self, const std::string &key, py::buffer buf) {
+            [](DistributedObjectStore &self, const std::string &key, const py::buffer &buf) {
                 py::buffer_info info = buf.request(/*writable=*/false);
-                py::gil_scoped_release release;
-                return self.put(key, mmc_buffer{
+                mmc_buffer buffer = {
                     .addr=reinterpret_cast<uint64_t>(info.ptr), \
                     .type=0,
-                    .dram={.offset=0, .len=static_cast<uint64_t>(info.size)}});
+                    .dram={.offset=0, .len=static_cast<uint64_t>(info.size)}
+                };
+                py::gil_scoped_release release;
+                return self.put(key, buffer);
             })
         .def("put_parts",
-            [](DistributedObjectStore &self, const std::string &key, py::args parts) {
+            [](DistributedObjectStore &self, const std::string &key, const py::args& parts) {
                 // 1) Python buffer → mmc_buffer
                 std::vector<py::buffer_info> infos;
                 std::vector<mmc_buffer> buffers;
@@ -442,7 +473,7 @@ PYBIND11_MODULE(_pymmc, m) {
                 buffers.reserve(temp_values.size());
                 for (const auto &s : temp_values) {
                     buffers.emplace_back(mmc_buffer{
-                        .addr=static_cast<uint64_t>(reinterpret_cast<uintptr_t>(s.data())),
+                        .addr=reinterpret_cast<uintptr_t>(s.data()),
                         .type=0,
                         .dram={.offset=0, .len=s.size()}});
                 }

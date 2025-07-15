@@ -74,6 +74,12 @@ typedef struct {
     int32_t xx;  // TODO
 } mmc_location_t;
 
+typedef struct {
+    uint32_t rank;
+    uint32_t size;
+    uint16_t prot;
+} mmc_data_info;
+
 #ifdef __cplusplus
 }
 #endif

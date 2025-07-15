@@ -57,6 +57,13 @@ MMC_API int32_t mmcc_get(const char *key, mmc_buffer *buf, uint32_t flags)
     return MMC_OK;
 }
 
+MMC_API int32_t mmcc_query(const char* key, mmc_data_info *info, uint32_t flags)
+{
+    // mock
+    info->size = 10;
+    return MMC_OK;
+}
+
 MMC_API mmc_location_t mmcc_get_location(const char *key, uint32_t flags)
 {
     MMC_VALIDATE_RETURN(key != nullptr, "invalid param, key is null", {});
