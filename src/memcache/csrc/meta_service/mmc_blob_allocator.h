@@ -56,6 +56,11 @@ public:
         return allocatedSize_ == 0;
     }
 
+    std::pair<uint64_t, uint64_t> GetUsageInfo()
+    {
+        return std::make_pair(capacity_, allocatedSize_);
+    }
+
 private:
     static uint64_t AllocSizeAlignUp(uint64_t size);
 
