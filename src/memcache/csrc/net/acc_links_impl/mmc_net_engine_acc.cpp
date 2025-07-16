@@ -300,7 +300,7 @@ Result NetEngineAcc::HandleNewLink(const TcpConnReq &req, const TcpLinkPtr &link
     MMC_LOG_INFO("HandleNewLink with peer id: " << req.rankId);
     Result ret = MMC_OK;
     if (newLinkHandler_ != nullptr) {
-        ret = newLinkHandler_(Convert<NetLinkAcc, NetLink>(newLinkAcc));
+        ret = newLinkHandler_(newLinkAcc.Get());
     }
     return MMC_OK;
 }
@@ -336,6 +336,21 @@ Result NetEngineAcc::HandleLinkBroken(const TcpLinkPtr &link) const
 
     const auto peerId = static_cast<uint32_t>(link->UpCtx());
 
+    auto linkAcc = MmcMakeRef<NetLinkAcc>(peerId, link);
+    MMC_ASSERT_RETURN(linkAcc != nullptr, MMC_NEW_OBJECT_FAILED);
+
+    /* add into peer link map */
+    peerLinkMap_->Find(peerId, linkAcc);
+
+    Result ret = MMC_OK;
+    MMC_LOG_INFO("XXXX");
+    if (linkBrokenHandler_ != nullptr) {
+        ret = linkBrokenHandler_(linkAcc.Get());
+    }
+    if (ret != MMC_OK)
+    {
+        MMC_LOG_WARN("Failed to remove link with id " << peerId);
+    }
     const auto result = peerLinkMap_->Remove(peerId);
     if (result) {
         return MMC_OK;

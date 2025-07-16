@@ -5,6 +5,7 @@
 #include "mmc_msg_client_meta.h"
 #include "mmc_mem_obj_meta.h"
 #include "mmc_bm_proxy.h"
+#include "mmc_montotonic.h"
 
 namespace ock {
 namespace mmc {
@@ -59,7 +60,7 @@ Result MmcClientDefault::Put(const char *key, mmc_buffer *buf, mmc_put_options &
     uint64_t blobSize = buf->type == 0 ? buf->dram.len : buf->hbm.width * buf->hbm.layerNum;
     AllocRequest request{key, {blobSize, 1, options.mediaType, RankId(options.policy), flags}};
     AllocResponse response;
-    MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->SyncCall(request, response, timeOut_),
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->SyncCall(request, response, rpcTimeOut_),
                                     "client " << name_ << " alloc " << key << " failed");
 
     for (uint8_t i = 0; i < response.numBlobs_; i++) {
@@ -68,7 +69,7 @@ Result MmcClientDefault::Put(const char *key, mmc_buffer *buf, mmc_put_options &
     }
     UpdateRequest updateRequest{MMC_WRITE_OK, key, 0, 0};
     Response updateResponse;
-    MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->SyncCall(updateRequest, updateResponse, timeOut_),
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->SyncCall(updateRequest, updateResponse, rpcTimeOut_),
                                     "client " << name_ << " update " << key << " failed");
     MMC_LOG_ERROR_AND_RETURN_NOT_OK(updateResponse.ret_, "client " << name_ << " update " << key << " failed");
 
@@ -79,11 +80,14 @@ Result MmcClientDefault::Get(const char *key, mmc_buffer *buf, uint32_t flags) c
 {
     GetRequest request{key};
     AllocResponse response;
-    MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->SyncCall(request, response, timeOut_),
+    uint64_t startTime = ock::dagger::Monotonic::TimeUs();
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->SyncCall(request, response, rpcTimeOut_),
                                     "client " << name_ << " get " << key << " failed");
     if (response.numBlobs_ > 0) {
         MMC_LOG_ERROR_AND_RETURN_NOT_OK(bmProxy_->Get(buf, response.blobs_[0].gva_),
                                         "client " << name_ << " get " << key << " failed");
+        uint64_t timeMs = (ock::dagger::Monotonic::TimeUs() - startTime) / 1000U;
+        MMC_ASSERT_RETURN(timeMs < defaultTtlMs_, MMC_ERROR);
     } else {
         MMC_LOG_ERROR("client " << name_ << " get " << key << " failed");
         return MMC_ERROR;
@@ -91,19 +95,19 @@ Result MmcClientDefault::Get(const char *key, mmc_buffer *buf, uint32_t flags) c
     return MMC_OK;
 }
 
-Result MmcClientDefault::BatchGet(const std::vector<std::string> &keys, 
-                                  std::vector<mmc_buffer> &bufs, uint32_t flags) const 
+Result MmcClientDefault::BatchGet(const std::vector<std::string> &keys,
+                                  std::vector<mmc_buffer> &bufs, uint32_t flags) const
 {
     BatchGetRequest request{keys};
     BatchAllocResponse response;
-
+    uint64_t startTime = ock::dagger::Monotonic::TimeUs();
     MMC_LOG_ERROR_AND_RETURN_NOT_OK(
-        metaNetClient_->SyncCall(request, response, timeOut_),
+        metaNetClient_->SyncCall(request, response, rpcTimeOut_),
         "client " << name_ << " batch get failed"
     );
 
     if (response.blobs_.size() != keys.size()) {
-        MMC_LOG_ERROR("client " << name_ << " batch get response size mismatch: expected " << keys.size() << ", got " 
+        MMC_LOG_ERROR("client " << name_ << " batch get response size mismatch: expected " << keys.size() << ", got "
                        << response.blobs_.size());
         return MMC_ERROR;
     };
@@ -118,16 +122,16 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string> &keys,
                 return MMC_ERROR;
             }
 
-            MMC_LOG_ERROR_AND_RETURN_NOT_OK(
-                bmProxy_->Get(&bufs[i], blobs[0].gva_),
-                "client " << name_ << " batch get failed for key " << keys[i]
-            );
+            MMC_LOG_ERROR_AND_RETURN_NOT_OK(bmProxy_->Get(&bufs[i], blobs[0].gva_),
+                "client " << name_ << " batch get failed for key " << keys[i]);
+
         } else {
             MMC_LOG_ERROR("client " << name_ << " batch get failed for key " << keys[i]);
             return MMC_ERROR;
         }
     }
-
+    uint64_t timeMs = (ock::dagger::Monotonic::TimeUs() - startTime) / 1000U;
+    MMC_ASSERT_RETURN(timeMs < (defaultTtlMs_ * keys.size()), MMC_ERROR);
     return MMC_OK;
 }
 
@@ -135,7 +139,7 @@ mmc_location_t MmcClientDefault::GetLocation(const char *key, uint32_t flags) co
 {
     GetRequest request{key};
     AllocResponse response;
-    MMC_ASSERT_RETURN(metaNetClient_->SyncCall(request, response, timeOut_) == MMC_OK, {-1});
+    MMC_ASSERT_RETURN(metaNetClient_->SyncCall(request, response, rpcTimeOut_) == MMC_OK, {-1});
     return {};
 }
 
@@ -143,24 +147,24 @@ Result MmcClientDefault::Remove(const char *key, uint32_t flags) const
 {
     RemoveRequest request{key};
     Response response;
-    MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->SyncCall(request, response, timeOut_),
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->SyncCall(request, response, rpcTimeOut_),
                                     "client " << name_ << " remove " << key << " failed");
     return 0;
 }
 
-Result MmcClientDefault::BatchRemove(const std::vector<std::string>& keys, 
+Result MmcClientDefault::BatchRemove(const std::vector<std::string>& keys,
                                      std::vector<Result>& remove_results, uint32_t flags) const
 {
     BatchRemoveRequest request{keys};
     BatchRemoveResponse response;
-    
+
     MMC_LOG_ERROR_AND_RETURN_NOT_OK(
-        metaNetClient_->SyncCall(request, response, timeOut_),
+        metaNetClient_->SyncCall(request, response, rpcTimeOut_),
         "client " << name_ << " BatchRemove failed"
     );
 
     if (response.results_.size() != keys.size()) {
-        MMC_LOG_ERROR("BatchRemove response size mismatch. Expected: " 
+        MMC_LOG_ERROR("BatchRemove response size mismatch. Expected: "
                       << keys.size() << ", Got: " << response.results_.size());
         std::fill(remove_results.begin(), remove_results.end(), MMC_ERROR);
         return MMC_ERROR;
@@ -174,7 +178,7 @@ Result MmcClientDefault::IsExist(const std::string &key, uint32_t flags) const
 {
     IsExistRequest request{key};
     Response response;
-    MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->SyncCall(request, response, timeOut_),
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->SyncCall(request, response, rpcTimeOut_),
                                     "client " << name_ << " IsExist " << key << " failed");
     return response.ret_;
 }
@@ -184,7 +188,7 @@ Result MmcClientDefault::BatchIsExist(const std::vector<std::string> &keys, std:
 {
     BatchIsExistRequest request{keys};
     BatchIsExistResponse response;
-    MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->SyncCall(request, response, timeOut_),
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->SyncCall(request, response, rpcTimeOut_),
                                     "client " << name_ << " BatchIsExist failed");
 
     if (response.results_.size() != keys.size()) {

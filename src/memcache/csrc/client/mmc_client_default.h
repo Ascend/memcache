@@ -49,7 +49,8 @@ private:
     MmcBmProxyPtr bmProxy_;
     std::string name_;
     uint32_t randId_{UINT32_MAX};
-    uint32_t timeOut_ = 60;
+    uint32_t rpcTimeOut_ = 60;
+    uint64_t defaultTtlMs_ = MMC_DATA_TTL_MS;
 };
 
 uint32_t MmcClientDefault::RankId(const affinity_policy &policy)

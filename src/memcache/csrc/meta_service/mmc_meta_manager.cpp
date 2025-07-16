@@ -13,7 +13,7 @@ Result MmcMetaManager::Get(const std::string &key, MmcMemObjMetaPtr &objMeta)
 {
     auto ret = objMetaLookupMap_.Find(key, objMeta);
     if (ret == MMC_OK) {
-        objMeta->ExtendLease(1000U);
+        objMeta->ExtendLease(defaultTtlMs_);
     }
     return ret;
 }
@@ -32,7 +32,7 @@ Result MmcMetaManager::BatchGet(const std::vector<std::string>& keys,
         getResults[i] = ret;
         
         if (ret == MMC_OK) {
-            objMeta->ExtendLease(1000U);
+            objMeta->ExtendLease(defaultTtlMs_ * keys.size());
             objMetas[i] = objMeta;
             MMC_LOG_DEBUG("Key " << key << " found successfully");
         } else {
@@ -65,7 +65,7 @@ Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOp
         objMeta->AddBlob(blob);
     }
     objMetaLookupMap_.Insert(key, objMeta);
-    objMeta->ExtendLease(1000U);
+    objMeta->ExtendLease(defaultTtlMs_);
     return MMC_OK;
 }
 
@@ -77,7 +77,7 @@ Result MmcMetaManager::GetBlobs(const std::string &key, const MmcBlobFilterPtr &
     /* TODO check ret firstly, then get blobs from objMeta in case of objMeta is nullptr */
     blobs = objMeta->GetBlobs(filter);
     if (ret == MMC_OK && !blobs.empty()) {
-        objMeta->ExtendLease(1000U);
+        objMeta->ExtendLease(defaultTtlMs_);
         return MMC_OK;
     }
 
@@ -126,7 +126,10 @@ Result MmcMetaManager::Remove(const std::string &key)
         objMeta = nullptr;
         return MMC_OK;
     } else {
-        return MMC_LEASE_NOT_EXPIRED;
+        objMetaLookupMap_.Erase(key);
+        std::lock_guard<std::mutex> lk(removeListLock_);
+        removeList_.push_back(objMeta);
+        return MMC_OK;
     }
 }
 
@@ -157,9 +160,7 @@ Result MmcMetaManager::ForceRemoveBlobs(const MmcMemObjMetaPtr &objMeta, const M
         }
     }
     if (!objMeta->IsLeaseExpired()) {
-        const uint64_t nowMs =
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch())
-                .count();
+        const uint64_t nowMs = ock::dagger::Monotonic::TimeNs() / 1000U;
         uint64_t timeLeft = objMeta->Lease() > nowMs ? objMeta->Lease() - nowMs : 0U;
         std::chrono::milliseconds leaseLeft(timeLeft);
         std::this_thread::sleep_for(leaseLeft);
@@ -229,5 +230,38 @@ Result MmcMetaManager::BatchExistKey(const std::vector<std::string> &keys, std::
     return (has_exist) ? MMC_OK : MMC_UNMATCHED_KEY;
 }
 
+void MmcMetaManager::AsyncRemoveThreadFunc()
+{
+    while (true)
+    {
+        std::unique_lock<std::mutex> lock(removeThreadLock_);
+        if (!removeThreadCv_.wait_for(lock, std::chrono::milliseconds(defaultTtlMs_), [this]{return removePredicate_;}))
+        {
+            MMC_LOG_DEBUG("async remove in thread ttl " << defaultTtlMs_ << " will remove count " << removeList_.size() <<
+                                                        " thread id " << pthread_self());
+            std::lock_guard<std::mutex> lg(removeListLock_);
+            MmcMemObjMetaPtr objMeta;
+            for (auto iter = removeList_.begin(); iter != removeList_.end();) {
+                objMeta = *iter;
+                if (!objMeta->IsLeaseExpired()) {
+                    iter++;
+                    continue;
+                }
+                std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs();
+                for (size_t i = 0; i < blobs.size(); i++) {
+                    Result ret = globalAllocator_->Free(blobs[i]);
+                    if (ret != MMC_OK) {
+                        MMC_LOG_ERROR("Error in free blobs!");
+                    }
+                }
+                objMeta->RemoveBlobs();
+                iter = removeList_.erase(iter);
+            }
+        } else {
+            MMC_LOG_DEBUG("async thread destroy, thread id " << pthread_self());
+            break;
+        }
+    }
+}
 }  // namespace mmc
 }  // namespace ock

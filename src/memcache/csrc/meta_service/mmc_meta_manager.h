@@ -4,6 +4,9 @@
 #ifndef MEM_FABRIC_MMC_META_MANAGER_H
 #define MEM_FABRIC_MMC_META_MANAGER_H
 
+#include <thread>
+#include <functional>
+#include <list>
 #include "mmc_global_allocator.h"
 #include "mmc_lookup_map.h"
 #include "mmc_mem_obj_meta.h"
@@ -17,10 +20,18 @@ static const uint16_t NUM_BUCKETS = 29;
 
 class MmcMetaManager : public MmcReferable {
 public:
-    explicit MmcMetaManager(uint64_t defaultTtl) : defaultTtl_(defaultTtl)
+    explicit MmcMetaManager(uint64_t defaultTtl) : defaultTtlMs_(defaultTtl)
     {
         globalAllocator_ = MmcMakeRef<MmcGlobalAllocator>();
         MMC_ASSERT(globalAllocator_ != nullptr);
+        removeThread_ = std::thread(std::bind(&MmcMetaManager::AsyncRemoveThreadFunc, this));
+    }
+
+    ~MmcMetaManager()
+    {
+        std::lock_guard<std::mutex> lk(removeThreadLock_);
+        removePredicate_ = true;
+        removeThreadCv_.notify_all();
     }
 
     /**
@@ -107,9 +118,17 @@ private:
      */
     Result ForceRemoveBlobs(const MmcMemObjMetaPtr &objMeta, const MmcBlobFilterPtr &filter = nullptr);
 
+    void AsyncRemoveThreadFunc();
+
     MmcLookupMap<std::string, MmcMemObjMetaPtr, NUM_BUCKETS> objMetaLookupMap_;
     MmcGlobalAllocatorPtr globalAllocator_;
-    uint64_t defaultTtl_; /* defult ttl in miliseconds*/
+    std::thread removeThread_;
+    std::mutex removeThreadLock_;
+    std::condition_variable removeThreadCv_;
+    std::mutex removeListLock_;
+    std::list<MmcMemObjMetaPtr> removeList_;
+    bool removePredicate_ = false;
+    uint64_t defaultTtlMs_; /* defult ttl in miliseconds*/
 };
 using MmcMetaManagerPtr = MmcRef<MmcMetaManager>;
 }  // namespace mmc

@@ -8,6 +8,7 @@
 #include "mmc_msg_packer.h"
 #include "mmc_ref.h"
 #include "mmc_spinlock.h"
+#include "mmc_montotonic.h"
 #include <vector>
 
 namespace ock {
@@ -109,7 +110,7 @@ using MmcMemObjMetaPtr = MmcRef<MmcMemObjMeta>;
 inline void MmcMemObjMeta::ExtendLease(const uint64_t ttl)
 {
     using namespace std::chrono;
-    const uint64_t nowMs = duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
+    const uint64_t nowMs = ock::dagger::Monotonic::TimeNs() / 1000U;
 
     std::lock_guard<Spinlock> guard(spinlock_);
     lease_ = std::max(lease_, nowMs + ttl);
@@ -118,7 +119,7 @@ inline void MmcMemObjMeta::ExtendLease(const uint64_t ttl)
 inline bool MmcMemObjMeta::IsLeaseExpired()
 {
     using namespace std::chrono;
-    const uint64_t nowMs = duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
+    const uint64_t nowMs = ock::dagger::Monotonic::TimeNs() / 1000U;
 
     std::lock_guard<Spinlock> guard(spinlock_);
     return (lease_ < nowMs);

@@ -120,7 +120,10 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
 
     ret = mmcc_remove(test.c_str(), 0);
     ASSERT_TRUE(ret == 0);
-
+    sleep(3);
     free(hostSrc);
     free(hostDest);
+
+    mmcs_local_service_stop(local_service);
+    mmcs_meta_service_stop(meta_service);
 }

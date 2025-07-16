@@ -28,6 +28,8 @@ public:
 
 private:
     Result HandleNewLink(const NetLinkPtr &link);
+
+    Result HandleLinkBroken(const NetLinkPtr &link);
     /* message handle function */
     Result HandleAlloc(const NetContextPtr &context);
 

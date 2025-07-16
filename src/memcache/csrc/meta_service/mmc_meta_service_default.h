@@ -17,7 +17,7 @@ class MmcMetaServiceDefault : public MmcMetaService {
 public:
     explicit MmcMetaServiceDefault(const std::string &name) : name_(name)
     {
-        uint64_t defaultTtl = 2000;
+        uint64_t defaultTtl = MMC_DATA_TTL_MS;
         metaMgrProxy_ = MmcMakeRef<MmcMetaMgrProxyDefault>(defaultTtl, metaNetServer_).Get();
     }
 
