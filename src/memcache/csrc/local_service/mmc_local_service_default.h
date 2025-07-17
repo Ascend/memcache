@@ -24,7 +24,7 @@ public:
 
     void Stop() override;
 
-    Result InitBm(const mmc_local_service_config_t &config);
+    Result InitBm();
 
     Result DestroyBm();
 

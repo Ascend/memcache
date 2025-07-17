@@ -46,9 +46,7 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
         return ret;
     }
 
-    if (initConfig.autoRanking == 1) {
-        initConfig.rankId = config.rankId;
-    }
+    randId_ = (initConfig.autoRanking == 1) ? smem_bm_get_rank_id() : initConfig.rankId;
 
     smem_bm_data_op_type opType = SMEMB_DATA_OP_SDMA;
     if (createConfig.dataOpType == "sdma") {

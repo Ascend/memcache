@@ -29,9 +29,12 @@ public:
 
     ~MmcMetaManager()
     {
-        std::lock_guard<std::mutex> lk(removeThreadLock_);
-        removePredicate_ = true;
-        removeThreadCv_.notify_all();
+        {
+            std::lock_guard<std::mutex> lk(removeThreadLock_);
+            removePredicate_ = true;
+            removeThreadCv_.notify_all();
+        }
+        removeThread_.join();
     }
 
     /**

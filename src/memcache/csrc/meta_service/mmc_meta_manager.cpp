@@ -133,7 +133,8 @@ Result MmcMetaManager::Remove(const std::string &key)
     }
 }
 
-Result MmcMetaManager::BatchRemove(const std::vector<std::string>& keys, std::vector<Result>& remove_results) {
+Result MmcMetaManager::BatchRemove(const std::vector<std::string>& keys, std::vector<Result>& remove_results)
+{
     remove_results.resize(keys.size());
     
     for (size_t i = 0; i < keys.size(); ++i) {
@@ -235,7 +236,7 @@ void MmcMetaManager::AsyncRemoveThreadFunc()
     while (true)
     {
         std::unique_lock<std::mutex> lock(removeThreadLock_);
-        if (!removeThreadCv_.wait_for(lock, std::chrono::milliseconds(defaultTtlMs_), [this]{return removePredicate_;}))
+        if (!removeThreadCv_.wait_for(lock, std::chrono::milliseconds(defaultTtlMs_), [this] {return removePredicate_;}))
         {
             MMC_LOG_DEBUG("async remove in thread ttl " << defaultTtlMs_ << " will remove count " << removeList_.size() <<
                                                         " thread id " << pthread_self());

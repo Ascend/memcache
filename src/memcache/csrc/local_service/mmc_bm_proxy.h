@@ -46,6 +46,7 @@ public:
     Result Put(mmc_buffer *buf, uint64_t bmAddr, uint64_t size);
     Result Get(mmc_buffer *buf, uint64_t bmAddr);
     uint64_t GetGva() const { return reinterpret_cast<uint64_t>(gva_); }
+    inline uint32_t RandId();
 
 private:
     void *gva_ = nullptr;
@@ -53,7 +54,13 @@ private:
     std::string name_;
     bool started_ = false;
     std::mutex mutex_;
+    uint32_t randId_;
 };
+
+uint32_t MmcBmProxy::RandId() {
+    return randId_;
+}
+
 using MmcBmProxyPtr = MmcRef<MmcBmProxy>;
 
 class MmcBmProxyFactory : public MmcReferable {
