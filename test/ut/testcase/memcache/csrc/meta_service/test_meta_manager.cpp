@@ -186,11 +186,8 @@ TEST_F(TestMmcMetaManager, AllocAndExistKey)
     ASSERT_TRUE(objMeta->NumBlobs() == 1);
     ASSERT_TRUE(objMeta->Size() == SIZE_32K);
 
-    Result ret = -1;
-    ASSERT_TRUE(metaMng->ExistKey("test_string", ret) == MMC_OK);
-    ASSERT_TRUE(ret == MMC_OK);
-    ASSERT_TRUE(metaMng->ExistKey("another_test_string", ret) == MMC_OK);
-    ASSERT_TRUE(ret != MMC_OK);
+    ASSERT_TRUE(metaMng->ExistKey("test_string") == MMC_OK);
+    ASSERT_TRUE(metaMng->ExistKey("another_test_string") == MMC_UNMATCHED_KEY);
 }
 
 TEST_F(TestMmcMetaManager, AllocAndBatchExistKey)
@@ -232,9 +229,7 @@ TEST_F(TestMmcMetaManager, AllocAndBatchExistKey)
                                   const uint16_t mmcOkCnt) {
         uint16_t mmcResultOkCnt = 0;
         std::vector<Result> results;
-        Result ret = -1;
-        ASSERT_TRUE(metaMng->BatchExistKey(keys, results, ret) == MMC_OK);
-        ASSERT_TRUE(ret == targetResult);
+        ASSERT_TRUE(metaMng->BatchExistKey(keys, results) == targetResult);
         for (const Result &result : results) {
             if (result == MMC_OK) {
                 ++mmcResultOkCnt;

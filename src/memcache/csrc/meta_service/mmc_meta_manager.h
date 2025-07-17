@@ -89,17 +89,15 @@ public:
     /**
      * @brief Check if a meta object (key) is in memory
      * @param key          [in] key of the meta object
-     * @param found        [out] status regarding whether the key was found
      */
-    Result ExistKey(const std::string &key, Result &found);
+    Result ExistKey(const std::string &key);
 
     /**
      * @brief Check if a list of meta objects (keys) is in memory
      * @param keys          [in] keys of the meta objects
      * @param results       [out] the accessible state corresponding to each key
-     * @param found        [out] status regarding whether the key was found
      */
-    Result BatchExistKey(const std::vector<std::string> &keys, std::vector<Result> &results, Result &found);
+    Result BatchExistKey(const std::vector<std::string> &keys, std::vector<Result> &results);
 
     /**
      * @brief Batch remove multiple meta objects

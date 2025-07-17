@@ -226,25 +226,27 @@ Result MmcMetaManager::Unmount(const MmcLocation &loc)
     return ret;
 }
 
-Result MmcMetaManager::ExistKey(const std::string &key, Result &found)
+Result MmcMetaManager::ExistKey(const std::string &key)
 {
-    found = objMetaLookupMap_.Find(key);
-    if (found != MMC_OK) {
+    Result ret = objMetaLookupMap_.Find(key);
+    if (ret != MMC_OK) {
         MMC_LOG_WARN("ExistKey cannot match an object with key : " << key);
+        return MMC_UNMATCHED_KEY;
     }
-    return MMC_OK;
+    return ret;
 }
 
-Result MmcMetaManager::BatchExistKey(const std::vector<std::string> &keys, std::vector<Result> &results, Result &found)
+Result MmcMetaManager::BatchExistKey(const std::vector<std::string> &keys, std::vector<Result> &results)
 {
+    Result ret = MMC_UNMATCHED_KEY;
     results.reserve(keys.size());
     for (size_t i = 0; i < keys.size(); ++i) {
         results.emplace_back(objMetaLookupMap_.Find(keys[i]));
         if (results.back() == MMC_OK) {
-            found = MMC_OK;
+            ret = MMC_OK;
         }
     }
-    return MMC_OK;
+    return ret;
 }
 
 void MmcMetaManager::AsyncRemoveThreadFunc()
@@ -283,10 +285,13 @@ void MmcMetaManager::AsyncRemoveThreadFunc()
 Result MmcMetaManager::Query(const std::string &key, MemObjQueryInfo &queryInfo)
 {
     MmcMemObjMetaPtr objMeta;
-    if (objMetaLookupMap_.Find(key, objMeta) != MMC_OK) {
+    MemObjMetaLruItem lruItem;
+    if (objMetaLookupMap_.Find(key, lruItem) != MMC_OK) {
         MMC_LOG_WARN("Cannot find MmcMemObjMeta with key : " << key);
         return MMC_UNMATCHED_KEY;
     }
+    objMeta = lruItem.memObjMetaPtr_;
+    UpdateLRU(key, lruItem);
     queryInfo = objMeta->QueryInfo();
     return MMC_OK;
 }

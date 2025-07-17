@@ -47,12 +47,12 @@ public:
 
     Result ExistKey(const IsExistRequest &req, Response &resp) override
     {
-        return metaMangerPtr_->ExistKey(req.key_, resp.ret_);
+        return resp.ret_ = metaMangerPtr_->ExistKey(req.key_);
     }
 
     Result BatchExistKey(const BatchIsExistRequest &req, BatchIsExistResponse &resp) override
     {
-        return metaMangerPtr_->BatchExistKey(req.keys_, resp.results_, resp.ret_);
+        return resp.ret_ = metaMangerPtr_->BatchExistKey(req.keys_, resp.results_);
     }
 
     Result Query(const QueryRequest &req, QueryResponse &resp) override

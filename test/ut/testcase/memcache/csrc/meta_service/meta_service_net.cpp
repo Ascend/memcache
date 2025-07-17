@@ -173,7 +173,7 @@ TEST_F(TestMmcMetaService, BatchExistRequest)
     };
     CheckReturn(allExistKeys, MMC_OK, 10U);
     CheckReturn(partExistKeys, MMC_OK, 5U);
-    CheckReturn(allNotExistKeys, MMC_ERROR, 0U);
+    CheckReturn(allNotExistKeys, MMC_UNMATCHED_KEY, 0U);
     
     localServicePtr->Stop();
     metaServicePtr->Stop();
