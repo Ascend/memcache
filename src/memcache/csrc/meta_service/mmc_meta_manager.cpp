@@ -11,26 +11,29 @@ namespace mmc {
 
 Result MmcMetaManager::Get(const std::string &key, MmcMemObjMetaPtr &objMeta)
 {
-    auto ret = objMetaLookupMap_.Find(key, objMeta);
+    MemObjMetaLruItem lruItem;
+    auto ret = objMetaLookupMap_.Find(key, lruItem);
     if (ret == MMC_OK) {
+        objMeta = lruItem.memObjMetaPtr_;
+        UpdateLRU(key, lruItem);
         objMeta->ExtendLease(defaultTtlMs_);
     }
     return ret;
 }
 
-Result MmcMetaManager::BatchGet(const std::vector<std::string>& keys, 
-                                std::vector<MmcMemObjMetaPtr>& objMetas, 
-                                std::vector<Result>& getResults)
+Result MmcMetaManager::BatchGet(const std::vector<std::string> &keys, std::vector<MmcMemObjMetaPtr> &objMetas,
+                                std::vector<Result> &getResults)
 {
     objMetas.resize(keys.size());
     getResults.resize(keys.size());
-    
+
     for (size_t i = 0; i < keys.size(); ++i) {
-        const std::string& key = keys[i];
-        MmcMemObjMetaPtr objMeta;
-        Result ret = objMetaLookupMap_.Find(key, objMeta);
+        const std::string &key = keys[i];
+        MemObjMetaLruItem lruItem;
+        Result ret = objMetaLookupMap_.Find(key, lruItem);
+        MmcMemObjMetaPtr objMeta = lruItem.memObjMetaPtr_;
         getResults[i] = ret;
-        
+
         if (ret == MMC_OK) {
             objMeta->ExtendLease(defaultTtlMs_ * keys.size());
             objMetas[i] = objMeta;
@@ -40,8 +43,8 @@ Result MmcMetaManager::BatchGet(const std::vector<std::string>& keys,
             MMC_LOG_DEBUG("Key " << key << " not found");
         }
     }
-    
-    for (const Result& r : getResults) {
+
+    for (const Result &r : getResults) {
         if (r != MMC_OK) {
             return r;
         }
@@ -53,6 +56,13 @@ Result MmcMetaManager::BatchGet(const std::vector<std::string>& keys,
 // TODO: 检测不能是相同的key
 Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOpt, MmcMemObjMetaPtr &objMeta)
 {
+    // TODO 1: 不能阻塞
+    // TODO 2: 要计算出可释放的空间
+
+    if (globalAllocator_->TouchedThreshold(EVICT_THRESHOLD_HIGH)) {
+        DoEviction();
+    }
+
     objMeta = MmcMakeRef<MmcMemObjMeta>();
     std::vector<MmcMemBlobPtr> blobs;
 
@@ -64,40 +74,36 @@ Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOp
     for (auto &blob : blobs) {
         objMeta->AddBlob(blob);
     }
-    objMetaLookupMap_.Insert(key, objMeta);
+
+    // put into lru and create lruItem
+    lruList_.push_front(key);
+    MemObjMetaLruItem lruItem{objMeta, lruList_.begin()};
+
+    // insert into lookup map
+    objMetaLookupMap_.Insert(key, lruItem);
+
     objMeta->ExtendLease(defaultTtlMs_);
     return MMC_OK;
 }
 
-Result MmcMetaManager::GetBlobs(const std::string &key, const MmcBlobFilterPtr &filter,
-                                std::vector<MmcMemBlobPtr> &blobs)
-{
-    MmcMemObjMetaPtr objMeta;
-    Result ret = objMetaLookupMap_.Find(key, objMeta);
-    /* TODO check ret firstly, then get blobs from objMeta in case of objMeta is nullptr */
-    blobs = objMeta->GetBlobs(filter);
-    if (ret == MMC_OK && !blobs.empty()) {
-        objMeta->ExtendLease(defaultTtlMs_);
-        return MMC_OK;
-    }
-
-    return MMC_ERROR;
-}
-
 Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &loc, const BlobActionResult &actRet)
 {
-    std::vector<MmcMemBlobPtr> blobs;
-    MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(loc.rank_, loc.mediaType_, NONE);
-    MMC_ASSERT(filter != nullptr);
-    if (GetBlobs(key, filter, blobs) != MMC_OK) {
-        MMC_LOG_ERROR("UpdateState: Cannot find blobs!");
+    MemObjMetaLruItem lruItem;
+    Result ret = objMetaLookupMap_.Find(key, lruItem);
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("UpdateState: Cannot find memObjMeta!");
         return MMC_UNMATCHED_KEY;
     }
+
+    MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(loc.rank_, loc.mediaType_, NONE);
+    MMC_ASSERT(filter != nullptr);
+    std::vector<MmcMemBlobPtr> blobs = lruItem.memObjMetaPtr_->GetBlobs(filter);
+
     if (blobs.size() != 1) {
         MMC_LOG_ERROR("UpdateState: More than one blob in one position!");
         return MMC_ERROR;
     }
-    Result ret = blobs[0]->UpdateState(actRet);
+    ret = blobs[0]->UpdateState(actRet);
     if (ret != MMC_OK) {
         MMC_LOG_WARN("UpdateState Fail!");
         return ret;
@@ -105,13 +111,16 @@ Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &lo
     return MMC_OK;
 }
 
+// TODO: 遍历的时候有问题
 Result MmcMetaManager::Remove(const std::string &key)
 {
-    MmcMemObjMetaPtr objMeta;
-    auto ret = objMetaLookupMap_.Find(key, objMeta);
+    MemObjMetaLruItem lruItem;
+    auto ret = objMetaLookupMap_.Find(key, lruItem);
     if (ret != MMC_OK) {
         return MMC_UNMATCHED_KEY;
     }
+    MmcMemObjMetaPtr objMeta = lruItem.memObjMetaPtr_;
+
     if (objMeta->IsLeaseExpired()) {
         std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs();
         for (size_t i = 0; i < blobs.size(); i++) {
@@ -123,6 +132,7 @@ Result MmcMetaManager::Remove(const std::string &key)
         }
         ret = objMeta->RemoveBlobs();
         objMetaLookupMap_.Erase(key);
+        lruList_.erase(lruItem.lruIter_);
         objMeta = nullptr;
         return MMC_OK;
     } else {
@@ -133,19 +143,19 @@ Result MmcMetaManager::Remove(const std::string &key)
     }
 }
 
-Result MmcMetaManager::BatchRemove(const std::vector<std::string>& keys, std::vector<Result>& remove_results)
+Result MmcMetaManager::BatchRemove(const std::vector<std::string> &keys, std::vector<Result> &remove_results)
 {
     remove_results.resize(keys.size());
-    
+
     for (size_t i = 0; i < keys.size(); ++i) {
-        const std::string& key = keys[i];
+        const std::string &key = keys[i];
         Result ret = Remove(key);
         remove_results[i] = ret;
         if (ret != MMC_OK && ret != MMC_UNMATCHED_KEY && ret != MMC_LEASE_NOT_EXPIRED) {
             MMC_LOG_ERROR("Failed to remove key: " << key);
         }
     }
-    
+
     return MMC_OK;
 }
 
@@ -194,17 +204,21 @@ Result MmcMetaManager::Unmount(const MmcLocation &loc)
     std::vector<std::string> tempKeys;
 
     for (auto iter = objMetaLookupMap_.begin(); iter != objMetaLookupMap_.end(); ++iter) {
-        ret = ForceRemoveBlobs((*iter).second, filter);
+        std::string key = (*iter).first;
+        MemObjMetaLruItem lruItem = (*iter).second;
+
+        ret = ForceRemoveBlobs(lruItem.memObjMetaPtr_, filter);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("Fail to force remove blobs in MmcMetaManager::Unmount!");
             return MMC_ERROR;
         }
-        if ((*iter).second->NumBlobs() == 0) {
-            tempKeys.push_back((*iter).first);
+        if (lruItem.memObjMetaPtr_->NumBlobs() == 0) {
+            tempKeys.push_back(key);
+            lruList_.erase(lruItem.lruIter_);
         }
     }
 
-    for (const std::string& tempKey : tempKeys) {
+    for (const std::string &tempKey : tempKeys) {
         objMetaLookupMap_.Erase(tempKey);
     }
 
@@ -233,8 +247,7 @@ Result MmcMetaManager::BatchExistKey(const std::vector<std::string> &keys, std::
 
 void MmcMetaManager::AsyncRemoveThreadFunc()
 {
-    while (true)
-    {
+    while (true) {
         std::unique_lock<std::mutex> lock(removeThreadLock_);
         if (!removeThreadCv_.wait_for(lock, std::chrono::milliseconds(defaultTtlMs_), [this] {return removePredicate_;}))
         {

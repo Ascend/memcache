@@ -4,19 +4,21 @@
 #ifndef MEM_FABRIC_MMC_META_MANAGER_H
 #define MEM_FABRIC_MMC_META_MANAGER_H
 
-#include <thread>
-#include <functional>
-#include <list>
 #include "mmc_global_allocator.h"
 #include "mmc_lookup_map.h"
 #include "mmc_mem_obj_meta.h"
 #include "mmc_meta_service.h"
 #include "mmc_msg_packer.h"
+#include <functional>
+#include <list>
+#include <thread>
 
 namespace ock {
 namespace mmc {
 
 static const uint16_t NUM_BUCKETS = 29;
+static const uint16_t EVICT_THRESHOLD_HIGH = 70;
+static const uint16_t EVICT_THRESHOLD_LOW = 90;
 
 class MmcMetaManager : public MmcReferable {
 public:
@@ -45,28 +47,19 @@ public:
     Result Get(const std::string &key, MmcMemObjMetaPtr &objMeta);
 
     /**
-    * @brief Get multiple meta objects and extend their leases
-    * @param keys          [in] List of keys for the meta objects to retrieve
-    * @param objMetas      [out] Vector of pointers to the retrieved meta objects, corresponding to the keys in order
-    * @param getResults    [out] Vector of results indicating the success/failure of retrieving each key's meta object
-    */
-    Result BatchGet(const std::vector<std::string>& keys, 
-                   std::vector<MmcMemObjMetaPtr>& objMetas, 
-                   std::vector<Result>& getResults);
+     * @brief Get multiple meta objects and extend their leases
+     * @param keys          [in] List of keys for the meta objects to retrieve
+     * @param objMetas      [out] Vector of pointers to the retrieved meta objects, corresponding to the keys in order
+     * @param getResults    [out] Vector of results indicating the success/failure of retrieving each key's meta object
+     */
+    Result BatchGet(const std::vector<std::string> &keys, std::vector<MmcMemObjMetaPtr> &objMetas,
+                    std::vector<Result> &getResults);
     /**
      * @brief Alloc the global memeory space and create the meta object
      * @param key          [in] key of the meta object
      * @param metaInfo     [out] the meta object created
      */
     Result Alloc(const std::string &key, const AllocOptions &allocOpt, MmcMemObjMetaPtr &objMeta);
-
-    /**
-     * @brief Get the blobs by key and the filter, and renew the lease
-     * @param key          [in] key of the meta object
-     * @param filter       [in] filter used to choose the blobs
-     * @param blobs        [out] the blobs found by the key and filter
-     */
-    Result GetBlobs(const std::string &key, const MmcBlobFilterPtr &filter, std::vector<MmcMemBlobPtr> &blobs);
 
     /**
      * @brief Update the state
@@ -107,13 +100,19 @@ public:
     Result BatchExistKey(const std::vector<std::string> &keys, std::vector<Result> &results);
 
     /**
-    * @brief Batch remove multiple meta objects
-    * @param keys          [in] List of keys of the to-be-removed meta objects
-    * @param remove_results [out] Results of each removal operation
-    */
-    Result BatchRemove(const std::vector<std::string>& keys, std::vector<Result>& remove_results);
+     * @brief Batch remove multiple meta objects
+     * @param keys          [in] List of keys of the to-be-removed meta objects
+     * @param remove_results [out] Results of each removal operation
+     */
+    Result BatchRemove(const std::vector<std::string> &keys, std::vector<Result> &remove_results);
 
 private:
+    // LRU
+    struct MemObjMetaLruItem {
+        MmcMemObjMetaPtr memObjMetaPtr_;
+        std::list<std::string>::iterator lruIter_;
+    };
+
     /**
      * @brief force remove the blobs and object meta(if all its blobs are removed)
      * @param key          [in] key of the to-be-removed meta object
@@ -123,7 +122,28 @@ private:
 
     void AsyncRemoveThreadFunc();
 
-    MmcLookupMap<std::string, MmcMemObjMetaPtr, NUM_BUCKETS> objMetaLookupMap_;
+    void UpdateLRU(const std::string &key, MemObjMetaLruItem &lruItem)
+    {
+        lruList_.erase(lruItem.lruIter_);
+        lruList_.push_front(key);
+        lruItem.lruIter_ = lruList_.begin();
+    }
+
+    void DoEviction()
+    {
+        uint32_t numEvictObjs = lruList_.size() * EVICT_THRESHOLD_LOW / 100;
+        for (uint32_t i = 0; i < numEvictObjs; ++i) {
+            if (!lruList_.empty()) {
+                std::string key = lruList_.back();
+                Remove(key);
+            } else {
+                break;
+            }
+        }
+    }
+
+    MmcLookupMap<std::string, MemObjMetaLruItem, NUM_BUCKETS> objMetaLookupMap_;
+    std::list<std::string> lruList_;
     MmcGlobalAllocatorPtr globalAllocator_;
     std::thread removeThread_;
     std::mutex removeThreadLock_;
@@ -132,6 +152,7 @@ private:
     std::list<MmcMemObjMetaPtr> removeList_;
     bool removePredicate_ = false;
     uint64_t defaultTtlMs_; /* defult ttl in miliseconds*/
+    mutable std::mutex mutex_;
 };
 using MmcMetaManagerPtr = MmcRef<MmcMetaManager>;
 }  // namespace mmc
