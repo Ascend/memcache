@@ -166,3 +166,15 @@ MMC_API int32_t mmcc_batch_get(const std::vector<std::string>& keys, std::vector
     MMC_LOG_ERROR_AND_RETURN_NOT_OK(result != MMC_OK, gClientHandler->Name() << " batch_get failed!");
     return MMC_OK;
 }
+
+MMC_API int32_t mmcc_batch_put(const std::vector<std::string>& keys, const std::vector<mmc_buffer>& bufs,
+                               const mmc_put_options& options, uint32_t flags)
+{
+    MMC_VALIDATE_RETURN(!keys.empty(), "invalid param, keys is empty", MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(bufs.size() == keys.size(), "invalid param, bufs size mismatch", MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(gClientHandler != nullptr, "client is not initialize", MMC_CLIENT_NOT_INIT);
+
+    Result result = gClientHandler->BatchPut(keys, bufs, options, flags);
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(result != MMC_OK, gClientHandler->Name() << " batch_put failed!");
+    return MMC_OK;
+}

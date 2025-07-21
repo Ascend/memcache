@@ -57,16 +57,28 @@ const std::string &MmcClientDefault::Name() const
 Result MmcClientDefault::Put(const char *key, mmc_buffer *buf, mmc_put_options &options, uint32_t flags)
 {
     // todo 参数校验
+    if (buf == nullptr || key == nullptr) {
+        MMC_LOG_ERROR("Invalid arguments");
+        return MMC_ERROR;
+    }
+
     uint64_t blobSize = buf->type == 0 ? buf->dram.len : buf->hbm.width * buf->hbm.layerNum;
     AllocRequest request{key, {blobSize, 1, options.mediaType, RankId(options.policy), flags}};
     AllocResponse response;
     MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->SyncCall(request, response, rpcTimeOut_),
                                     "client " << name_ << " alloc " << key << " failed");
 
+    if (bmProxy_ == nullptr) {
+        MMC_LOG_ERROR("BmProxy is null");
+        return MMC_ERROR;
+    }
+
     for (uint8_t i = 0; i < response.numBlobs_; i++) {
+        MMC_LOG_INFO("Attempting to put to blob " << i << " at address " << response.blobs_[i].gva_);
         MMC_LOG_ERROR_AND_RETURN_NOT_OK(bmProxy_->Put(buf, response.blobs_[i].gva_, blobSize),
                                         "client " << name_ << " put " << key << " failed");
     }
+
     UpdateRequest updateRequest{MMC_WRITE_OK, key, 0, 0};
     Response updateResponse;
     MMC_LOG_ERROR_AND_RETURN_NOT_OK(metaNetClient_->SyncCall(updateRequest, updateResponse, rpcTimeOut_),
@@ -91,6 +103,72 @@ Result MmcClientDefault::Get(const char *key, mmc_buffer *buf, uint32_t flags) c
     } else {
         MMC_LOG_ERROR("client " << name_ << " get " << key << " failed");
         return MMC_ERROR;
+    }
+    return MMC_OK;
+}
+
+Result MmcClientDefault::BatchPut(const std::vector<std::string>& keys,
+                                  const std::vector<mmc_buffer>& bufs,
+                                  const mmc_put_options& options,
+                                  uint32_t flags)
+{
+    if (keys.size() != bufs.size()) {
+        MMC_LOG_ERROR("client " << name_ << " batch put failed: keys and bufs size mismatch");
+        return MMC_ERROR;
+    }
+
+    std::vector<AllocOptions> allocOptions;
+    for (size_t i = 0; i < keys.size(); ++i) {
+        AllocOptions opt;
+        opt.mediaType_ = options.mediaType;
+        opt.preferredRank_ = static_cast<uint32_t>(options.policy);
+        allocOptions.push_back(opt);
+    }
+
+    BatchAllocRequest request(keys, allocOptions, flags);
+    BatchAllocResponse response;
+    MMC_LOG_ERROR_AND_RETURN_NOT_OK(
+        metaNetClient_->SyncCall(request, response, rpcTimeOut_),
+        "client " << name_ << " batch alloc failed"
+    );
+
+    if (response.blobs_.size() != keys.size()) {
+        MMC_LOG_ERROR("client " << name_ << " batch put response size mismatch: expected " << keys.size() << ", got "
+                       << response.blobs_.size());
+        return MMC_ERROR;
+    }
+
+    for (size_t i = 0; i < keys.size(); ++i) {
+        const auto& key = keys[i];
+        const auto& buf = bufs[i];
+        const auto& blobs = response.blobs_[i];
+        uint8_t numBlobs = response.numBlobs_[i];
+
+        if (numBlobs == 0) {
+            MMC_LOG_ERROR("client " << name_ << " batch put failed for key " << key << ": no blobs allocated");
+            return MMC_ERROR;
+        }
+
+        uint64_t blobSize = buf.type == 0 ? buf.dram.len : buf.hbm.width * buf.hbm.layerNum;
+
+        for (uint8_t j = 0; j < numBlobs; ++j) {
+            mmc_buffer tempBuf = buf; 
+            MMC_LOG_ERROR_AND_RETURN_NOT_OK(
+                bmProxy_->Put(&tempBuf, blobs[j].gva_, blobSize),
+                "client " << name_ << " batch put failed for key " << key
+            );
+        }
+
+        UpdateRequest updateRequest{MMC_WRITE_OK, key, 0, 0};
+        Response updateResponse;
+        MMC_LOG_ERROR_AND_RETURN_NOT_OK(
+            metaNetClient_->SyncCall(updateRequest, updateResponse, rpcTimeOut_),
+            "client " << name_ << " batch put update failed for key " << key
+        );
+        MMC_LOG_ERROR_AND_RETURN_NOT_OK(
+            updateResponse.ret_,
+            "client " << name_ << " batch put update failed for key " << key
+        );
     }
     return MMC_OK;
 }

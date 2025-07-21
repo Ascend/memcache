@@ -114,6 +114,39 @@ struct BatchGetRequest : MsgBase {
     }
 };
 
+struct BatchAllocRequest : MsgBase {
+    std::vector<std::string> keys_;
+    std::vector<AllocOptions> options_;
+    uint32_t flags_;
+
+    BatchAllocRequest() : MsgBase{0, ML_BATCH_ALLOC_REQ, 0} {}
+    BatchAllocRequest(const std::vector<std::string>& keys, const std::vector<AllocOptions>& options, uint32_t flags)
+        : MsgBase{0, ML_BATCH_ALLOC_REQ, 0},
+          keys_(keys),
+          options_(options),
+          flags_(flags) {}
+
+    Result Serialize(NetMsgPacker& packer) const override {
+        packer.Serialize(msgVer);
+        packer.Serialize(msgId);
+        packer.Serialize(destRankId);
+        packer.Serialize(keys_);
+        packer.Serialize(options_);
+        packer.Serialize(flags_);
+        return MMC_OK;
+    }
+
+    Result Deserialize(NetMsgUnpacker& packer) override {
+        packer.Deserialize(msgVer);
+        packer.Deserialize(msgId);
+        packer.Deserialize(destRankId);
+        packer.Deserialize(keys_);
+        packer.Deserialize(options_);
+        packer.Deserialize(flags_);
+        return MMC_OK;
+    }
+};
+
 struct BatchAllocResponse : MsgBase {
     std::vector<std::vector<MmcMemBlobDesc>> blobs_; 
     std::vector<uint8_t> numBlobs_;                  

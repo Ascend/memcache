@@ -27,6 +27,9 @@ public:
 
     Result Get(const char *key, mmc_buffer *buf, uint32_t flags) const;
 
+    Result BatchPut(const std::vector<std::string>& keys, const std::vector<mmc_buffer>& bufs, 
+                    const mmc_put_options& options, uint32_t flags);
+
     Result BatchGet(const std::vector<std::string> &keys, std::vector<mmc_buffer> &bufs, uint32_t flags) const;
 
     mmc_location_t GetLocation(const char *key, uint32_t flags) const;

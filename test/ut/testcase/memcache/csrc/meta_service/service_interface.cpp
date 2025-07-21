@@ -124,6 +124,50 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     free(hostSrc);
     free(hostDest);
 
+    const int BATCH_SIZE = 3;
+    std::vector<std::string> keys = {"batch_test1", "batch_test2", "batch_test3"};
+    std::vector<void *> batchHostSrc(BATCH_SIZE);
+    std::vector<void *> batchHostDest(BATCH_SIZE);
+    std::vector<mmc_buffer> batchBuffers(BATCH_SIZE);
+    std::vector<mmc_buffer> batchReadBuffers(BATCH_SIZE);
+
+    for (int i = 0; i < BATCH_SIZE; ++i) {
+        batchHostSrc[i] = malloc(SIZE_32K);
+        batchHostDest[i] = malloc(SIZE_32K);
+        GenerateData(batchHostSrc[i], i + 1);
+
+        batchBuffers[i].addr = (uint64_t)batchHostSrc[i];
+        batchBuffers[i].type = 0;
+        batchBuffers[i].dram.offset = 0;
+        batchBuffers[i].dram.len = SIZE_32K;
+
+        batchReadBuffers[i].addr = (uint64_t)batchHostDest[i];
+        batchReadBuffers[i].type = 0;
+        batchReadBuffers[i].dram.offset = 0;
+        batchReadBuffers[i].dram.len = SIZE_32K;
+    }
+
+    ret = mmcc_batch_put(keys, batchBuffers, options, 0);
+    EXPECT_EQ(ret, 0);
+
+    for (int i = 0; i < BATCH_SIZE; ++i) {
+        ret = mmcc_get(keys[i].c_str(), &batchReadBuffers[i], 0);
+        EXPECT_EQ(ret, 0);
+        bool batchResult = CheckData(batchHostSrc[i], batchHostDest[i]);
+        EXPECT_TRUE(batchResult);
+
+        mmc_location_t batchLocation = mmcc_get_location(keys[i].c_str(), 0);
+        EXPECT_EQ(batchLocation.xx, 0);
+
+        ret = mmcc_remove(keys[i].c_str(), 0);
+        EXPECT_EQ(ret, 0);
+    }
+
+    for (int i = 0; i < BATCH_SIZE; ++i) {
+        free(batchHostSrc[i]);
+        free(batchHostDest[i]);
+    }
+
     mmcs_local_service_stop(local_service);
     mmcs_meta_service_stop(meta_service);
 }

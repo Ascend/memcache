@@ -78,7 +78,8 @@ int32_t mmcc_batch_query(const char **keys, size_t keys_count, mmc_data_info *in
  * @param flags            [in] optional flags, reserved
  * @return 0 if successful
  */
-int32_t mmcc_batch_put(const char *key, mmc_buffer *buf, mmc_put_options options, uint32_t flags);
+int32_t mmcc_batch_put(const std::vector<std::string>& keys, const std::vector<mmc_buffer>& bufs,
+                               const mmc_put_options& options, uint32_t flags);
 
 /**
  * @brief Get data of object by key from Distributed Memory Cache
