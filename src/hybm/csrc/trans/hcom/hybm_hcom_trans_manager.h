@@ -1,8 +1,8 @@
 /*
 * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
 */
-#ifndef MF_HYBRID_HYBM_HCOM_RDMA_TRANS_MANAGER_H
-#define MF_HYBRID_HYBM_HCOM_RDMA_TRANS_MANAGER_H
+#ifndef MF_HYBRID_HYBM_HCOM_TRANS_MANAGER_H
+#define MF_HYBRID_HYBM_HCOM_TRANS_MANAGER_H
 
 #include <memory>
 
@@ -19,11 +19,11 @@ struct HcomMrInfo {
     Service_MemoryRegion mr;
 };
 
-class HcomRdmaTransManager : public HybmTransManager {
+class HcomTransManager : public HybmTransManager {
 public:
-    static std::shared_ptr<HcomRdmaTransManager> GetInstance()
+    static std::shared_ptr<HcomTransManager> GetInstance()
     {
-        static auto instance = std::make_shared<HcomRdmaTransManager>();
+        static auto instance = std::make_shared<HcomTransManager>();
         return instance;
     }
 
@@ -37,6 +37,8 @@ public:
     Result WaitForConnected(int64_t timeoutNs) override;
     std::string GetNic() override;
     Result QueryKey(void *addr, HybmTransKey& key) override;
+    Result RdmaOneSideTrans(const uint32_t &rankId, const uint64_t &lAddr, const uint64_t &rAddr,
+                            const uint64_t &size, const bool &isGet) override;
 
 private:
     static Result CheckHybmTransOptions(HybmTransOptions &options);
@@ -48,6 +50,7 @@ private:
 
     Result ConnectHcomService(uint32_t rankId, const std::string &url);
     void RemoveChannel(Hcom_Channel ch);
+    Result GetOneSideKeyByAddr(const uint64_t &addr, OneSideKey &key);
 
 private:
     std::string localNic_;
@@ -57,4 +60,4 @@ private:
 };
 }
 }
-#endif //MF_HYBRID_HYBM_HCOM_RDMA_TRANS_MANAGER_H
+#endif //MF_HYBRID_HYBM_HCOM_TRANS_MANAGER_H

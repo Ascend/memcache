@@ -321,5 +321,9 @@ int MemSegmentDevice::GetDeviceId(int deviceId) noexcept
     sdid_ = static_cast<uint32_t>(value);
     return BM_OK;
 }
+
+void MemSegmentDevice::GetRankIdByAddr(const void *addr, uint64_t size, uint32_t &rankId) const noexcept
+{
+}
 }
 }

@@ -205,6 +205,17 @@ bool MemSegmentHost::MemoryInRange(const void *begin, uint64_t size) const noexc
     return true;
 }
 
+void MemSegmentHost::GetRankIdByAddr(const void *addr, uint64_t size, uint32_t &rankId) const noexcept
+{
+    if (!MemoryInRange(addr, size)) {
+        rankId = UINT32_MAX;
+        return;
+    }
+    BM_ASSERT_RET_VOID(MemoryInRange(addr, size));
+    rankId =  ((uint64_t ) addr - (uint64_t)globalVirtualAddress_) / options_.size;
+    // TODO 如何处理地址段跨rank
+}
+
 void MemSegmentHost::FreeMemory() noexcept
 {
     if (localVirtualBase_ != nullptr) {

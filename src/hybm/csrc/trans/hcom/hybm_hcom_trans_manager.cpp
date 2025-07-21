@@ -1,7 +1,7 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
-#include "hybm_hcom_rdma_trans_manager.h"
+#include "hybm_hcom_trans_manager.h"
 #include <iostream>
 #include <string>
 #include <regex>
@@ -20,7 +20,7 @@ constexpr uint8_t HCOM_TRANS_EP_SIZE = 16;
 const char *HCOM_RPC_SERVICE_NAME = "hybm_hcom_service";
 }
 
-Result HcomRdmaTransManager::OpenDevice(HybmTransOptions &options)
+Result HcomTransManager::OpenDevice(HybmTransOptions &options)
 {
     BM_ASSERT_RETURN(rpcService_ == 0, BM_OK);
     BM_ASSERT_RETURN(CheckHybmTransOptions(options), BM_INVALID_PARAM);
@@ -58,7 +58,7 @@ Result HcomRdmaTransManager::OpenDevice(HybmTransOptions &options)
     return BM_OK;
 }
 
-Result HcomRdmaTransManager::CloseDevice()
+Result HcomTransManager::CloseDevice()
 {
     BM_ASSERT_RETURN(rpcService_ != 0, BM_OK);
     DlHcomApi::ServiceDestroy(rpcService_, HCOM_RPC_SERVICE_NAME);
@@ -67,7 +67,7 @@ Result HcomRdmaTransManager::CloseDevice()
     return BM_OK;
 }
 
-Result HcomRdmaTransManager::RegisterMemoryRegion(const HybmTransMemReg &input, HybmTransKey &key)
+Result HcomTransManager::RegisterMemoryRegion(const HybmTransMemReg &input, HybmTransKey &key)
 {
     BM_ASSERT_RETURN(rpcService_ != 0, BM_ERROR);
     BM_ASSERT_RETURN(input.addr != 0 && input.size != 0, BM_INVALID_PARAM);
@@ -106,7 +106,7 @@ Result HcomRdmaTransManager::RegisterMemoryRegion(const HybmTransMemReg &input, 
     return BM_OK;
 }
 
-Result HcomRdmaTransManager::UnregisterMemoryRegion(const void *addr)
+Result HcomTransManager::UnregisterMemoryRegion(const void *addr)
 {
     BM_ASSERT_RETURN(addr != nullptr, BM_INVALID_PARAM);
     BM_ASSERT_RETURN(rpcService_ != 0, BM_ERROR);
@@ -124,12 +124,12 @@ Result HcomRdmaTransManager::UnregisterMemoryRegion(const void *addr)
     return BM_OK;
 }
 
-Result HcomRdmaTransManager::Prepare(const HybmTransPrepareOptions &options)
+Result HcomTransManager::Prepare(const HybmTransPrepareOptions &options)
 {
     return BM_OK;
 }
 
-Result HcomRdmaTransManager::Connect(const std::unordered_map<uint32_t, std::string> &nics, int mode)
+Result HcomTransManager::Connect(const std::unordered_map<uint32_t, std::string> &nics, int mode)
 {
     BM_ASSERT_RETURN(rpcService_ != 0, BM_ERROR);
 
@@ -145,22 +145,22 @@ Result HcomRdmaTransManager::Connect(const std::unordered_map<uint32_t, std::str
     return BM_OK;
 }
 
-Result HcomRdmaTransManager::AsyncConnect(const std::unordered_map<uint32_t, std::string> &nics, int mode)
+Result HcomTransManager::AsyncConnect(const std::unordered_map<uint32_t, std::string> &nics, int mode)
 {
     return BM_OK;
 }
 
-Result HcomRdmaTransManager::WaitForConnected(int64_t timeoutNs)
+Result HcomTransManager::WaitForConnected(int64_t timeoutNs)
 {
     return BM_OK;
 }
 
-std::string HcomRdmaTransManager::GetNic()
+std::string HcomTransManager::GetNic()
 {
     return localNic_;
 }
 
-Result HcomRdmaTransManager::QueryKey(void *addr, HybmTransKey& key)
+Result HcomTransManager::QueryKey(void *addr, HybmTransKey& key)
 {
     auto it = mrInfoMap_.find((uint64_t) addr);
     if (it == mrInfoMap_.end()) {
@@ -207,7 +207,7 @@ static Result CheckNic(const std::string &nic)
     return BM_OK;
 }
 
-Result HcomRdmaTransManager::CheckHybmTransOptions(HybmTransOptions &options)
+Result HcomTransManager::CheckHybmTransOptions(HybmTransOptions &options)
 {
     auto ret = CheckNic(options.nic);
     if (ret != BM_OK) {
@@ -218,13 +218,13 @@ Result HcomRdmaTransManager::CheckHybmTransOptions(HybmTransOptions &options)
     return BM_OK;
 }
 
-Result HcomRdmaTransManager::TransRpcHcomNewEndPoint(Hcom_Channel newCh, uint64_t usrCtx, const char *payLoad)
+Result HcomTransManager::TransRpcHcomNewEndPoint(Hcom_Channel newCh, uint64_t usrCtx, const char *payLoad)
 {
     BM_LOG_DEBUG("New hcom ch, ch: " << newCh << " usrCtx: " << usrCtx << " payLoad: " << payLoad);
     return BM_OK;
 }
 
-Result HcomRdmaTransManager::TransRpcHcomEndPointBroken(Hcom_Channel ch, uint64_t usrCtx, const char *payLoad)
+Result HcomTransManager::TransRpcHcomEndPointBroken(Hcom_Channel ch, uint64_t usrCtx, const char *payLoad)
 {
     BM_LOG_DEBUG("Broken on hcom ch, ch: " << ch << " usrCtx: " << usrCtx << " payLoad: " << payLoad);
     if (GetInstance()->rpcService_ != 0) {
@@ -234,25 +234,25 @@ Result HcomRdmaTransManager::TransRpcHcomEndPointBroken(Hcom_Channel ch, uint64_
     return BM_OK;
 }
 
-Result HcomRdmaTransManager::TransRpcHcomRequestReceived(Service_Context ctx, uint64_t usrCtx)
+Result HcomTransManager::TransRpcHcomRequestReceived(Service_Context ctx, uint64_t usrCtx)
 {
     BM_LOG_DEBUG("Receive hcom req, ctx: " << ctx << " usrCtx: " << usrCtx);
     return BM_OK;
 }
 
-Result HcomRdmaTransManager::TransRpcHcomRequestPosted(Service_Context ctx, uint64_t usrCtx)
+Result HcomTransManager::TransRpcHcomRequestPosted(Service_Context ctx, uint64_t usrCtx)
 {
     BM_LOG_DEBUG("Post hcom req, ctx: " << ctx << " usrCtx: " << usrCtx);
     return BM_OK;
 }
 
-Result HcomRdmaTransManager::TransRpcHcomOneSideDone(Service_Context ctx, uint64_t usrCtx)
+Result HcomTransManager::TransRpcHcomOneSideDone(Service_Context ctx, uint64_t usrCtx)
 {
     BM_LOG_DEBUG("Done hcom one side, ctx: " << ctx << " usrCtx: " << usrCtx);
     return BM_OK;
 }
 
-Result HcomRdmaTransManager::ConnectHcomService(uint32_t rankId, const std::string &url)
+Result HcomTransManager::ConnectHcomService(uint32_t rankId, const std::string &url)
 {
     auto it = connectMap_.find(rankId);
     if (it != connectMap_.end()) {
@@ -275,7 +275,7 @@ Result HcomRdmaTransManager::ConnectHcomService(uint32_t rankId, const std::stri
     return BM_OK;
 }
 
-void HcomRdmaTransManager::RemoveChannel(Hcom_Channel ch)
+void HcomTransManager::RemoveChannel(Hcom_Channel ch)
 {
     for (const auto &item: connectMap_) {
         if (item.second == ch) {
@@ -283,4 +283,49 @@ void HcomRdmaTransManager::RemoveChannel(Hcom_Channel ch)
             return;
         }
     }
+}
+
+Result HcomTransManager::RdmaOneSideTrans(const uint32_t &rankId, const uint64_t &lAddr, const uint64_t &rAddr,
+                                          const uint64_t &size, const bool &isGet)
+{
+    BM_ASSERT_RETURN(rpcService_ != 0, BM_ERROR);
+    auto it = connectMap_.find(rankId);
+    if (it == connectMap_.end()) {
+        BM_LOG_ERROR("Failed to one side msg, rankId: " << rankId << " is not connect");
+        return BM_ERROR;
+    }
+    Hcom_Channel channel = it->second;
+    Channel_OneSideRequest req;
+    req.rAddress = (void *)rAddr;
+    req.lAddress = (void *)lAddr;
+    req.size = (uint32_t)size;
+
+    auto ret = GetOneSideKeyByAddr(lAddr, req.lKey);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("Failed to find lKey, lAddr: " << lAddr << " is not register");
+        return BM_ERROR;
+    }
+    ret = GetOneSideKeyByAddr(rAddr, req.rKey);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("Failed to find rKey, rankId: " << rankId << " rAddr" << rAddr << " is not set");
+        return BM_ERROR;
+    }
+    if (isGet) {
+        ret = DlHcomApi::ChannelGet(channel, req, nullptr);
+    } else {
+        ret = DlHcomApi::ChannelPut(channel, req, nullptr);
+    }
+    return ret;
+}
+
+Result HcomTransManager::GetOneSideKeyByAddr(const uint64_t &addr, OneSideKey &key)
+{
+    for (const auto &item: mrInfoMap_) {
+        auto mrInfo = item.second;
+        if (mrInfo.lAddress <= addr && mrInfo.lAddress + mrInfo.size > addr) {
+            key = mrInfo.lKey;
+            return BM_OK;
+        }
+    }
+    return BM_ERROR;
 }

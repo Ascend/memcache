@@ -10,19 +10,26 @@
 namespace ock {
 namespace mf {
 
+struct ExtOptions {
+    uint32_t srcRankId;
+    uint32_t destRankId;
+    uint32_t flags;
+};
+
 class DataOperator {
 public:
-    virtual int32_t DataCopy(const void *srcVA, void *destVA, uint64_t length, hybm_data_copy_direction direction, void *stream,
-        uint32_t flags) noexcept = 0;
+    virtual int32_t DataCopy(const void *srcVA, void *destVA, uint64_t length, hybm_data_copy_direction direction,
+                             void *stream, const ExtOptions &options) noexcept = 0;
     virtual int32_t DataCopy2d(const void *srcVA, uint64_t spitch, void *destVA, uint64_t dpitch, uint64_t width,
-                               uint64_t height, hybm_data_copy_direction direction, void *stream, uint32_t flags) noexcept = 0;
+                               uint64_t height, hybm_data_copy_direction direction, void *stream,
+                               const ExtOptions &options) noexcept = 0;
 
     /*
      * 异步data copy
      * @return 0 if successful, > 0 is wait id, < 0 is error
      */
     virtual int32_t DataCopyAsync(const void* srcVA, void* destVA, uint64_t length, hybm_data_copy_direction direction,
-                                  void *stream, uint32_t flags) noexcept = 0;
+                                  void *stream, const ExtOptions &options) noexcept = 0;
 
     virtual int32_t Wait(int32_t waitId) noexcept = 0;
 

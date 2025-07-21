@@ -268,7 +268,11 @@ int32_t MemEntityDefault::CopyData(const void *src, void *dest, uint64_t length,
         return BM_NOT_INITIALIZED;
     }
 
-    return dataOperator_->DataCopy(src, dest, length, direction, stream, flags);
+    ExtOptions options{};
+    options.flags = flags;
+    segment_->GetRankIdByAddr(src, length, options.srcRankId);
+    segment_->GetRankIdByAddr(dest, length, options.destRankId);
+    return dataOperator_->DataCopy(src, dest, length, direction, stream, options);
 }
 
 int32_t MemEntityDefault::CopyData2d(const void *src, uint64_t spitch, void *dest, uint64_t dpitch, uint64_t width,
@@ -279,9 +283,12 @@ int32_t MemEntityDefault::CopyData2d(const void *src, uint64_t spitch, void *des
         BM_LOG_ERROR("the object is not initialized, please check whether Initialize is called.");
         return BM_NOT_INITIALIZED;
     }
-
+    ExtOptions options{};
+    options.flags = flags;
+    segment_->GetRankIdByAddr(src, spitch * height, options.srcRankId);
+    segment_->GetRankIdByAddr(dest, dpitch * height, options.destRankId);
     return dataOperator_->DataCopy2d(src, spitch, dest, dpitch, width, height,
-                                     direction, stream, flags);
+                                     direction, stream, options);
 }
 
 bool MemEntityDefault::CheckAddressInEntity(const void *ptr, uint64_t length) const noexcept

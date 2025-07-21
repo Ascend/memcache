@@ -13,12 +13,12 @@ public:
     HostDataOpSDMA(void *stm) noexcept;
 
     int32_t DataCopy(const void *srcVA, void *destVA, uint64_t length, hybm_data_copy_direction direction, void *stream,
-                     uint32_t flags) noexcept override;
+                     const ExtOptions &options) noexcept override;
     int32_t DataCopy2d(const void *srcVA, uint64_t spitch, void *destVA, uint64_t dpitch,
                        uint64_t width,uint64_t height, hybm_data_copy_direction direction,
-                       void *stream, uint32_t flags) noexcept override;
+                       void *stream, const ExtOptions &options) noexcept override;
     int32_t DataCopyAsync(const void* srcVA, void* destVA, uint64_t length, hybm_data_copy_direction direction,
-                          void *stream, uint32_t flags) noexcept override;
+                          void *stream, const ExtOptions &options) noexcept override;
 
     int32_t Wait(int32_t waitId) noexcept override;
 

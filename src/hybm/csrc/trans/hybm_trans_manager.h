@@ -72,6 +72,12 @@ public:
      * @return 0 if successful
      */
     virtual Result QueryKey(void* addr, HybmTransKey& key) = 0;
+
+    /**
+     * rdma单边传输
+     */
+    virtual Result RdmaOneSideTrans(const uint32_t &rankId, const uint64_t &lAddr, const uint64_t &rAddr,
+                                    const uint64_t &size, const bool &isGet) = 0;
 };
 
 }

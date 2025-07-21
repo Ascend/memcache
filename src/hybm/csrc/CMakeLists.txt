@@ -8,7 +8,7 @@ include_directories(
         ${PROJECT_HYBM_SRC_BASE}/csrc/entity
         ${PROJECT_HYBM_SRC_BASE}/csrc/mm
         ${PROJECT_HYBM_SRC_BASE}/csrc/trans
-        ${PROJECT_HYBM_SRC_BASE}/csrc/trans/hcom_rdma
+        ${PROJECT_HYBM_SRC_BASE}/csrc/trans/hcom
         ${PROJECT_HYBM_SRC_BASE}/csrc/transport
         ${PROJECT_HYBM_SRC_BASE}/csrc/transport/hccp_rdma
         ${PROJECT_HYBM_SRC_BASE}/csrc/under_api
@@ -24,7 +24,7 @@ aux_source_directory(mm SRC_FILES_MEM_MANAGER)
 aux_source_directory(transport SRC_FILES_TRANSPORT)
 aux_source_directory(transport/hccp_rdma SRC_FILES_TRANSPORT)
 aux_source_directory(trans SRC_FILES_TRANSPORT)
-aux_source_directory(trans/hcom_rdma SRC_FILES_TRANSPORT)
+aux_source_directory(trans/hcom SRC_FILES_TRANSPORT)
 aux_source_directory(under_api SRC_FILES_CANN)
 
 # set whole source for hybmm src files

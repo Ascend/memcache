@@ -11,7 +11,7 @@ namespace mf {
 HostDataOpSDMA::HostDataOpSDMA(void *stm) noexcept : stream_{stm} {}
 
 int32_t HostDataOpSDMA::DataCopy(const void *srcVA, void *destVA, uint64_t length, hybm_data_copy_direction direction,
-                                 void *stream, uint32_t flags) noexcept
+                                 void *stream, const ExtOptions &options) noexcept
 {
     int ret;
     switch (direction) {
@@ -253,7 +253,7 @@ int HostDataOpSDMA::CopyGva2Device2d(void *deviceAddr, uint64_t dpitch, const vo
 
 int HostDataOpSDMA::DataCopy2d(const void *srcVA, uint64_t spitch, void *destVA, uint64_t dpitch,
                                uint64_t width, uint64_t height, hybm_data_copy_direction direction,
-                               void *stream, uint32_t flags) noexcept
+                               void *stream, const ExtOptions &options) noexcept
 {
     int ret;
     switch (direction) {
@@ -281,7 +281,8 @@ int HostDataOpSDMA::DataCopy2d(const void *srcVA, uint64_t spitch, void *destVA,
 }
 
 int32_t HostDataOpSDMA::DataCopyAsync(const void* srcVA, void* destVA, uint64_t length,
-                                      hybm_data_copy_direction direction, void *stream, uint32_t flags) noexcept
+                                      hybm_data_copy_direction direction, void *stream,
+                                      const ExtOptions &options) noexcept
 {
     BM_LOG_ERROR("not supported data copy async!");
     return BM_ERROR;

@@ -82,6 +82,12 @@ public:
      */
     virtual bool MemoryInRange(const void *begin, uint64_t size) const noexcept = 0;
 
+    /*
+     * check memery area in this segment
+     * @return true if in range
+    */
+    virtual void GetRankIdByAddr(const void *addr, uint64_t size, uint32_t &rankId) const noexcept = 0;
+
 protected:
     const MemSegmentOptions options_;
     const int entityId_;
