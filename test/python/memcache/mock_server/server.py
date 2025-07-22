@@ -5,6 +5,7 @@ import ast
 import concurrent.futures
 import dataclasses
 import inspect
+import json
 import os
 import socket
 import sys
@@ -12,6 +13,8 @@ import threading
 import traceback
 from functools import wraps
 from typing import Callable, Dict, List
+
+from pymmc import DistributedObjectStore
 
 
 @dataclasses.dataclass
@@ -53,6 +56,8 @@ class TestServer:
                 return str(arg_str)
             elif param_type == bool:
                 return arg_str.lower() in ['true', '1', 'yes']
+            elif param_type == bytes:
+                return bytes(arg_str, 'utf-8')
             else:
                 # 如果是其他类型，可以使用 ast.literal_eval
                 return ast.literal_eval(arg_str)
@@ -65,31 +70,27 @@ class TestServer:
     def _parse_arguments(func, arg_strs):
         signature = inspect.signature(func)
         parsed_args = []
-        param_iter = iter(signature.parameters.values())
-        for _, arg in enumerate(arg_strs):
-            param = next(param_iter)
-            param_type = param.annotation
-            parsed_args.append(TestServer._convert_argument(arg, param_type))
+        for param, arg in zip(signature.parameters.values(), arg_strs):
+            parsed_args.append(TestServer._convert_argument(arg, param.annotation))
         return parsed_args
 
-    def _execute(self, cmd):
+    def _execute(self, request):
         """执行命令。"""
-        parts = cmd.split()
-        if not parts:
-            return
-        cmd_str = parts[0]
-        params = parts[1:]
-        if cmd_str in self._commands:
-            command = self._commands[cmd_str]
-            if len(params) >= command.args_num:  # 允许使用默认参数
-                parsed_params = self._parse_arguments(command.func, params)  # 转换参数
-                command.func(*parsed_params)
-                self._cli_end_line()
-                return
-            self.cli_print(f"Invalid input args num:{len(params)}.")
-        else:
+        cmd_str = request.get("cmd")
+        args = request.get("args")
+        command = self._commands.get(cmd_str)
+        if not command:
             self.cli_print(f"Unknown command: {cmd_str}")
-        self._help()
+            self._help()
+            self._cli_end_line()
+            return
+        if len(args) != command.args_num:
+            self.cli_print(f"Invalid input args num: {len(args)}.")
+            self._help()
+            self._cli_end_line()
+            return
+        parsed_params = self._parse_arguments(command.func, args)
+        command.func(*parsed_params)
         self._cli_end_line()
 
     def start(self):
@@ -111,30 +112,41 @@ class TestServer:
 
     def _handle_client(self, client_socket: socket):
         self._thread_local.client_socket = client_socket
-        buffer = b""
+        buffer_list = []
         try:
             while True:
-                # 接收客户端发送的命令
                 data = client_socket.recv(1024)
                 if not data:
                     self._thread_local.client_socket = None
-                    break  # 如果没有接收到数据，退出循环
-                buffer += data
-                if b"\0" in data:
-                    # 处理命令
-                    msg = buffer.decode('utf-8').replace("\0", "")
-                    buffer = b""
-                    print("received command: {}".format(msg))
-                    try:
-                        self._execute(msg.strip())
-                    except Exception:
-                        traceback.print_exc()
+                    break
+                buffer_list.append(data)
+                if not data.endswith(b"\0"):
+                    continue
+                msg = b''.join(buffer_list).decode('utf-8').replace("\0", "").strip()
+                request = json.loads(msg)
+                print(f"received request: {request}")
+
+                try:
+                    self._execute(request)
+                except Exception:
+                    traceback.print_exc()
+                finally:
+                    buffer_list.clear()
         finally:
-            # 关闭客户端连接
             client_socket.close()
 
     def cli_print(self, msg: str):
         self._thread_local.client_socket.send(f"{msg}\n".encode('utf-8'))
+
+    def cli_return(self, obj):
+        obj_type = type(obj)
+        if obj_type is int:
+            data = str(obj).encode('utf-8')
+        elif obj_type is bytes:
+            data = obj
+        else:
+            raise TypeError(f"Unsupported return type: {obj_type}")
+        self._thread_local.client_socket.send(data)
 
     def _cli_end_line(self):
         print("send command result")
@@ -157,7 +169,6 @@ def result_handler(func):
     def wrapper(self, *args, **kwargs):
         try:
             func(self, *args, **kwargs)
-            self.cli_print(f"{func.__name__} success")
         except Exception as e:
             self.cli_print(f"{func.__name__} raised exception: {e}")
 
@@ -168,16 +179,53 @@ class MmcTest(TestServer):
     def __init__(self, socket_id: int):
         super().__init__(socket_id)
         self._init_cmds()
+        self.__distributed_store_object = None
 
     def _init_cmds(self):
         cmds = [
-            # CliCommand("initmb", "init memory bridge, initmb [block_size] [layer_num] [block_num]", self.initmb, 3),
+            CliCommand("init_mmc", "initialize memcache", self.init_mmc, 0),
+            CliCommand("close_mmc", "destruct memcache", self.close_mmc, 0),
+            CliCommand("put", "put data in bytes format: [key] [data]", self.put, 2),
+            CliCommand("get", "get data in bytes format: [key]", self.get, 1),
+            CliCommand("is_exist", "check if a key exist: [key]", self.is_exist, 1),
+            CliCommand("remove", "remove data: [key]", self.remove, 1),
         ]
         self.register_command(cmds)
 
     @result_handler
     def print(self):
         self.cli_print("test print info")
+
+    @result_handler
+    def init_mmc(self):
+        self.__distributed_store_object = DistributedObjectStore()
+        res = self.__distributed_store_object.init()
+        self.cli_return(res)
+
+    @result_handler
+    def close_mmc(self):
+        res = self.__distributed_store_object.close()
+        self.cli_return(res)
+
+    @result_handler
+    def put(self, key: str, data: bytes):
+        res = self.__distributed_store_object.put(key, data)
+        self.cli_return(res)
+
+    @result_handler
+    def get(self, key: str):
+        res = self.__distributed_store_object.get(key)
+        self.cli_return(res)
+
+    @result_handler
+    def is_exist(self, key: str):
+        res = self.__distributed_store_object.is_exist(key)
+        self.cli_return(res)
+
+    @result_handler
+    def remove(self, key: str):
+        res = self.__distributed_store_object.remove(key)
+        self.cli_return(res)
 
 
 if __name__ == "__main__":
