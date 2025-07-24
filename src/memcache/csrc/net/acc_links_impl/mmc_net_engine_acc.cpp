@@ -110,10 +110,9 @@ Result NetEngineAcc::StartInner()
     tlsOpt.tlsCaFile.insert(options_.tlsOption.tlsCaPath);
     tlsOpt.tlsCert = options_.tlsOption.tlsCertPath;
     tlsOpt.tlsPk = options_.tlsOption.tlsKeyPath;
-    tlsOpt.packagePath = options_.tlsOption.packagePath;
 
     if (tlsOpt.enableTls) {
-        MMC_LOG_ERROR_AND_RETURN_NOT_OK(server_->LoadDynamicLib(tlsOpt.packagePath),
+        MMC_LOG_ERROR_AND_RETURN_NOT_OK(server_->LoadDynamicLib(options_.tlsOption.packagePath),
             "Failed to load openssl dynamic library");
     }
 

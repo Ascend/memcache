@@ -16,5 +16,5 @@ target_link_libraries(_pymmc PUBLIC mmc_shared)
 
 install(TARGETS _pymmc
         LIBRARY DESTINATION ${TARGET_INSTALL_DIR}/memcache/lib64
-        PERMISSIONS OWNER_READ OWNER_EXECUTE
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
 )

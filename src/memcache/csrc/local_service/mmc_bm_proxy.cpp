@@ -84,6 +84,7 @@ void MmcBmProxy::DestoryBm()
         handle_ = nullptr;
         gva_ = nullptr;
     }
+    started_ = false;
 }
 // todo size校验
 Result MmcBmProxy::Put(mmc_buffer *buf, uint64_t bmAddr, uint64_t size)

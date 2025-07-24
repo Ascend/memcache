@@ -1,4 +1,4 @@
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../3rdparty "${CMAKE_CURRENT_BINARY_DIR}/3rdparty_build")
+# add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../3rdparty "${CMAKE_CURRENT_BINARY_DIR}/3rdparty_build")
 file(GLOB_RECURSE UT_SOURCE_FILES *.cpp
         testcase/*
         ../stub/*
@@ -22,11 +22,6 @@ file(GLOB_RECURSE UT_SOURCE_FILES *.cpp
         ${PROJECT_MMC_SRC_BASE}/csrc/mmc_client.cpp
         ${PROJECT_MMC_SRC_BASE}/csrc/mmc_service.cpp
 )
-
-set(ASCEND_CANN_PACKAGE_PATH $ENV{ASCEND_HOME_PATH})
-if("${ASCEND_CANN_PACKAGE_PATH}" STREQUAL "")
-    message(FATAL_ERROR "ascend cann path not found!")
-endif()
 
 include_directories(
         ${PROJECT_SMEM_SRC_BASE}/include/host
@@ -71,7 +66,7 @@ target_link_directories(test_mf_hy PUBLIC ${ASCEND_CANN_PACKAGE_PATH}/aarch64-li
 set_target_properties(test_mf_hy PROPERTIES OUTPUT_NAME "test_mf_hy")
 set_target_properties(test_mf_hy PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 set_target_properties(test_mf_hy PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_OUTPUT_PATH}/bin)
-target_link_libraries(test_mf_hy gtest dl libacc_tcp_net.a gcov pthread hybmm_static ascendcl)
+target_link_libraries(test_mf_hy gtest dl libacc_tcp_net.a gcov pthread hybmm_static)
 target_include_directories(test_mf_hy PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/testcase
         ${CMAKE_CURRENT_SOURCE_DIR}/shmem_wrapper
@@ -90,6 +85,7 @@ FUNCTION(ADD_UNIT_TEST TEST_NAME)
     target_link_directories(${TEST_TARGET_NAME}  PUBLIC ${PROJECT_OUTPUT_PATH}/memcache/lib64)
     target_link_directories(${TEST_TARGET_NAME}  PUBLIC ${PROJECT_OUTPUT_PATH}/smem/lib64)
     target_link_directories(${TEST_TARGET_NAME}  PUBLIC ${ASCEND_CANN_PACKAGE_PATH}/aarch64-linux/lib64)
+    TARGET_MOCKCPP_HEADER(${TEST_TARGET_NAME})
     if(NOT EXISTS ${CHECK_FILE_LINKS})
         add_dependencies(${TEST_TARGET_NAME} googletest)
     endif()
@@ -118,9 +114,10 @@ ENDFUNCTION()
 
 set(TEST_INCLUDE_PATHS ../../src/memcache/)
 set(TEST_SRC_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
-set(TEST_DEPEND_LIBS gtest dl libacc_tcp_net.a mmc_static gcov pthread smem_static ascendcl)
+set(TEST_DEPEND_LIBS gtest dl libacc_tcp_net.a mmc_static gcov pthread smem_static)
 
 add_subdirectory(testcase/memcache/csrc/net)
 add_subdirectory(testcase/memcache/csrc/meta_service)
 add_subdirectory(testcase/memcache/csrc/common)
 add_subdirectory(testcase/memcache/csrc/entities)
+add_subdirectory(testcase/memcache/csrc/)

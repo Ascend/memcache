@@ -6,4 +6,4 @@ target_link_libraries(mmc_meta_service PUBLIC mmc_static smem_static pthread lib
 
 install(TARGETS mmc_meta_service
         RUNTIME DESTINATION ${TARGET_INSTALL_DIR}/memcache/bin
-        PERMISSIONS OWNER_READ OWNER_EXECUTE)
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)

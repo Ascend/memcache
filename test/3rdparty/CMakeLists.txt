@@ -1,6 +1,8 @@
 include(ExternalProject)
 set(THIRD_PARTY_DIR ${PROJECT_SOURCE_DIR}/test/3rdparty)
 set(INSTALL_DIR ${PROJECT_3RDPARTY_BIN_DIR}/googletest)
+set(MOCKCPP_INSTALL_DIR ${PROJECT_3RDPARTY_BIN_DIR}/mockcpp)
+
 
 set(CHECK_FILE_LINKS ${INSTALL_DIR}/include/gtest/gtest.h)
 message("-- googletest: check if need to build at ${CHECK_FILE_LINKS}")
@@ -55,3 +57,30 @@ set(GTEST_INCLUDE_DIR ${INSTALL_DIR}/include PARENT_SCOPE)
 set_target_properties(GTEST::GTEST PROPERTIES IMPORTED_LOCATION ${INSTALL_DIR}/lib/libgtestd.a)
 
 
+######################################################################
+# Mockcpp
+######################################################################
+set(MOCKCPP_CMAKE_ARGS
+        ${THIRD_PARTY_CMAKE_ARGS}
+        -DCMAKE_INSTALL_LIBDIR=${MOCKCPP_INSTALL_DIR}/lib
+        -DCMAKE_INSTALL_BINDIR=${MOCKCPP_INSTALL_DIR}/bin
+        -DCMAKE_INSTALL_PREFIX=${MOCKCPP_INSTALL_DIR}/)
+
+set(MOCKCPP_PATCH ${PROJECT_SOURCE_DIR}/test/3rdparty/patch/mockcpp_support_arm64.patch)
+
+externalproject_add(mock_cpp
+        URL ${THIRD_PARTY_DIR}/mockcpp
+        CMAKE_ARGS ${MOCKCPP_CMAKE_ARGS}
+        PATCH_COMMAND patch -p1 --forward -i ${MOCKCPP_PATCH} WORKING_DIRECTORY <SOURCE_DIR>
+        BUILD_ALWAYS OFF
+        LOG_DOWNLOAD On
+        LOG_CONFIGURE On
+        LOG_BUILD On
+        LOG_INSTALL On)
+
+macro(TARGET_MOCKCPP_HEADER target)
+    add_dependencies(${target} mock_cpp)
+    target_include_directories(${target} PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/mockcpp/include)
+    target_link_directories(${target} PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/mockcpp/lib)
+    target_link_libraries(${target} ${PROJECT_3RDPARTY_BIN_DIR}/mockcpp/lib/libmockcpp.a)
+endmacro()
