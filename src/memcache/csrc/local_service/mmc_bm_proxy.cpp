@@ -2,6 +2,7 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
 #include "mmc_bm_proxy.h"
+#include <algorithm>
 #include "mmc_logger.h"
 
 namespace ock {
@@ -28,18 +29,14 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
     }
 
     smem_bm_config_t config;
-    ret = smem_bm_config_init(&config);
-    if (ret != 0) {
-        MMC_LOG_ERROR("Failed to init smem bm config");
-        return ret;
-    }
-
+    MMC_RETURN_ERROR(smem_bm_config_init(&config), "Failed to init smem bm config");
     if (initConfig.autoRanking == 1) {
         config.autoRanking = true;
     } else {
         config.rankId = initConfig.rankId;
     }
 
+    (void) std::copy_n(initConfig.hcomUrl.c_str(), initConfig.hcomUrl.size(), config.hcomUrl);
     ret = smem_bm_init(initConfig.ipPort.c_str(), initConfig.worldSize, initConfig.deviceId, &config);
     if (ret != 0) {
         MMC_LOG_ERROR("Failed to init smem bm");

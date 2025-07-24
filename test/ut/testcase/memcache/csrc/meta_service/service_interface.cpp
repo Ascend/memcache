@@ -69,6 +69,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
 {
     std::string metaUrl = "tcp://127.0.0.1:5868";
     std::string bmUrl = "tcp://127.0.0.1:5881";
+    std::string hcomUrl = "tcp://127.0.0.1:5882";
     std::string localUrl = "";
     mmc_meta_service_config_t metaServiceConfig;
     metaServiceConfig.tlsConfig.tlsEnable = false;
@@ -77,7 +78,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
     ASSERT_TRUE(meta_service != nullptr);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, 0, 0, "sdma", 0, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, 0, "sdma", 0, 104857600, 0};
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     mmc_meta_service_t local_service = mmcs_local_service_start(&localServiceConfig);
     ASSERT_TRUE(local_service != nullptr);

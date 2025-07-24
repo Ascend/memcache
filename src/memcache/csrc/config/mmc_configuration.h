@@ -174,6 +174,7 @@ public:
         AddIntConf(OKC_MMC_LOCAL_SERVICE_RANK_ID, VNoCheck::Create());
         AddIntConf(OKC_MMC_LOCAL_SERVICE_WORLD_SIZE, VNoCheck::Create());
         AddStrConf(OKC_MMC_LOCAL_SERVICE_BM_IP_PORT, VNoCheck::Create());
+        AddStrConf(OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL, VNoCheck::Create());
         AddIntConf(OKC_MMC_LOCAL_SERVICE_AUTO_RANKING, VNoCheck::Create());
         AddIntConf(OKC_MMC_LOCAL_SERVICE_BM_ID, VNoCheck::Create());
         AddStrConf(OKC_MMC_LOCAL_SERVICE_PROTOCOL, VNoCheck::Create());
@@ -190,6 +191,7 @@ public:
         config.rankId = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_RANK_ID);
         config.worldSize = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_WORLD_SIZE);
         config.bmIpPort = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_IP_PORT);
+        config.bmHcomUrl = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL);
         config.autoRanking = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_AUTO_RANKING);
         config.createId = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_ID);
         config.dataOpType = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_PROTOCOL);

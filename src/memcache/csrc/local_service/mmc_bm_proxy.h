@@ -18,6 +18,7 @@ typedef struct {
     uint32_t rankId;
     uint32_t worldSize;
     std::string ipPort;
+    std::string hcomUrl;
     int autoRanking;
 } mmc_bm_init_config_t;
 

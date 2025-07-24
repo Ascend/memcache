@@ -176,10 +176,17 @@ Result SmemBmEntry::Leave(uint32_t flags)
 }
 
 static hybm_data_copy_direction directMap[SMEMB_COPY_BUTT] = {
-        HYBM_LOCAL_DEVICE_TO_GLOBAL_DEVICE, HYBM_GLOBAL_DEVICE_TO_LOCAL_DEVICE,
-        HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST, HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE,
-        HYBM_LOCAL_DEVICE_TO_GLOBAL_HOST, HYBM_GLOBAL_HOST_TO_LOCAL_DEVICE,
-        HYBM_GLOBAL_HOST_TO_LOCAL_HOST, HYBM_LOCAL_HOST_TO_GLOBAL_HOST,
+    HYBM_LOCAL_DEVICE_TO_GLOBAL_DEVICE, HYBM_GLOBAL_DEVICE_TO_LOCAL_DEVICE,
+    HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST, HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE,
+    HYBM_LOCAL_DEVICE_TO_GLOBAL_HOST, HYBM_GLOBAL_HOST_TO_LOCAL_DEVICE,
+    HYBM_GLOBAL_HOST_TO_LOCAL_HOST, HYBM_LOCAL_HOST_TO_GLOBAL_HOST,
+};
+
+static hybm_data_copy_direction dramDirectMap[SMEMB_COPY_BUTT] = {
+    HYBM_LOCAL_DEVICE_TO_GLOBAL_HOST, HYBM_GLOBAL_HOST_TO_LOCAL_DEVICE,
+    HYBM_GLOBAL_HOST_TO_LOCAL_HOST, HYBM_LOCAL_HOST_TO_GLOBAL_HOST,
+    HYBM_LOCAL_DEVICE_TO_GLOBAL_HOST, HYBM_GLOBAL_HOST_TO_LOCAL_DEVICE,
+    HYBM_GLOBAL_HOST_TO_LOCAL_HOST, HYBM_LOCAL_HOST_TO_GLOBAL_HOST,
 };
 
 Result SmemBmEntry::DataCopy(const void *src, void *dest, uint64_t size, smem_bm_copy_type t, uint32_t flags)
@@ -204,7 +211,8 @@ Result SmemBmEntry::DataCopy(const void *src, void *dest, uint64_t size, smem_bm
             break;
     }
 
-    return hybm_data_copy(entity_, src, dest, size, directMap[t], nullptr, flags);
+    auto direct = coreOptions_.bmType == HYBM_TYPE_HBM_DRAM_HOST_INITIATE ? dramDirectMap[t] : directMap[t];
+    return hybm_data_copy(entity_, src, dest, size, direct, nullptr, flags);
 }
 
 Result SmemBmEntry::DataCopy2d(const void *src, uint64_t spitch, void *dest, uint64_t dpitch,
@@ -233,7 +241,8 @@ Result SmemBmEntry::DataCopy2d(const void *src, uint64_t spitch, void *dest, uin
             break;
     }
 
-    return hybm_data_copy_2d(entity_, src, spitch, dest, dpitch, width, height, directMap[t], nullptr, flags);
+    auto direct = coreOptions_.bmType == HYBM_TYPE_HBM_DRAM_HOST_INITIATE ? dramDirectMap[t] : directMap[t];
+    return hybm_data_copy_2d(entity_, src, spitch, dest, dpitch, width, height, direct, nullptr, flags);
 }
 
 Result SmemBmEntry::CreateGlobalTeam(uint32_t rankSize, uint32_t rankId)

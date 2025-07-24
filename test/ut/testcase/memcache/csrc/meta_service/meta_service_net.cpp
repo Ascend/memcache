@@ -48,6 +48,7 @@ TEST_F(TestMmcMetaService, Init)
 {
     std::string metaUrl = "tcp://127.0.0.1:5678";
     std::string bmUrl = "tcp://127.0.0.1:5681";
+    std::string hcomUrl = "tcp://127.0.0.1:5682";
     mmc_meta_service_config_t metaServiceConfig;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     metaServiceConfig.worldSize = 1;
@@ -55,7 +56,7 @@ TEST_F(TestMmcMetaService, Init)
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, 0, 0, "sdma", 0, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, 0, "sdma", 0, 104857600, 0};
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
@@ -84,6 +85,7 @@ TEST_F(TestMmcMetaService, ExistRequest)
 {
     std::string metaUrl = "tcp://127.0.0.1:5679";
     std::string bmUrl = "tcp://127.0.0.1:5682";
+    std::string hcomUrl = "tcp://127.0.0.1:5683";
     mmc_meta_service_config_t metaServiceConfig;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     metaServiceConfig.worldSize = 1;
@@ -91,7 +93,7 @@ TEST_F(TestMmcMetaService, ExistRequest)
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, 0, 0, "sdma", 0, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, 0, "sdma", 0, 104857600, 0};
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
@@ -123,6 +125,7 @@ TEST_F(TestMmcMetaService, BatchExistRequest)
 {
     std::string metaUrl = "tcp://127.0.0.1:5680";
     std::string bmUrl = "tcp://127.0.0.1:5683";
+    std::string hcomUrl = "tcp://127.0.0.1:5684";
     mmc_meta_service_config_t metaServiceConfig;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     metaServiceConfig.worldSize = 1;
@@ -130,7 +133,7 @@ TEST_F(TestMmcMetaService, BatchExistRequest)
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, 0, 0, "sdma", 0, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, 0, "sdma", 0, 104857600, 0};
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
@@ -179,6 +182,7 @@ TEST_F(TestMmcMetaService, QueryRequest)
 {
     std::string metaUrl = "tcp://127.0.0.1:5679";
     std::string bmUrl = "tcp://127.0.0.1:5682";
+    std::string hcomUrl = "tcp://127.0.0.1:5683";
     mmc_meta_service_config_t metaServiceConfig;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     metaServiceConfig.worldSize = 1;
@@ -186,7 +190,7 @@ TEST_F(TestMmcMetaService, QueryRequest)
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, 0, 0, "sdma", 0, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, 0, "sdma", 0, 104857600, 0};
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
@@ -221,6 +225,7 @@ TEST_F(TestMmcMetaService, BatchQueryRequest)
 {
     std::string metaUrl = "tcp://127.0.0.1:5680";
     std::string bmUrl = "tcp://127.0.0.1:5683";
+    std::string hcomUrl = "tcp://127.0.0.1:5684";
     mmc_meta_service_config_t metaServiceConfig;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     metaServiceConfig.worldSize = 1;
@@ -228,7 +233,7 @@ TEST_F(TestMmcMetaService, BatchQueryRequest)
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, 0, 0, "sdma", 0, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, 0, "sdma", 0, 104857600, 0};
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);

@@ -40,6 +40,7 @@ typedef struct {
     uint32_t rankId;  // bmRankId: BM全局统一编号
     uint32_t worldSize;
     std::string bmIpPort;
+    std::string bmHcomUrl;
     int autoRanking;
     uint32_t createId;
     std::string dataOpType;
