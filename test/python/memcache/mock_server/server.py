@@ -6,7 +6,6 @@ import concurrent.futures
 import dataclasses
 import inspect
 import json
-import os
 import socket
 import sys
 import threading
@@ -26,8 +25,8 @@ class CliCommand:
 
 
 class TestServer:
-    def __init__(self, socket_id: int):
-        self._socket_path = os.path.join(f"{os.path.dirname(os.path.abspath(__file__))}", f"mmc_{socket_id}.socket")
+    def __init__(self, ip, port):
+        self._ip_port = (ip, int(port))
         self._server_socket = None
         self._commands: Dict[str:CliCommand] = {}
         self._thread_local = threading.local()
@@ -94,16 +93,8 @@ class TestServer:
         self._cli_end_line()
 
     def start(self):
-        # 创建一个 Unix 域套接字
-        self._server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        # 删除旧的套接字文件（如果有）
-        try:
-            os.unlink(self._socket_path)
-        except OSError:
-            pass
-        # 绑定套接字到文件
-        self._server_socket.bind(self._socket_path)
-        # 监听传入连接
+        self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._server_socket.bind(self._ip_port)
         self._server_socket.listen(5)
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
             while True:
@@ -176,8 +167,8 @@ def result_handler(func):
 
 
 class MmcTest(TestServer):
-    def __init__(self, socket_id: int):
-        super().__init__(socket_id)
+    def __init__(self, ip, port):
+        super().__init__(ip, port)
         self._init_cmds()
         self.__distributed_store_object = None
 
@@ -229,10 +220,10 @@ class MmcTest(TestServer):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) <= 1:
-        print("Please input app_id when starting the process.")
+    if len(sys.argv) != 3:
+        print("Please input ip and port when starting the process.")
         sys.exit(1)
-    app_id = int(sys.argv[1])
-    print(f"Start app_id: {app_id}")
-    server = MmcTest(app_id)
+    _, ip, port = sys.argv
+    print(f"Start app_id: {ip}:{port}")
+    server = MmcTest(ip, port)
     server.start()
