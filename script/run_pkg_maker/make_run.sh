@@ -40,7 +40,7 @@ mkdir ${PKG_DIR}/${ARCH_OS}/include
 mkdir ${PKG_DIR}/${ARCH_OS}/lib64
 mkdir ${PKG_DIR}/${ARCH_OS}/wheel
 mkdir ${PKG_DIR}/${ARCH_OS}/script
-mkdir ${PKG_DIR}/${ARCH_OS}/config
+mkdir ${PKG_DIR}/config
 
 # smem
 cp -r ${OUTPUT_DIR}/smem/include/* ${PKG_DIR}/${ARCH_OS}/include
@@ -54,7 +54,7 @@ cp ${OUTPUT_DIR}/memcache/lib64/* ${PKG_DIR}/${ARCH_OS}/lib64/
 cp ${OUTPUT_DIR}/memcache/bin/* ${PKG_DIR}/${ARCH_OS}/bin/
 cp ${OUTPUT_DIR}/memcache/wheel/*.whl ${PKG_DIR}/${ARCH_OS}/wheel/
 
-cp ${PROJECT_DIR}/config/* ${PKG_DIR}/${ARCH_OS}/config
+cp ${PROJECT_DIR}/config/* ${PKG_DIR}/config
 cp -r ${PROJECT_DIR}/script/certs ${PKG_DIR}/${ARCH_OS}/script
 
 mkdir -p ${PKG_DIR}/script

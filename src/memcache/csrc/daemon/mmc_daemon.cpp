@@ -98,11 +98,11 @@ int main(int argc, char* argv[])
         std::cerr << "Error, meta service is already running." << std::endl;
         return -1;
     }
-    if (MMC_CONFIG_PATH == nullptr) {
-        std::cerr << "Error, MEMCACHE_CONFIG_PATH is not set." << std::endl;
+    if (MMC_META_CONF_PATH == nullptr) {
+        std::cerr << "Error, MMC_META_CONFIG_PATH is not set." << std::endl;
         return -1;
     }
-    if (LoadConfig(MMC_CONFIG_PATH) != 0) {
+    if (LoadConfig(MMC_META_CONF_PATH) != 0) {
         std::cerr << "Error, failed to load config." << std::endl;
         return -1;
     }

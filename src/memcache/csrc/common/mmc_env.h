@@ -6,5 +6,6 @@
 
 
 namespace ock::mmc {
-    const char* MMC_CONFIG_PATH = std::getenv("MEMCACHE_CONFIG_PATH");
+    const char* MMC_META_CONF_PATH = std::getenv("MMC_META_CONFIG_PATH");
+    const char* MMC_LOCAL_CONF_PATH = std::getenv("MMC_LOCAL_CONFIG_PATH");
 }

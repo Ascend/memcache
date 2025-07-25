@@ -9,6 +9,7 @@
 #include "mmc_def.h"
 #include "mmc_env.h"
 #include "mmc_service.h"
+#include "common/mmc_env.h"
 
 using namespace ock::mmc;
 static ClientConfig *g_clientConfig;
@@ -16,16 +17,17 @@ static mmc_local_service_t g_localService;
 
 MMC_API int32_t mmc_init()
 {
-    MMC_VALIDATE_RETURN(MMC_CONFIG_PATH != nullptr, "MEMCACHE_CONFIG_PATH is not set", MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(MMC_LOCAL_CONF_PATH != nullptr, "MMC_LOCAL_CONFIG_PATH is not set", MMC_INVALID_PARAM);
 
     g_clientConfig = new ClientConfig();
     MMC_VALIDATE_RETURN(g_clientConfig != nullptr, "Failed to initialize client config", MMC_ERROR);
 
-    MMC_VALIDATE_RETURN(g_clientConfig->LoadFromFile(MMC_CONFIG_PATH), "Failed to load client config", MMC_ERROR);
+    MMC_VALIDATE_RETURN(g_clientConfig->LoadFromFile(MMC_LOCAL_CONF_PATH), "Failed to load client config", MMC_ERROR);
 
     const std::vector<std::string> validationError = g_clientConfig->ValidateConf();
     if (!validationError.empty()) {
-        MMC_LOG_ERROR("Wrong configuration in file <" << std::string(MMC_CONFIG_PATH) << ">, because of following mistakes:");
+        MMC_LOG_ERROR("Wrong configuration in file <" << std::string(MMC_LOCAL_CONF_PATH)
+            << ">, because of following mistakes:");
         for (auto &item : validationError) {
             MMC_LOG_ERROR(item);
         }
