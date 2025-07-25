@@ -56,6 +56,7 @@ cp ${OUTPUT_DIR}/memcache/wheel/*.whl ${PKG_DIR}/${ARCH_OS}/wheel/
 
 cp ${PROJECT_DIR}/config/* ${PKG_DIR}/config
 cp -r ${PROJECT_DIR}/script/certs ${PKG_DIR}/${ARCH_OS}/script
+cp -r ${PROJECT_DIR}/test/python/memcache/mock_server ${PKG_DIR}/${ARCH_OS}/script
 
 mkdir -p ${PKG_DIR}/script
 cp ${BASH_PATH}/install.sh ${PKG_DIR}/script/
