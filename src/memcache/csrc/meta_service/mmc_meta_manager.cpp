@@ -174,6 +174,70 @@ Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &lo
     return MMC_OK;
 }
 
+Result MmcMetaManager::BatchUpdateState(const std::vector<std::string> &keys,
+                                        const std::vector<MmcLocation> &locs,
+                                        const std::vector<uint32_t> &rankIds,
+                                        const std::vector<uint32_t> &operateIds,
+                                        const std::vector<BlobActionResult> &actRets,
+                                        std::vector<Result> &updateResults)
+{
+    const size_t count = keys.size();
+    if (count != locs.size() || count != rankIds.size() || count != operateIds.size() || count != actRets.size()) {
+        MMC_LOG_ERROR("BatchUpdateState: Input vectors size mismatch.");
+        return MMC_ERROR;
+    }
+    updateResults.clear();
+    updateResults.resize(count, MMC_ERROR);
+    std::vector<MmcMemObjMetaPtr> objMetas(count);
+    std::vector<Result> getResults(count);
+    for (size_t i = 0; i < count; ++i) {
+        getResults[i] = metaContainer_->Get(keys[i], objMetas[i]);
+    }
+    bool allSuccess = true;
+    for (size_t i = 0; i < count; ++i) {
+        const std::string& key = keys[i];
+        if (getResults[i] != MMC_OK) {
+            updateResults[i] = (getResults[i] == MMC_UNMATCHED_KEY) ?
+                MMC_UNMATCHED_KEY : MMC_ERROR;
+            allSuccess = false;
+            MMC_LOG_DEBUG("Key not found: " << key << " (code: " << getResults[i] << ")");
+            continue;
+        }
+
+        objMetas[i]->Lock();
+        MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(
+            locs[i].rank_, locs[i].mediaType_, NONE);
+        if (filter == nullptr) {
+            updateResults[i] = MMC_ERROR;
+            allSuccess = false;
+            objMetas[i]->Unlock();
+            MMC_LOG_ERROR("Filter creation failed for key: " << key);
+            continue;
+        }
+
+        std::vector<MmcMemBlobPtr> blobs = objMetas[i]->GetBlobs(filter);
+        if (blobs.size() != 1) {
+            updateResults[i] = MMC_ERROR;
+            allSuccess = false;
+            objMetas[i]->Unlock();
+            MMC_LOG_ERROR("Invalid blob count for key: " << key
+                          << ". Expected 1, found " << blobs.size());
+            continue;
+        }
+        updateResults[i] = blobs[0]->UpdateState(
+            rankIds[i], operateIds[i], actRets[i]);
+        objMetas[i]->Unlock();
+
+        if (updateResults[i] != MMC_OK) {
+            allSuccess = false;
+            MMC_LOG_WARN("Update failed for key: " << key << " (code: " << updateResults[i] << ")");
+        } else {
+            MMC_LOG_DEBUG("Updated key: " << key << ", Rank: " << rankIds[i]);
+        }
+    }
+    return allSuccess ? MMC_OK : MMC_ERROR;
+}
+
 // TODO: 遍历的时候有问题
 Result MmcMetaManager::Remove(const std::string &key)
 {

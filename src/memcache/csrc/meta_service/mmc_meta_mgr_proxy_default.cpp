@@ -102,6 +102,41 @@ Result MmcMetaMgrProxyDefault::UpdateState(const UpdateRequest &req, Response &r
     }
 }
 
+Result MmcMetaMgrProxyDefault::BatchUpdateState(const BatchUpdateRequest &req, BatchUpdateResponse &resp)
+{
+    const size_t keyCount = req.keys_.size();
+    std::vector<MediaType> mediaTypes;
+    mediaTypes.reserve(keyCount);
+    for (const auto mt : req.mediaTypes_) {
+        mediaTypes.push_back(static_cast<MediaType>(mt));
+    }
+
+    std::vector<MmcLocation> locs;
+    locs.reserve(keyCount);
+    for (size_t i = 0; i < keyCount; ++i) {
+        locs.push_back({req.ranks_[i], mediaTypes[i]});
+    }
+    std::vector<uint32_t> operateIds(keyCount, req.operateId_);
+    std::vector<Result> updateResults;
+    Result ret = metaMangerPtr_->BatchUpdateState(
+        req.keys_,
+        locs,
+        req.ranks_,
+        operateIds,
+        req.actionResults_,
+        updateResults);
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("BatchUpdate failed: " << ret);
+        return ret;
+    }
+    resp.results_ = updateResults;
+
+    size_t successCount = std::count(updateResults.begin(), updateResults.end(), MMC_OK);
+    MMC_LOG_INFO("BatchUpdate completed: "  << successCount << "/" << keyCount << " updates succeeded");
+    
+    return MMC_OK;
+}
+
 Result MmcMetaMgrProxyDefault::Get(const GetRequest &req, AllocResponse &resp)
 {
 

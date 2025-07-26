@@ -35,6 +35,8 @@ public:
 
     Result UpdateState(const UpdateRequest &req, Response &resp) override;
 
+    Result BatchUpdateState(const BatchUpdateRequest &req, BatchUpdateResponse &resp) override;
+
     Result Get(const GetRequest &req, AllocResponse &resp) override;
 
     Result BatchGet(const BatchGetRequest &req, BatchAllocResponse &resp) override;

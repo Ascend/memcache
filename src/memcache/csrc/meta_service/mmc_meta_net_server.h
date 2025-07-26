@@ -43,6 +43,8 @@ private:
 
     Result HandleUpdate(const NetContextPtr &context);
 
+    Result HandleBatchUpdate(const NetContextPtr &context);
+
     Result HandleGet(const NetContextPtr &context);
 
     Result HandleBatchGet(const NetContextPtr &context);

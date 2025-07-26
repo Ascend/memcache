@@ -20,6 +20,8 @@ public:
 
     virtual Result UpdateState(const UpdateRequest &req, Response &resp) = 0;
 
+    virtual Result BatchUpdateState(const BatchUpdateRequest &req, BatchUpdateResponse &resp) = 0;
+
     virtual Result Get(const GetRequest &req, AllocResponse &resp) = 0;
 
     virtual Result Remove(const RemoveRequest &req, Response &resp) = 0;

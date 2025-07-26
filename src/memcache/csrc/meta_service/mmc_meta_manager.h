@@ -79,6 +79,17 @@ public:
                        const BlobActionResult &actRet);
 
     /**
+     * @brief Update the state
+     * @param req          [in] update state request
+     */
+    Result BatchUpdateState(const std::vector<std::string> &keys,
+                            const std::vector<MmcLocation> &locs,
+                            const std::vector<uint32_t> &rankIds,
+                            const std::vector<uint32_t> &operateIds,
+                            const std::vector<BlobActionResult> &actRets,
+                            std::vector<Result> &updateResults);
+
+    /**
      * @brief remove the meta object
      * @param key          [in] key of the to-be-removed meta object
      */
