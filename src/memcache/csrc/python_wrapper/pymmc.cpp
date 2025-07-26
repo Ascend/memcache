@@ -17,6 +17,10 @@
 namespace py = pybind11;
 using namespace ock::mmc;
 
+namespace {
+constexpr uint16_t MEDIA_TYPE = 0;
+}
+
 // ResourceTracker implementation using singleton pattern
 ResourceTracker &ResourceTracker::getInstance() {
     static ResourceTracker instance;
@@ -118,7 +122,7 @@ int DistributedObjectStore::tearDownAll() {
 }
 
 int DistributedObjectStore::put(const std::string &key, mmc_buffer &buffer) {
-    mmc_put_options options = {.mediaType = 0, .policy = NATIVE_AFFINITY};
+    mmc_put_options options = {.mediaType = MEDIA_TYPE, .policy = NATIVE_AFFINITY};
     return mmcc_put(key.c_str(), &buffer, options, 0);
 }
 
@@ -312,16 +316,21 @@ std::vector<int> DistributedObjectStore::batch_put_from(const std::vector<std::s
         default:
             throw std::invalid_argument("direct is invalid");
     }
+
+    const char *keyArray[count];
+    mmc_buffer bufferArray[count];
     for (size_t i = 0; i < count; ++i) {
-        mmc_buffer buffer = {
+        keyArray[i] = keys[i].c_str();
+        bufferArray[i] = {
             .addr=reinterpret_cast<uint64_t>(buffers[i]), \
             .type=type,
             .dimType=0,
             .oneDim={.offset=0, .len=static_cast<uint64_t>(sizes[i])}
         };
-        results[i] = put_from(keys[i], buffer);
     }
-    return results;
+
+    mmc_put_options options = {.mediaType = MEDIA_TYPE, .policy = NATIVE_AFFINITY};
+    return {mmcc_batch_put(keyArray, count, bufferArray, options, 0)};
 }
 
 std::vector<int> DistributedObjectStore::batch_get_into(
@@ -343,16 +352,19 @@ std::vector<int> DistributedObjectStore::batch_get_into(
         default:
             throw std::invalid_argument("direct is invalid");
     }
+
+    const char *keyArray[count];
+    mmc_buffer bufferArray[count];
     for (size_t i = 0; i < count; ++i) {
-        mmc_buffer buffer = {
+        keyArray[i] = keys[i].c_str();
+        bufferArray[i] = {
             .addr=reinterpret_cast<uint64_t>(buffers[i]), \
             .type=type,
             .dimType=0,
             .oneDim={.offset=0, .len=static_cast<uint64_t>(sizes[i])}
         };
-        results[i] = get_into(keys[i], buffer);
     }
-    return results;
+    return {mmcc_batch_get(keyArray, count, bufferArray, 0)};
 }
 
 int DistributedObjectStore::put_from(const std::string &key, mmc_buffer &buffer) {

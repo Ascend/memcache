@@ -180,14 +180,14 @@ class MmcDirect(Enum):
 
 
 class MmcTest(TestServer):
-    def __init__(self, ip, port):
+    def __init__(self, ip, port, device_id: int, block_num: int, layer_num: int, min_block_size: int):
         super().__init__(ip, port)
         self._init_cmds()
         self.__distributed_store_object = None
-        self._device_id = 4
-        self._layer_num = 10
-        self._block_num = 10
-        self._min_block_size = 512
+        self._device_id = device_id
+        self._layer_num = layer_num
+        self._block_num = block_num
+        self._min_block_size = min_block_size
         self._npu_addr = 0
         self._npu_blocks: dict[int, list[torch.Tensor]] = {}
         self._cpu_addr = 0
@@ -352,10 +352,17 @@ class MmcTest(TestServer):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) == 3:
+        _, ip, port = sys.argv
+        device_id = 0
+        block_num = 100
+        layer_num = 20
+        min_block_size = 512
+    elif len(sys.argv) == 7:
+        _, ip, port, device_id, block_num, layer_num, min_block_size = sys.argv
+    else:
         print("Please input ip and port when starting the process.")
         sys.exit(1)
-    _, ip, port = sys.argv
-    print(f"Start app_id: {ip}:{port}")
-    server = MmcTest(ip, port)
+    print(f"Start app_id: {ip}:{port} {device_id} {block_num} {layer_num} {min_block_size}")
+    server = MmcTest(ip, port, device_id, block_num, layer_num, min_block_size)
     server.start()

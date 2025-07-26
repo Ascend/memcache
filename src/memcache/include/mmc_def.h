@@ -10,6 +10,7 @@
 
 #define DISCOVERY_URL_SIZE 1024
 #define PATH_MAX_SIZE 1024
+#define MAX_BATCH_OP_COUNT 16384
 
 #ifdef __cplusplus
 extern "C" {

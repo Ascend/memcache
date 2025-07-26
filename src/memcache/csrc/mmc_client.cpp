@@ -8,6 +8,10 @@
 using namespace ock::mmc;
 static MmcClientDefault *gClientHandler = nullptr;
 
+namespace {
+constexpr uint32_t MAX_BATCH_COUNT = 16384;
+}
+
 MMC_API int32_t mmcc_init(mmc_client_config_t *config)
 {
     MMC_VALIDATE_RETURN(config != nullptr, "invalid param, config is null", MMC_INVALID_PARAM);
@@ -159,12 +163,13 @@ MMC_API int32_t mmcc_batch_exist(const char **keys, const uint32_t keys_count, i
 MMC_API int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffer *bufs, uint32_t flags)
 {
     MMC_VALIDATE_RETURN(keys != nullptr, "invalid param, keys is null", MMC_INVALID_PARAM);
-    MMC_VALIDATE_RETURN(keys_count != 0, "invalid param, keys_count is 0", MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(keys_count != 0 && keys_count <= MAX_BATCH_COUNT, "invalid param, keys_count: "
+                        << keys_count, MMC_INVALID_PARAM);
     MMC_VALIDATE_RETURN(bufs != nullptr, "invalid param, bufs is null", MMC_INVALID_PARAM);
     MMC_VALIDATE_RETURN(gClientHandler != nullptr, "client is not initialize", MMC_CLIENT_NOT_INIT);
 
     std::vector<std::string> keys_vector(keys, keys + keys_count);
-    std::vector<mmc_buffer> bufs_vector;
+    std::vector<mmc_buffer> bufs_vector(bufs, bufs + keys_count);
 
     MMC_RETURN_ERROR(gClientHandler->BatchGet(keys_vector, bufs_vector, flags),
                      gClientHandler->Name() << " batch_get failed!");
@@ -173,11 +178,6 @@ MMC_API int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffe
         MMC_LOG_ERROR("Batch get error!");
         return MMC_ERROR;
     }
-
-    for (size_t i = 0; i < keys_count; ++i) {
-        bufs[i] = bufs_vector[i];
-    }
-
     return MMC_OK;
 }
 
@@ -185,7 +185,8 @@ MMC_API int32_t mmcc_batch_put(const char **keys, uint32_t keys_count, const mmc
                                const mmc_put_options& options, uint32_t flags)
 {
     MMC_VALIDATE_RETURN(keys != nullptr, "invalid param, keys is null", MMC_INVALID_PARAM);
-    MMC_VALIDATE_RETURN(keys_count != 0, "invalid param, keys_count is 0", MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(keys_count != 0 && keys_count <= MAX_BATCH_COUNT, "invalid param, keys_count: "
+                        << keys_count, MMC_INVALID_PARAM);
     MMC_VALIDATE_RETURN(bufs != nullptr, "invalid param, bufs is null", MMC_INVALID_PARAM);
     MMC_VALIDATE_RETURN(gClientHandler != nullptr, "client is not initialize", MMC_CLIENT_NOT_INIT);
 

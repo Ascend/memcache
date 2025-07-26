@@ -321,7 +321,7 @@ public:
     virtual Result Send(uint32_t peerId, const char *reqData, uint32_t reqDataLen, int32_t timeoutInSecond) = 0;
 
 protected:
-    constexpr static int16_t gHandlerMax = UN16;
+    constexpr static int16_t gHandlerMax = UN32;
     constexpr static int16_t gHandlerMin = 0;
 
 protected:
