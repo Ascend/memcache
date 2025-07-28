@@ -52,7 +52,9 @@ class TestServer:
     @staticmethod
     def _convert_argument(arg_str: str, param_type):
         try:
-            if param_type == int:
+            if arg_str == "__NONE__":
+                return None
+            elif param_type == int:
                 return int(arg_str)
             elif param_type == float:
                 return float(arg_str)
