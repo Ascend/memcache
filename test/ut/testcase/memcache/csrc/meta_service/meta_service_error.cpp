@@ -88,6 +88,91 @@ TEST_F(TestMmcServiceError, metaService)
     UrlStringToChar(metaUrl, clientConfig.discoveryURL);
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_TRUE(ret == 0);
+
+    std::string test = "test";
+
+    void *hostSrc = malloc(SIZE_32K);
+    void *hostDest = malloc(SIZE_32K);
+
+    GenerateData(hostSrc, 1);
+
+    mmc_buffer buffer;
+    buffer.addr = (uint64_t)hostSrc;
+    buffer.type = 0;
+    buffer.dimType = 0;
+    buffer.oneDim.offset = 0;
+    buffer.oneDim.len = SIZE_32K;
+
+    mmc_put_options options{0, NATIVE_AFFINITY};
+    ret = mmcc_put(test.c_str(), &buffer, options, 0);
+    ASSERT_TRUE(ret == 0);
+
+    mmc_buffer readBuffer;
+    readBuffer.addr = (uint64_t)hostDest;
+    readBuffer.type = 0;
+    readBuffer.dimType = 0;
+    readBuffer.oneDim.offset = 0;
+    readBuffer.oneDim.len = SIZE_32K;
+
+    ret = mmcc_get(test.c_str(), &readBuffer, 0);
+    ASSERT_TRUE(ret == 0);
+
+    bool result = CheckData(hostSrc, hostDest);
+    EXPECT_TRUE(result);
+
+    mmc_location_t location = mmcc_get_location(test.c_str(), 0);
+    ASSERT_TRUE(location.xx == 0);
+
+    ret = mmcc_remove(test.c_str(), 0);
+    ASSERT_TRUE(ret == 0);
+
+    const char* keys[] = {"test1", "test2"};
+    uint32_t keys_count = sizeof(keys) / sizeof(keys[0]);
+    void* hostSrcs[keys_count];
+    void* hostDests[keys_count];
+    mmc_buffer bufs[keys_count];
+
+    for (uint32_t i = 0; i < keys_count; ++i) {
+        hostSrcs[i] = malloc(SIZE_32K);
+        hostDests[i] = malloc(SIZE_32K);
+        GenerateData(hostSrcs[i], 1);
+
+        bufs[i].addr = (uint64_t)hostSrcs[i];
+        bufs[i].type = 0;
+        bufs[i].dimType = 0;
+        bufs[i].oneDim.offset = 0;
+        bufs[i].oneDim.len = SIZE_32K;
+    }
+
+    ret = mmcc_batch_put(keys, keys_count, bufs, options, 0);
+    ASSERT_TRUE(ret == 0);
+
+    for (uint32_t i = 0; i < keys_count; ++i) {
+        mmc_buffer readBuffer;
+        readBuffer.addr = (uint64_t)hostDests[i];
+        readBuffer.type = 0;
+        readBuffer.dimType = 0;
+        readBuffer.oneDim.offset = 0;
+        readBuffer.oneDim.len = SIZE_32K;
+
+        ret = mmcc_get(keys[i], &readBuffer, 0);
+        ASSERT_TRUE(ret == 0);
+
+        EXPECT_TRUE(CheckData(hostSrcs[i], hostDests[i]));
+    }
+
+    for (uint32_t i = 0; i < keys_count; ++i) {
+        ret = mmcc_remove(keys[i], 0);
+        ASSERT_TRUE(ret == 0);
+    }
+
+    for (uint32_t i = 0; i < keys_count; ++i) {
+        free(hostSrcs[i]);
+        free(hostDests[i]);
+    }
+    sleep(3);
+    free(hostSrc);
+    free(hostDest);
     sleep(1000);
     mmcs_local_service_stop(local_service);
     mmcc_uninit();

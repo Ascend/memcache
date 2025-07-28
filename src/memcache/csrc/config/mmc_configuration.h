@@ -138,8 +138,8 @@ public:
     void LoadDefault() override {
         using namespace ConfConstant;
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
-        AddIntConf(OCK_MMC_META_SERVICE_LOG_LEVEL,
-                   VIntRange::Create(OCK_MMC_META_SERVICE_LOG_LEVEL.first, DEBUG_LEVEL, BUTT_LEVEL));
+        AddStrConf(OCK_MMC_LOG_LEVEL,
+                   VNoCheck::Create());
 
         AddBoolConf(OCK_MMC_TLS_ENABLE, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_TOP_PATH, VStrLength::Create(OCK_MMC_TLS_TOP_PATH.first, PATH_MAX_LEN));
@@ -153,7 +153,8 @@ public:
     void GetMetaServiceConfig(mmc_meta_service_config_t &config) {
         const auto discoveryURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_URL);
         strncpy(config.discoveryURL, discoveryURL.c_str(), DISCOVERY_URL_SIZE);
-        config.logLevel = GetInt(ConfConstant::OCK_MMC_META_SERVICE_LOG_LEVEL);
+        std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
+        config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
         GetTlsConfig(config.tlsConfig);
     }
 };
@@ -163,6 +164,8 @@ public:
     void LoadDefault() override {
         using namespace ConfConstant;
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
+        AddStrConf(OCK_MMC_LOG_LEVEL,
+                   VNoCheck::Create());
 
         AddBoolConf(OCK_MMC_TLS_ENABLE, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_TOP_PATH, VStrLength::Create(OCK_MMC_TLS_TOP_PATH.first, PATH_MAX_LEN));
@@ -206,8 +209,8 @@ public:
         config.dataOpType = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_PROTOCOL);
         config.localDRAMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE);
         config.localHBMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE);
-        config.logLevel = 0;
-        config.logFunc = nullptr;
+        const auto logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
+        config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
         GetTlsConfig(config.tlsConfig);
     }
 
@@ -217,6 +220,8 @@ public:
         config.rankId = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_RANK_ID);
         config.timeOut = GetInt(ConfConstant::OCK_MMC_CLIENT_TIMEOUT_SECONDS);
         config.autoRanking = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_AUTO_RANKING);
+        const auto logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
+        config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
         GetTlsConfig(config.tlsConfig);
     }
 };

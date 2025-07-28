@@ -36,21 +36,25 @@ MMC_API int32_t mmc_init()
 
     mmc_local_service_config_t localServiceConfig;
     g_clientConfig->GetLocalServiceConfig(localServiceConfig);
+    localServiceConfig.logFunc = nullptr;
     g_localService = mmcs_local_service_start(&localServiceConfig);
     MMC_VALIDATE_RETURN(g_localService != nullptr, "failed to create or start local service", MMC_ERROR);
 
     mmc_client_config_t clientConfig;
     g_clientConfig->GetClientConfig(clientConfig);
+    clientConfig.logFunc = nullptr;
     return mmcc_init(&clientConfig);
 }
 
 MMC_API int32_t mmc_set_extern_logger(void (*func)(int level, const char *msg))
 {
+    ock::mmc::MmcOutLogger::Instance().SetExternalLogFunction(func);
     return MMC_OK;
 }
 
 MMC_API int32_t mmc_set_log_level(int level)
 {
+    ock::mmc::MmcOutLogger::Instance().SetLogLevel(static_cast<LogLevel>(level));
     return MMC_OK;
 }
 

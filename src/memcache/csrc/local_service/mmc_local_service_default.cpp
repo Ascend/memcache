@@ -21,6 +21,11 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
 
     // 初始化BM，并更新bmRankId
     options_ = config;
+    MMC_RETURN_ERROR(ock::mmc::MmcOutLogger::Instance().SetLogLevel(static_cast<LogLevel>(options_.logLevel)),
+                     "failed to set log level " << options_.logLevel);
+    if (options_.logFunc != nullptr) {
+        ock::mmc::MmcOutLogger::Instance().SetExternalLogFunction(options_.logFunc);
+    }
     MMC_RETURN_ERROR(InitBm(), "Failed to init bm of local service " << name_);
 
     metaNetClient_ = MetaNetClientFactory::GetInstance(this->options_.discoveryURL, "MetaClientCommon").Get();
@@ -32,11 +37,11 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
         NetEngineOptions options;
         options.name = name_;
         options.threadCount = 2;
-        options.rankId = config.rankId;
+        options.rankId = options_.rankId;
         options.startListener = false;
-        options.tlsOption = config.tlsConfig;
-        options.logLevel = config.logLevel;
-        options.logFunc = config.logFunc;
+        options.tlsOption = options_.tlsConfig;
+        options.logLevel = options_.logLevel;
+        options.logFunc = options_.logFunc;
         MMC_RETURN_ERROR(metaNetClient_->Start(options),
                          "Failed to start net server of local service, name=" << name_ << ", bmRankId=" << options_.rankId);
         MMC_RETURN_ERROR(metaNetClient_->Connect(options_.discoveryURL),
@@ -73,8 +78,8 @@ void MmcLocalServiceDefault::Stop()
 
 Result MmcLocalServiceDefault::InitBm()
 {
-    mmc_bm_init_config_t initConfig = {options_.deviceId, options_.rankId, options_.worldSize,
-                                       options_.bmIpPort, options_.bmHcomUrl, options_.autoRanking};
+    mmc_bm_init_config_t initConfig = {options_.deviceId, options_.rankId, options_.worldSize, options_.bmIpPort,
+                                       options_.bmHcomUrl, options_.autoRanking, options_.logLevel, options_.logFunc};
     mmc_bm_create_config_t createConfig = {options_.createId, options_.worldSize, options_.dataOpType,
                                            options_.localDRAMSize, options_.localHBMSize, options_.flags};
 

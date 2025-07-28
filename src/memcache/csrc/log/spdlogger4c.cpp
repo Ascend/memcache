@@ -8,7 +8,7 @@ namespace ock {
 namespace mmc {
 int SPDLOG_Init(const char* path, int minLogLevel, int rotationFileSize, int rotationFileCount)
 {
-    return ock::mmc::log::SpdLogger::GetInstance().Initialize(path, minLogLevel, rotationFileSize,
+    return ock::mmc::log::SpdLogger::GetInstance().Initialize(path, minLogLevel + 1, rotationFileSize,
                                                               rotationFileCount);
 }
 
@@ -21,7 +21,7 @@ int SPDLOG_AuditInit(const char* path, int rotationFileSize, int rotationFileCou
 
 void SPDLOG_LogMessage(int32_t level, const char* msg)
 {
-    ock::mmc::log::SpdLogger::GetInstance().LogMessage(level, msg);
+    ock::mmc::log::SpdLogger::GetInstance().LogMessage(level + 1, msg);
 }
 
 void SPDLOG_AuditLogMessage(const char* msg)

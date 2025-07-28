@@ -17,12 +17,12 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
         MMC_LOG_INFO("MmcBmProxy " << name_ << " already init");
         return MMC_OK;
     }
-
-    auto ret = smem_init(0);
-    if (ret != 0) {
-        MMC_LOG_ERROR("Failed to init smem");
-        return ret;
+    MMC_RETURN_ERROR(smem_set_log_level(initConfig.logLevel), "Failed to set smem bm log level");
+    if (initConfig.logFunc != nullptr) {
+        MMC_RETURN_ERROR(smem_set_extern_logger(initConfig.logFunc), "Failed to set smem bm extern logger");
     }
+
+    MMC_RETURN_ERROR(smem_init(0), "Failed to init smem");
 
     smem_bm_config_t config;
     MMC_RETURN_ERROR(smem_bm_config_init(&config), "Failed to init smem bm config");
@@ -33,11 +33,8 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
     }
 
     (void) std::copy_n(initConfig.hcomUrl.c_str(), initConfig.hcomUrl.size(), config.hcomUrl);
-    ret = smem_bm_init(initConfig.ipPort.c_str(), initConfig.worldSize, initConfig.deviceId, &config);
-    if (ret != 0) {
-        MMC_LOG_ERROR("Failed to init smem bm");
-        return ret;
-    }
+    MMC_RETURN_ERROR(smem_bm_init(initConfig.ipPort.c_str(), initConfig.worldSize, initConfig.deviceId, &config),
+                     "Failed to init smem bm");
 
     bmRankId_ = (initConfig.autoRanking == 1) ? smem_bm_get_rank_id() : initConfig.rankId;
 
@@ -57,11 +54,7 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
         return MMC_ERROR;
     }
 
-    ret = smem_bm_join(handle_, 0, &gva_);
-    if (ret != 0) {
-        MMC_LOG_ERROR("Failed to join smem bm");
-        return ret;
-    }
+    MMC_RETURN_ERROR(smem_bm_join(handle_, 0, &gva_), "Failed to join smem bm");
     started_ = true;
     return MMC_OK;
 }

@@ -17,7 +17,11 @@ Result MmcClientDefault::Start(const mmc_client_config_t &config)
         MMC_LOG_INFO("MetaService " << name_ << " already started");
         return MMC_OK;
     }
-
+    MMC_RETURN_ERROR(ock::mmc::MmcOutLogger::Instance().SetLogLevel(static_cast<LogLevel>(config.logLevel)),
+                     "failed to set log level " << config.logLevel);
+    if (config.logFunc != nullptr) {
+        ock::mmc::MmcOutLogger::Instance().SetExternalLogFunction(config.logFunc);
+    }
     bmProxy_ = MmcBmProxyFactory::GetInstance("bmProxyDefault");
     if (config.autoRanking == 1) {
         randId_ = bmProxy_->RandId();

@@ -20,6 +20,8 @@ typedef struct {
     std::string ipPort;
     std::string hcomUrl;
     int32_t autoRanking;
+    int32_t logLevel;
+    ExternalLog logFunc;
 } mmc_bm_init_config_t;
 
 typedef struct {

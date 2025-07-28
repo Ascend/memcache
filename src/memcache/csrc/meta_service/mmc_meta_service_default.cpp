@@ -21,8 +21,9 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     std::string logAuditPath;
     MMC_RETURN_ERROR(GetLogPath(logPath, logAuditPath), "failed to get log path");
     MMC_LOG_INFO("Starting meta service " << name_ << ", log path " << logPath);
-    uint16_t logLevel = 0;
-    MMC_RETURN_ERROR(SPDLOG_Init(logPath.c_str(), logLevel, OBJ_MAX_LOG_FILE_SIZE, OBJ_MAX_LOG_FILE_NUM),
+    MMC_RETURN_ERROR(ock::mmc::MmcOutLogger::Instance().SetLogLevel(static_cast<LogLevel>(options.logLevel)),
+                     "failed to set log level " << options.logLevel);
+    MMC_RETURN_ERROR(SPDLOG_Init(logPath.c_str(), options.logLevel, OBJ_MAX_LOG_FILE_SIZE, OBJ_MAX_LOG_FILE_NUM),
                      "failed to init spdlog, error: " << SPDLOG_GetLastErrorMessage());
 
     ock::mmc::MmcOutLogger::Instance().SetExternalLogFunction(SPDLOG_LogMessage);
@@ -41,7 +42,7 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     netOptions.startListener = true;
     netOptions.tlsOption = options_.tlsConfig;
     netOptions.logFunc = SPDLOG_LogMessage;
-    netOptions.logLevel = logLevel;
+    netOptions.logLevel = options_.logLevel;
 
     MMC_RETURN_ERROR(metaNetServer_->Start(netOptions), "Failed to start net server of meta service " << name_);
 
