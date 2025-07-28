@@ -265,18 +265,20 @@ class MmcTest(TestServer):
         self.cli_return(res)
 
     @result_handler
-    def put_from(self, key: str, index: int, media: int):
-        self.cli_print(f"======== put_from({key}, {index}, {media})")
+    def put_from(self, key: str, size: int, media: int):
+        self.cli_print(f"======== put_from({key}, {size}, {media})")
         if media == 0:
             direct = int(MmcDirect.COPY_H2G.value)
-            tensor = self._cpu_blocks[index][0]
         else:
             direct = int(MmcDirect.COPY_L2G.value)
-            tensor = self._npu_blocks[index][0]
-        if (index == -1):
+
+        if (size == -1):
             self.cli_print(f"======== put_from({key}, None, {self._min_block_size * 2}, {direct})")
             res = self.__distributed_store_object.put_from(key, None, self._min_block_size * 2, direct)
         else:
+            tensor = torch.full((size / 8,), 1, dtype=torch.int64)
+            if media == 1:
+                tensor = tensor.npu()
             self.cli_print(f"======== put_from({key}, {tensor.data_ptr()}, {self._min_block_size * 2}, {direct})")
             res = self.__distributed_store_object.put_from(key, tensor.data_ptr(), self._min_block_size * 2, direct)
         self.cli_return(res)

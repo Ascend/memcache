@@ -90,6 +90,12 @@ Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOp
 
     Result ret = globalAllocator_->Alloc(allocOpt, blobs);
     if (ret == MMC_ERROR) {
+        if (!blobs.empty()) {
+            for (auto &blob : blobs) {
+                globalAllocator_->Free(blob);
+            }
+            blobs.clear();
+        }
         return MMC_ERROR;
     }
 
