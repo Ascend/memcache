@@ -24,6 +24,10 @@ Result NetEngineAcc::Start(const NetEngineOptions &options)
         return MMC_OK;
     }
 
+    MMC_RETURN_ERROR(AccSetLogLevel(options.logLevel), "NetEngineAcc " << options.name << " set log level error");
+
+    MMC_RETURN_ERROR(AccSetExternalLog(options.logFunc), "NetEngineAcc " << options.name << " set log func error");
+
     /* verify */
     MMC_RETURN_ERROR(VerifyOptions(options), "NetEngineAcc " << options.name << " option set error");
 
@@ -356,22 +360,16 @@ Result NetEngineAcc::HandleLinkBroken(const TcpLinkPtr &link) const
     /* add into peer link map */
     peerLinkMap_->Find(peerId, linkAcc);
 
-    Result ret = MMC_OK;
-    MMC_LOG_INFO("XXXX");
-    if (linkBrokenHandler_ != nullptr) {
-        ret = linkBrokenHandler_(linkAcc.Get());
-    }
-    if (ret != MMC_OK)
-    {
-        MMC_LOG_WARN("Failed to remove link with id " << peerId);
-    }
     const auto result = peerLinkMap_->Remove(peerId);
-    if (result) {
-        return MMC_OK;
+    if (!result) {
+        MMC_LOG_WARN("Failed to remove link with id " << peerId);
+        return MMC_ERROR;
     }
-
-    MMC_LOG_WARN("Failed to remove link with id " << peerId);
-    return MMC_ERROR;
+    Result ret = MMC_OK;
+    if (linkBrokenHandler_ != nullptr) {
+        MMC_RETURN_ERROR(linkBrokenHandler_(linkAcc.Get()), "Failed to remove link with id " << peerId);
+    }
+    return ret;
 }
 
 /*
@@ -398,8 +396,8 @@ Result NetEngineAcc::ConnectToPeer(uint32_t peerId, const std::string &peerIp, u
     /* connect to peer with mutex held, in case of multiple threads connect to peer at the same time */
     std::lock_guard<std::mutex> guard(connectMutex_);
     /* double check, in case of other thread already connected */
-    auto result = peerLinkMap_->Find(peerId, linkAcc);
-    if (result == true) {
+    bool result = peerLinkMap_->Find(peerId, linkAcc);
+    if (result) {
         if (!isForce) {
             MMC_LOG_INFO("The link to peer " << peerId << " already exists");
             return MMC_OK;
@@ -412,10 +410,10 @@ Result NetEngineAcc::ConnectToPeer(uint32_t peerId, const std::string &peerIp, u
 
     /* connect */
     TcpLinkPtr realLink;
-    result = server_->ConnectToPeerServer(peerIp, port, connReq, realLink);
-    if (result != MMC_OK) {
+    Result ret = server_->ConnectToPeerServer(peerIp, port, connReq, realLink);
+    if (ret != MMC_OK) {
         MMC_LOG_ERROR("Failed to connection to peerId: " << peerId << ", peerIpPort: " << peerIp << ":" << port);
-        return result;
+        return ret;
     }
     realLink->UpCtx(peerId);
 

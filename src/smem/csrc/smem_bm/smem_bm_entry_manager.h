@@ -31,6 +31,8 @@ public:
     Result GetEntryById(uint32_t id, SmemBmEntryPtr &entry);
     Result RemoveEntryByPtr(uintptr_t ptr);
 
+    void Destroy();
+
     inline uint32_t GetRankId() const
     {
         return config_.rankId;
@@ -66,7 +68,6 @@ private:
     uint16_t deviceId_{0};
     bool inited_ = false;
     UrlExtraction storeUrlExtraction_;
-
     StorePtr confStore_ = nullptr;
 };
 

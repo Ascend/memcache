@@ -38,9 +38,13 @@ Result SmemShmEntryManager::Initialize(const char *configStoreIpPort, uint32_t w
 
     if (rankId == 0 && config->startConfigStore) {
         store_ = ock::smem::StoreFactory::CreateStore(option.ip, option.port, true, 0);
+        ip_ = option.ip;
+        port_ = option.port;
     } else {
         store_ = ock::smem::StoreFactory::CreateStore(option.ip, option.port, false, static_cast<int32_t>(rankId),
                                                       static_cast<int32_t>(config->shmInitTimeout));
+        ip_ = option.ip;
+        port_ = option.port;
     }
     SM_ASSERT_RETURN(store_ != nullptr, SM_ERROR);
 
@@ -285,6 +289,12 @@ Result SmemShmEntryManager::ExchangeTransportMemRegion(uint32_t rankId, uint32_t
     }
 
     return SM_OK;
+}
+
+void SmemShmEntryManager::Destroy()
+{
+    store_ = nullptr;
+    StoreFactory::DestroyStore(ip_, port_);
 }
 }
 }

@@ -28,7 +28,7 @@ MetaNetServer::MetaNetServer(const MmcMetaServicePtr &metaService, const std::st
 {
 }
 MetaNetServer::~MetaNetServer() {}
-Result ock::mmc::MetaNetServer::Start()
+Result ock::mmc::MetaNetServer::Start(NetEngineOptions &options)
 {
     std::lock_guard<std::mutex> guard(mutex_);
     if (started_) {
@@ -37,16 +37,6 @@ Result ock::mmc::MetaNetServer::Start()
     }
 
     MMC_ASSERT_RETURN(metaService_.Get() != nullptr, MMC_INVALID_PARAM);
-
-    /* init engine */
-    NetEngineOptions options;
-    std::string url{metaService_->Options().discoveryURL};
-    NetEngineOptions::ExtractIpPortFromUrl(url, options);
-    options.name = name_;
-    options.threadCount = 2;
-    options.rankId = 0;
-    options.startListener = true;
-    options.tlsOption = metaService_->Options().tlsConfig;
 
     NetEnginePtr server = NetEngine::Create();
     server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_ALLOC_REQ,

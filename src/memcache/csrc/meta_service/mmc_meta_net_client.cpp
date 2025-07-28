@@ -16,7 +16,7 @@ MetaNetClient::MetaNetClient(const std::string &serverUrl, const std::string& in
     : serverUrl_(serverUrl), name_(inputName)
 {}
 
-Result MetaNetClient::Start(const mmc_client_config_t &config)
+Result MetaNetClient::Start(const NetEngineOptions &config)
 {
     std::lock_guard<std::mutex> guard(mutex_);
     if (started_) {
@@ -25,12 +25,6 @@ Result MetaNetClient::Start(const mmc_client_config_t &config)
     }
 
     /* init engine */
-    NetEngineOptions options;
-    options.name = name_;
-    options.threadCount = 2;
-    options.rankId = config.rankId;
-    options.startListener = false;
-    options.tlsOption = config.tlsConfig;
 
     NetEnginePtr client = NetEngine::Create();
     client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_PING_REQ, nullptr);
@@ -52,8 +46,9 @@ Result MetaNetClient::Start(const mmc_client_config_t &config)
                                       std::bind(&MetaNetClient::HandlePing, this, std::placeholders::_1));
     client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::LM_META_REPLICATE_REQ,
                                       std::bind(&MetaNetClient::HandleMetaReplicate, this, std::placeholders::_1));
+    client->RegLinkBrokenHandler(std::bind(&MetaNetClient::HandleLinkBroken, this, std::placeholders::_1));
     /* start engine */
-    MMC_ASSERT_RETURN(client->Start(options) == MMC_OK, MMC_NOT_STARTED);
+    MMC_ASSERT_RETURN(client->Start(config) == MMC_OK, MMC_NOT_STARTED);
 
     engine_ = client;
     rankId_ = config.rankId;
@@ -79,6 +74,8 @@ Result MetaNetClient::Connect(const std::string &url)
     NetEngineOptions::ExtractIpPortFromUrl(url, options);
     MMC_RETURN_ERROR(engine_->ConnectToPeer(rankId_, options.ip, options.port, link2Index_, false),
                      "MetaNetClient Connect " << url << " failed");
+    ip_ = options.ip;
+    port_ = options.port;
     return MMC_OK;
 }
 
@@ -110,6 +107,20 @@ Result MetaNetClient::HandlePing(const NetContextPtr &context)
     std::string serializedData = packer.String();
     uint32_t retSize = serializedData.length();
     return context->Reply(req.msgId, const_cast<char *>(serializedData.c_str()), retSize);
+}
+
+Result MetaNetClient::HandleLinkBroken(const NetLinkPtr &link)
+{
+    MMC_LOG_INFO(name_ << " link addr " << link.Get() << " broken");
+    for (uint32_t count = 0; count < retryCount_; count++) {
+        Result ret = engine_->ConnectToPeer(rankId_, ip_, port_, link2Index_, false);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("MetaNetClient Connect " << ip_ << ", port " << port_ << " failed");
+        } else {
+            return MMC_OK;
+        }
+    }
+    return MMC_ERROR;
 }
 }
 }

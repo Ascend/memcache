@@ -28,7 +28,15 @@ Result MmcClientDefault::Start(const mmc_client_config_t &config)
     auto tmpNetClient  = MetaNetClientFactory::GetInstance(config.discoveryURL, "MetaClientCommon").Get();
     MMC_ASSERT_RETURN(tmpNetClient != nullptr, MMC_NEW_OBJECT_FAILED);
     if (!tmpNetClient->Status()) {
-        MMC_RETURN_ERROR(tmpNetClient->Start(config),
+        NetEngineOptions options;
+        options.name = name_;
+        options.threadCount = 2;
+        options.rankId = config.rankId;
+        options.startListener = false;
+        options.tlsOption = config.tlsConfig;
+        options.logLevel = config.logLevel;
+        options.logFunc = config.logFunc;
+        MMC_RETURN_ERROR(tmpNetClient->Start(options),
                          "Failed to start net server of local service " << name_);
         MMC_RETURN_ERROR(tmpNetClient->Connect(config.discoveryURL),
                          "Failed to connect net server of local service " << name_);

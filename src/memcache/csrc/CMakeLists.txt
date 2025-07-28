@@ -6,6 +6,7 @@ include_directories(
         ${PROJECT_MMC_SRC_BASE}/csrc/local_service
         ${PROJECT_MMC_SRC_BASE}/csrc/entities
         ${PROJECT_MMC_SRC_BASE}/csrc/meta_service
+        ${PROJECT_MMC_SRC_BASE}/csrc/log
         ${PROJECT_MMC_SRC_BASE}/csrc/net
         ${PROJECT_MMC_SRC_BASE}/csrc/net/acc_links_impl
         ${PROJECT_MMC_SRC_BASE}/csrc/proto
@@ -34,6 +35,7 @@ aux_source_directory(local_service MMC_SRC_LOCAL_SERVICE)
 aux_source_directory(entities MMC_SRC_ENTITIES)
 aux_source_directory(meta_service MMC_SRC_META_SERVICE)
 aux_source_directory(net MMC_SRC_NET)
+aux_source_directory(log MMC_SRC_LOG)
 aux_source_directory(net/acc_links_impl MMC_SRC_NET_ACC)
 aux_source_directory(proto MMC_SRC_PROTO)
 aux_source_directory(under_api/mf_smem MMC_SRC_UNDER_API_MF_SMEM)
@@ -46,6 +48,7 @@ set(PLATFORM_SRC ${MMC_SRC_COMMON}
         ${MMC_SRC_ENTITIES}
         ${MMC_SRC_META_SERVICE}
         ${MMC_SRC_NET}
+        ${MMC_SRC_LOG}
         ${MMC_SRC_NET_ACC}
         ${MMC_SRC_PROTO}
         ${MMC_SRC_UNDER_API_MF_SMEM}
@@ -55,17 +58,19 @@ set(PLATFORM_SRC ${MMC_SRC_COMMON}
 
 ## build the static and shared library
 add_library(mmc_objects OBJECT ${PLATFORM_SRC})
-
+target_spdlog(mmc_objects)
 target_link_libraries(mmc_objects PUBLIC smem)
 target_compile_options(mmc_objects PRIVATE -fPIC)
 
 add_library(mmc_static STATIC $<TARGET_OBJECTS:mmc_objects>)
 set_target_properties(mmc_static PROPERTIES OUTPUT_NAME "mf_memcache")
+target_spdlog(mmc_static)
 target_link_directories(mmc_static PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/lib)
 target_link_libraries(mmc_static PUBLIC pthread libacc_tcp_net.a)
 
 add_library(mmc_shared SHARED $<TARGET_OBJECTS:mmc_objects>)
 set_target_properties(mmc_shared PROPERTIES OUTPUT_NAME "mf_memcache")
+target_spdlog(mmc_shared)
 target_link_directories(mmc_shared PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/lib)
 target_link_libraries(mmc_shared PUBLIC smem_shared pthread libacc_tcp_net.a)
 

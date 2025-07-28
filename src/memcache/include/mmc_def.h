@@ -19,6 +19,9 @@ extern "C" {
 typedef void *mmc_meta_service_t;
 typedef void *mmc_local_service_t;
 typedef void *mmc_client_t;
+#ifndef MMC_OUT_LOGGER
+typedef void (*ExternalLog)(int level, const char* msg);
+#endif
 
 typedef struct {
     bool tlsEnable;
@@ -31,6 +34,7 @@ typedef struct {
 
 typedef struct {
     char discoveryURL[DISCOVERY_URL_SIZE]; /* composed by schema and url, e.g. tcp:// or etcd:// or zk:// */
+    int32_t logLevel;
     mmc_tls_config tlsConfig;
 } mmc_meta_service_config_t;
 
@@ -41,20 +45,24 @@ typedef struct {
     uint32_t worldSize;
     std::string bmIpPort;
     std::string bmHcomUrl;
-    int autoRanking;
+    int32_t autoRanking;
     uint32_t createId;
     std::string dataOpType;
     uint64_t localDRAMSize;
     uint64_t localHBMSize;
     uint32_t flags;
     mmc_tls_config tlsConfig;
+    int32_t logLevel;
+    ExternalLog logFunc;
 } mmc_local_service_config_t;
 
 typedef struct {
     char discoveryURL[DISCOVERY_URL_SIZE];
     uint32_t rankId;
     uint32_t timeOut;
-    int autoRanking;
+    int32_t autoRanking;
+    int32_t logLevel;
+    ExternalLog logFunc;
     mmc_tls_config tlsConfig;
 } mmc_client_config_t;
 

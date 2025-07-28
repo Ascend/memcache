@@ -8,6 +8,7 @@
 #include "mmc_net_engine.h"
 namespace ock {
 namespace mmc {
+#define NET_RETRY_COUNT 3
 class MetaNetClient : public MmcReferable {
 public:
     explicit MetaNetClient(const std::string &serverUrl, const std::string &inputName = "");
@@ -20,7 +21,7 @@ public:
      * @param config       [in] mmc client config
      * @return 0 if successful
      */
-    Result Start(const mmc_client_config_t &config);
+    Result Start(const NetEngineOptions &config);
 
     /**
      * @brief Stop the net client
@@ -48,7 +49,14 @@ public:
     template <typename REQ, typename RESP>
     Result SyncCall(const REQ &req, RESP &resp, int32_t timeoutInSecond)
     {
-        return engine_->Call(rankId_, req.msgId, req, resp, timeoutInSecond);
+        Result ret = MMC_ERROR;
+        for (uint32_t count = 0; count < retryCount_; count++) {
+            ret = engine_->Call(rankId_, req.msgId, req, resp, timeoutInSecond);
+            if (ret == MMC_OK) {
+                return MMC_OK;
+            }
+        }
+        return ret;
     }
 
     /**
@@ -61,11 +69,15 @@ public:
 private:
     Result HandleMetaReplicate(const NetContextPtr &context);
     Result HandlePing(const NetContextPtr &context);
+    Result HandleLinkBroken(const NetLinkPtr &link);
 
 private:
     NetEnginePtr engine_;
     NetLinkPtr link2Index_ = nullptr;
     uint16_t rankId_ = UINT16_MAX;
+    std::string ip_ = "";
+    uint64_t port_ = 5000U;
+    const uint32_t retryCount_ = NET_RETRY_COUNT;
     std::string serverUrl_;
 
     /* not hot used variables */

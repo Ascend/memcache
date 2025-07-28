@@ -172,7 +172,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     sleep(3);
     free(hostSrc);
     free(hostDest);
-
     mmcs_local_service_stop(local_service);
+    mmcc_uninit();
     mmcs_meta_service_stop(meta_service);
 }

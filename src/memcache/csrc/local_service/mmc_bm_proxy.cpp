@@ -77,6 +77,7 @@ void MmcBmProxy::DestoryBm()
     if (handle_ != nullptr) {
         smem_bm_destroy(handle_);
         smem_bm_uninit(0);
+        smem_uninit();
         handle_ = nullptr;
         gva_ = nullptr;
     }

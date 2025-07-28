@@ -13,6 +13,8 @@
 
 namespace ock {
 namespace mmc {
+#define OBJ_MAX_LOG_FILE_SIZE 20971520 // 每个日志文件的最大大小
+#define OBJ_MAX_LOG_FILE_NUM 50
 class MmcMetaServiceDefault : public MmcMetaService {
 public:
     explicit MmcMetaServiceDefault(const std::string &name) : name_(name)
@@ -38,6 +40,8 @@ public:
     const MmcMetaMgrProxyPtr& GetMetaMgrProxy() const override;
 
 private:
+
+    Result GetLogPath(std::string &logPath, std::string &logAuditPath);
     MetaNetServerPtr metaNetServer_;
     MmcMetaMgrProxyPtr metaMgrProxy_;
 

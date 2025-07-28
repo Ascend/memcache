@@ -19,7 +19,7 @@ typedef struct {
     uint32_t worldSize;
     std::string ipPort;
     std::string hcomUrl;
-    int autoRanking;
+    int32_t autoRanking;
 } mmc_bm_init_config_t;
 
 typedef struct {

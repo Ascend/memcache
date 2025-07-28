@@ -140,8 +140,8 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/include/hybm
 )
 
-add_subdirectory(src)
 add_subdirectory(3rdparty)
+add_subdirectory(src)
 
 if(BUILD_TESTS STREQUAL "ON")
     set(CMAKE_CXX_STANDARD 14)

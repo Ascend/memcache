@@ -29,7 +29,15 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
         mmc_client_config_t clientConfig;
         clientConfig.rankId = options_.rankId;
         clientConfig.tlsConfig = options_.tlsConfig;
-        MMC_RETURN_ERROR(metaNetClient_->Start(clientConfig),
+        NetEngineOptions options;
+        options.name = name_;
+        options.threadCount = 2;
+        options.rankId = config.rankId;
+        options.startListener = false;
+        options.tlsOption = config.tlsConfig;
+        options.logLevel = config.logLevel;
+        options.logFunc = config.logFunc;
+        MMC_RETURN_ERROR(metaNetClient_->Start(options),
                          "Failed to start net server of local service, name=" << name_ << ", bmRankId=" << options_.rankId);
         MMC_RETURN_ERROR(metaNetClient_->Connect(options_.discoveryURL),
                          "Failed to connect net server of local service, name=" << name_ << ", bmRankId=" << options_.rankId);

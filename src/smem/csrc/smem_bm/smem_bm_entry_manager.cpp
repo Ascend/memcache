@@ -90,7 +90,6 @@ int32_t SmemBmEntryManager::PrepareStore()
         }
     }
     confStore_ = StoreFactory::PrefixStore(confStore_, "SMEM_BM_");
-
     return SM_OK;
 }
 
@@ -246,5 +245,12 @@ Result SmemBmEntryManager::RemoveEntryByPtr(uintptr_t ptr)
 
     return SM_OK;
 }
+
+void SmemBmEntryManager::Destroy()
+{
+    confStore_ = nullptr;
+    StoreFactory::DestroyStore(storeUrlExtraction_.ip, storeUrlExtraction_.port);
+}
+
 } // namespace smem
 } // namespace ock

@@ -9,9 +9,7 @@ namespace ock {
 namespace mmc {
 NetEnginePtr NetEngine::Create()
 {
-    // TODO
-    MMC_LOG_INFO("NetEngineAcc Create");
-    return Convert<NetEngineAcc, NetEngine>(MmcMakeRef<NetEngineAcc>());
+    return MmcMakeRef<NetEngineAcc>().Get();
 }
 
 }

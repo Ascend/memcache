@@ -14,6 +14,7 @@
 #include "mmc_config_convertor.h"
 #include "mmc_config_const.h"
 #include "mmc_def.h"
+#include "mmc_logger.h"
 
 namespace ock {
 namespace mmc {
@@ -137,6 +138,8 @@ public:
     void LoadDefault() override {
         using namespace ConfConstant;
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
+        AddIntConf(OCK_MMC_META_SERVICE_LOG_LEVEL,
+                   VIntRange::Create(OCK_MMC_META_SERVICE_LOG_LEVEL.first, DEBUG_LEVEL, BUTT_LEVEL));
 
         AddBoolConf(OCK_MMC_TLS_ENABLE, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_TOP_PATH, VNoCheck::Create());
@@ -149,6 +152,7 @@ public:
     void GetMetaServiceConfig(mmc_meta_service_config_t &config) {
         const auto discoveryURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_URL);
         strncpy(config.discoveryURL, discoveryURL.c_str(), DISCOVERY_URL_SIZE);
+        config.logLevel = GetInt(ConfConstant::OCK_MMC_META_SERVICE_LOG_LEVEL);
         GetTlsConfig(config.tlsConfig);
     }
 };

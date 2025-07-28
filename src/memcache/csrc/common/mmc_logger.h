@@ -21,10 +21,12 @@ namespace mmc {
 using ExternalLog = void (*)(int, const char *);
 
 enum LogLevel : int {
-    DEBUG_LEVEL = 0,
+    TRACE_LEVEL = 0,
+    DEBUG_LEVEL,
     INFO_LEVEL,
     WARN_LEVEL,
     ERROR_LEVEL,
+    CRITICAL_LEVEL,
     BUTT_LEVEL  // no use
 };
 
@@ -98,7 +100,7 @@ private:
     const char *LogLevelDesc(const int level) const
     {
         const static std::string invalid = "invalid";
-        if (UNLIKELY(level < DEBUG_LEVEL || level >= BUTT_LEVEL)) {
+        if (UNLIKELY(level < TRACE_LEVEL || level >= BUTT_LEVEL)) {
             return invalid.c_str();
         }
         return logLevelDesc_[level];

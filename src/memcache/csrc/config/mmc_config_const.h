@@ -11,6 +11,7 @@ namespace mmc {
 namespace ConfConstant {
 // add configuration here with default values
 constexpr auto OCK_MMC_META_SERVICE_URL = std::make_pair("ock.mmc.meta_service_url", "tcp://127.0.0.1:5000");
+constexpr auto OCK_MMC_META_SERVICE_LOG_LEVEL = std::make_pair("ock.mmc.meta_service.log_level", 0);
 
 constexpr auto OCK_MMC_TLS_ENABLE = std::make_pair("ock.mmc.tls.enable", true);
 constexpr auto OCK_MMC_TLS_TOP_PATH = std::make_pair("ock.mmc.tls.top.path", "");

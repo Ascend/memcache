@@ -24,7 +24,7 @@ enum NetProtocol {
     NET_IPC_UDS,
     NET_IPC_SHM,
 };
-
+using ExternalLog = void (*)(int, const char *);
 struct NetEngineOptions {
     std::string name;             /* name of engine */
     std::string ip;               /* ip */
@@ -33,6 +33,8 @@ struct NetEngineOptions {
     uint16_t rankId = UINT16_MAX; /* rank id*/
     bool startListener = false;   /* start listener or not */
     mmc_tls_config tlsOption;     /* TLS communication options */
+    int32_t logLevel = 3;
+    ExternalLog logFunc = nullptr;
 
     /* functions */
     std::string ToString() const;

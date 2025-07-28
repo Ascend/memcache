@@ -15,6 +15,7 @@ file(GLOB_RECURSE UT_SOURCE_FILES *.cpp
         ${PROJECT_MMC_SRC_BASE}/csrc/meta_service/*
         ${PROJECT_MMC_SRC_BASE}/csrc/entities/*
         ${PROJECT_MMC_SRC_BASE}/csrc/net/*
+        ${PROJECT_MMC_SRC_BASE}/csrc/log/*
         ${PROJECT_MMC_SRC_BASE}/csrc/proto/*
         ${PROJECT_MMC_SRC_BASE}/csrc/under_api/*
         ${PROJECT_MMC_SRC_BASE}/csrc/under_api/mf_smem/*
@@ -35,6 +36,7 @@ include_directories(
         ${PROJECT_MMC_SRC_BASE}/csrc/client
         ${PROJECT_MMC_SRC_BASE}/csrc/config
         ${PROJECT_MMC_SRC_BASE}/csrc/net
+        ${PROJECT_MMC_SRC_BASE}/csrc/log
         ${PROJECT_MMC_SRC_BASE}/csrc/entities
         ${PROJECT_MMC_SRC_BASE}/csrc/net/acc_links_impl
         ${PROJECT_MMC_SRC_BASE}/csrc/meta_service
@@ -60,6 +62,7 @@ endif()
 add_definitions(-DOUT_LIB_PATH="${TARGET_INSTALL_DIR}")
 
 add_link_options(-lgcov --coverage)
+TARGET_SPDLOG_HEADER_ONLY(test_mf_hy)
 target_compile_options(test_mf_hy PUBLIC -D_GNU_SOURCE -g -fprofile-arcs -ftest-coverage -DUT_ENABLED)
 target_link_directories(test_mf_hy PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/lib/)
 target_link_directories(test_mf_hy PUBLIC ${ASCEND_CANN_PACKAGE_PATH}/aarch64-linux/lib64)
@@ -80,6 +83,7 @@ FUNCTION(ADD_UNIT_TEST TEST_NAME)
     cmake_parse_arguments(ADD_UNIT_TEST "" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN})
     set(TEST_TARGET_NAME ${TEST_NAME})
     add_executable(${TEST_TARGET_NAME} ${ADD_UNIT_TEST_FILES})
+    TARGET_SPDLOG_HEADER_ONLY(${TEST_TARGET_NAME})
     target_link_directories(${TEST_TARGET_NAME}  PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/lib/)
     target_link_directories(${TEST_TARGET_NAME}  PUBLIC ${GTEST_BUILD_LIB_DIR}/lib)
     target_link_directories(${TEST_TARGET_NAME}  PUBLIC ${PROJECT_OUTPUT_PATH}/memcache/lib64)

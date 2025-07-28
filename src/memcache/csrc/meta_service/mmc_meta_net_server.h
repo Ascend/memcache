@@ -16,7 +16,7 @@ public:
 
     ~MetaNetServer() override;
 
-    Result Start();
+    Result Start(NetEngineOptions &options);
 
     void Stop();
 

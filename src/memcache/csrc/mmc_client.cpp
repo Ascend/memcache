@@ -278,7 +278,7 @@ MMC_API int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffe
     invalids.emplace_back(-1);
     for (size_t i = 0, j = 0; i + j < keys_count; ++i) {
         if (i + j == invalids[j]) {
-            bufs[i + j] = mmc_buffer{.addr = 0};
+            bufs[i + j] = mmc_buffer{.addr = 0, .type = 0, .dimType = 0, .oneDim = {0, 0}};
         } else {
             bufs[i + j] = bufs_vector[i];
         }

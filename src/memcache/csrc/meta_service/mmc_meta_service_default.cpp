@@ -4,21 +4,46 @@
 #include "mmc_meta_service_default.h"
 #include "mmc_meta_mgr_proxy_default.h"
 #include "mmc_meta_net_server.h"
+#include "spdlogger4c.h"
+#include "spdlogger.h"
 
 namespace ock {
 namespace mmc {
 Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
 {
-    MMC_LOG_INFO("Starting meta service " << name_);
     std::lock_guard<std::mutex> guard(mutex_);
     if (started_) {
         MMC_LOG_INFO("MetaService " << name_ << " already started");
         return MMC_OK;
     }
     options_ = options;
+    std::string logPath;
+    std::string logAuditPath;
+    MMC_RETURN_ERROR(GetLogPath(logPath, logAuditPath), "failed to get log path");
+    MMC_LOG_INFO("Starting meta service " << name_ << ", log path " << logPath);
+    uint16_t logLevel = 0;
+    MMC_RETURN_ERROR(SPDLOG_Init(logPath.c_str(), logLevel, OBJ_MAX_LOG_FILE_SIZE, OBJ_MAX_LOG_FILE_NUM),
+                     "failed to init spdlog, error: " << SPDLOG_GetLastErrorMessage());
+
+    ock::mmc::MmcOutLogger::Instance().SetExternalLogFunction(SPDLOG_LogMessage);
+    MMC_RETURN_ERROR(SPDLOG_AuditInit(logAuditPath.c_str(), OBJ_MAX_LOG_FILE_SIZE, OBJ_MAX_LOG_FILE_NUM),
+                     "failed to init spdlog, error: " << SPDLOG_GetLastErrorMessage());
+
     metaNetServer_ = MmcMakeRef<MetaNetServer>(this, name_ + "_MetaServer").Get();
     MMC_ASSERT_RETURN(metaNetServer_.Get() != nullptr, MMC_NEW_OBJECT_FAILED);
-    MMC_RETURN_ERROR(metaNetServer_->Start(), "Failed to start net server of meta service " << name_);
+    /* init engine */
+    NetEngineOptions netOptions;
+    std::string url{options_.discoveryURL};
+    NetEngineOptions::ExtractIpPortFromUrl(url, netOptions);
+    netOptions.name = name_;
+    netOptions.threadCount = 2;
+    netOptions.rankId = 0;
+    netOptions.startListener = true;
+    netOptions.tlsOption = options_.tlsConfig;
+    netOptions.logFunc = SPDLOG_LogMessage;
+    netOptions.logLevel = logLevel;
+
+    MMC_RETURN_ERROR(metaNetServer_->Start(netOptions), "Failed to start net server of meta service " << name_);
 
     started_ = true;
     MMC_LOG_INFO("Started MetaService (" << name_ << ") at " << options_.discoveryURL);
@@ -101,6 +126,21 @@ void MmcMetaServiceDefault::Stop()
     metaNetServer_->Stop();
     MMC_LOG_INFO("Stop MmcMetaServiceDefault (" << name_ << ") at " << options_.discoveryURL);
     started_ = false;
+}
+
+Result MmcMetaServiceDefault::GetLogPath(std::string& logPath, std::string& logAuditPath)
+{
+    char pathBuf[PATH_MAX] = {0};
+    ssize_t count = readlink("/proc/self/exe", pathBuf, PATH_MAX);
+    if (count == -1) {
+        MMC_LOG_ERROR("mmc meta service not found bin path");
+    }
+    pathBuf[count] = '\0';
+    std::string binPath = pathBuf;
+    binPath = binPath.substr(0, binPath.find_last_of('/'));
+    logPath = binPath + "/../logs/mmc-meta.log";
+    logAuditPath = binPath + "/../logs/mmc-meta-audit.log";
+    return MMC_OK;
 }
 }  // namespace mmc
 }  // namespace ock
