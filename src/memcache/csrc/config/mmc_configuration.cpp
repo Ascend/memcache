@@ -455,6 +455,7 @@ void Configuration::GetTlsConfig(mmc_tls_config &tlsConfig)
     tlsConfig.tlsEnable = GetBool(ConfConstant::OCK_MMC_TLS_ENABLE);
     strncpy(tlsConfig.tlsTopPath, GetString(ConfConstant::OCK_MMC_TLS_TOP_PATH).c_str(), PATH_MAX_SIZE);
     strncpy(tlsConfig.tlsCaPath, GetString(ConfConstant::OCK_MMC_TLS_CA_PATH).c_str(), PATH_MAX_SIZE);
+    strncpy(tlsConfig.tlsCrlPath, GetString(ConfConstant::OCK_MMC_TLS_CRL_PATH).c_str(), PATH_MAX_SIZE);
     strncpy(tlsConfig.tlsCertPath, GetString(ConfConstant::OCK_MMC_TLS_CERT_PATH).c_str(), PATH_MAX_SIZE);
     strncpy(tlsConfig.tlsKeyPath, GetString(ConfConstant::OCK_MMC_TLS_KEY_PATH).c_str(), PATH_MAX_SIZE);
     strncpy(tlsConfig.packagePath, GetString(ConfConstant::OCK_MMC_TLS_PACKAGE_PATH).c_str(), PATH_MAX_SIZE);

@@ -144,6 +144,7 @@ public:
         AddBoolConf(OCK_MMC_TLS_ENABLE, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_TOP_PATH, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_CA_PATH, VNoCheck::Create());
+        AddStrConf(OCK_MMC_TLS_CRL_PATH, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_CERT_PATH, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_KEY_PATH, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_PACKAGE_PATH, VNoCheck::Create());
@@ -166,6 +167,7 @@ public:
         AddBoolConf(OCK_MMC_TLS_ENABLE, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_TOP_PATH, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_CA_PATH, VNoCheck::Create());
+        AddStrConf(OCK_MMC_TLS_CRL_PATH, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_CERT_PATH, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_KEY_PATH, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_PACKAGE_PATH, VNoCheck::Create());

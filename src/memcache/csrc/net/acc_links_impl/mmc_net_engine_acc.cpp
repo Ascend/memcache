@@ -112,6 +112,7 @@ Result NetEngineAcc::StartInner()
     tlsOpt.tlsTopPath = options_.tlsOption.tlsTopPath;
     tlsOpt.tlsCaPath = "/";
     tlsOpt.tlsCaFile.insert(options_.tlsOption.tlsCaPath);
+    tlsOpt.tlsCrlFile.insert(options_.tlsOption.tlsCrlPath);
     tlsOpt.tlsCert = options_.tlsOption.tlsCertPath;
     tlsOpt.tlsPk = options_.tlsOption.tlsKeyPath;
 

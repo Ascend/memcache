@@ -27,6 +27,7 @@ typedef struct {
     bool tlsEnable;
     char tlsTopPath[PATH_MAX_SIZE];
     char tlsCaPath[PATH_MAX_SIZE];
+    char tlsCrlPath[PATH_MAX_SIZE];
     char tlsCertPath[PATH_MAX_SIZE];
     char tlsKeyPath[PATH_MAX_SIZE];
     char packagePath[PATH_MAX_SIZE];

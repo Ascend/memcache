@@ -7,9 +7,9 @@ from datetime import datetime, timedelta
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--ca_cert_path', type=str, help='The path to save the certificate of ca',
+parser.add_argument('--ca_cert_path', type=str, help='The path to load the certificate of ca',
                     default='/opt/ock/security/certs/ca.cert.pem')
-parser.add_argument('--ca_key_path', type=str, help='The path to save the private key of ca',
+parser.add_argument('--ca_key_path', type=str, help='The path to load the private key of ca',
                     default='/opt/ock/security/certs/ca.private.key.pem')
 parser.add_argument('--server_cert_path', type=str, help='The path to save the certificate of the server',
                     default='/opt/ock/security/certs/server.cert.pem')
