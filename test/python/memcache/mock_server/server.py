@@ -187,6 +187,8 @@ def acl_set_device():
         raise RuntimeError("acl set device failed")
 
 def malloc_npu(layer_num: int = 1, block_num: int = 1, min_block_size: int = 1024):
+    if min_block_size <= 0:
+        return None
     acl_set_device()
     raw_blocks = torch.rand(
         size=(layer_num, block_num, min_block_size // 2),  # torch.float16占两个字节所以除以2
@@ -196,6 +198,8 @@ def malloc_npu(layer_num: int = 1, block_num: int = 1, min_block_size: int = 102
     return raw_blocks
 
 def malloc_cpu(layer_num: int = 1, block_num: int = 1, min_block_size: int = 1024):
+    if min_block_size <= 0:
+        return None
     raw_blocks = torch.rand(
         size=(layer_num, block_num, min_block_size // 2),  # torch.float16占两个字节所以除以2
         dtype=torch.float16,
@@ -258,20 +262,19 @@ class MmcTest(TestServer):
 
     @result_handler
     def put_from(self, key: str, size: int, media: int):
-        self.cli_print(f"======== put_from({key}, {size}, {media})")
         if media == 0:
             direct = int(MmcDirect.COPY_H2G.value)
             tensor = malloc_cpu(min_block_size=size)
         else:
             direct = int(MmcDirect.COPY_L2G.value)
-            tensor = malloc_cpu(min_block_size=size)
-        if size == -1:
-            self.cli_print(f"======== put_from({key}, None, {size}, {direct})")
-            res = self.__distributed_store_object.put_from(key, None, size, direct)
+            tensor = malloc_npu(min_block_size=size)
+        if size <= 0:
+            res = self.__distributed_store_object.put_from(key, 0, 0, direct)
+            value = 0
         else:
-            self.cli_print(f"======== put_from({key}, {tensor.data_ptr()}, {size}, {direct})")
             res = self.__distributed_store_object.put_from(key, tensor.data_ptr(), size, direct)
-        self.cli_return(res)
+            value = tensor_sum(tensor)
+        self.cli_return(str([res, value]))
 
     @result_handler
     def get(self, key: str):
@@ -280,16 +283,19 @@ class MmcTest(TestServer):
 
     @result_handler
     def get_into(self, key: str, size: int, media: int):
-        self.cli_print(f"======== get_into({key}, {size}, {media})")
         if media == 0:
             direct = int(MmcDirect.COPY_G2H.value)
             tensor = malloc_cpu(min_block_size=size)
         else:
             direct = int(MmcDirect.COPY_G2L.value)
-            tensor = malloc_cpu(min_block_size=size)
-        self.cli_print(f"======== get_into({key}, {tensor.data_ptr()}, {size}, {direct})")
-        res = self.__distributed_store_object.get_into(key, tensor[0].data_ptr(), size, direct)
-        self.cli_return(res)
+            tensor = malloc_npu(min_block_size=size)
+        if size <= 0:
+            res = self.__distributed_store_object.get_into(key, 0, 0, direct)
+            value = 0
+        else:
+            res = self.__distributed_store_object.get_into(key, tensor[0].data_ptr(), size, direct)
+            value = tensor_sum(tensor)
+        self.cli_return(str([res, value]))
 
     @result_handler
     def batch_get_into(self, keys: list, sizes: list, media: int):
