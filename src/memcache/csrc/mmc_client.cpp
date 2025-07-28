@@ -259,10 +259,12 @@ MMC_API int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffe
     for (size_t i = 0; i < keys_count; ++i) {
         if (keys[i] == nullptr || strlen(keys[i]) == 0 || strlen(keys[i]) > 256) {
             MMC_LOG_WARN("Remove invalid key: " << keys[i]);
+            invalids.emplace_back(i);
             continue;
         }
         if (bufs == nullptr) {
             MMC_LOG_WARN("Remove invalid buf with key: " << keys[i]);
+            invalids.emplace_back(i);
             continue;
         }
         keys_vector.emplace_back(keys[i]);
