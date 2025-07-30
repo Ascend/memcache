@@ -1,4 +1,5 @@
 #include "mmc_mem_obj_meta.h"
+#include "mmc_global_allocator.h"
 #include <algorithm>
 #include <chrono>
 
@@ -63,6 +64,31 @@ Result MmcMemObjMeta::RemoveBlobs(const MmcBlobFilterPtr &filter, bool revert)
     }
 
     return numBlobs_ < oldNumBlobs ? MMC_OK : MMC_ERROR;
+}
+
+Result MmcMemObjMeta::FreeBlobs(MmcGlobalAllocatorPtr &allocator)
+{
+    Lock();
+    if (NumBlobs() == 0) {
+        Unlock();
+        return MMC_OK;
+    }
+    std::vector<MmcMemBlobPtr> blobs = GetBlobs();
+    RemoveBlobs();
+    for (size_t i = 0; i < blobs.size(); i++) {
+        if (blobs[i]->UpdateState(0, 0, MMC_REMOVE_START) != MMC_OK) {
+            MMC_LOG_ERROR("remove op, meta update failed");
+            Unlock();
+            return MMC_ERROR;
+        }
+        if (allocator->Free(blobs[i]) != MMC_OK) {
+            MMC_LOG_ERROR("Error in free blobs!");
+            Unlock();
+            return MMC_ERROR;
+        }
+    }
+    Unlock();
+    return MMC_OK;
 }
 
 std::vector<MmcMemBlobPtr> MmcMemObjMeta::GetBlobs(const MmcBlobFilterPtr &filter, bool revert) const

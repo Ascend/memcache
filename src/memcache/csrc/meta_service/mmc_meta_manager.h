@@ -11,6 +11,7 @@
 #include "mmc_msg_packer.h"
 #include <functional>
 #include <thread>
+#include <list>
 
 namespace ock {
 namespace mmc {
@@ -21,23 +22,42 @@ static const uint16_t EVICT_THRESHOLD_LOW = 90;
 
 class MmcMetaManager : public MmcReferable {
 public:
-    explicit MmcMetaManager(uint64_t defaultTtl) : defaultTtlMs_(defaultTtl)
+    explicit MmcMetaManager(uint64_t defaultTtl) : defaultTtlMs_(defaultTtl) {}
+
+    ~MmcMetaManager() override
     {
-        globalAllocator_ = MmcMakeRef<MmcGlobalAllocator>();
-        MMC_ASSERT(globalAllocator_ != nullptr);
-        metaContainer_ = MmcMetaContainer<std::string, MmcMemObjMetaPtr>::Create();
-        MMC_ASSERT(metaContainer_ != nullptr);
-        removeThread_ = std::thread(std::bind(&MmcMetaManager::AsyncRemoveThreadFunc, this));
+        Stop();
     }
 
-    ~MmcMetaManager()
+    Result Start()
     {
+        std::lock_guard<std::mutex> guard(mutex_);
+        if (started_) {
+            MMC_LOG_INFO("MmcMetaMgrProxyDefault already started");
+            return MMC_OK;
+        }
+        globalAllocator_ = MmcMakeRef<MmcGlobalAllocator>();
+        MMC_ASSERT_RETURN(globalAllocator_ != nullptr, MMC_MALLOC_FAILED);
+        metaContainer_ = MmcMetaContainer<std::string, MmcMemObjMetaPtr>::Create();
+        MMC_ASSERT_RETURN(metaContainer_ != nullptr, MMC_MALLOC_FAILED);
+        started_ = true;
+        removeThread_ = std::thread(std::bind(&MmcMetaManager::AsyncRemoveThreadFunc, this));
+        return MMC_OK;
+    }
+
+    void Stop()
+    {
+        std::lock_guard<std::mutex> guard(mutex_);
+        if (!started_) {
+            return;
+        }
         {
             std::lock_guard<std::mutex> lk(removeThreadLock_);
-            removePredicate_ = true;
+            started_ = false;
             removeThreadCv_.notify_all();
         }
         removeThread_.join();
+        MMC_LOG_INFO("Stop MmcMetaManager");
     }
 
     /**
@@ -150,14 +170,15 @@ private:
 
     void AsyncRemoveThreadFunc();
 
+    std::mutex mutex_;
+    bool started_ = false;
     MmcRef<MmcMetaContainer<std::string, MmcMemObjMetaPtr>> metaContainer_;
     MmcGlobalAllocatorPtr globalAllocator_;
     std::thread removeThread_;
     std::mutex removeThreadLock_;
     std::condition_variable removeThreadCv_;
     std::mutex removeListLock_;
-    // std::list<MmcMemObjMetaPtr> removeList_;
-    bool removePredicate_ = false;
+    std::list<MmcMemObjMetaPtr> removeList_;
     uint64_t defaultTtlMs_; /* defult ttl in miliseconds*/
 };
 using MmcMetaManagerPtr = MmcRef<MmcMetaManager>;

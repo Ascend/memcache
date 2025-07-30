@@ -36,8 +36,10 @@ TEST_F(TestMmcMetaManager, Init)
 
     uint64_t defaultTtl = 2000;
     MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Start();
     metaMng->Mount(loc, locInfo);
     ASSERT_TRUE(metaMng != nullptr);
+    metaMng->Stop();
 }
 
 TEST_F(TestMmcMetaManager, AllocAndFree)
@@ -48,6 +50,7 @@ TEST_F(TestMmcMetaManager, AllocAndFree)
 
     uint64_t defaultTtl = 2000;
     MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
     AllocOptions allocReq{SIZE_32K, 1, 0, 0, 0};  // blobSize, numBlobs, mediaType, preferredRank, flags
@@ -61,6 +64,7 @@ TEST_F(TestMmcMetaManager, AllocAndFree)
 
     ret = metaMng->Remove("test_string");
     ASSERT_TRUE(ret == MMC_OK);
+    metaMng->Stop();
 }
 
 TEST_F(TestMmcMetaManager, AllocAndFreeMulti)
@@ -71,6 +75,7 @@ TEST_F(TestMmcMetaManager, AllocAndFreeMulti)
 
     uint64_t defaultTtl = 200;
     MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
     uint16_t numKeys = 10U;
@@ -93,6 +98,7 @@ TEST_F(TestMmcMetaManager, AllocAndFreeMulti)
         ret = metaMng->Remove(keys[i]);
     }
     ASSERT_TRUE(memMetaObjs[0]->NumBlobs() == 0);
+    metaMng->Stop();
 }
 
 TEST_F(TestMmcMetaManager, GetAndUpdate)
@@ -103,6 +109,7 @@ TEST_F(TestMmcMetaManager, GetAndUpdate)
     // poolInitInfo[loc] = locInfo;
     uint64_t defaultTtl = 200;
     MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
     uint16_t numKeys = 20U;
@@ -132,6 +139,7 @@ TEST_F(TestMmcMetaManager, GetAndUpdate)
     std::vector<MmcMemBlobPtr> blobs = objMeta2->GetBlobs();
     ASSERT_TRUE(blobs.size() == 1);
     ASSERT_TRUE(blobs[0]->State() == DATA_READY);
+    metaMng->Stop();
 }
 
 TEST_F(TestMmcMetaManager, LRU)
@@ -141,6 +149,7 @@ TEST_F(TestMmcMetaManager, LRU)
     uint64_t defaultTtl = 100;
 
     MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
     uint16_t numKeys = 8U;
@@ -175,6 +184,7 @@ TEST_F(TestMmcMetaManager, LRU)
     }
     ASSERT_TRUE(metaMng->ExistKey(keys[0]) == MMC_UNMATCHED_KEY);
     ASSERT_TRUE(metaMng->ExistKey(keys[numKeys - 1]) == MMC_UNMATCHED_KEY);
+    metaMng->Stop();
 }
 
 TEST_F(TestMmcMetaManager, AllocAndExistKey)
@@ -184,6 +194,7 @@ TEST_F(TestMmcMetaManager, AllocAndExistKey)
     MmcLocalMemlInitInfo locInfo{0, 1000000};
     uint64_t defaultTtl = 2000;
     MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
     AllocOptions allocReq{SIZE_32K, 1, 0, 0, 0};
@@ -196,6 +207,7 @@ TEST_F(TestMmcMetaManager, AllocAndExistKey)
 
     ASSERT_TRUE(metaMng->ExistKey("test_string") == MMC_OK);
     ASSERT_TRUE(metaMng->ExistKey("another_test_string") == MMC_UNMATCHED_KEY);
+    metaMng->Stop();
 }
 
 TEST_F(TestMmcMetaManager, AllocAndBatchExistKey)
@@ -204,6 +216,7 @@ TEST_F(TestMmcMetaManager, AllocAndBatchExistKey)
     MmcLocalMemlInitInfo locInfo{0, 1000000};
     uint64_t defaultTtl = 2000;
     MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
     uint16_t numKeys = 5U;
@@ -245,6 +258,7 @@ TEST_F(TestMmcMetaManager, AllocAndBatchExistKey)
     CheckReturn(allExistKeys, std::vector<Result>(5, MMC_OK));
     CheckReturn(partExistKeys, {MMC_OK, MMC_OK, MMC_OK, MMC_UNMATCHED_KEY, MMC_UNMATCHED_KEY});
     CheckReturn(allNotExistKeys, std::vector<Result>(5, MMC_UNMATCHED_KEY));
+    metaMng->Stop();
 }
 
 TEST_F(TestMmcMetaManager, Remove)
@@ -253,6 +267,7 @@ TEST_F(TestMmcMetaManager, Remove)
     MmcLocalMemlInitInfo locInfo{0, 1000000};
     uint64_t defaultTtl = 2000;
     MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
     AllocOptions allocReq{SIZE_32K, 1, 0, 0, 0};
@@ -273,6 +288,7 @@ TEST_F(TestMmcMetaManager, Remove)
     ASSERT_TRUE(ret == MMC_OK);
     ret = metaMng->Remove("testKey2");
     ASSERT_TRUE(ret == MMC_OK);
+    metaMng->Stop();
 }
 
 TEST_F(TestMmcMetaManager, BatchRemove)
@@ -281,6 +297,7 @@ TEST_F(TestMmcMetaManager, BatchRemove)
     MmcLocalMemlInitInfo locInfo{0, 1000000};
     uint64_t defaultTtl = 2000;
     MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
     std::vector<std::string> keys = {"key1", "key2", "key3"};
@@ -320,6 +337,7 @@ TEST_F(TestMmcMetaManager, BatchRemove)
     for (const auto &result : results) {
         ASSERT_TRUE(result == MMC_OK);
     }
+    metaMng->Stop();
 }
 
 TEST_F(TestMmcMetaManager, BatchGet)
@@ -327,6 +345,7 @@ TEST_F(TestMmcMetaManager, BatchGet)
     MmcLocation loc{0, MEDIA_DRAM};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
     MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(2000);
+    metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
     const uint16_t numKeys = 20U;
@@ -380,4 +399,5 @@ TEST_F(TestMmcMetaManager, BatchGet)
     for (const auto &key : keys) {
         metaMng->Remove(key);
     }
+    metaMng->Stop();
 }

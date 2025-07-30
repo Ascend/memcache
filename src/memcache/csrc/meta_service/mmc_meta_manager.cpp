@@ -248,33 +248,16 @@ Result MmcMetaManager::BatchUpdateState(const std::vector<std::string> &keys,
 Result MmcMetaManager::Remove(const std::string &key)
 {
     MmcMemObjMetaPtr objMeta;
-    Result ret = metaContainer_->Get(key, objMeta);
-    if (ret != MMC_OK) {
-        MMC_LOG_DEBUG("UpdateState: Cannot find memObjMeta!");
-        return MMC_UNMATCHED_KEY;
+    MMC_RETURN_ERROR(metaContainer_->Get(key, objMeta), "remove: Cannot find memObjMeta!");
+    MMC_RETURN_ERROR(metaContainer_->Erase(key), "remove: Fail to erase from container!");
+    {
+        std::lock_guard<std::mutex> lg(removeListLock_);
+        removeList_.push_back(objMeta);
     }
-    objMeta->Lock();
-    if (objMeta->NumBlobs() == 0) {
-        objMeta->Unlock();
-        return MMC_OK;
+    {
+        std::lock_guard<std::mutex> lk(removeThreadLock_);
+        removeThreadCv_.notify_all();
     }
-    std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs();
-    for (size_t i = 0; i < blobs.size(); i++) {
-        MMC_RETURN_ERROR(blobs[i]->UpdateState(0, 0, MMC_REMOVE_START),
-                         "remove op, meta update failed, key " << key);
-        if (globalAllocator_->Free(blobs[i]) != MMC_OK) {
-            MMC_LOG_ERROR("Error in free blobs!");
-        }
-    }
-    objMeta->RemoveBlobs();
-    if (objMeta->NumBlobs() == 0) {
-        ret = metaContainer_->Erase(key);
-        if (ret != MMC_OK) {
-            MMC_LOG_ERROR("UpdateState: Fail to erase from container!");
-            return MMC_ERROR;
-        }
-    }
-    objMeta->Unlock();
     return MMC_OK;
 }
 
@@ -346,38 +329,24 @@ Result MmcMetaManager::Unmount(const MmcLocation &loc)
 
 void MmcMetaManager::AsyncRemoveThreadFunc()
 {
-    //    while (true)
-    //    {
-    //        std::unique_lock<std::mutex> lock(removeThreadLock_);
-    //        if (!removeThreadCv_.wait_for(lock, std::chrono::milliseconds(defaultTtlMs_), [this] {return
-    //        removePredicate_;}))
-    //        {
-    //            MMC_LOG_DEBUG("async remove in thread ttl " << defaultTtlMs_ << " will remove count " <<
-    //            removeList_.size() <<
-    //                                                        " thread id " << pthread_self());
-    //            std::lock_guard<std::mutex> lg(removeListLock_);
-    //            MmcMemObjMetaPtr objMeta;
-    //            for (auto iter = removeList_.begin(); iter != removeList_.end();) {
-    //                objMeta = *iter;
-    //                if (!objMeta->IsLeaseExpired()) {
-    //                    iter++;
-    //                    continue;
-    //                }
-    //                std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs();
-    //                for (size_t i = 0; i < blobs.size(); i++) {
-    //                    Result ret = globalAllocator_->Free(blobs[i]);
-    //                    if (ret != MMC_OK) {
-    //                        MMC_LOG_ERROR("Error in free blobs!");
-    //                    }
-    //                }
-    //                objMeta->RemoveBlobs();
-    //                iter = removeList_.erase(iter);
-    //            }
-    //        } else {
-    //            MMC_LOG_DEBUG("async thread destroy, thread id " << pthread_self());
-    //            break;
-    //        }
-    //    }
+    while (true) {
+        std::unique_lock<std::mutex> lock(removeThreadLock_);
+        if (removeThreadCv_.wait_for(lock, std::chrono::milliseconds(defaultTtlMs_),
+                                     [this] {return removeList_.size() || !started_;})) {
+            if (!started_) {
+                MMC_LOG_INFO("async thread destroy, thread id " << pthread_self());
+                break;
+            }
+            MMC_LOG_DEBUG("async remove in thread ttl " << defaultTtlMs_ << " will remove count " <<
+            removeList_.size() << " thread id " << pthread_self());
+            std::lock_guard<std::mutex> lg(removeListLock_);
+            MmcMemObjMetaPtr objMeta;
+            for (auto iter = removeList_.begin(); iter != removeList_.end();) {
+                (*iter)->FreeBlobs(globalAllocator_);
+                iter = removeList_.erase(iter);
+            }
+        }
+    }
 }
 
 Result MmcMetaManager::Query(const std::string &key, MemObjQueryInfo &queryInfo)

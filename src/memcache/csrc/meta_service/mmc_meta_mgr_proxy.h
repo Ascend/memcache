@@ -14,6 +14,10 @@ class MmcMetaMgrProxy : public MmcReferable {
 public:
     ~MmcMetaMgrProxy() override = default;
 
+    virtual Result Start(uint64_t defaultTtl) = 0;
+
+    virtual void Stop() = 0;
+
     virtual Result Alloc(const AllocRequest &req, AllocResponse &resp) = 0;
 
     virtual Result BatchAlloc(const BatchAllocRequest &req, BatchAllocResponse &resp) = 0;

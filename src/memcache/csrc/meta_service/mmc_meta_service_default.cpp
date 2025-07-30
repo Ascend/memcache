@@ -46,6 +46,9 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
 
     MMC_RETURN_ERROR(metaNetServer_->Start(netOptions), "Failed to start net server of meta service " << name_);
 
+    uint64_t defaultTtl = MMC_DATA_TTL_MS;
+    MMC_RETURN_ERROR(metaMgrProxy_->Start(defaultTtl), "Failed to start meta mgr proxy of meta service " << name_);
+
     started_ = true;
     MMC_LOG_INFO("Started MetaService (" << name_ << ") at " << options_.discoveryURL);
     return MMC_OK;
@@ -124,6 +127,7 @@ void MmcMetaServiceDefault::Stop()
         MMC_LOG_WARN("MmcClientDefault has not been started");
         return;
     }
+    metaMgrProxy_->Stop();
     metaNetServer_->Stop();
     MMC_LOG_INFO("Stop MmcMetaServiceDefault (" << name_ << ") at " << options_.discoveryURL);
     started_ = false;

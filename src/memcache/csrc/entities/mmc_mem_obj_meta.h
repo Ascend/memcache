@@ -10,6 +10,7 @@
 #include "mmc_msg_packer.h"
 #include "mmc_ref.h"
 #include "mmc_spinlock.h"
+#include "mmc_global_allocator.h"
 #include <vector>
 
 namespace ock {
@@ -46,6 +47,14 @@ public:
      * @return 0 if removed
      */
     Result RemoveBlobs(const MmcBlobFilterPtr &filter = nullptr, bool revert = false);
+
+    /**
+     * @brief Free blobs from the mem object by filter
+     *
+     * @param allocator allocator ptr
+     * @return 0 if removed
+     */
+    Result FreeBlobs(MmcGlobalAllocatorPtr &allocator);
 
     /**
      * @brief Get the prot

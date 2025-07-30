@@ -15,17 +15,40 @@ namespace mmc {
 
 class MmcMetaMgrProxyDefault : public MmcMetaMgrProxy {
 public:
-    MmcMetaMgrProxyDefault(uint64_t defaultTtl, MetaNetServerPtr &netServerPtr)
-                           : netServerPtr_(netServerPtr)
-    {
-        metaMangerPtr_ = MmcMakeRef<MmcMetaManager>(defaultTtl);
-    }
+    explicit MmcMetaMgrProxyDefault(MetaNetServerPtr &netServerPtr) : netServerPtr_(netServerPtr) {}
 
     ~MmcMetaMgrProxyDefault() override = default;
 
+    Result Start(uint64_t defaultTtl) override
+    {
+        std::lock_guard<std::mutex> guard(mutex_);
+        if (started_) {
+            MMC_LOG_INFO("MmcMetaMgrProxyDefault already started");
+            return MMC_OK;
+        }
+        metaMangerPtr_ = MmcMakeRef<MmcMetaManager>(defaultTtl);
+        if (metaMangerPtr_ == nullptr) {
+            MMC_LOG_ERROR("new object failed, probably out of memory");
+            return MMC_NEW_OBJECT_FAILED;
+        }
+        started_ = true;
+        return MMC_OK;
+    }
+
+    void Stop() override
+    {
+        std::lock_guard<std::mutex> guard(mutex_);
+        if (!started_) {
+            MMC_LOG_WARN("MmcMetaMgrProxyDefault has not been started");
+            return;
+        }
+        metaMangerPtr_->Stop();
+        started_ = false;
+    }
+
     Result Alloc(const AllocRequest &req, AllocResponse &resp) override;
 
-    Result BatchAlloc(const BatchAllocRequest &req, BatchAllocResponse &resp);
+    Result BatchAlloc(const BatchAllocRequest &req, BatchAllocResponse &resp) override;
 
     void ProcessAllocatedObject(size_t index, const MmcMemObjMetaPtr& objMeta,
                                 const BatchAllocRequest &req, BatchAllocResponse &resp);
@@ -87,6 +110,8 @@ public:
     }
 
 private:
+    std::mutex mutex_;
+    bool started_ = false;
     MmcMetaManagerPtr metaMangerPtr_;
     MetaNetServerPtr netServerPtr_;
     const int32_t timeOut_ = 60;
