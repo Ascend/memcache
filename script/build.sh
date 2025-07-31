@@ -1,24 +1,22 @@
 #!/bin/bash
 
-BUILD_MODE=$1
-BUILD_TESTS=$2
-BUILD_OPEN_ABI=$3
-BUILD_PYTHON=$4
+BUILD_MODE=${1:-RELEASE}
+BUILD_TESTS=${2:-OFF}
+BUILD_OPEN_ABI=${3:-ON}
+BUILD_PYTHON=${4:-ON}
+BUILD_ASAN=${5:-OFF}
 
-if [ -z "$BUILD_MODE" ]; then
-    BUILD_MODE="RELEASE"
-fi
-
-if [ -z "$BUILD_TESTS" ]; then
-    BUILD_TESTS="OFF"
-fi
-
-if [ -z "$BUILD_OPEN_ABI" ]; then
-    BUILD_OPEN_ABI="ON"
-fi
-
-if [ -z "$BUILD_PYTHON" ]; then
-    BUILD_PYTHON="ON"
+if [ "$BUILD_ASAN" = "ON" ]; then
+  if [ "$BUILD_MODE" = "RELEASE" ]; then
+    echo "Error: BUILD_ASAN is set to ON, but BUILD_ASAN is set to RELEASE."
+    echo "AddressSanitizer (ASan) should NOT be used in RELEASE builds."
+    echo "Reason: ASan significantly impacts performance and memory usage, and its runtime is not intended for production."
+    echo "Please either:"
+    echo "  1. Set BUILD_MODE to DEBUG, or another non-release mode, OR"
+    echo "  2. Set BUILD_ASAN to OFF"
+    exit 1
+  fi
+  echo "INFO: ASan is enabled. Building in '$BUILD_MODE' mode."
 fi
 
 readonly SCRIPT_FULL_PATH=$(dirname $(readlink -f "$0"))
@@ -46,7 +44,7 @@ bash script/gen_last_git_commit.sh
 rm -rf ./build ./output
 
 mkdir build/
-cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_TESTS="${BUILD_TESTS}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -DBUILD_PYTHON="${BUILD_PYTHON}" -S . -B build/
+cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_TESTS="${BUILD_TESTS}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -DBUILD_PYTHON="${BUILD_PYTHON}" -DBUILD_ASAN="${BUILD_ASAN}" -S . -B build/
 make install -j5 -C build/
 
 mkdir -p "${PROJ_DIR}/src/smem/python/mf_smem/lib"
@@ -90,7 +88,7 @@ do
 
     rm -rf build/
     mkdir build/
-    cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -S . -B build/
+    cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -DBUILD_ASAN="${BUILD_ASAN}" -S . -B build/
     make -j5 -C build _pysmem _pymmc
 
     \cp -v "${PROJ_DIR}"/build/src/smem/csrc/python_wrapper/_pymf_smem.cpython*.so "${PROJ_DIR}"/src/smem/python/mf_smem

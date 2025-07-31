@@ -11,6 +11,7 @@ option(BUILD_GIT_COMMIT "build library version with commit" ON)
 option(BUILD_GIT_COMMIT_GEN_FILE "generate commit log file" ON)
 option(INSTALL_HIGH_LEVEL_API "add device high level api into pkg" ON)
 option(BUILD_PYTHON "build python file" ON)
+option(BUILD_ASAN "build python file" OFF)
 
 message(STATUS "BUILD_EXAMPLE = ${BUILD_EXAMPLE}")
 message(STATUS "BUILD_TESTS = ${BUILD_TESTS}")
@@ -19,6 +20,7 @@ message(STATUS "ENABLE_CPU_MONOTONIC = ${ENABLE_CPU_MONOTONIC}")
 message(STATUS "BUILD_GIT_COMMIT = ${BUILD_GIT_COMMIT}")
 message(STATUS "BUILD_GIT_COMMIT_GEN_FILE = ${BUILD_GIT_COMMIT_GEN_FILE}")
 message(STATUS "BUILD_PYTHON = ${BUILD_PYTHON}")
+message(STATUS "BUILD_ASAN = ${BUILD_ASAN}")
 
 message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
@@ -43,6 +45,15 @@ if (${CMAKE_BUILD_TYPE} MATCHES "RELEASE")
 else ()
     add_compile_options(-g -rdynamic)
 endif ()
+
+if (${BUILD_ASAN} STREQUAL "ON")
+    if (${CMAKE_BUILD_TYPE} MATCHES "RELEASE")
+        message(FATAL_ERROR "BUILD_ASAN is ON, but CMAKE_BUILD_TYPE is RELEASE. "
+                            "ASan should not be used in RELEASE builds. ")
+    endif()
+    add_compile_options(-fsanitize=address -g -fno-omit-frame-pointer -O0)
+    add_link_options(-fsanitize=address)
+endif()
 
 if(BUILD_TESTS STREQUAL "ON")
     add_compile_options(-fprofile-arcs -ftest-coverage)
