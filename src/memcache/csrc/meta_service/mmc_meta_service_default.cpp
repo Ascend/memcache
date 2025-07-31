@@ -30,6 +30,9 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     MMC_RETURN_ERROR(SPDLOG_AuditInit(logAuditPath.c_str(), OBJ_MAX_LOG_FILE_SIZE, OBJ_MAX_LOG_FILE_NUM),
                      "failed to init spdlog, error: " << SPDLOG_GetLastErrorMessage());
 
+    uint64_t defaultTtl = MMC_DATA_TTL_MS;
+    MMC_RETURN_ERROR(metaMgrProxy_->Start(defaultTtl), "Failed to start meta mgr proxy of meta service " << name_);
+
     metaNetServer_ = MmcMakeRef<MetaNetServer>(this, name_ + "_MetaServer").Get();
     MMC_ASSERT_RETURN(metaNetServer_.Get() != nullptr, MMC_NEW_OBJECT_FAILED);
     /* init engine */
@@ -43,11 +46,7 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     netOptions.tlsOption = options_.tlsConfig;
     netOptions.logFunc = SPDLOG_LogMessage;
     netOptions.logLevel = options_.logLevel;
-
     MMC_RETURN_ERROR(metaNetServer_->Start(netOptions), "Failed to start net server of meta service " << name_);
-
-    uint64_t defaultTtl = MMC_DATA_TTL_MS;
-    MMC_RETURN_ERROR(metaMgrProxy_->Start(defaultTtl), "Failed to start meta mgr proxy of meta service " << name_);
 
     started_ = true;
     MMC_LOG_INFO("Started MetaService (" << name_ << ") at " << options_.discoveryURL);
