@@ -56,6 +56,10 @@ const char *SpdLogger::GetLastErrorMessage()
 int SpdLogger::Initialize(const std::string &path, int minLogLevel, int rotationFileSize, int rotationFileCount)
 {
     try {
+        std::lock_guard<std::mutex> guard(mutex_);
+        if (started_) {
+            return 0;
+        }
         if (ValidateParams(minLogLevel, path, rotationFileSize, rotationFileCount) != 0) {
             return -1;
         }
@@ -74,6 +78,7 @@ int SpdLogger::Initialize(const std::string &path, int minLogLevel, int rotation
         spdlog::flush_every(std::chrono::seconds(1));
         mSPDLogger->set_level(static_cast<spdlog::level::level_enum>(minLogLevel));
         mSPDLogger->flush_on(spdlog::level::err);
+        started_ = true;
     } catch (const spdlog::spdlog_ex &ex) {
         gLastErrorMessage = "Failed to create log: ";
         gLastErrorMessage += ex.what();

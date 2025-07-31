@@ -49,17 +49,8 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
     }
     pid_ = getpid();
 
-    BmRegisterRequest req;
-    req.rank_ = options_.rankId;
-    req.mediaType_ = static_cast<uint16_t>(options_.localHBMSize == 0);
-    req.addr_ = bmProxyPtr_->GetGva();
-    req.capacity_ = options_.localDRAMSize + options_.localHBMSize;
-
-    Response resp;
-    MMC_RETURN_ERROR(SyncCallMeta(req, resp, 30), "bm register failed, bmRankId=" << req.rank_);
-    MMC_RETURN_ERROR(resp.ret_,
-                     "bm register failed, bmRankId=" << req.rank_ << ", retCode=" << resp.ret_);
-
+    MMC_RETURN_ERROR(RegisterBm(),  "Failed to register bm, name=" << name_ << ", bmRankId=" << options_.rankId);
+    metaNetClient_->RegisterRetryHandler(std::bind(&MmcLocalServiceDefault::RegisterBm, this));
     started_ = true;
     MMC_LOG_INFO("Started LocalService (" << name_ << ") server " << options_.discoveryURL);
     return MMC_OK;
@@ -111,6 +102,21 @@ Result MmcLocalServiceDefault::DestroyBm()
     MMC_RETURN_ERROR(resp.ret_, "bm destroy failed!");
     bmProxyPtr_ = nullptr;
     return ret;
+}
+
+Result MmcLocalServiceDefault::RegisterBm()
+{
+    BmRegisterRequest req;
+    req.rank_ = options_.rankId;
+    req.mediaType_ = static_cast<uint16_t>(options_.localHBMSize == 0);
+    req.addr_ = bmProxyPtr_->GetGva();
+    req.capacity_ = options_.localDRAMSize + options_.localHBMSize;
+
+    Response resp;
+    MMC_RETURN_ERROR(SyncCallMeta(req, resp, 30), "bm register failed, bmRankId=" << req.rank_);
+    MMC_RETURN_ERROR(resp.ret_,
+                     "bm register failed, bmRankId=" << req.rank_ << ", retCode=" << resp.ret_);
+    return MMC_OK;
 }
 }
 }

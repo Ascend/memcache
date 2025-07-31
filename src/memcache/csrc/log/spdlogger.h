@@ -54,6 +54,8 @@ private:
         int rotationFileCount);
 
 private:
+    std::mutex mutex_;
+    bool started_ = false;
     std::shared_ptr<spdlog::logger> mSPDLogger;
     std::string mFilePath;
     int mRotationFileSize = 0;

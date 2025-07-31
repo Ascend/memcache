@@ -9,6 +9,7 @@
 namespace ock {
 namespace mmc {
 #define NET_RETRY_COUNT 3
+using ClientRetryHandler = std::function<int32_t(void)>;
 class MetaNetClient : public MmcReferable {
 public:
     explicit MetaNetClient(const std::string &serverUrl, const std::string &inputName = "");
@@ -66,6 +67,11 @@ public:
      */
     bool Status();
 
+    void RegisterRetryHandler(const ClientRetryHandler &handler)
+    {
+        retryHandler_ = handler;
+    }
+
 private:
     Result HandleMetaReplicate(const NetContextPtr &context);
     Result HandlePing(const NetContextPtr &context);
@@ -78,6 +84,7 @@ private:
     std::string ip_ = "";
     uint64_t port_ = 5000U;
     const uint32_t retryCount_ = NET_RETRY_COUNT;
+    ClientRetryHandler retryHandler_ = nullptr;
     std::string serverUrl_;
 
     /* not hot used variables */

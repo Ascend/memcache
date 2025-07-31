@@ -1,13 +1,9 @@
 file(GLOB_RECURSE mmc_test_src
-        # ${CMAKE_CURRENT_SOURCE_DIR}/meta_service/meta_service_net.cpp
-        # ${CMAKE_CURRENT_SOURCE_DIR}/meta_service/service_interface.cpp
-        # ${CMAKE_CURRENT_SOURCE_DIR}/meta_service/bm_init.cpp
-        # ${CMAKE_CURRENT_SOURCE_DIR}/meta_service/bm_proxy.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/meta_service/test_meta_manager.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/meta_service/global_allocator.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/meta_service/global_allocator_thread.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/entities/test_lookup_map.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/common/test_locks.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/meta_service/*
+        ${CMAKE_CURRENT_SOURCE_DIR}/local_service/*
+        ${CMAKE_CURRENT_SOURCE_DIR}/entities/*
+        ${CMAKE_CURRENT_SOURCE_DIR}/common/*
+        ${CMAKE_CURRENT_SOURCE_DIR}/net/*
 )
 ADD_UNIT_TEST(test_mmc_test
         FILES ${mmc_test_src} ${TEST_SRC_PATHS}/ut_main.cpp

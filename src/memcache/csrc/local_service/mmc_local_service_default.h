@@ -24,6 +24,8 @@ public:
 
     void Stop() override;
 
+    Result RegisterBm();
+
     Result InitBm();
 
     Result DestroyBm();

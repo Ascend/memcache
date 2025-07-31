@@ -117,6 +117,9 @@ Result MetaNetClient::HandleLinkBroken(const NetLinkPtr &link)
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("MetaNetClient Connect " << ip_ << ", port " << port_ << " failed");
         } else {
+            if (retryHandler_ != nullptr) {
+                return retryHandler_();
+            }
             return MMC_OK;
         }
     }

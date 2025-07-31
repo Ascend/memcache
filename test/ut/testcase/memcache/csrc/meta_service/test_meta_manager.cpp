@@ -30,7 +30,6 @@ void TestMmcMetaManager::TearDown() {}
 
 TEST_F(TestMmcMetaManager, Init)
 {
-
     MmcLocation loc{0, MEDIA_DRAM};
     MmcLocalMemlInitInfo locInfo{100, 1000};
 
@@ -44,7 +43,6 @@ TEST_F(TestMmcMetaManager, Init)
 
 TEST_F(TestMmcMetaManager, AllocAndFree)
 {
-
     MmcLocation loc{0, MEDIA_DRAM};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
 
@@ -69,7 +67,6 @@ TEST_F(TestMmcMetaManager, AllocAndFree)
 
 TEST_F(TestMmcMetaManager, AllocAndFreeMulti)
 {
-
     MmcLocation loc{0, MEDIA_DRAM};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
 

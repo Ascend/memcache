@@ -50,12 +50,16 @@ TEST_F(TestMmcMetaService, Init)
     std::string bmUrl = "tcp://127.0.0.1:5681";
     std::string hcomUrl = "tcp://127.0.0.1:5682";
     mmc_meta_service_config_t metaServiceConfig;
+    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.tlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     auto metaServiceDefault = MmcMakeRef<MmcMetaServiceDefault>("testMetaService");
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, 0, "sdma", 0, 104857600, 0};
+    localServiceConfig.logLevel = 0;
+    localServiceConfig.tlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
@@ -82,16 +86,20 @@ TEST_F(TestMmcMetaService, Init)
 
 TEST_F(TestMmcMetaService, ExistRequest)
 {
-    std::string metaUrl = "tcp://127.0.0.1:5679";
-    std::string bmUrl = "tcp://127.0.0.1:5682";
-    std::string hcomUrl = "tcp://127.0.0.1:5683";
+    std::string metaUrl = "tcp://127.0.0.1:5678";
+    std::string bmUrl = "tcp://127.0.0.1:5681";
+    std::string hcomUrl = "tcp://127.0.0.1:5682";
     mmc_meta_service_config_t metaServiceConfig;
+    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.tlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     auto metaServiceDefault = MmcMakeRef<MmcMetaServiceDefault>("testMetaService");
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, 0, "sdma", 0, 104857600, 0};
+    localServiceConfig.logLevel = 0;
+    localServiceConfig.tlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
@@ -102,6 +110,10 @@ TEST_F(TestMmcMetaService, ExistRequest)
     reqAlloc.options_ = {SIZE_32K, 1, 0, 0, 0};
     AllocResponse respAlloc;
     ASSERT_TRUE(localServiceDefault->SyncCallMeta(reqAlloc, respAlloc, 30) == MMC_OK);
+
+    UpdateRequest updateRequest{MMC_WRITE_OK, "test", 0, 0, 0};
+    Response updateResponse;
+    ASSERT_TRUE(localServiceDefault->SyncCallMeta(updateRequest, updateResponse, 30) == MMC_OK);
 
     IsExistRequest reqExist;
     reqExist.key_ = "test";
@@ -121,16 +133,20 @@ TEST_F(TestMmcMetaService, ExistRequest)
 
 TEST_F(TestMmcMetaService, BatchExistRequest)
 {
-    std::string metaUrl = "tcp://127.0.0.1:5680";
-    std::string bmUrl = "tcp://127.0.0.1:5683";
-    std::string hcomUrl = "tcp://127.0.0.1:5684";
+    std::string metaUrl = "tcp://127.0.0.1:5678";
+    std::string bmUrl = "tcp://127.0.0.1:5681";
+    std::string hcomUrl = "tcp://127.0.0.1:5682";
     mmc_meta_service_config_t metaServiceConfig;
+    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.tlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     auto metaServiceDefault = MmcMakeRef<MmcMetaServiceDefault>("testMetaService");
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, 0, "sdma", 0, 104857600, 0};
+    localServiceConfig.logLevel = 0;
+    localServiceConfig.tlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
@@ -142,6 +158,10 @@ TEST_F(TestMmcMetaService, BatchExistRequest)
         reqAlloc.key_ = "test_" + std::to_string(i);
         AllocResponse respAlloc;
         ASSERT_TRUE(localServiceDefault->SyncCallMeta(reqAlloc, respAlloc, 30) == MMC_OK);
+
+        UpdateRequest updateRequest{MMC_WRITE_OK, "test_" + std::to_string(i), 0, 0, 0};
+        Response updateResponse;
+        ASSERT_TRUE(localServiceDefault->SyncCallMeta(updateRequest, updateResponse, 30) == MMC_OK);
     }
 
     std::vector<std::string> allExistKeys, partExistKeys, allNotExistKeys;
@@ -177,16 +197,20 @@ TEST_F(TestMmcMetaService, BatchExistRequest)
 
 TEST_F(TestMmcMetaService, QueryRequest)
 {
-    std::string metaUrl = "tcp://127.0.0.1:5679";
-    std::string bmUrl = "tcp://127.0.0.1:5682";
-    std::string hcomUrl = "tcp://127.0.0.1:5683";
+    std::string metaUrl = "tcp://127.0.0.1:5678";
+    std::string bmUrl = "tcp://127.0.0.1:5681";
+    std::string hcomUrl = "tcp://127.0.0.1:5682";
     mmc_meta_service_config_t metaServiceConfig;
+    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.tlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     auto metaServiceDefault = MmcMakeRef<MmcMetaServiceDefault>("testMetaService");
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, 0, "sdma", 0, 104857600, 0};
+    localServiceConfig.logLevel = 0;
+    localServiceConfig.tlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
@@ -197,6 +221,10 @@ TEST_F(TestMmcMetaService, QueryRequest)
     reqAlloc.options_ = {SIZE_32K, 1, 0, 0, 0};
     AllocResponse respAlloc;
     ASSERT_TRUE(localServiceDefault->SyncCallMeta(reqAlloc, respAlloc, 30) == MMC_OK);
+
+    UpdateRequest updateRequest{MMC_WRITE_OK, "test", 0, 0, 0};
+    Response updateResponse;
+    ASSERT_TRUE(localServiceDefault->SyncCallMeta(updateRequest, updateResponse, 30) == MMC_OK);
 
     QueryRequest reqQuery;
     reqQuery.key_ = "test";
@@ -219,16 +247,20 @@ TEST_F(TestMmcMetaService, QueryRequest)
 
 TEST_F(TestMmcMetaService, BatchQueryRequest)
 {
-    std::string metaUrl = "tcp://127.0.0.1:5680";
-    std::string bmUrl = "tcp://127.0.0.1:5683";
-    std::string hcomUrl = "tcp://127.0.0.1:5684";
+    std::string metaUrl = "tcp://127.0.0.1:5678";
+    std::string bmUrl = "tcp://127.0.0.1:5681";
+    std::string hcomUrl = "tcp://127.0.0.1:5682";
     mmc_meta_service_config_t metaServiceConfig;
+    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.tlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     auto metaServiceDefault = MmcMakeRef<MmcMetaServiceDefault>("testMetaService");
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, 0, "sdma", 0, 104857600, 0};
+    localServiceConfig.logLevel = 0;
+    localServiceConfig.tlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
@@ -243,6 +275,10 @@ TEST_F(TestMmcMetaService, BatchQueryRequest)
         keyMap.insert({reqAlloc.key_, {SIZE_32K, static_cast<uint8_t>(i + 1)}});
         AllocResponse respAlloc;
         ASSERT_TRUE(localServiceDefault->SyncCallMeta(reqAlloc, respAlloc, 30) == MMC_OK);
+
+        UpdateRequest updateRequest{MMC_WRITE_OK, "test_" + std::to_string(i), 0, 0, 0};
+        Response updateResponse;
+        ASSERT_TRUE(localServiceDefault->SyncCallMeta(updateRequest, updateResponse, 30) == MMC_OK);
     }
 
     std::vector<std::string> allExistKeys, partExistKeys, allNotExistKeys;
