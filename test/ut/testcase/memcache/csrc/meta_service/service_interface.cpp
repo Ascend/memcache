@@ -5,6 +5,7 @@
 #include "gtest/gtest.h"
 #include "mmc_service.h"
 #include "mmc_client.h"
+#include "mmc_mem_blob.h"
 #include "mmc_blob_allocator.h"
 
 using namespace testing;
@@ -180,4 +181,118 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     mmcs_local_service_stop(local_service);
     mmcc_uninit();
     mmcs_meta_service_stop(meta_service);
+}
+
+class TestMmcBlobAllocator : public testing::Test {
+protected:
+    void SetUp() override
+    {
+        baseMem = new char[CAPACITY];
+        allocator = new ock::mmc::MmcBlobAllocator(
+            0,
+            static_cast<ock::mmc::MediaType>(0),
+            reinterpret_cast<uint64_t>(baseMem),
+            CAPACITY
+        );
+    }
+
+    void TearDown() override
+    {
+        delete allocator;
+        delete[] baseMem;
+    }
+
+    void CheckAlignment(const ock::mmc::MmcMemBlobPtr& blob)
+    {
+        ASSERT_NE(blob.Get(), nullptr);
+        EXPECT_EQ(blob->Gva() % 4096, 0UL);
+    }
+
+    ock::mmc::MmcBlobAllocator* allocator;
+    char* baseMem;
+    static constexpr uint64_t CAPACITY = 4096 * 16;
+};
+
+constexpr uint64_t TestMmcBlobAllocator::CAPACITY;
+
+TEST_F(TestMmcBlobAllocator, StopBehavior)
+{
+    allocator->Stop();
+    
+    EXPECT_FALSE(allocator->CanAlloc(1024));
+    auto blob = allocator->Alloc(1024);
+    EXPECT_EQ(blob.Get(), nullptr);
+}
+
+TEST_F(TestMmcBlobAllocator, CanAllocCoverage)
+{
+    EXPECT_TRUE(allocator->CanAlloc(1024));
+    EXPECT_FALSE(allocator->CanAlloc(CAPACITY * 2));
+}
+
+TEST_F(TestMmcBlobAllocator, AllocCoverage)
+{
+    auto largeBlob = allocator->Alloc(CAPACITY * 2);
+    EXPECT_EQ(largeBlob.Get(), nullptr);
+    
+    auto exactBlob = allocator->Alloc(4096);
+    
+    auto splitBlob = allocator->Alloc(2048);
+    
+    uint64_t blobAddr = splitBlob->Gva();
+    uint64_t baseAddr = reinterpret_cast<uint64_t>(baseMem);
+    EXPECT_GE(blobAddr, baseAddr);
+    EXPECT_LE(blobAddr - baseAddr, CAPACITY);
+    
+    auto largeBlob2 = allocator->Alloc(CAPACITY - 1);
+    EXPECT_EQ(largeBlob2.Get(), nullptr);
+}
+
+TEST_F(TestMmcBlobAllocator, ReleaseCoverage)
+{
+    EXPECT_EQ(allocator->Release(nullptr), ock::mmc::MMC_ERROR);
+
+    auto invalidAddrBlob = ock::mmc::MmcMakeRef<ock::mmc::MmcMemBlob>(
+        0,
+        static_cast<uint64_t>(0xDEADBEEF),
+        1024,
+        static_cast<ock::mmc::MediaType>(0),
+        ock::mmc::NONE
+    );
+    EXPECT_EQ(allocator->Release(invalidAddrBlob), ock::mmc::MMC_ERROR);
+
+    auto validBlob = allocator->Alloc(1024);
+    EXPECT_EQ(allocator->Release(validBlob), ock::mmc::MMC_OK);
+    EXPECT_EQ(allocator->Release(validBlob), ock::mmc::MMC_ERROR);
+
+    auto blob1 = allocator->Alloc(2048);
+    auto blob2 = allocator->Alloc(2048);
+    EXPECT_EQ(allocator->Release(blob1), ock::mmc::MMC_OK);
+    EXPECT_EQ(allocator->Release(blob2), ock::mmc::MMC_OK);
+    EXPECT_TRUE(allocator->CanAlloc(4096));
+
+    auto blob3 = allocator->Alloc(4096);
+    auto blob4 = allocator->Alloc(2048);
+    EXPECT_EQ(allocator->Release(blob4), ock::mmc::MMC_OK);
+    EXPECT_EQ(allocator->Release(blob3), ock::mmc::MMC_OK);
+
+    auto blobA = allocator->Alloc(2048);
+    auto blobB = allocator->Alloc(2048);
+    auto blobC = allocator->Alloc(2048);
+    EXPECT_EQ(allocator->Release(blobB), ock::mmc::MMC_OK);
+    EXPECT_EQ(allocator->Release(blobA), ock::mmc::MMC_OK);
+    EXPECT_EQ(allocator->Release(blobC), ock::mmc::MMC_OK);
+    EXPECT_TRUE(allocator->CanAlloc(6144));
+}
+
+TEST_F(TestMmcBlobAllocator, AllocationAfterRelease)
+{
+    auto blob1 = allocator->Alloc(8192);
+    
+    auto blob2 = allocator->Alloc(4096);
+    
+    EXPECT_EQ(allocator->Release(blob1), ock::mmc::MMC_OK);
+    EXPECT_EQ(allocator->Release(blob2), ock::mmc::MMC_OK);
+    
+    auto fullBlob = allocator->Alloc(CAPACITY - 1);
 }

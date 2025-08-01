@@ -112,19 +112,16 @@ TEST(TestMmcGlobalAllocatorThread, AllocatorTest) {
     int threadNum = 10;
     std::mutex resultsMutex;
     std::vector<int> results(threadNum);
-    
-    // 为每个测试用例创建线程
+ 
     for (int i = 0; i < threadNum; ++i) {
         threads.emplace_back([&, i] {
             int ret = AllocatorTest(threadNum, i, allocator);
-            
-            // 保存结果用于主线程验证
+
             std::lock_guard<std::mutex> lock(resultsMutex);
             results[i] = ret;
         });
     }
-    
-    // 等待所有线程完成
+
     for (auto& t : threads) {
         t.join();
     }
