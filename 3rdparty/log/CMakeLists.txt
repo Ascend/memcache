@@ -1,55 +1,29 @@
-include(ExternalProject)
-set(THIRD_PARTY_DIR ${PROJECT_SOURCE_DIR}/3rdparty)
-SET(THIRD_PARTY_BINARY_DIR ${PROJECT_BINARY_DIR}/3rdparty)
+set(SOURCE_DIR ${PROJECT_3RDPARTY_SRC_DIR}/log/spdlog)
+set(BUILD_DIR ${PROJECT_BUILD_PATH}/build/spdlog)
 set(INSTALL_DIR ${PROJECT_3RDPARTY_BIN_DIR}/spdlog)
-set(THIRD_PARTY_CMAKE_ARGS
-        -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-        -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
-        -DCMAKE_C_FLAGS_RELEASE=${CMAKE_C_FLAGS_RELEASE}
-        -DCMAKE_C_FLAGS_DEBUG=${CMAKE_C_FLAGS_DEBUG}
-        -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-        -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-        -DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}
-        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-        -DCMAKE_INSTALL_LIBDIR=${INSTALL_DIR}/lib
-        -DCMAKE_INSTALL_BINDIR=${INSTALL_DIR}/bin
-        -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}/)
-message(STATUS "THIRD_PARTY_CMAKE_ARGS:")
-message(STATUS ${THIRD_PARTY_CMAKE_ARGS})
-######################################################################
-# Spdlog
-######################################################################
-SET(SPDLOG_CMAKE_ARGS
-        ${THIRD_PARTY_CMAKE_ARGS}
-        -DBUILD_SHARED_LIBS=OFF)
+set(CHECK_FILE_LINKS ${INSTALL_DIR}/lib/libspdlog.a)
+set(SPDLOG_BUILD_TYPE release)
+IF (x${CMAKE_BUILD_TYPE} STREQUAL "xDEBUG")
+    set(SPDLOG_BUILD_TYPE debug)
+    set(CHECK_FILE_LINKS ${INSTALL_DIR}/lib/libspdlogd.a)
+endif ()
+message(STATUS "spdlog: check if need to build at ${CHECK_FILE_LINKS}")
 
-EXTERNALPROJECT_ADD(spdlog
-        URL ${PROJECT_3RDPARTY_SRC_DIR}/log/spdlog
-        SOURCE_DIR ${PROJECT_3RDPARTY_SRC_DIR}/log/spdlog
-        CMAKE_ARGS ${SPDLOG_CMAKE_ARGS}
-        BUILD_ALWAYS OFF
-        DOWNLOAD_COMMAND ""
-        LOG_DOWNLOAD On
-        LOG_CONFIGURE On
-        LOG_BUILD On
-        LOG_INSTALL On)
+# build the lib if not built yet
+if(EXISTS ${CHECK_FILE_LINKS})
+    message(STATUS "spdlog: ${CHECK_FILE_LINKS}")
+    message(STATUS "spdlog: has been built, ignored")
+else()
+    # create dir
+    exec_program(mkdir ${BUILD_DIR} ARGS -p ${BUILD_DIR})
+    exec_program(mkdir ${BUILD_DIR} ARGS -p ${INSTALL_DIR})
 
-EXTERNALPROJECT_GET_PROPERTY(spdlog SOURCE_DIR)
-EXTERNALPROJECT_GET_PROPERTY(spdlog BINARY_DIR)
-SET(SPDLOG_LIBS_DIR ${BINARY_DIR} CACHE PATH ${PROJECT_SOURCE_DIR})
-SET(SPDLOG_INCLUDE_DIR ${SOURCE_DIR}/include CACHE PATH ${PROJECT_SOURCE_DIR})
-MACRO(TARGET_SPDLOG target)
-    ADD_DEPENDENCIES(${target} spdlog)
-    TARGET_INCLUDE_DIRECTORIES(${target} PUBLIC ${SPDLOG_INCLUDE_DIR})
-    IF(${CMAKE_BUILD_TYPE} STREQUAL "DEBUG")
-        TARGET_LINK_LIBRARIES(${target} PUBLIC -L${SPDLOG_LIBS_DIR} libspdlogd.a pthread)
-    ELSE()
-        TARGET_LINK_LIBRARIES(${target} PUBLIC -L${SPDLOG_LIBS_DIR} libspdlog.a pthread)
-    ENDIF()
-ENDMACRO()
+    # configure
+    exec_program(cmake ${BUILD_DIR} ARGS -DCMAKE_BUILD_TYPE=${SPDLOG_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${SOURCE_DIR})
 
-MACRO(TARGET_SPDLOG_HEADER_ONLY target)
-    ADD_DEPENDENCIES(${target} spdlog)
-    TARGET_INCLUDE_DIRECTORIES(${target} PUBLIC ${SPDLOG_INCLUDE_DIR})
-ENDMACRO()
+    # make and make install
+    exec_program(make ${BUILD_DIR} ARGS clean)
+    exec_program(make ${BUILD_DIR} ARGS install -j8)
+
+    message("-- spdlog: has been success installed")
+endif()
