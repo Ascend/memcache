@@ -79,8 +79,8 @@ Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOp
                              MmcMemObjMetaPtr &objMeta)
 {
     // TODO: 不能阻塞
-    if (globalAllocator_->TouchedThreshold(EVICT_THRESHOLD_HIGH)) {
-        std::vector<std::string> keys = metaContainer_->EvictCandidates(EVICT_THRESHOLD_LOW);
+    if (globalAllocator_->GetUsageRate() >= (uint64_t)evictThresholdHigh_) {
+        std::vector<std::string> keys = metaContainer_->EvictCandidates(evictThresholdHigh_, evictThresholdLow_);
         std::vector<Result> remove_results;
         BatchRemove(keys, remove_results);
     }
@@ -115,8 +115,8 @@ Result MmcMetaManager::BatchAlloc(const std::vector<std::string>& keys,
                                   std::vector<MmcMemObjMetaPtr>& objMetas,
                                   std::vector<Result>& allocResults)
 {
-    if (globalAllocator_->TouchedThreshold(EVICT_THRESHOLD_HIGH)) {
-        std::vector<std::string> keysToEvict = metaContainer_->EvictCandidates(EVICT_THRESHOLD_LOW);
+    if (globalAllocator_->GetUsageRate() >= (uint64_t)evictThresholdHigh_) {
+        std::vector<std::string> keysToEvict = metaContainer_->EvictCandidates(evictThresholdHigh_, evictThresholdLow_);
         std::vector<Result> removeResults;
         BatchRemove(keysToEvict, removeResults);
     }
@@ -331,6 +331,8 @@ Result MmcMetaManager::Unmount(const MmcLocation &loc)
 
 void MmcMetaManager::AsyncRemoveThreadFunc()
 {
+    auto lastCheckTime = std::chrono::steady_clock::now();
+    constexpr auto checkInterval = std::chrono::seconds(MMC_THRESHOLD_PRINT_SECONDS);
     while (true) {
         std::unique_lock<std::mutex> lock(removeThreadLock_);
         if (removeThreadCv_.wait_for(lock, std::chrono::milliseconds(defaultTtlMs_),
@@ -347,6 +349,13 @@ void MmcMetaManager::AsyncRemoveThreadFunc()
                 (*iter)->FreeBlobs(globalAllocator_);
                 iter = removeList_.erase(iter);
             }
+        }
+
+        auto now = std::chrono::steady_clock::now();
+        if (now - lastCheckTime >= checkInterval) {
+            MMC_LOG_INFO("allocator usage rate: " << globalAllocator_->GetUsageRate());
+
+            lastCheckTime = now;
         }
     }
 }

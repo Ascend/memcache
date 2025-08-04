@@ -60,10 +60,10 @@ TEST_F(TestMmcMetaContainerLRU, PromoteAndEvictOrder)
     
     EXPECT_EQ(container->Promote("key2"), MMC_OK);
    
-    auto candidates = container->EvictCandidates(34);
+    auto candidates = container->EvictCandidates(100, 66);
     ASSERT_EQ(candidates.size(), 1u);
     EXPECT_EQ(candidates[0], "key1");
-    candidates = container->EvictCandidates(67);
+    candidates = container->EvictCandidates(100, 33);
     ASSERT_EQ(candidates.size(), 2u);
     EXPECT_EQ(candidates[0], "key1");
     EXPECT_EQ(candidates[1], "key3");

@@ -38,7 +38,7 @@ TEST_F(TestLocalHandler, Init)
     MmcLocalMemlInitInfo locInfo{100, 1000};
 
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
     ASSERT_TRUE(metaMng != nullptr);
@@ -51,7 +51,7 @@ TEST_F(TestLocalHandler, Alloc)
     MmcLocalMemlInitInfo locInfo{0, 1000000};
 
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
 

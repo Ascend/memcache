@@ -31,7 +31,8 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
                      "failed to init spdlog, error: " << SPDLOG_GetLastErrorMessage());
 
     uint64_t defaultTtl = MMC_DATA_TTL_MS;
-    MMC_RETURN_ERROR(metaMgrProxy_->Start(defaultTtl), "Failed to start meta mgr proxy of meta service " << name_);
+    MMC_RETURN_ERROR(metaMgrProxy_->Start(defaultTtl, options.evictThresholdHigh, options.evictThresholdLow),
+        "Failed to start meta mgr proxy of meta service " << name_);
 
     metaNetServer_ = MmcMakeRef<MetaNetServer>(this, name_ + "_MetaServer").Get();
     MMC_ASSERT_RETURN(metaNetServer_.Get() != nullptr, MMC_NEW_OBJECT_FAILED);

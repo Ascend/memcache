@@ -11,6 +11,8 @@ namespace mmc {
 namespace ConfConstant {
 // add configuration here with default values
 constexpr auto OCK_MMC_META_SERVICE_URL = std::make_pair("ock.mmc.meta_service_url", "tcp://127.0.0.1:5000");
+constexpr auto OKC_MMC_EVICT_THRESHOLD_HIGH = std::make_pair("ock.mmc.evict_threshold_high", 70);
+constexpr auto OKC_MMC_EVICT_THRESHOLD_LOW = std::make_pair("ock.mmc.evict_threshold_low", 60);
 constexpr auto OCK_MMC_LOG_LEVEL = std::make_pair("ock.mmc.log_level", "error");
 
 constexpr auto OCK_MMC_TLS_ENABLE = std::make_pair("ock.mmc.tls.enable", true);
@@ -43,6 +45,9 @@ constexpr int MAX_BM_RANK_ID = 1023;
 
 constexpr int MIN_WORLD_SIZE = 1;
 constexpr int MAX_WORLD_SIZE = 1024;
+
+constexpr int MIN_EVICT_THRESHOLD = 1;
+constexpr int MAX_EVICT_THRESHOLD = 100;
 
 constexpr uint64_t MAX_DRAM_SIZE = 1024ULL * 1024ULL * 1024ULL * 1024ULL;  // 1TB
 constexpr uint64_t MAX_HBM_SIZE = 1024ULL * 1024ULL * 1024ULL * 1024ULL;  // 1TB

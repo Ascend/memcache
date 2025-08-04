@@ -100,7 +100,7 @@ public:
         return MMC_OK;
     }
 
-    bool TouchedThreshold(uint16_t threshold)
+    uint64_t GetUsageRate()
     {
         uint64_t totalSize = 0;
         uint64_t usedSize = 0;
@@ -111,7 +111,7 @@ public:
             usedSize += result.second;
         }
         globalAllocLock_.UnlockRead();
-        return (usedSize * 100 / totalSize) >= (uint64_t)threshold;
+        return (usedSize * 100 / totalSize);
     }
 
 private:

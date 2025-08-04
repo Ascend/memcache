@@ -74,6 +74,8 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     std::string localUrl = "";
     mmc_meta_service_config_t metaServiceConfig;
     metaServiceConfig.logLevel = 0;
+    metaServiceConfig.evictThresholdHigh = 70;
+    metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.tlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);

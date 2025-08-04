@@ -34,7 +34,7 @@ TEST_F(TestMmcMetaManager, Init)
     MmcLocalMemlInitInfo locInfo{100, 1000};
 
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
     ASSERT_TRUE(metaMng != nullptr);
@@ -47,7 +47,7 @@ TEST_F(TestMmcMetaManager, AllocAndFree)
     MmcLocalMemlInitInfo locInfo{0, 1000000};
 
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
@@ -71,7 +71,7 @@ TEST_F(TestMmcMetaManager, AllocAndFreeMulti)
     MmcLocalMemlInitInfo locInfo{0, 1000000};
 
     uint64_t defaultTtl = 200;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
@@ -105,7 +105,7 @@ TEST_F(TestMmcMetaManager, GetAndUpdate)
     MmcLocalMemlInitInfo locInfo{0, 1000000};
     // poolInitInfo[loc] = locInfo;
     uint64_t defaultTtl = 200;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
@@ -145,7 +145,7 @@ TEST_F(TestMmcMetaManager, LRU)
     MmcLocalMemlInitInfo locInfo{0, 163840};
     uint64_t defaultTtl = 100;
 
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 50);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
@@ -190,7 +190,7 @@ TEST_F(TestMmcMetaManager, AllocAndExistKey)
     MmcLocation loc{0, MEDIA_DRAM};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
@@ -212,7 +212,7 @@ TEST_F(TestMmcMetaManager, AllocAndBatchExistKey)
     MmcLocation loc{0, MEDIA_DRAM};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
@@ -263,7 +263,7 @@ TEST_F(TestMmcMetaManager, Remove)
     MmcLocation loc{0, MEDIA_DRAM};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
@@ -293,7 +293,7 @@ TEST_F(TestMmcMetaManager, BatchRemove)
     MmcLocation loc{0, MEDIA_DRAM};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
@@ -341,7 +341,7 @@ TEST_F(TestMmcMetaManager, BatchGet)
 {
     MmcLocation loc{0, MEDIA_DRAM};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(2000);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(2000, 70, 60);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
@@ -404,7 +404,7 @@ TEST_F(TestMmcMetaManager, Get_NotAllBlobsReady)
     MmcLocation loc{0, MEDIA_DRAM};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
@@ -427,7 +427,7 @@ TEST_F(TestMmcMetaManager, Alloc_ThresholdEviction)
     MmcLocation loc{0, MEDIA_DRAM};
     MmcLocalMemlInitInfo locInfo{0, 96 * 1024};
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
 
@@ -460,7 +460,7 @@ TEST_F(TestMmcMetaManager, BatchGet_MixedResults)
 {
     MmcLocation loc{0, MEDIA_DRAM};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(2000);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(2000, 70, 60);
     metaMng->Start();
     metaMng->Mount(loc, locInfo);
 

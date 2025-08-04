@@ -14,7 +14,7 @@ class MmcMetaMgrProxy : public MmcReferable {
 public:
     ~MmcMetaMgrProxy() override = default;
 
-    virtual Result Start(uint64_t defaultTtl) = 0;
+    virtual Result Start(uint64_t defaultTtl, uint16_t evictThresholdHigh, uint16_t evictThresholdLow) = 0;
 
     virtual void Stop() = 0;
 

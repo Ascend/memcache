@@ -128,17 +128,21 @@ public:
         return MMC_UNMATCHED_KEY;
     }
 
-    std::vector<Key> EvictCandidates(const uint16_t percent)
+    std::vector<Key> EvictCandidates(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow)
     {
         std::lock_guard<std::mutex> guard(mutex_);
 
-        uint32_t numEvictObjs = std::min(lruList_.size() * percent / 100, lruList_.size());
+        uint32_t numEvictObjs = std::max(std::min(
+            lruList_.size() * (evictThresholdHigh - evictThresholdLow) / evictThresholdHigh,
+            lruList_.size()), (size_t)1);
         std::vector<Key> candidates;
         candidates.reserve(numEvictObjs);
         auto iter = lruList_.rbegin();
         for (size_t i = 0; i < numEvictObjs; ++i, ++iter) {
             candidates.push_back(*iter);
         }
+        MMC_LOG_INFO("Touched threshold evict, total size: " << lruList_.size()
+            << ", evict size: " << candidates.size());
         return candidates;
     }
 

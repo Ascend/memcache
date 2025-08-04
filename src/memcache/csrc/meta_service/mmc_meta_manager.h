@@ -17,12 +17,15 @@ namespace ock {
 namespace mmc {
 
 static const uint16_t NUM_BUCKETS = 29;
-static const uint16_t EVICT_THRESHOLD_HIGH = 70;
-static const uint16_t EVICT_THRESHOLD_LOW = 90;
 
 class MmcMetaManager : public MmcReferable {
 public:
-    explicit MmcMetaManager(uint64_t defaultTtl) : defaultTtlMs_(defaultTtl) {}
+    explicit MmcMetaManager(uint64_t defaultTtl, uint16_t evictThresholdHigh, uint16_t evictThresholdLow)
+        : defaultTtlMs_(defaultTtl),
+          evictThresholdHigh_(evictThresholdHigh),
+          evictThresholdLow_(evictThresholdLow)
+        {
+        }
 
     ~MmcMetaManager() override
     {
@@ -180,6 +183,8 @@ private:
     std::mutex removeListLock_;
     std::list<MmcMemObjMetaPtr> removeList_;
     uint64_t defaultTtlMs_; /* defult ttl in miliseconds*/
+    uint16_t evictThresholdHigh_;
+    uint16_t evictThresholdLow_;
 };
 using MmcMetaManagerPtr = MmcRef<MmcMetaManager>;
 }  // namespace mmc

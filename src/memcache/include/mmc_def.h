@@ -36,6 +36,8 @@ typedef struct {
 typedef struct {
     char discoveryURL[DISCOVERY_URL_SIZE]; /* composed by schema and url, e.g. tcp:// or etcd:// or zk:// */
     int32_t logLevel;
+    uint16_t evictThresholdHigh;
+    uint16_t evictThresholdLow;
     mmc_tls_config tlsConfig;
 } mmc_meta_service_config_t;
 

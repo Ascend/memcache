@@ -140,6 +140,10 @@ public:
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
         AddStrConf(OCK_MMC_LOG_LEVEL,
                    VNoCheck::Create());
+        AddIntConf(OKC_MMC_EVICT_THRESHOLD_HIGH,
+            VIntRange::Create(OKC_MMC_EVICT_THRESHOLD_HIGH.first, MIN_EVICT_THRESHOLD, MAX_EVICT_THRESHOLD));
+        AddIntConf(OKC_MMC_EVICT_THRESHOLD_LOW,
+            VIntRange::Create(OKC_MMC_EVICT_THRESHOLD_LOW.first, MIN_EVICT_THRESHOLD, MAX_EVICT_THRESHOLD - 1));
 
         AddBoolConf(OCK_MMC_TLS_ENABLE, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_TOP_PATH, VStrLength::Create(OCK_MMC_TLS_TOP_PATH.first, PATH_MAX_LEN));
@@ -155,6 +159,8 @@ public:
         strncpy(config.discoveryURL, discoveryURL.c_str(), DISCOVERY_URL_SIZE);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
+        config.evictThresholdHigh = GetInt(ConfConstant::OKC_MMC_EVICT_THRESHOLD_HIGH);
+        config.evictThresholdLow = GetInt(ConfConstant::OKC_MMC_EVICT_THRESHOLD_LOW);
         GetTlsConfig(config.tlsConfig);
     }
 };

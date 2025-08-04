@@ -19,14 +19,14 @@ public:
 
     ~MmcMetaMgrProxyDefault() override = default;
 
-    Result Start(uint64_t defaultTtl) override
+    Result Start(uint64_t defaultTtl, uint16_t evictThresholdHigh, uint16_t evictThresholdLow) override
     {
         std::lock_guard<std::mutex> guard(mutex_);
         if (started_) {
             MMC_LOG_INFO("MmcMetaMgrProxyDefault already started");
             return MMC_OK;
         }
-        metaMangerPtr_ = MmcMakeRef<MmcMetaManager>(defaultTtl);
+        metaMangerPtr_ = MmcMakeRef<MmcMetaManager>(defaultTtl, evictThresholdHigh, evictThresholdLow);
         if (metaMangerPtr_ == nullptr) {
             MMC_LOG_ERROR("new object failed, probably out of memory");
             return MMC_NEW_OBJECT_FAILED;

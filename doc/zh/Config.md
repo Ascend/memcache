@@ -6,6 +6,8 @@
 |--------------------------|------------|------------------------------|-----------------------|--------------------------------------------------|
 | ock.mmc.meta_service_url | string     | tcp://127.0.0.1:5000         | tcp://\<ip>\<port>    | port in [1025, 65535]                            |
 | ock.mmc.log_level        | string     | info                         | debug/info/warn/error | log level                                        |
+| ock.mmc.evict_threshold_high | int        | 70                           | 1 <= n <= 100         | evict threshold, 70 mean 70%                 |
+| ock.mmc.evict_threshold_low  | int        | 60                           | 0 <= n <= 99          | after evict threshold                        |
 |                          |            |                              |                       |                                                  |
 | ock.mmc.tls.enable       | bool       | false                        | true/false/1/0        | use TLS to secure communication or not           |
 | ock.mmc.tls.top.path     | string     | /opt/ock/security/           | 0 <= len < 1024       | common top path of the cert files                |

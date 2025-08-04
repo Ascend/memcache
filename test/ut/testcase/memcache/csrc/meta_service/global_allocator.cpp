@@ -325,8 +325,8 @@ TEST_F(TestMmcGlobalAllocator, MountUnmount)
         EXPECT_EQ(blobs[i]->Gva(), size * (allocReq.preferredRank_ + 2) + (i - 10) * allocReq.blobSize_);
     }
 
-    EXPECT_TRUE(allocator->TouchedThreshold(8));
-    EXPECT_FALSE(allocator->TouchedThreshold(9));
+    EXPECT_TRUE(allocator->GetUsageRate() >= (uint64_t)8);
+    EXPECT_FALSE(allocator->GetUsageRate() >= (uint64_t)9);
 
     ret = allocator->Free(blobs[3]);
     EXPECT_EQ(ret, MMC_OK);
@@ -364,8 +364,8 @@ TEST_F(TestMmcGlobalAllocator, MountUnmount)
         EXPECT_EQ(blobs2[i]->Gva(), size * (allocReq.preferredRank_ + 1) + i * allocReq.blobSize_);
     }
 
-    EXPECT_TRUE(allocator->TouchedThreshold(14));
-    EXPECT_FALSE(allocator->TouchedThreshold(15));
+    EXPECT_TRUE(allocator->GetUsageRate() >= (uint64_t)14);
+    EXPECT_FALSE(allocator->GetUsageRate() >= (uint64_t)15);
 
     loc.rank_ = 7;
     ret = allocator->Unmount(loc);
@@ -390,8 +390,8 @@ TEST_F(TestMmcGlobalAllocator, MountUnmount)
         EXPECT_EQ(blobs[i]->Gva(), size * (allocReq.preferredRank_ + 3) + i * allocReq.blobSize_);
     }
 
-    EXPECT_TRUE(allocator->TouchedThreshold(21));
-    EXPECT_FALSE(allocator->TouchedThreshold(22));
+    EXPECT_TRUE(allocator->GetUsageRate() >= (uint64_t)21);
+    EXPECT_FALSE(allocator->GetUsageRate() >= (uint64_t)22);
 }
 
 TEST_F(TestMmcGlobalAllocator, AllocWhenEmpty)
