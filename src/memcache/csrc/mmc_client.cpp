@@ -112,11 +112,13 @@ MMC_API int32_t mmcc_batch_query(const char **keys, uint32_t keys_count, mmc_dat
                         << keys_count << ") - invalid_keys' size (" << invalids.size() << ")", MMC_ERROR);
 
     invalids.emplace_back(-1);
-    for (size_t i = 0, j = 0; i + j < keys_count; ++i) {
+    for (size_t i = 0, j = 0; i + j < keys_count;) {
         if (i + j == invalids[j]) {
             info[i + j] = mmc_data_info{0, 0, 0, false};
+            ++j;
         } else {
             info[i + j] = info_vector[i];
+            ++i;
         }
     }
     return MMC_OK;
@@ -174,11 +176,13 @@ MMC_API int32_t mmcc_batch_remove(const char **keys, const uint32_t keys_count, 
                         << keys_count << ") - invalid_keys' size (" << invalids.size() << ")", MMC_ERROR);
 
     invalids.emplace_back(-1);
-    for (size_t i = 0, j = 0; i + j < keys_count; ++i) {
+    for (size_t i = 0, j = 0; i + j < keys_count;) {
         if (i + j == invalids[j]) {
             remove_results[i + j] = MMC_INVALID_PARAM;
+            ++j;
         } else {
             remove_results[i + j] = remove_results_vector[i];
+            ++i;
         }
     }
     return MMC_OK;
@@ -231,11 +235,13 @@ MMC_API int32_t mmcc_batch_exist(const char **keys, const uint32_t keys_count, i
                         << keys_count << ") - invalid_keys' size (" << invalids.size() << ")", MMC_ERROR);
 
     invalids.emplace_back(-1);
-    for (size_t i = 0, j = 0; i + j < keys_count; ++i) {
+    for (size_t i = 0, j = 0; i + j < keys_count;) {
         if (i + j == invalids[j]) {
             exist_results[i + j] = MMC_INVALID_PARAM;
+            ++j;
         } else {
             exist_results[i + j] = exist_results_vector[i];
+            ++i;
         }
     }
     return MMC_OK;
@@ -280,11 +286,13 @@ MMC_API int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffe
                         << keys_count << ") - invalid_keys' size (" << invalids.size() << ")", MMC_ERROR);
 
     invalids.emplace_back(-1);
-    for (size_t i = 0, j = 0; i + j < keys_count; ++i) {
+    for (size_t i = 0, j = 0; i + j < keys_count;) {
         if (i + j == invalids[j]) {
             bufs[i + j] = mmc_buffer{.addr = 0, .type = 0, .dimType = 0, .oneDim = {0, 0}};
+            ++j;
         } else {
             bufs[i + j] = bufs_vector[i];
+            ++i;
         }
     }
 
