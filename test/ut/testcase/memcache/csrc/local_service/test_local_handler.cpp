@@ -92,7 +92,7 @@ protected:
             .id = 12345,
             .memberSize = 4,
             .dataOpType = "sdma",
-            .localDRAMSize = 1024 * 1024,
+            .localDRAMSize = 0,
             .localHBMSize = 1024 * 1024 * 2,
             .flags = 0
         };
