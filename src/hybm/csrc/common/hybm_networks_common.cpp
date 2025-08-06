@@ -39,6 +39,10 @@ std::vector<uint32_t> NetworkGetIpAddresses() noexcept
             continue;
         }
 
+        if ((p->ifa_flags & IFF_UP) == 0 || (p->ifa_flags & IFF_RUNNING) == 0) {
+            continue;
+        }
+
         auto sin = reinterpret_cast<struct sockaddr_in *>(p->ifa_addr);
         addresses.emplace_back(ntohl(sin->sin_addr.s_addr));
         BM_LOG_INFO("find ip address: " << p->ifa_name << " -> " << inet_ntoa(sin->sin_addr));

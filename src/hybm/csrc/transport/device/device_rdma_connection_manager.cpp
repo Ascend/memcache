@@ -60,7 +60,6 @@ Result RdmaConnectionManager::StartServerListen(const std::unordered_map<uint32_
         return ret;
     }
 
-    BM_LOG_INFO("start to listen on port: " << deviceAddress_.sin_port << " success.");
     return BM_OK;
 }
 
@@ -260,7 +259,7 @@ int RdmaConnectionManager::StartServerCommon()
 
         serverConnectResult = BM_OK;
     });
-    BM_LOG_INFO("start to listen on port: " << deviceAddress_.sin_port << " success.");
+
     return BM_OK;
 }
 
