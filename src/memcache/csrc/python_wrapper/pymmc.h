@@ -94,6 +94,18 @@ private:
     bool use_allocator_free_;  // Flag to control deallocation method
 };
 
+class KeyInfo {
+public:
+    KeyInfo() {};
+
+    ~KeyInfo() = default;
+
+private:
+    std::vector<int> loc_;   // 所有blob的rank信息
+    std::vector<int> type_;  // 所有blob的介质信息
+    uint64_t size_;
+};
+
 class DistributedObjectStore {
 public:
     friend class SliceBuffer;  // Allow SliceBuffer to access private members
@@ -168,6 +180,20 @@ public:
     std::vector<int> batch_put_from(const std::vector<std::string> &keys, const std::vector<void *> &buffers,
                                     const std::vector<size_t> &sizes, const int32_t &direct);
 
+    int put_from_layers(const std::string& key, const std::vector<void*>& buffers, const std::vector<size_t>& sizes,
+                        const int32_t& direct);
+
+    std::vector<int> batch_put_from_layers(const std::vector<std::string>& keys,
+                                           const std::vector<std::vector<void*>>& buffers,
+                                           const std::vector<std::vector<size_t>>& sizes, const int32_t& direct);
+
+    int get_into_layers(const std::string& key, const std::vector<void*>& buffers, const std::vector<size_t>& sizes,
+                        const int32_t& direct);
+
+    std::vector<int> batch_get_into_layers(const std::vector<std::string>& keys,
+                                           const std::vector<std::vector<void*>>& buffers,
+                                           const std::vector<std::vector<size_t>>& sizes, const int32_t& direct);
+
     int put_parts(const std::string &key, std::vector<mmc_buffer> values);
 
     int put_batch(const std::vector<std::string> &keys, const std::vector<mmc_buffer> &values);
@@ -212,6 +238,10 @@ public:
      * error
      */
     std::vector<int> batchIsExist(const std::vector<std::string> &keys);
+
+    KeyInfo getKeyInfo(const std::string& key);
+
+    std::vector<KeyInfo> batchGetKeyInfo(const std::vector<std::string>& keys);
 
     /**
      * @brief Get the size of an object

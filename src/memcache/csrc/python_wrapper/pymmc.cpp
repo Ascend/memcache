@@ -264,6 +264,23 @@ std::vector<int> DistributedObjectStore::batchIsExist(const std::vector<std::str
     return results;
 }
 
+KeyInfo DistributedObjectStore::getKeyInfo(const std::string& key)
+{
+    mmc_data_info info;
+    KeyInfo keyInfo{};
+    auto res = mmcc_query(key.c_str(), &info, 0);
+    if (res != MMC_OK) {
+        MMC_LOG_ERROR("Failed to query key " << key << ", error code: " << res);
+        return keyInfo;
+    }
+    return keyInfo;
+}
+
+std::vector<KeyInfo> DistributedObjectStore::batchGetKeyInfo(const std::vector<std::string>& keys)
+{
+    return {};
+}
+
 int64_t DistributedObjectStore::getSize(const std::string &key) {
     return 0;
 }
@@ -403,6 +420,34 @@ int DistributedObjectStore::put_from(const std::string &key, mmc_buffer &buffer)
     return put(key, buffer);
 }
 
+int DistributedObjectStore::put_from_layers(const std::string& key, const std::vector<void*>& buffers,
+                                            const std::vector<size_t>& sizes, const int32_t& direct)
+{
+    return 0;
+}
+
+std::vector<int> DistributedObjectStore::batch_put_from_layers(const std::vector<std::string>& keys,
+                                                               const std::vector<std::vector<void*>>& buffers,
+                                                               const std::vector<std::vector<size_t>>& sizes,
+                                                               const int32_t& direct)
+{
+    return {};
+}
+
+int DistributedObjectStore::get_into_layers(const std::string& key, const std::vector<void*>& buffers,
+                                            const std::vector<size_t>& sizes, const int32_t& direct)
+{
+    return 0;
+}
+
+std::vector<int> DistributedObjectStore::batch_get_into_layers(const std::vector<std::string>& keys,
+                                                               const std::vector<std::vector<void*>>& buffers,
+                                                               const std::vector<std::vector<size_t>>& sizes,
+                                                               const int32_t& direct)
+{
+    return {};
+}
+
 void DefineMmcStructModule(py::module_& m)
 {
     py::enum_<smem_bm_copy_type>(m, "MmcCopyDirect")
@@ -475,6 +520,10 @@ PYBIND11_MODULE(_pymmc, m) {
              py::call_guard<py::gil_scoped_release>(), py::arg("keys"),
              "Check if multiple objects exist. Returns list of results: 1 if "
              "exists, 0 if not exists, -1 if error")
+        .def("get_key_info", &DistributedObjectStore::getKeyInfo,
+             py::call_guard<py::gil_scoped_release>())
+        .def("batch_get_key_info", &DistributedObjectStore::batchGetKeyInfo,
+             py::call_guard<py::gil_scoped_release>(), py::arg("keys"))
         .def("close", &DistributedObjectStore::tearDownAll)
         .def("get_size", &DistributedObjectStore::getSize,
              py::call_guard<py::gil_scoped_release>())
@@ -533,6 +582,40 @@ PYBIND11_MODULE(_pymmc, m) {
             "Get object data directly into pre-allocated buffers for multiple "
             "keys")
         .def(
+            "get_into_layers",
+            [](DistributedObjectStore &self,
+               const std::string &key,
+               const std::vector<uintptr_t> &buffer_ptrs,
+               const std::vector<size_t> &sizes, const int32_t &direct) {
+                std::vector<void *> buffers;
+                buffers.reserve(buffer_ptrs.size());
+                for (uintptr_t ptr : buffer_ptrs) {
+                    buffers.push_back(reinterpret_cast<void *>(ptr));
+                }
+                py::gil_scoped_release release;
+                return self.get_into_layers(key, buffers, sizes, direct);
+            },
+            py::arg("key"), py::arg("buffer_ptrs"), py::arg("sizes"), py::arg("direct") = SMEMB_COPY_G2H)
+        .def(
+            "batch_get_into_layers",
+            [](DistributedObjectStore &self,
+               const std::vector<std::string> &keys,
+               const std::vector<std::vector<uintptr_t>> &buffer_ptrs,
+               const std::vector<std::vector<size_t>> &sizes, const int32_t &direct) {
+                std::vector<std::vector<void *>> buffers;
+                buffers.reserve(buffer_ptrs.size());
+                for (auto vec : buffer_ptrs) {
+                    std::vector<void *> tmp;
+                    for (uintptr_t ptr : vec) {
+                        tmp.push_back(reinterpret_cast<void*>(ptr));
+                    }
+                    buffers.push_back(tmp);
+                }
+                py::gil_scoped_release release;
+                return self.batch_get_into_layers(keys, buffers, sizes, direct);
+            },
+            py::arg("keys"), py::arg("buffer_ptrs"), py::arg("sizes"), py::arg("direct") = SMEMB_COPY_G2H)
+        .def(
             "put_from",
             [](DistributedObjectStore &self, const std::string &key,
                uintptr_t buffer_ptr, size_t size, const int32_t &direct) {
@@ -576,6 +659,40 @@ PYBIND11_MODULE(_pymmc, m) {
             py::arg("keys"), py::arg("buffer_ptrs"), py::arg("sizes"), py::arg("direct") = SMEMB_COPY_H2G,
             "Put object data directly from pre-allocated buffers for multiple "
             "keys")
+        .def(
+            "put_from_layers",
+            [](DistributedObjectStore &self,
+               const std::string &key,
+               const std::vector<uintptr_t> &buffer_ptrs,
+               const std::vector<size_t> &sizes, const int32_t &direct) {
+                std::vector<void *> buffers;
+                buffers.reserve(buffer_ptrs.size());
+                for (uintptr_t ptr : buffer_ptrs) {
+                    buffers.push_back(reinterpret_cast<void *>(ptr));
+                }
+                py::gil_scoped_release release;
+                return self.put_from_layers(key, buffers, sizes, direct);
+            },
+            py::arg("key"), py::arg("buffer_ptrs"), py::arg("sizes"), py::arg("direct") = SMEMB_COPY_H2G)
+        .def(
+            "batch_put_from_layers",
+            [](DistributedObjectStore &self,
+               const std::vector<std::string> &keys,
+               const std::vector<std::vector<uintptr_t>> &buffer_ptrs,
+               const std::vector<std::vector<size_t>> &sizes, const int32_t &direct) {
+                std::vector<std::vector<void *>> buffers;
+                buffers.reserve(buffer_ptrs.size());
+                for (auto vec : buffer_ptrs) {
+                    std::vector<void *> tmp;
+                    for (uintptr_t ptr : vec) {
+                        tmp.push_back(reinterpret_cast<void*>(ptr));
+                    }
+                    buffers.push_back(tmp);
+                }
+                py::gil_scoped_release release;
+                return self.batch_put_from_layers(keys, buffers, sizes, direct);
+            },
+            py::arg("keys"), py::arg("buffer_ptrs"), py::arg("sizes"), py::arg("direct") = SMEMB_COPY_H2G)
         .def("put",
             [](DistributedObjectStore &self, const std::string &key, const py::buffer &buf) {
                 py::buffer_info info = buf.request(/*writable=*/false);
