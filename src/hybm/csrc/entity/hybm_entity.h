@@ -35,6 +35,7 @@ public:
 
     virtual void Unmap() noexcept = 0;
     virtual int32_t Mmap() noexcept = 0;
+    virtual bool SdmaReaches(uint32_t remoteRank) const noexcept = 0;
 
     virtual bool CheckAddressInEntity(const void *ptr, uint64_t length) const noexcept = 0;
     virtual int32_t CopyData(const void *src, void *dest, uint64_t length, hybm_data_copy_direction direction,

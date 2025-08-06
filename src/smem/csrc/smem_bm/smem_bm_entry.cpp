@@ -211,7 +211,7 @@ Result SmemBmEntry::DataCopy(const void *src, void *dest, uint64_t size, smem_bm
             break;
     }
 
-    auto direct = coreOptions_.bmType == HYBM_TYPE_HBM_DRAM_HOST_INITIATE ? dramDirectMap[t] : directMap[t];
+    auto direct = coreOptions_.bmType == HYBM_TYPE_DRAM_HOST_INITIATE ? dramDirectMap[t] : directMap[t];
     return hybm_data_copy(entity_, src, dest, size, direct, nullptr, flags);
 }
 
@@ -241,7 +241,7 @@ Result SmemBmEntry::DataCopy2d(const void *src, uint64_t spitch, void *dest, uin
             break;
     }
 
-    auto direct = coreOptions_.bmType == HYBM_TYPE_HBM_DRAM_HOST_INITIATE ? dramDirectMap[t] : directMap[t];
+    auto direct = coreOptions_.bmType == HYBM_TYPE_DRAM_HOST_INITIATE ? dramDirectMap[t] : directMap[t];
     return hybm_data_copy_2d(entity_, src, spitch, dest, dpitch, width, height, direct, nullptr, flags);
 }
 

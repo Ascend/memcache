@@ -31,9 +31,6 @@ public:
     uint16_t GetDeviceId() const;
 
     StorePtr GetStoreClient() const;
-    Result PrepareTransport(uint32_t rankId, uint32_t rankCount, uint64_t localSize, void *gva);
-    Result ExchangeTransportAddress(uint32_t rankId, uint32_t rankCount);
-    Result ExchangeTransportMemRegion(uint32_t rankId, uint32_t rankCount, uint64_t localSize, void *gva);
     void Destroy();
 
 private:

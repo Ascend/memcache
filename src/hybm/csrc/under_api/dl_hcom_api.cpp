@@ -67,7 +67,7 @@ Result DlHcomApi::LoadLibrary()
     }
     hcomHandle = dlopen(hcomLibName, RTLD_NOW);
     if (hcomHandle == nullptr) {
-        BM_LOG_ERROR("Failed to open library [" << hcomLibName << "], error: " << dlerror());
+        BM_LOG_WARN("Failed to open library [" << hcomLibName << "], error: " << dlerror());
         return BM_DL_FUNCTION_FAILED;
     }
     DL_LOAD_SYM(gServiceCreate, serviceCreateFunc, hcomHandle, "Service_Create");

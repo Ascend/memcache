@@ -1,6 +1,7 @@
 ﻿/*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
+#include <algorithm>
 #include "hybm_big_mem.h"
 #include "smem_shm.h"
 #include "smem_logger.h"
@@ -11,11 +12,9 @@ using namespace ock::smem;
 #ifdef UT_ENABLED
 thread_local std::mutex g_smemShmMutex_;
 thread_local bool g_smemShmInited = false;
-thread_local bool g_smemUseTransport = false;
 #else
 std::mutex g_smemShmMutex_;
 bool g_smemShmInited = false;
-bool g_smemUseTransport = false;
 #endif
 
 SMEM_API smem_shm_t smem_shm_create(uint32_t id, uint32_t rankSize, uint32_t rankId, uint64_t symmetricSize,
@@ -45,6 +44,9 @@ SMEM_API smem_shm_t smem_shm_create(uint32_t id, uint32_t rankSize, uint32_t ran
     options.rankId = rankId;
     options.singleRankVASpace = symmetricSize;
     options.preferredGVA = 0;
+    options.role = HYBM_ROLE_PEER;
+    std::string defaultNic = "tcp://0.0.0.0/0:10002";
+    std::copy_n(defaultNic.c_str(), defaultNic.size() + 1, options.nic);
 
     ret = entry->Initialize(options);
     if (ret != 0) {
@@ -53,13 +55,6 @@ SMEM_API smem_shm_t smem_shm_create(uint32_t id, uint32_t rankSize, uint32_t ran
     }
 
     *gva = entry->GetGva();
-    if (g_smemUseTransport) {
-        ret = SmemShmEntryManager::Instance().PrepareTransport(rankId, rankSize, symmetricSize, *gva);
-        if (ret != 0) {
-            SM_LOG_AND_SET_LAST_ERROR("PrepareTransport failed: " << ret);
-            return nullptr;
-        }
-    }
     return reinterpret_cast<void *>(entry.Get());
 }
 
@@ -172,9 +167,8 @@ SMEM_API int32_t smem_shm_topology_can_reach(smem_shm_t handle, uint32_t remoteR
         SM_LOG_AND_SET_LAST_ERROR("input handle is invalid, result: " << ret);
         return SM_INVALID_PARAM;
     }
-    // TODO: 待实现
-    *reachInfo = SMEMS_DATA_OP_MTE | SMEMS_DATA_OP_ROCE;
-    return SM_OK;
+
+    return entry->GetReachInfo(remoteRank, *reachInfo);
 }
 
 SMEM_API int32_t smem_shm_config_init(smem_shm_config_t *config)
@@ -184,7 +178,6 @@ SMEM_API int32_t smem_shm_config_init(smem_shm_config_t *config)
     config->shmCreateTimeout = SMEM_DEFAUT_WAIT_TIME;
     config->controlOperationTimeout = SMEM_DEFAUT_WAIT_TIME;
     config->startConfigStore = true;
-    config->connectTransport = false;
     config->flags = 0;
     return SM_OK;
 }
@@ -208,10 +201,6 @@ SMEM_API int32_t smem_shm_init(const char *configStoreIpPort, uint32_t worldSize
     if (ret != 0) {
         SM_LOG_AND_SET_LAST_ERROR("init hybm failed, result: " << ret << ", flags: 0x" << std::hex << config->flags);
         return SM_ERROR;
-    }
-
-    if (config->connectTransport) {
-        g_smemUseTransport = true;
     }
 
     g_smemShmInited = true;

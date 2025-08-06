@@ -124,6 +124,17 @@ int32_t hybm_entity_import(hybm_entity_t e, const hybm_exchange_info allExInfo[]
 int32_t hybm_mmap(hybm_entity_t e, uint32_t flags);
 
 /**
+ * @brief Determine whether various channels from local rank to the remote is reachable.
+ * @param e                [in] entity created by hybm_create_entity
+ * @param rank             [in] remote rank
+ * @param reaches          [out] array of size HYBM_DOP_TYPE_BUTT, for storing reachable results of various channels.
+ *                               0 means unreachable, otherwise means reachable.
+ * @param flags            [in] optional flags, default value 0
+ * @return 0 if successful, error code if failed
+ */
+int32_t hybm_entity_reach_types(hybm_entity_t e, uint32_t rank, int32_t reaches[HYBM_DOP_TYPE_BUTT], uint32_t flags);
+
+/**
  * @brief remove one rank after imported
  *
  * @param e                [in] entity created by hybm_create_entity
@@ -155,4 +166,4 @@ void hybm_unmap(hybm_entity_t e, uint32_t flags);
 }
 #endif
 
-#endif // MEM_FABRIC_HYBRID_HYBM_BIG_MEM_C_H
+#endif  // MEM_FABRIC_HYBRID_HYBM_BIG_MEM_C_H

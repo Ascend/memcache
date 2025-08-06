@@ -1,35 +1,29 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
  */
-#include "dl_acl_api.h"
-#include "hybm_logger.h"
 #include "hybm_transport_manager.h"
-#include "hybm_rdma_trans_manager.h"
 
-namespace ock {
-namespace mf {
-TransportManagerPtr TransportManager::Create(TransType t)
+#include "hybm_logger.h"
+#include "host_hcom_transport_manager.h"
+#include "device_rdma_transport_manager.h"
+
+using namespace ock::mf::transport;
+
+std::shared_ptr<TransportManager> TransportManager::Create(TransportType type)
 {
-    static TransportManagerPtr rdmaTransportInstance = nullptr;
-    if (rdmaTransportInstance != nullptr) {
-        return rdmaTransportInstance;
+    switch (type) {
+        case TT_HCOM:
+            return host::HcomTransportManager::GetInstance();
+        case TT_HCCP:
+            return std::make_shared<device::RdmaTransportManager>();
+        default:
+            BM_LOG_ERROR("Invalid trans type: " << type);
+            return nullptr;
     }
-
-    int32_t deviceId = -1;
-    auto ret = DlAclApi::AclrtGetDevice(&deviceId);
-    if (ret != 0 || deviceId < 0) {
-        BM_LOG_ERROR("get device id failed, ret=" << ret << ", deviceId=" << deviceId);
-        return nullptr;
-    }
-
-    if (t != TransType::TT_HCCP) {
-        BM_LOG_ERROR("Create Transport failed, trans type invalid: " << t);
-        return nullptr;
-    }
-
-    auto manager = std::make_shared<RdmaTransportManager>(deviceId, 10002);
-    rdmaTransportInstance = manager;
-    return manager;
 }
-}
+
+const void *TransportManager::GetQpInfo() const
+{
+    BM_LOG_ERROR("Not Implement GetQpInfo()");
+    return nullptr;
 }

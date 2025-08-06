@@ -10,7 +10,8 @@
 #include "hybm_data_operator.h"
 #include "hybm_mem_segment.h"
 #include "hybm_entity.h"
-#include "hybm_trans_manager.h"
+
+#include "hybm_transport_manager.h"
 
 namespace ock {
 namespace mf {
@@ -19,7 +20,6 @@ struct EntityExportInfo {
     uint64_t version{0};
     uint32_t rankId{0};
     char nic[64]{};
-    MrInfo hostMrInfo{};
 };
 
 class MemEntityDefault : public MemEntity {
@@ -53,6 +53,7 @@ public:
                        hybm_data_copy_direction direction, void *stream, uint32_t flags) noexcept override;
     int32_t ImportEntityExchangeInfo(const hybm_exchange_info desc[],
                                      uint32_t count, uint32_t flags) noexcept override;
+    bool SdmaReaches(uint32_t remoteRank) const noexcept override;
 
 private:
     static int CheckOptions(const hybm_options *options) noexcept;
@@ -70,10 +71,11 @@ private:
     const int32_t id_; /* id of the engine */
     hybm_options options_{};
     void *stream_{nullptr};
-    MrInfo hostMrInfo_{};
     std::shared_ptr<MemSegment> segment_{nullptr};
     std::shared_ptr<DataOperator> dataOperator_;
-    std::shared_ptr<HybmTransManager> transportManager_;
+    bool transportPrepared{false};
+    transport::TransManagerPtr transportManager_;
+    std::unordered_map<uint32_t, std::vector<transport::TransportMemoryKey>> importedMemories_;
 };
 using EngineImplPtr = std::shared_ptr<MemEntityDefault>;
 }

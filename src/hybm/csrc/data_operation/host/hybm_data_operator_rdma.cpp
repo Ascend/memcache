@@ -20,14 +20,13 @@ int32_t HostDataOpRDMA::Initialized() noexcept
         return BM_MALLOC_FAILED;
     }
 
-    HybmTransMemReg input;
+    transport::TransportMemoryRegion input;
     input.addr = reinterpret_cast<uint64_t>(rdmaSwapBaseAddr_);
     input.size = RDMA_SWAP_SPACE_SIZE;
-    MrInfo info{};
-    auto ret = transportManager_->RegisterMemoryRegion(input, info);
+    auto ret = transportManager_->RegisterMemoryRegion(input);
     if (ret != BM_OK) {
         BM_LOG_ERROR("Failed to register rdma swap memory, addr: " << rdmaSwapBaseAddr_
-                     << " size: " << RDMA_SWAP_SPACE_SIZE);
+                                                                   << " size: " << RDMA_SWAP_SPACE_SIZE);
         free(rdmaSwapBaseAddr_);
         rdmaSwapBaseAddr_ = nullptr;
         return BM_MALLOC_FAILED;
@@ -138,7 +137,7 @@ int32_t HostDataOpRDMA::CopyHost2Gva(const void *srcVA, void *destVA, uint64_t l
         return ret;
     }
 
-    ret = transportManager_->RdmaOneSideTrans(options.destRankId, (uint64_t) tmpHost, (uint64_t) destVA, length, false);
+    ret = transportManager_->WriteRemote(options.destRankId, (uint64_t) tmpHost, (uint64_t) destVA, length);
     if (ret != BM_OK) {
         BM_LOG_ERROR("Failed to copy host data to remote host memory ret: " << ret);
     }
@@ -159,8 +158,7 @@ int32_t HostDataOpRDMA::CopyGva2Host(const void *srcVA, void *destVA, uint64_t l
         return BM_MALLOC_FAILED;
     }
 
-    auto ret = transportManager_->RdmaOneSideTrans(options.srcRankId ,(uint64_t) tmpHost, (uint64_t) srcVA,
-                                                   length, true);
+    auto ret = transportManager_->ReadRemote(options.srcRankId, (uint64_t) tmpHost, (uint64_t) srcVA, length);
     if (ret != BM_OK) {
         BM_LOG_ERROR("Failed to copy host data to remote host memory ret: " << ret);
         rdmaSwapMemoryAllocator_->Release(tmpRdmaMemory);
@@ -194,7 +192,7 @@ int32_t HostDataOpRDMA::CopyDevice2Gva(const void *srcVA, void *destVA, uint64_t
         rdmaSwapMemoryAllocator_->Release(tmpRdmaMemory);
         return ret;
     }
-    ret = transportManager_->RdmaOneSideTrans(options.destRankId, (uint64_t) tmpHost, (uint64_t) destVA, length, false);
+    ret = transportManager_->WriteRemote(options.destRankId, (uint64_t) tmpHost, (uint64_t) destVA, length);
     if (ret != BM_OK) {
         BM_LOG_ERROR("Failed to copy host data to remote host memory ret: " << ret);
     }
@@ -215,8 +213,7 @@ int32_t HostDataOpRDMA::CopyGva2Device(const void *srcVA, void *destVA, uint64_t
                                                                 << destVA << " length: " << length);
         return BM_MALLOC_FAILED;
     }
-    auto ret = transportManager_->RdmaOneSideTrans(options.srcRankId, (uint64_t) tmpHost, (uint64_t) srcVA,
-                                                   length, true);
+    auto ret = transportManager_->ReadRemote(options.srcRankId, (uint64_t) tmpHost, (uint64_t) srcVA, length);
     if (ret != BM_OK) {
         BM_LOG_ERROR("Failed to copy host data to remote host memory ret: " << ret);
         rdmaSwapMemoryAllocator_->Release(tmpRdmaMemory);
@@ -292,7 +289,7 @@ int32_t HostDataOpRDMA::CopyDevice2Gva2d(const void *srcVA, uint64_t spitch, voi
         rdmaSwapMemoryAllocator_->Release(tmpRdmaMemory);
         return ret;
     }
-    ret = transportManager_->RdmaOneSideTrans(options.destRankId, (uint64_t) tmpHost, (uint64_t) destVA, size, false);
+    ret = transportManager_->WriteRemote(options.destRankId, (uint64_t) tmpHost, (uint64_t) destVA, size);
     if (ret != BM_OK) {
         BM_LOG_ERROR("Failed to copy host data to remote host memory ret: " << ret);
     }
@@ -302,7 +299,8 @@ int32_t HostDataOpRDMA::CopyDevice2Gva2d(const void *srcVA, uint64_t spitch, voi
 
 int32_t HostDataOpRDMA::CopyGva2Device2d(const void *srcVA, uint64_t spitch, void *destVA, uint64_t dpitch,
                                          uint64_t width, uint64_t height, const ExtOptions &options)
-{    if (spitch != width) {
+{
+    if (spitch != width) {
         BM_LOG_ERROR("Not support 2d memory on host");
         return BM_ERROR;
     }
@@ -319,7 +317,7 @@ int32_t HostDataOpRDMA::CopyGva2Device2d(const void *srcVA, uint64_t spitch, voi
                                                      << destVA << " length: " << size);
         return BM_MALLOC_FAILED;
     }
-    auto ret = transportManager_->RdmaOneSideTrans(options.srcRankId, (uint64_t) tmpHost, (uint64_t) srcVA, size, true);
+    auto ret = transportManager_->ReadRemote(options.srcRankId, (uint64_t) tmpHost, (uint64_t) srcVA, size);
     if (ret != BM_OK) {
         BM_LOG_ERROR("Failed to copy host data to remote host memory ret: " << ret);
         rdmaSwapMemoryAllocator_->Release(tmpRdmaMemory);
@@ -355,7 +353,8 @@ int32_t HostDataOpRDMA::RtMemoryCopyAsync(const void *srcVA, void *destVA, uint6
     auto ret = DlAclApi::AclrtMemcpyAsync(destVA, length, srcVA, length, kind, st);
     if (ret != 0) {
         BM_LOG_ERROR("Failed to add aclrt memory copy async task srcVa: " << srcVA << " destVa: "
-                     << destVA << " length: " << length << " ret: " << ret);
+                                                                          << destVA << " length: " << length
+                                                                          << " ret: " << ret);
         return BM_DL_FUNCTION_FAILED;
     }
 
@@ -368,7 +367,7 @@ int32_t HostDataOpRDMA::RtMemoryCopyAsync(const void *srcVA, void *destVA, uint6
 }
 
 int32_t HostDataOpRDMA::RtMemoryCopy2dAsync(const void *srcVA, uint64_t spitch, void *destVA, uint64_t dpitch,
-                                            uint64_t width,uint64_t height, uint32_t kind, const ExtOptions &options)
+                                            uint64_t width, uint64_t height, uint32_t kind, const ExtOptions &options)
 {
     void *st = stream_;
     if (options.stream != nullptr) {
@@ -378,8 +377,9 @@ int32_t HostDataOpRDMA::RtMemoryCopy2dAsync(const void *srcVA, uint64_t spitch, 
     auto ret = DlAclApi::AclrtMemcpy2dAsync(destVA, dpitch, srcVA, spitch, width, height, kind, st);
     if (ret != 0) {
         BM_LOG_ERROR("Failed to add aclrt memory copy2d async task srcVa: " << srcVA << " spitch: " << spitch
-                     << " destVA: " << destVA << " width: " << width << " height: " << height
-                     << " kind: " << kind << " ret: " << ret);
+                                                                            << " destVA: " << destVA << " width: "
+                                                                            << width << " height: " << height
+                                                                            << " kind: " << kind << " ret: " << ret);
         return BM_DL_FUNCTION_FAILED;
     }
 

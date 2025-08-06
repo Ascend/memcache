@@ -4,7 +4,7 @@
 #ifndef MEM_FABRIC_HYBRID_HYBRID_BIG_MEM_DL_H
 #define MEM_FABRIC_HYBRID_HYBRID_BIG_MEM_DL_H
 
-#include <cstdint>
+#include <stdint.h>
 
 #ifndef __cplusplus
 extern "C" {
@@ -22,6 +22,7 @@ typedef void *hybm_mem_slice_t;
 typedef enum {
     HYBM_TYPE_HBM_AI_CORE_INITIATE = 0,
     HYBM_TYPE_HBM_HOST_INITIATE,
+    HYBM_TYPE_DRAM_HOST_INITIATE,
     HYBM_TYPE_HBM_DRAM_HOST_INITIATE,
 
     HYBM_TYPE_BUTT
@@ -55,6 +56,13 @@ typedef enum {
     HYBM_MEM_TYPE_BUTT
 } hybm_mem_type;
 
+typedef enum {
+    HYBM_ROLE_PEER = 0,
+    HYBM_ROLE_SENDER,
+    HYBM_ROLE_RECEIVER,
+    HYBM_ROLE_BUTT
+} hybm_role_type;
+
 typedef struct {
     uint8_t desc[512L];
     uint32_t descLen;
@@ -70,6 +78,7 @@ typedef struct {
     uint16_t devId;
     uint64_t singleRankVASpace;
     uint64_t preferredGVA;
+    hybm_role_type role;
     char nic[64];
 } hybm_options;
 

@@ -18,6 +18,8 @@ struct HbmExportInfo {
     uint64_t mappingOffset{0};
     uint32_t sliceIndex{0};
     uint32_t sdid{0};
+    uint32_t serverId{0};
+    uint32_t superPodId{0};
     int pid{0};
     uint32_t rankId{0};
     uint64_t size{0};
@@ -49,9 +51,16 @@ public:
     std::shared_ptr<MemSlice> GetMemSlice(hybm_mem_slice_t slice) const noexcept override;
     bool MemoryInRange(const void *begin, uint64_t size) const noexcept override;
     void GetRankIdByAddr(const void *addr, uint64_t size, uint32_t &rankId) const noexcept override;
+    hybm_mem_type GetMemoryType() const noexcept override
+    {
+        return HYBM_MEM_TYPE_DEVICE;
+    }
+    bool CheckSmdaReaches(uint32_t rankId) const noexcept override;
 
 public:
     static int GetDeviceId(int deviceId) noexcept;
+    static int FillDeviceSuperPodInfo() noexcept;
+    static bool CanMapRemote(const HbmExportInfo &rmi) noexcept;
 
 private:
     void FreeMemory() noexcept;
@@ -65,11 +74,14 @@ private:
     std::map<uint16_t, std::string> exportMap_;
     std::set<uint64_t> mappedMem_;
     std::vector<HbmExportInfo> imports_;
+    std::map<uint16_t, HbmExportInfo> importMap_;
 
 private:
     static int deviceId_;
     static int pid_;
     static uint32_t sdid_;
+    static uint32_t serverId_;
+    static uint32_t superPodId_;
 };
 }
 }

@@ -6,7 +6,7 @@
 
 #include "hybm_data_operator.h"
 #include "hybm_mem_segment.h"
-#include "hybm_trans_manager.h"
+#include "hybm_transport_manager.h"
 #include "rbtree_range_pool.h"
 
 namespace ock {
@@ -14,7 +14,7 @@ namespace mf {
 
 class HostDataOpRDMA : public DataOperator {
 public:
-    HostDataOpRDMA(uint32_t rankId, void *stm, std::shared_ptr<HybmTransManager> &transportManager) noexcept
+    HostDataOpRDMA(uint32_t rankId, void *stm, std::shared_ptr<transport::TransportManager> &transportManager) noexcept
         :rankId_(rankId), stream_(stm), transportManager_(transportManager) {};
 
     ~HostDataOpRDMA() override;
@@ -57,7 +57,7 @@ private:
     uint32_t rankId_{0};
     void *stream_{nullptr};
     void *rdmaSwapBaseAddr_{nullptr};
-    std::shared_ptr<HybmTransManager> transportManager_;
+    std::shared_ptr<transport::TransportManager> transportManager_;
     std::shared_ptr<RbtreeRangePool> rdmaSwapMemoryAllocator_;
 
 };

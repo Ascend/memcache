@@ -83,6 +83,20 @@ SMEM_API uint32_t smem_bm_get_rank_id()
     return SmemBmEntryManager::Instance().GetRankId();
 }
 
+static hybm_type TransHybmType(const uint64_t &localDRAMSize, const uint64_t &localHBMSize)
+{
+    if (localDRAMSize == 0 && localHBMSize > 0) {
+        return HYBM_TYPE_HBM_AI_CORE_INITIATE;
+    }
+    if (localDRAMSize > 0 && localHBMSize == 0) {
+        return HYBM_TYPE_DRAM_HOST_INITIATE;
+    }
+    if (localDRAMSize > 0 && localHBMSize > 0) {
+        return HYBM_TYPE_HBM_DRAM_HOST_INITIATE;
+    }
+    return HYBM_TYPE_BUTT;
+}
+
 SMEM_API smem_bm_t smem_bm_create(uint32_t id, uint32_t memberSize, smem_bm_data_op_type dataOpType,
                                   uint64_t localDRAMSize, uint64_t localHBMSize, uint32_t flags)
 {
@@ -98,7 +112,7 @@ SMEM_API smem_bm_t smem_bm_create(uint32_t id, uint32_t memberSize, smem_bm_data
     }
 
     hybm_options options;
-    options.bmType = (localDRAMSize == 0) ? HYBM_TYPE_HBM_AI_CORE_INITIATE : HYBM_TYPE_HBM_DRAM_HOST_INITIATE;
+    options.bmType = TransHybmType(localDRAMSize, localHBMSize);
     options.bmDataOpType = (dataOpType == SMEMB_DATA_OP_SDMA) ? HYBM_DOP_TYPE_SDMA : HYBM_DOP_TYPE_ROCE;
     options.bmScope = HYBM_SCOPE_CROSS_NODE;
     options.bmRankType = HYBM_RANK_TYPE_STATIC;
@@ -107,6 +121,7 @@ SMEM_API smem_bm_t smem_bm_create(uint32_t id, uint32_t memberSize, smem_bm_data
     options.devId = manager.GetDeviceId();
     options.singleRankVASpace = (localDRAMSize == 0) ? localHBMSize : localDRAMSize;
     options.preferredGVA = 0;
+    options.role = HYBM_ROLE_PEER;
     bzero(options.nic, sizeof(options.nic));
     (void) std::copy_n(manager.GetHcomUrl().c_str(),  manager.GetHcomUrl().size(), options.nic);
 

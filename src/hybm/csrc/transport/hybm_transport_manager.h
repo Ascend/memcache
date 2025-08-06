@@ -1,53 +1,92 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
  */
-#ifndef HYBM_TRANSPORT_H
-#define HYBM_TRANSPORT_H
 
-#include <chrono>
-#include <vector>
+#ifndef MF_HYBRID_HYBM_TRANSPORT_MANAGER_H
+#define MF_HYBRID_HYBM_TRANSPORT_MANAGER_H
 
-#include "hybm_common_include.h"
-#include "hybm_trans_common.h"
+#include <memory>
+#include "hybm_types.h"
+#include "hybm_transport_common.h"
 
 namespace ock {
 namespace mf {
+namespace transport {
+
 class TransportManager {
 public:
-    static TransportManagerPtr Create(TransType t);
+    static std::shared_ptr<TransportManager> Create(TransportType type);
 
 public:
+    TransportManager()= default;
+
     virtual ~TransportManager() = default;
 
-    virtual TransHandlePtr OpenDevice(const TransDeviceOptions &options) = 0;
-    virtual void CloseDevice(const TransHandlePtr &h) = 0;
-    virtual uint64_t GetTransportId() const = 0;
-    virtual void SetTransportIds(const std::vector<uint64_t> transports) = 0;
+    /*
+     * 1、本地IP（NIC、Device）
+     * @return 0 if successful
+     */
+    virtual Result OpenDevice(const TransportOptions &options) = 0;
 
-    virtual Result RegMemToDevice(const TransHandlePtr &h, const TransMemRegInput &in, TransMemRegOutput &out) = 0;
-    virtual Result UnRegMemFromDevice(const TransMemRegOutput &out) = 0;
-    virtual Result SetGlobalRegisterMrInfo(const std::vector<RdmaMemRegionInfo> &mrs) = 0;
+    virtual Result CloseDevice() = 0;
 
-    virtual Result PrepareDataConn(const TransPrepareOptions &options) = 0;
-    virtual void UnPrepareDataConn() = 0;
+    /*
+     * 2、注册内存
+     * @return 0 if successful
+     */
+    virtual Result RegisterMemoryRegion(const TransportMemoryRegion &mr) = 0;
 
-    virtual Result CreateDataConn(const TransDataConnOptions &options) = 0;
-    virtual void CloseAllDataConn() = 0;
-    virtual bool IsReady() = 0;
+    virtual Result UnregisterMemoryRegion(uint64_t addr) = 0;
 
-    template<class R, class P>
-    Result WaitingReady(const std::chrono::duration<R, P> &timeout)
-    {
-        auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(timeout).count();
-        return WaitingReady(ns);
-    }
-    
-    virtual Result WaitingReady(int64_t timeoutNs) = 0;
-    virtual std::vector<TransDataConnPtr> GetDataConn() = 0;
+    virtual Result QueryMemoryKey(uint64_t addr, TransportMemoryKey &key) = 0;
 
-    virtual TransDataConnAddressInfo GetDataConnAddrInfo() = 0;
+    /*
+     * 3、建链前的准备工作
+     * @return 0 if successful
+     */
+    virtual Result Prepare(const HybmTransPrepareOptions &options) = 0;
+
+    /*
+     * 4、建链
+     * @return 0 if successful
+     */
+    virtual Result Connect() = 0;
+
+    /*
+     * 异步建链
+     * @return 0 if successful
+     */
+    virtual Result AsyncConnect() = 0;
+
+    /*
+     * 等待异步建链完成
+     * @return 0 if successful
+     */
+    virtual Result WaitForConnected(int64_t timeoutNs) = 0;
+
+    /*
+     * 建链完成后，更新rank配置信息，可以新增rank或减少rank
+     */
+    virtual Result UpdateRankOptions(const HybmTransPrepareOptions &options) = 0;
+
+    /**
+     * 查询
+     */
+    virtual const std::string &GetNic() const = 0;  // X
+
+    virtual const void *GetQpInfo() const;
+
+    /**
+      * rdma单边传输
+      */
+    virtual Result ReadRemote(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size) = 0;
+
+    virtual Result WriteRemote(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size) = 0;
 };
+
+using TransManagerPtr = std::shared_ptr<TransportManager>;
+}
 }
 }
 
-#endif  //HYBM_TRANSPORT_H
+#endif  // MF_HYBRID_HYBM_TRANSPORT_MANAGER_H

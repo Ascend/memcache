@@ -42,14 +42,19 @@ public:
     bool MemoryInRange(const void *begin, uint64_t size) const noexcept override;
     void GetRankIdByAddr(const void *addr, uint64_t size, uint32_t &rankId) const noexcept override;
     Result RemoveImported(const std::vector<uint32_t> &ranks) noexcept override;
+    hybm_mem_type GetMemoryType() const noexcept override
+    {
+        return HYBM_MEM_TYPE_HOST;
+    }
 
 private:
     void FreeMemory() noexcept;
     static void LvaShmReservePhysicalMemory(void *mappedAddress, uint64_t size) noexcept;
+
 private:
     uint8_t *globalVirtualAddress_{nullptr};
     uint64_t totalVirtualSize_{0UL};
-    uint8_t * localVirtualBase_{nullptr};
+    uint8_t *localVirtualBase_{nullptr};
     uint64_t allocatedSize_{0UL};
     uint16_t sliceCount_{0};
     std::map<uint16_t, MemSliceStatus> slices_;
@@ -59,4 +64,4 @@ private:
 }
 }
 
-#endif //MF_HYBRID_HYBM_HOST_MEM_SEGMENT_H
+#endif  //MF_HYBRID_HYBM_HOST_MEM_SEGMENT_H

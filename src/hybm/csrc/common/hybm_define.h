@@ -5,7 +5,7 @@
 #define MEM_FABRIC_HYBRID_HYBM_DEFINE_H
 
 #include <netinet/in.h>
-#include <stdint.h>
+#include <cstdint>
 
 namespace ock {
 namespace mf {
@@ -35,6 +35,13 @@ constexpr uint32_t HCCP_MAX_INTERFACE_NAME_LEN = 256;
 
 constexpr uint64_t EXPORT_INFO_MAGIC = 0xAABB1234FFFFEEEEUL;
 constexpr uint64_t EXPORT_INFO_VERSION = 0x1UL;
+
+enum DeviceSystemInfoType {
+    INFO_TYPE_SDID = 26,
+    INFO_TYPE_SERVER_ID,
+    INFO_TYPE_SCALE_TYPE,
+    INFO_TYPE_SUPER_POD_ID,
+};
 
 struct HybmDeviceGlobalMeta {
     uint64_t entityCount;
@@ -334,11 +341,6 @@ struct AiQpRMAQueueInfo {
     struct AiQpRMACQ *rcq;
     RdmaMemRegionInfo *mr;
 };
-
-/**
- * @brief handle to HCCL communicator
- */
-typedef void *HcclComm;
 
 // macro for gcc optimization for prediction of if/else
 #ifndef LIKELY

@@ -7,11 +7,11 @@ include_directories(
         ${PROJECT_HYBM_SRC_BASE}/csrc/driver/userspace
         ${PROJECT_HYBM_SRC_BASE}/csrc/entity
         ${PROJECT_HYBM_SRC_BASE}/csrc/mm
-        ${PROJECT_HYBM_SRC_BASE}/csrc/trans
-        ${PROJECT_HYBM_SRC_BASE}/csrc/trans/hcom
-        ${PROJECT_HYBM_SRC_BASE}/csrc/trans/hccp
         ${PROJECT_HYBM_SRC_BASE}/csrc/transport
-        ${PROJECT_HYBM_SRC_BASE}/csrc/transport/hccp_rdma
+        ${PROJECT_HYBM_SRC_BASE}/csrc/transport/compose
+        ${PROJECT_HYBM_SRC_BASE}/csrc/transport/device
+        ${PROJECT_HYBM_SRC_BASE}/csrc/transport/host
+        ${PROJECT_HYBM_SRC_BASE}/csrc/transport/utils
         ${PROJECT_HYBM_SRC_BASE}/csrc/under_api
 )
 
@@ -23,10 +23,10 @@ aux_source_directory(driver/userspace SRC_FILES_DRIVER)
 aux_source_directory(entity SRC_FILES_ENTITY)
 aux_source_directory(mm SRC_FILES_MEM_MANAGER)
 aux_source_directory(transport SRC_FILES_TRANSPORT)
-aux_source_directory(transport/hccp_rdma SRC_FILES_TRANSPORT)
-aux_source_directory(trans SRC_FILES_TRANSPORT)
-aux_source_directory(trans/hcom SRC_FILES_TRANSPORT)
-aux_source_directory(trans/hccp SRC_FILES_TRANSPORT)
+aux_source_directory(transport/compose SRC_FILES_TRANSPORT)
+aux_source_directory(transport/device SRC_FILES_TRANSPORT)
+aux_source_directory(transport/host SRC_FILES_TRANSPORT)
+aux_source_directory(transport/utils SRC_FILES_TRANSPORT)
 aux_source_directory(under_api SRC_FILES_CANN)
 
 # set whole source for hybmm src files

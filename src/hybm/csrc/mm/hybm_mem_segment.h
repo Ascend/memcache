@@ -88,6 +88,13 @@ public:
     */
     virtual void GetRankIdByAddr(const void *addr, uint64_t size, uint32_t &rankId) const noexcept = 0;
 
+    /*
+     * get memory type
+     */
+    virtual hybm_mem_type GetMemoryType() const noexcept = 0;
+
+    virtual bool CheckSmdaReaches(uint32_t rankId) const noexcept;
+
 protected:
     const MemSegmentOptions options_;
     const int entityId_;
