@@ -458,7 +458,7 @@ Result MmcClientDefault::BatchIsExist(const std::vector<std::string> &keys, std:
     return MMC_OK;
 }
 
-Result MmcClientDefault::Query(const std::string &key, mmc_data_info &query_info, uint32_t flags) const
+Result MmcClientDefault::Query(const std::string& key, mmc_data_info& query_info, uint32_t flags) const
 {
     if (key.empty()) {
         MMC_LOG_ERROR("Get empty key!");
@@ -471,8 +471,13 @@ Result MmcClientDefault::Query(const std::string &key, mmc_data_info &query_info
                      "client " << name_ << " Query " << key << " failed");
     query_info.size = response.queryInfo_.size_;
     query_info.prot = response.queryInfo_.prot_;
-    query_info.numBlobs = response.queryInfo_.numBlobs_;
+    query_info.numBlobs =
+        response.queryInfo_.numBlobs_ > MAX_BLOB_COPIES ? MAX_BLOB_COPIES : response.queryInfo_.numBlobs_;
     query_info.valid = response.queryInfo_.valid_;
+    for (int i = 0; i < query_info.numBlobs && i < MAX_BLOB_COPIES; i++) {
+        query_info.ranks[i] = response.queryInfo_.blobRanks_[i];
+        query_info.types[i] = response.queryInfo_.blobTypes_[i];
+    }
     return MMC_OK;
 }
 
@@ -492,12 +497,26 @@ Result MmcClientDefault::BatchQuery(const std::vector<std::string> &keys, std::v
         MMC_LOG_ERROR("BatchQuery get a response with mismatched size (" << response.batchQueryInfos_.size()
                       << "), should get size (" << keys.size() << ").");
         MemObjQueryInfo info_fill;
-        query_infos.resize(keys.size(), {info_fill.size_, info_fill.prot_, info_fill.numBlobs_, info_fill.valid_});
+        query_infos.resize(keys.size(), {});
         return MMC_ERROR;
     }
 
     for (const auto& info : response.batchQueryInfos_) {
-        query_infos.push_back({info.size_, info.prot_, info.numBlobs_, info.valid_});
+        mmc_data_info outInfo{};
+        outInfo.valid = info.valid_;
+        if (!outInfo.valid) {
+            query_infos.push_back(outInfo);
+            continue;
+        }
+
+        for (int i = 0; i < info.numBlobs_; i++) {
+            outInfo.ranks[i] = info.blobRanks_[i];
+            outInfo.types[i] = info.blobTypes_[i];
+        }
+        outInfo.size = info.size_;
+        outInfo.prot = info.prot_;
+        outInfo.numBlobs = info.numBlobs_;
+        query_infos.push_back(outInfo);
     }
     return MMC_OK;
 }

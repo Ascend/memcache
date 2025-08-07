@@ -242,6 +242,8 @@ class MmcTest(TestServer):
             CliCommand("batch_is_exist", "check if a batch of keys exist: [keys]", self.batch_is_exist, 1),
             CliCommand("remove", "remove data: [key]", self.remove, 1),
             CliCommand("remove_batch", "remove a batch of data: [keys]", self.remove_batch, 1),
+            CliCommand("get_key_info", "get data info of: [key]", self.get_key_info, 1),
+            CliCommand("batch_get_key_info", "batch get data info of: [keys]", self.batch_get_key_info, 1),
         ]
         self.register_command(cmds)
 
@@ -366,6 +368,16 @@ class MmcTest(TestServer):
     @result_handler
     def remove_batch(self, keys: list[str]):
         res = self.__distributed_store_object.remove_batch(keys)
+        self.cli_return(res)
+    
+    @result_handler
+    def get_key_info(self, key: str):
+        res = self.__distributed_store_object.get_key_info(key)
+        self.cli_return(res)
+
+    @result_handler
+    def batch_get_key_info(self, keys: list[str]):
+        res = self.__distributed_store_object.batch_get_key_info(keys)
         self.cli_return(res)
 
 

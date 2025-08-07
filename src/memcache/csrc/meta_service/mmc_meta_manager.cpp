@@ -367,7 +367,21 @@ Result MmcMetaManager::Query(const std::string &key, MemObjQueryInfo &queryInfo)
         MMC_LOG_WARN("Cannot find MmcMemObjMeta with key : " << key);
         return MMC_UNMATCHED_KEY;
     }
-    queryInfo = objMeta->QueryInfo();
+
+    std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs();
+    uint32_t i = 0;
+    for (auto blob : blobs) {
+        if (i >= MAX_BLOB_COPIES) {
+            break;
+        }
+        queryInfo.blobRanks_[i] = blob->Rank();
+        queryInfo.blobTypes_[i] = blob->Type();
+        i++;
+    }
+    queryInfo.numBlobs_ = i;
+    queryInfo.size_ = objMeta->Size();
+    queryInfo.prot_ = objMeta->Prot();
+    queryInfo.valid_ = true;
     return MMC_OK;
 }
 

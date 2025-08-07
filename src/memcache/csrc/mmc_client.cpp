@@ -79,7 +79,7 @@ MMC_API int32_t mmcc_query(const char *key, mmc_data_info *info, uint32_t flags)
     return MMC_OK;
 }
 
-MMC_API int32_t mmcc_batch_query(const char **keys, uint32_t keys_count, mmc_data_info *info, uint32_t flags)
+MMC_API int32_t mmcc_batch_query(const char **keys, size_t keys_count, mmc_data_info *info, uint32_t flags)
 {
     MMC_VALIDATE_RETURN(keys != nullptr, "invalid param, keys is null", MMC_INVALID_PARAM);
     MMC_VALIDATE_RETURN(keys_count != 0 && keys_count <= MAX_BATCH_COUNT, "invalid param, keys_count: "
@@ -110,10 +110,9 @@ MMC_API int32_t mmcc_batch_query(const char **keys, uint32_t keys_count, mmc_dat
                         "invalid results' size (" << info_vector.size() << "), should be keys_count ("
                         << keys_count << ") - invalid_keys' size (" << invalids.size() << ")", MMC_ERROR);
 
-    invalids.emplace_back(-1);
     for (size_t i = 0, j = 0; i + j < keys_count;) {
-        if (i + j == invalids[j]) {
-            info[i + j] = mmc_data_info{0, 0, 0, false};
+        if (j < invalids.size() && i + j == invalids[j]) {
+            info[i + j] = {};
             ++j;
         } else {
             info[i + j] = info_vector[i];

@@ -10,7 +10,7 @@
 #include <mutex>
 #include <string>
 #include <unordered_set>
-
+#include <sstream>
 #include "mmc_def.h"
 
 
@@ -96,14 +96,43 @@ private:
 
 class KeyInfo {
 public:
-    KeyInfo() {};
+    KeyInfo(uint64_t size, uint32_t blobNum) : size_(size), blobNum_(blobNum) {};
 
     ~KeyInfo() = default;
 
+    uint64_t Size() { return size_; }
+
+    uint32_t GetBlobNum() { return blobNum_; }
+
+    std::vector<int>& GetLocs() { return loc_; }
+
+    std::vector<int>& GetTypes() { return type_; }
+
+    void AddType(int type) { return type_.emplace_back(type); }
+
+    void AddLoc(int loc) { return loc_.emplace_back(loc); }
+
+    std::string ToString()
+    {
+        std::stringstream desc;
+        desc << "loc:";
+        for (auto loc : loc_) {
+            desc << std::to_string(loc) << ",";
+        }
+        desc << " type:";
+        for (auto type : type_) {
+            desc << std::to_string(type) << ",";
+        }
+        desc << " blobNum:" << blobNum_;
+        desc << ", size:" << size_;
+        return desc.str();
+    }
+
 private:
-    std::vector<int> loc_;   // 所有blob的rank信息
-    std::vector<int> type_;  // 所有blob的介质信息
-    uint64_t size_;
+    uint64_t size_{};
+    uint32_t blobNum_{};
+    std::vector<int> loc_{};   // 所有blob的rank信息
+    std::vector<int> type_{};  // 所有blob的介质信息
 };
 
 class DistributedObjectStore {

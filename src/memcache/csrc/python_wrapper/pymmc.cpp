@@ -269,18 +269,76 @@ std::vector<int> DistributedObjectStore::batchIsExist(const std::vector<std::str
 KeyInfo DistributedObjectStore::getKeyInfo(const std::string& key)
 {
     mmc_data_info info;
-    KeyInfo keyInfo{};
     auto res = mmcc_query(key.c_str(), &info, 0);
     if (res != MMC_OK) {
         MMC_LOG_ERROR("Failed to query key " << key << ", error code: " << res);
-        return keyInfo;
+        return {0, 0};
+    }
+
+    if (!info.valid) {
+        MMC_LOG_ERROR("Failed to query key " << key << ", info invalid");
+        return {0, 0};
+    }
+
+    KeyInfo keyInfo{info.size, info.numBlobs};
+    for (int i = 0; i < info.numBlobs; i++) {
+        keyInfo.AddLoc(info.ranks[i]);
+        keyInfo.AddType(info.types[i]);
     }
     return keyInfo;
 }
 
 std::vector<KeyInfo> DistributedObjectStore::batchGetKeyInfo(const std::vector<std::string>& keys)
 {
-    return {};
+    int32_t size = keys.size();
+    if (size <= 0) {
+        MMC_LOG_ERROR("batch to query keys num is " << size);
+        return {};
+    }
+
+    const char** ckeys = new (std::nothrow) const char*[size];
+    if (ckeys == nullptr) {
+        MMC_LOG_ERROR("Cannot malloc memory for keys!");
+        return {};
+    }
+    for (int i = 0 ; i < size; ++i) {
+        ckeys[i] = keys[i].c_str();
+    }
+
+    mmc_data_info* infoArr = (mmc_data_info*)malloc(size * sizeof(mmc_data_info));
+    if (infoArr == nullptr) {
+        delete[] ckeys;
+        MMC_LOG_ERROR("Cannot malloc memory for infos!");
+        return {};
+    }
+
+    auto ret = mmcc_batch_query(ckeys, size, infoArr, 0);
+    if (ret != MMC_OK) {
+        delete[] ckeys;
+        free(infoArr);
+        MMC_LOG_ERROR("batch query failed! ret:" << ret);
+        return {};
+    }
+
+    std::vector<KeyInfo> infoList{};
+    for (int i = 0; i < size; ++i) {
+        mmc_data_info& info = infoArr[i];
+        if (!info.valid) {
+            infoList.emplace_back(KeyInfo{0, 0});
+            continue;
+        }
+
+        KeyInfo keyInfo{info.size, info.numBlobs};
+        for (int j = 0; j < info.numBlobs; j++) {
+            keyInfo.AddLoc(info.ranks[j]);
+            keyInfo.AddType(info.types[j]);
+        }
+        infoList.emplace_back(keyInfo);
+    }
+
+    delete[] ckeys;
+    free(infoArr);
+    return infoList;
 }
 
 int64_t DistributedObjectStore::getSize(const std::string &key) {
@@ -296,16 +354,6 @@ SliceBuffer::SliceBuffer(DistributedObjectStore &store, void *buffer,
       use_allocator_free_(use_allocator_free) {}
 
 SliceBuffer::~SliceBuffer() {
-    // if (buffer_) {
-    //     if (use_allocator_free_) {
-    //         // Use SimpleAllocator to deallocate memory
-    //         store_.client_buffer_allocator_->deallocate(buffer_, size_);
-    //     } else {
-    //         // Use delete[] for memory allocated with new[]
-    //         delete[] static_cast<char *>(buffer_);
-    //     }
-    //     buffer_ = nullptr;
-    // }
 }
 
 void *SliceBuffer::ptr() const { return buffer_; }
@@ -575,6 +623,14 @@ void DefineMmcStructModule(py::module_& m)
             .value("SMEMB_COPY_G2L", SMEMB_COPY_G2L)
             .value("SMEMB_COPY_G2H", SMEMB_COPY_G2H)
             .value("SMEMB_COPY_H2G", SMEMB_COPY_H2G);
+
+    // Define the SliceBuffer class
+    py::class_<KeyInfo, std::shared_ptr<KeyInfo>>(m, "KeyInfo", py::buffer_protocol())
+        .def("size", &KeyInfo::Size)
+        .def("loc_list", &KeyInfo::GetLocs)
+        .def("type_list", &KeyInfo::GetTypes)
+        .def("__str__", &KeyInfo::ToString)
+        .def("__repr__", &KeyInfo::ToString);
 }
 
 PYBIND11_MODULE(_pymmc, m) {

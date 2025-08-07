@@ -15,7 +15,7 @@ for lib_source in lib_list:
     ctypes.CDLL(os.path.join(lib_dir, lib_source))
 
 
-from _pymmc import SliceBuffer, DistributedObjectStore
+from _pymmc import SliceBuffer, DistributedObjectStore, KeyInfo
 
 
-__all__ = ['SliceBuffer', 'DistributedObjectStore']
+__all__ = ['SliceBuffer', 'DistributedObjectStore', 'KeyInfo']

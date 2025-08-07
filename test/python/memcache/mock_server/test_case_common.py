@@ -56,6 +56,12 @@ class TestClient:
     def remove(self, key):
         return self.execute("remove", [key])
 
+    def get_key_info(self, key):
+        return self.execute("get_key_info", [key])
+
+    def batch_get_key_info(self, keys: list):
+        return self.execute("batch_get_key_info", [keys])
+
     def _send_request(self, request: str):
         self._client.sendall(f"{request}\0".encode('utf-8'))
 

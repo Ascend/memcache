@@ -101,11 +101,14 @@ typedef struct {
     int32_t xx;  // TODO
 } mmc_location_t;
 
+#define MAX_BLOB_COPIES 8
 typedef struct {
     uint64_t size;
     uint16_t prot;
     uint8_t numBlobs;
     bool valid;
+    uint32_t ranks[MAX_BLOB_COPIES];
+    uint16_t types[MAX_BLOB_COPIES];
 } mmc_data_info;
 
 #ifdef __cplusplus

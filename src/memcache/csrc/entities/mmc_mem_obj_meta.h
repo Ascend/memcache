@@ -96,12 +96,6 @@ public:
         spinlock_.unlock();
     }
 
-    /**
-     * @brief Get the query info
-     * @return query info
-     */
-    MemObjQueryInfo QueryInfo();
-
     friend std::ostream &operator<<(std::ostream &os, MmcMemObjMeta &obj)
     {
         std::lock_guard<Spinlock> guard(obj.spinlock_);
@@ -146,12 +140,6 @@ inline uint16_t MmcMemObjMeta::NumBlobs()
 inline uint64_t MmcMemObjMeta::Size()
 {
     return size_;
-}
-
-inline MemObjQueryInfo MmcMemObjMeta::QueryInfo()
-{
-    std::lock_guard<Spinlock> guard(spinlock_);
-    return {size_, prot_, numBlobs_, true};
 }
 
 }  // namespace mmc
