@@ -21,8 +21,8 @@ static const uint16_t MAX_NUM_BLOB_CHAINS = 5;  // to make sure MmcMemObjMeta <=
 class MmcMemObjMeta : public MmcReferable {
 public:
     MmcMemObjMeta() = default;
-    MmcMemObjMeta(uint16_t prot, uint8_t priority, uint8_t numBlobs, std::vector<MmcMemBlobPtr> blobs, uint64_t lease,
-                  uint32_t size)
+    MmcMemObjMeta(uint16_t prot, uint8_t priority, uint8_t numBlobs, std::vector<MmcMemBlobPtr> blobs,
+                  uint64_t size)
         : prot_(prot), priority_(priority), numBlobs_(numBlobs)
     {
         for (auto &blob : blobs) {
@@ -84,7 +84,7 @@ public:
      * @brief Get the size
      * @return size
      */
-    uint16_t Size();
+    uint64_t Size();
 
     void Lock()
     {
@@ -121,8 +121,9 @@ private:
     uint8_t priority_{0};                      /* priority of the memory object, used for eviction */
     uint8_t numBlobs_{0};                      /* number of blob that the memory object, i.e. replica count */
     MmcMemBlobPtr blobs_[MAX_NUM_BLOB_CHAINS]; /* pointers of blobs */
-    uint32_t size_{0};                         /* byteSize of each blob */
+    uint64_t size_{0};                         /* byteSize of each blob */
     Spinlock spinlock_;                        /* 4 bytes */
+    uint32_t placeholder_{0};
 };
 
 using MmcMemObjMetaPtr = MmcRef<MmcMemObjMeta>;
@@ -142,7 +143,7 @@ inline uint16_t MmcMemObjMeta::NumBlobs()
     return numBlobs_;
 }
 
-inline uint16_t MmcMemObjMeta::Size()
+inline uint64_t MmcMemObjMeta::Size()
 {
     return size_;
 }

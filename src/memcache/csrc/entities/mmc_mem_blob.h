@@ -12,12 +12,12 @@
 namespace ock {
 namespace mmc {
 struct MemObjQueryInfo {
-    uint32_t size_;
+    uint64_t size_;
     uint16_t prot_;
     uint8_t numBlobs_;
     bool valid_;
     MemObjQueryInfo() : size_(0), prot_(0), numBlobs_(0), valid_(false) {}
-    MemObjQueryInfo(const uint32_t size, const uint16_t prot, const uint8_t numBlobs, const bool valid)
+    MemObjQueryInfo(const uint64_t size, const uint16_t prot, const uint8_t numBlobs, const bool valid)
         : size_(size), prot_(prot), numBlobs_(numBlobs), valid_(valid)
     {
     }
@@ -37,14 +37,14 @@ using MmcBlobFilterPtr = MmcRef<MmcBlobFilter>;
 
 struct MmcMemBlobDesc {
     uint32_t rank_ = UINT32_MAX;        /* rank id of the blob located */
-    uint32_t size_ = 0;                 /* data size of the blob */
+    uint64_t size_ = 0;                 /* data size of the blob */
     uint64_t gva_ = UINT64_MAX;         /* global virtual address */
     uint16_t mediaType_ = UINT16_MAX;   /* media type where blob located */
     uint16_t prot_ = 0;                 /* prot, i.e. access */
     BlobState state_ = BlobState::NONE; /* state of the blob */
 
     MmcMemBlobDesc() = default;
-    MmcMemBlobDesc(const uint32_t &rank, const uint64_t &gva, const uint32_t &size, const uint16_t &mediaType,
+    MmcMemBlobDesc(const uint32_t &rank, const uint64_t &gva, const uint64_t &size, const uint16_t &mediaType,
                    const BlobState &state, const uint16_t &prot)
         : rank_(rank), size_(size), gva_(gva), mediaType_(mediaType), prot_(prot), state_(state)
     {

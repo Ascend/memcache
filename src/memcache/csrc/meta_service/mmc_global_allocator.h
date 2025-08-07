@@ -27,6 +27,12 @@ public:
         }
         Result ret = MmcLocalityStrategy::ArrangeLocality(allocators_, allocReq, blobs);
         globalAllocLock_.UnlockRead();
+        if (ret != MMC_OK && !blobs.empty()) {
+            for (auto &blob : blobs) {
+                Free(blob);
+            }
+            blobs.clear();
+        }
         return ret;
     };
 
