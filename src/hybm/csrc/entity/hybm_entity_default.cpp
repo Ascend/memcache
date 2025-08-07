@@ -538,6 +538,7 @@ Result MemEntityDefault::InitTransManager()
     options.rankId = options_.rankId;
     options.rankCount = options_.rankCount;
     options.nic = options_.nic;
+    options.protocol = options_.bmDataOpType;
     auto ret = transportManager_->OpenDevice(options);
     if (ret != 0) {
         BM_LOG_ERROR("Failed to open device, ret: " << ret);
@@ -549,7 +550,7 @@ Result MemEntityDefault::InitTransManager()
 Result MemEntityDefault::InitDataOperator()
 {
     switch (options_.bmDataOpType) {
-        case HYBM_DOP_TYPE_MTE:
+        case HYBM_DOP_TYPE_TCP:
         case HYBM_DOP_TYPE_ROCE:
             dataOperator_ = std::make_shared<HostDataOpRDMA>(options_.rankId, stream_, transportManager_);
             break;

@@ -163,6 +163,10 @@ typedef enum {
     C_SERVICE_TCP = 1,
     C_SERVICE_UDS = 2,
     C_SERVICE_SHM = 3,
+    C_SERVICE_UB = 4,
+    C_SERVICE_UBOE = 5,
+    C_SERVICE_UBC = 6,
+    C_SERVICE_HSHMEM = 7,
 } Service_Type;
 
 typedef enum {
@@ -189,11 +193,6 @@ typedef enum {
     SERVICE_ROUND_ROBIN = 0,
     SERVICE_HASH_IP_PORT = 1,
 } Service_LBPolicy;
-
-typedef enum {
-    C_SERVICE_OPENSSL = 0,
-    C_SERVICE_HITLS = 1,
-} Service_TlsMode;
 
 typedef enum {
     C_SERVICE_TLS_1_2 = 771,
@@ -279,7 +278,7 @@ typedef struct {
 typedef struct {
     uintptr_t lAddress; // local memory region address
     OneSideKey lKey;      // local memory region key
-    uint32_t size;      // data size
+    uint64_t size;      // data size
 } Service_MemoryRegionInfo;
 
 typedef struct {

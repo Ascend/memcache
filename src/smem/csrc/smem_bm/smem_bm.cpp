@@ -8,6 +8,7 @@
 #include "smem_bm.h"
 #include "smem_logger.h"
 #include "smem_bm_entry_manager.h"
+#include "smem_hybm_helper.h"
 
 using namespace ock::smem;
 #ifdef UT_ENABLED
@@ -83,20 +84,6 @@ SMEM_API uint32_t smem_bm_get_rank_id()
     return SmemBmEntryManager::Instance().GetRankId();
 }
 
-static hybm_type TransHybmType(const uint64_t &localDRAMSize, const uint64_t &localHBMSize)
-{
-    if (localDRAMSize == 0 && localHBMSize > 0) {
-        return HYBM_TYPE_HBM_AI_CORE_INITIATE;
-    }
-    if (localDRAMSize > 0 && localHBMSize == 0) {
-        return HYBM_TYPE_DRAM_HOST_INITIATE;
-    }
-    if (localDRAMSize > 0 && localHBMSize > 0) {
-        return HYBM_TYPE_HBM_DRAM_HOST_INITIATE;
-    }
-    return HYBM_TYPE_BUTT;
-}
-
 SMEM_API smem_bm_t smem_bm_create(uint32_t id, uint32_t memberSize, smem_bm_data_op_type dataOpType,
                                   uint64_t localDRAMSize, uint64_t localHBMSize, uint32_t flags)
 {
@@ -112,8 +99,8 @@ SMEM_API smem_bm_t smem_bm_create(uint32_t id, uint32_t memberSize, smem_bm_data
     }
 
     hybm_options options;
-    options.bmType = TransHybmType(localDRAMSize, localHBMSize);
-    options.bmDataOpType = (dataOpType == SMEMB_DATA_OP_SDMA) ? HYBM_DOP_TYPE_SDMA : HYBM_DOP_TYPE_ROCE;
+    options.bmType = SmemHybmHelper::TransHybmType(localDRAMSize, localHBMSize);
+    options.bmDataOpType = SmemHybmHelper::TransHybmDataOpType(dataOpType);
     options.bmScope = HYBM_SCOPE_CROSS_NODE;
     options.bmRankType = HYBM_RANK_TYPE_STATIC;
     options.rankCount = manager.GetWorldSize();

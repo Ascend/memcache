@@ -27,7 +27,6 @@ serviceRegisterHandlerFunc DlHcomApi::gServiceRegisterHandler = nullptr;
 serviceAddWorkerGroupFunc DlHcomApi::gServiceAddWorkerGroup = nullptr;
 serviceAddListenerFunc DlHcomApi::gServiceAddListener = nullptr;
 serviceSetConnectLBPolicyFunc DlHcomApi::gServiceSetConnectLBPolicy = nullptr;
-serviceSetTlsOptionsFunc DlHcomApi::gServiceSetTlsOptions = nullptr;
 serviceSetSecureOptionsFunc DlHcomApi::gServiceSetSecureOptions = nullptr;
 serviceSetTcpUserTimeOutSecFunc DlHcomApi::gServiceSetTcpUserTimeOutSec = nullptr;
 serviceSetTcpSendZCopyFunc DlHcomApi::gServiceSetTcpSendZCopy = nullptr;
@@ -92,7 +91,6 @@ Result DlHcomApi::LoadLibrary()
     DL_LOAD_SYM(gServiceAddWorkerGroup, serviceAddWorkerGroupFunc, hcomHandle, "Service_AddWorkerGroup");
     DL_LOAD_SYM(gServiceAddListener, serviceAddListenerFunc, hcomHandle, "Service_AddListener");
     DL_LOAD_SYM(gServiceSetConnectLBPolicy, serviceSetConnectLBPolicyFunc, hcomHandle, "Service_SetConnectLBPolicy");
-    DL_LOAD_SYM(gServiceSetTlsOptions, serviceSetTlsOptionsFunc, hcomHandle, "Service_SetTlsOptions");
     DL_LOAD_SYM(gServiceSetSecureOptions, serviceSetSecureOptionsFunc, hcomHandle, "Service_SetSecureOptions");
     DL_LOAD_SYM(gServiceSetTcpUserTimeOutSec, serviceSetTcpUserTimeOutSecFunc, hcomHandle,
         "Service_SetTcpUserTimeOutSec");
@@ -158,7 +156,6 @@ void DlHcomApi::CleanupLibrary()
     gServiceAddWorkerGroup = nullptr;
     gServiceAddListener = nullptr;
     gServiceSetConnectLBPolicy = nullptr;
-    gServiceSetTlsOptions = nullptr;
     gServiceSetSecureOptions = nullptr;
     gServiceSetTcpUserTimeOutSec = nullptr;
     gServiceSetTcpSendZCopy = nullptr;

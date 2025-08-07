@@ -33,6 +33,7 @@ enum TransportType {
 struct TransportOptions {
     uint32_t rankId;
     uint32_t rankCount;
+    uint32_t protocol;
     std::string nic;
 };
 

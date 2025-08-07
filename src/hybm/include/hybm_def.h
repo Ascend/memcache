@@ -32,6 +32,7 @@ typedef enum {
     HYBM_DOP_TYPE_MTE = 0,
     HYBM_DOP_TYPE_ROCE,
     HYBM_DOP_TYPE_SDMA,
+    HYBM_DOP_TYPE_TCP,
 
     HYBM_DOP_TYPE_BUTT
 } hybm_data_op_type;

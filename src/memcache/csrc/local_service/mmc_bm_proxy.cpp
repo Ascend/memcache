@@ -4,6 +4,7 @@
 #include "mmc_bm_proxy.h"
 #include <algorithm>
 #include "mmc_logger.h"
+#include "mmc_smem_bm_helper.h"
 
 namespace ock {
 namespace mmc {
@@ -47,12 +48,8 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
         return MMC_INVALID_PARAM;
     }
 
-    smem_bm_data_op_type opType = SMEMB_DATA_OP_SDMA;
-    if (createConfig.dataOpType == "sdma") {
-        opType = SMEMB_DATA_OP_SDMA;
-    } else if (createConfig.dataOpType == "roce") {
-        opType = SMEMB_DATA_OP_ROCE;
-    } else {
+    smem_bm_data_op_type opType = MmcSmemBmHelper::TransSmemBmDataOpType(createConfig.dataOpType);
+    if (opType == SMEMB_DATA_OP_BUTT) {
         MMC_LOG_ERROR("MmcBmProxy unknown data op type " << createConfig.dataOpType);
         return MMC_ERROR;
     }

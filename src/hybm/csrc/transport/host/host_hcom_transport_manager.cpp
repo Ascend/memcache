@@ -32,7 +32,7 @@ Result HcomTransportManager::OpenDevice(const TransportOptions &options)
     Service_Options opt{};
     opt.workerGroupMode = C_SERVICE_BUSY_POLLING;
     opt.maxSendRecvDataSize = HCOM_RECV_DATA_SIZE;
-    Service_Type enumProtocolType = C_SERVICE_RDMA;
+    Service_Type enumProtocolType = HostHcomHelper::HybmDopTransHcomProtocol(options.protocol);
     int ret = DlHcomApi::ServiceCreate(enumProtocolType, HCOM_RPC_SERVICE_NAME, opt, &rpcService_);
     if (ret != 0) {
         BM_LOG_ERROR("Failed to create hcom service, nic: " << options.nic << " type: " << enumProtocolType
@@ -436,7 +436,7 @@ Result HcomTransportManager::ConnectHcomChannel(uint32_t rankId, const std::stri
     options.serverGroupId = 0;
     options.linkCount = HCOM_TRANS_EP_SIZE;
     auto rankIdStr = std::to_string(rankId);
-    std::copy_n(rankIdStr.c_str(), rankIdStr.size(), options.payLoad);
+    std::copy_n(rankIdStr.c_str(), rankIdStr.size() + 1, options.payLoad);
     do {
         auto ret = DlHcomApi::ServiceConnect(rpcService_, url.c_str(), &channel, options);
         if (ret != 0) {
