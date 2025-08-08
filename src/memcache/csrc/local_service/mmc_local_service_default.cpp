@@ -93,7 +93,7 @@ Result MmcLocalServiceDefault::DestroyBm()
 
     BmUnregisterRequest req;
     req.rank_ = options_.rankId;
-    req.mediaType_ = (uint16_t)(options_.localHBMSize == 0);
+    req.mediaType_ = bmProxyPtr_->GetMediaType();
 
     Response resp;
 

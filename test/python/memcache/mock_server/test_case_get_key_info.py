@@ -22,3 +22,4 @@ if __name__ == "__main__":
     keylist = [key1, key2]
     client.batch_get_key_info(keylist)
 
+    client.close_mmc()

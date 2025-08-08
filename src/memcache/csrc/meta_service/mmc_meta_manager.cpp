@@ -105,8 +105,12 @@ Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOp
         objMeta->AddBlob(blob);
     }
 
-    metaContainer_->Insert(key, objMeta);
-    return MMC_OK;
+    ret = metaContainer_->Insert(key, objMeta);
+    if (ret != MMC_OK) {
+        objMeta->FreeBlobs(globalAllocator_);
+        MMC_LOG_ERROR("Fail to insert " << key << " into MmcMetaContainer. ret:" << ret);
+    }
+    return ret;
 }
 
 Result MmcMetaManager::BatchAlloc(const std::vector<std::string>& keys,

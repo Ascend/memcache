@@ -28,7 +28,7 @@ TEST_F(TestMmcMetaContainerLRU, InsertAndGet)
 {
     EXPECT_EQ(container->Insert("key1", 100), MMC_OK);
     EXPECT_EQ(container->Insert("key2", 200), MMC_OK);
-    EXPECT_EQ(container->Insert("key1", 300), MMC_INVALID_PARAM);
+    EXPECT_EQ(container->Insert("key1", 300), MMC_DUPLICATED_OBJECT);
 
     int value;
     EXPECT_EQ(container->Get("key1", value), MMC_OK);

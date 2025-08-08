@@ -94,6 +94,7 @@ TEST_F(TestMmcMetaManager, AllocAndFreeMulti)
     for (int i = 0; i < numKeys; ++i) {
         ret = metaMng->Remove(keys[i]);
     }
+    sleep(1);
     ASSERT_TRUE(memMetaObjs[0]->NumBlobs() == 0);
     metaMng->Stop();
 }
