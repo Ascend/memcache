@@ -108,7 +108,7 @@ Result MmcLocalServiceDefault::RegisterBm()
 {
     BmRegisterRequest req;
     req.rank_ = options_.rankId;
-    req.mediaType_ = options_.localHBMSize > 0 ? MEDIA_HBM : MEDIA_DRAM;
+    req.mediaType_ = bmProxyPtr_->GetMediaType();
     req.addr_ = bmProxyPtr_->GetGva();
     req.capacity_ = options_.localDRAMSize + options_.localHBMSize;
 
@@ -116,6 +116,8 @@ Result MmcLocalServiceDefault::RegisterBm()
     MMC_RETURN_ERROR(SyncCallMeta(req, resp, 30), "bm register failed, bmRankId=" << req.rank_);
     MMC_RETURN_ERROR(resp.ret_,
                      "bm register failed, bmRankId=" << req.rank_ << ", retCode=" << resp.ret_);
+    MMC_LOG_INFO("bm register succeed, bmRankId=" << req.rank_ << "media=" << req.mediaType_
+                                                  << "cap=" << req.capacity_);
     return MMC_OK;
 }
 }

@@ -15,8 +15,17 @@ using namespace ock::mmc;
 static ClientConfig *g_clientConfig;
 static mmc_local_service_t g_localService;
 
+static std::mutex gMmcMutex;
+static bool mmcInit = false;
+
 MMC_API int32_t mmc_init()
 {
+    std::lock_guard<std::mutex> lock(gMmcMutex);
+    if (mmcInit) {
+        MMC_LOG_INFO("mmc is already init");
+        return MMC_OK;
+    }
+
     MMC_VALIDATE_RETURN(MMC_LOCAL_CONF_PATH != nullptr, "MMC_LOCAL_CONFIG_PATH is not set", MMC_INVALID_PARAM);
 
     g_clientConfig = new ClientConfig();
@@ -45,7 +54,14 @@ MMC_API int32_t mmc_init()
     mmc_client_config_t clientConfig;
     g_clientConfig->GetClientConfig(clientConfig);
     clientConfig.logFunc = nullptr;
-    return mmcc_init(&clientConfig);
+    auto ret = mmcc_init(&clientConfig);
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("mmcc init failed, ret:" << ret);
+        // todo 回滚资源
+        return ret;
+    }
+    mmcInit = true;
+    return ret;
 }
 
 MMC_API int32_t mmc_set_extern_logger(void (*func)(int level, const char *msg))
@@ -62,11 +78,18 @@ MMC_API int32_t mmc_set_log_level(int level)
 
 MMC_API void mmc_uninit()
 {
+    std::lock_guard<std::mutex> lock(gMmcMutex);
+    if (!mmcInit) {
+        MMC_LOG_INFO("mmc is not init");
+        return;
+    }
+
     if (g_localService != nullptr) {
         mmcs_local_service_stop(g_localService);
         g_localService = nullptr;
     }
     mmcc_uninit();
+    mmcInit = false;
 }
 
 MMC_API const char *mmc_get_last_err_msg()
