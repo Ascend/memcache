@@ -58,7 +58,7 @@ TEST_F(TestMmcMetaManager, AllocAndFree)
     ASSERT_TRUE(objMeta->NumBlobs() == 1);
     ASSERT_TRUE(objMeta->Size() == SIZE_32K);
 
-    metaMng->UpdateState("test_string", loc, 0, 1, MMC_WRITE_OK);
+    metaMng->UpdateState("test_string", loc, MMC_WRITE_OK, 1);
 
     ret = metaMng->Remove("test_string");
     ASSERT_TRUE(ret == MMC_OK);
@@ -128,7 +128,7 @@ TEST_F(TestMmcMetaManager, GetAndUpdate)
 
     // ret = metaMng->UpdateState(keys[2], loc, 0, 1, MMC_WRITE_FAIL);
     // ASSERT_TRUE(ret == MMC_OK);
-    ret = metaMng->UpdateState(keys[2], loc, 0, 1, MMC_WRITE_OK);
+    ret = metaMng->UpdateState(keys[2], loc, MMC_WRITE_OK, 1);
     ASSERT_TRUE(ret == MMC_OK);
 
     MmcMemObjMetaPtr objMeta2;
@@ -165,7 +165,7 @@ TEST_F(TestMmcMetaManager, LRU)
         ASSERT_TRUE(ret == MMC_OK);
         memMetaObjs.push_back(objMeta);
         keys.push_back(key);
-        writeRet = metaMng->UpdateState(key, loc, 0, 1, MMC_WRITE_OK);
+        writeRet = metaMng->UpdateState(key, loc, MMC_WRITE_OK, 1);
         ASSERT_TRUE(writeRet == MMC_OK);
         objMetas.push_back(objMeta);
         MMC_LOG_INFO(i << ": " << *(objMeta.Get()));
@@ -198,7 +198,7 @@ TEST_F(TestMmcMetaManager, AllocAndExistKey)
     AllocOptions allocReq{SIZE_32K, 1, 0, 0, 0};
     MmcMemObjMetaPtr objMeta;
     Result ret = metaMng->Alloc("test_string", allocReq, 1, objMeta);
-    metaMng->UpdateState("test_string", loc, 0, 1, MMC_WRITE_OK);
+    metaMng->UpdateState("test_string", loc, MMC_WRITE_OK, 1);
     ASSERT_TRUE(ret == MMC_OK);
     ASSERT_TRUE(objMeta->NumBlobs() == 1);
     ASSERT_TRUE(objMeta->Size() == SIZE_32K);
@@ -228,7 +228,7 @@ TEST_F(TestMmcMetaManager, AllocAndBatchExistKey)
         ret = metaMng->Alloc(key, allocReq, 1, objMeta);
         memMetaObjs.push_back(objMeta);
         keys.push_back(key);
-        metaMng->UpdateState(key, loc, 0, 1, MMC_WRITE_OK);
+        metaMng->UpdateState(key, loc, MMC_WRITE_OK, 1);
     }
     ASSERT_TRUE(ret == MMC_OK);
     ASSERT_TRUE(memMetaObjs[0]->NumBlobs() == 1);
@@ -358,7 +358,7 @@ TEST_F(TestMmcMetaManager, BatchGet)
         ret = metaMng->Alloc(key, allocReq, 1, objMeta);
         memMetaObjs.push_back(objMeta);
         keys.push_back(key);
-        metaMng->UpdateState(key, loc, 0, 1, MMC_WRITE_OK);
+        metaMng->UpdateState(key, loc, MMC_WRITE_OK, 1);
     }
     ASSERT_TRUE(ret == MMC_OK);
     ASSERT_TRUE(memMetaObjs[0]->NumBlobs() == 1);
@@ -437,7 +437,7 @@ TEST_F(TestMmcMetaManager, Alloc_ThresholdEviction)
         MmcMemObjMetaPtr objMeta;
         Result ret = metaMng->Alloc(key, allocReq, 1, objMeta);
         ASSERT_EQ(ret, MMC_OK);
-        metaMng->UpdateState(key, loc, 0, 1, MMC_WRITE_OK);
+        metaMng->UpdateState(key, loc, MMC_WRITE_OK, 1);
     }
 
     MmcMemObjMetaPtr temp;
@@ -468,12 +468,12 @@ TEST_F(TestMmcMetaManager, BatchGet_MixedResults)
     MmcMemObjMetaPtr objMeta1;
     Result ret = metaMng->Alloc("key1", allocReq, 1, objMeta1);
     ASSERT_EQ(ret, MMC_OK);
-    metaMng->UpdateState("key1", loc, 0, 1, MMC_WRITE_OK);
+    metaMng->UpdateState("key1", loc, MMC_WRITE_OK, 1);
     
     MmcMemObjMetaPtr objMeta2;
     ret = metaMng->Alloc("key2", allocReq, 1, objMeta2);
     ASSERT_EQ(ret, MMC_OK);
-    metaMng->UpdateState("key2", loc, 0, 1, MMC_WRITE_OK);
+    metaMng->UpdateState("key2", loc, MMC_WRITE_OK, 1);
 
     std::vector<std::string> keys = {"key1", "nonexistent1", "key2", "nonexistent2"};
     std::vector<MmcMemObjMetaPtr> objMetas;

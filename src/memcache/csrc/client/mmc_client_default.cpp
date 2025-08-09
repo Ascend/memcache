@@ -96,28 +96,31 @@ Result MmcClientDefault::Put(const char *key, mmc_buffer *buf, mmc_put_options &
     MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, response, rpcTimeOut_),
                      "client " << name_ << " alloc " << key << " failed");
 
-    if (response.numBlobs_ == 0) {
-        MMC_LOG_ERROR("client " << name_ << " alloc " << key << " failed, blob num is 0.");
+    if (response.numBlobs_ == 0 || response.numBlobs_ != response.blobs_.size()) {
+        MMC_LOG_ERROR("client " << name_ << " alloc " << key << " failed, blobs size:" << response.blobs_.size()
+                                << ", numBlob:" << response.numBlobs_);
         return MMC_ERROR;
     }
 
-    
     for (uint8_t i = 0; i < response.numBlobs_; i++) {
-        MMC_LOG_INFO("Attempting to put to blob " << i << " at address " << response.blobs_[i].gva_);
-        Result ret = bmProxy_->Put(buf, response.blobs_[i].gva_, blobSize);
+        auto& blob = response.blobs_[i];
+        Result ret = bmProxy_->Put(buf, blob.gva_, blobSize);
         if (ret != MMC_OK) {
-            UpdateRequest updateRequest{MMC_WRITE_FAIL, key, rankId_, options.mediaType, operateId};
+            UpdateRequest updateRequest{MMC_WRITE_FAIL, key, blob.rank_, blob.mediaType_, operateId};
             Response updateResponse;
             metaNetClient_->SyncCall(updateRequest, updateResponse, rpcTimeOut_);
-            MMC_LOG_ERROR("client " << name_ << " put " << key << " failed");
+            MMC_LOG_ERROR("client " << name_ << " put " << key << " blob rank:" << blob.rank_
+                                    << ", media:" << blob.mediaType_ << " failed");
+        } else {
+            UpdateRequest updateRequest{MMC_WRITE_OK, key, blob.rank_, blob.mediaType_, operateId};
+            Response updateResponse;
+            ret = metaNetClient_->SyncCall(updateRequest, updateResponse, rpcTimeOut_);
+            if (ret != MMC_OK || updateResponse.ret_ != MMC_OK) {
+                MMC_LOG_ERROR("client " << name_ << " update " << key << " blob rank:" << blob.rank_ << ", media:"
+                                        << blob.mediaType_ << " failed:" << ret << ", " << updateResponse.ret_);
+            }
         }
     }
-
-    UpdateRequest updateRequest{MMC_WRITE_OK, key, rankId_, options.mediaType, operateId};
-    Response updateResponse;
-    MMC_RETURN_ERROR(metaNetClient_->SyncCall(updateRequest, updateResponse, rpcTimeOut_),
-                     "client " << name_ << " update " << key << " failed");
-    MMC_RETURN_ERROR(updateResponse.ret_, "client " << name_ << " update " << key << " failed");
 
     return MMC_OK;
 }
@@ -234,6 +237,35 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
         }
         batchResult[i] = putSuccess ? MMC_OK : MMC_ERROR;
     }
+
+    // update blob state
+    std::vector<BlobActionResult> actionResults;
+    std::vector<uint32_t> ranks;
+    std::vector<uint16_t> mediaTypes;
+    std::vector<std::string> updateKeys;
+    for (size_t i = 0; i < keys.size(); ++i) {
+        for (const auto& blob : allocResponse.blobs_[i]) {
+            updateKeys.push_back(keys[i]);
+            ranks.push_back(blob.rank_);
+            mediaTypes.push_back(blob.mediaType_);
+            actionResults.push_back(batchResult[i] == 0 ? MMC_WRITE_OK : MMC_WRITE_FAIL);
+        }
+    }
+
+    BatchUpdateRequest updateRequest{actionResults, updateKeys, ranks, mediaTypes, operateId};
+    BatchUpdateResponse updateResponse;
+    Result updateResult = metaNetClient_->SyncCall(updateRequest, updateResponse, rpcTimeOut_);
+    if (updateResult != MMC_OK || updateResponse.results_.size() != updateKeys.size()) {
+        MMC_LOG_ERROR("client " << name_ << " batch put update failed:" << updateResult << ", key size:"
+                                << updateKeys.size() << ", retsize:" << updateResponse.results_.size());
+    } else {
+        for (size_t i = 0; i < updateKeys.size(); ++i) {
+            if (updateResponse.results_[i] != MMC_OK) {
+                MMC_LOG_ERROR("client " << name_ << " batch put update for key " << updateKeys[i]
+                                        << " failed:" << updateResponse.results_[i]);
+            }
+        }
+    }
     return MMC_OK;
 }
 
@@ -257,32 +289,6 @@ Result MmcClientDefault::BatchPut(const std::vector<std::string>& keys, const st
     if (allocationResult != MMC_OK) {
         return allocationResult;
     }
-
-    std::vector<BlobActionResult> actionResults(keys.size());
-    for (size_t i = 0; i < keys.size(); ++i) {
-        actionResults[i] = batchResult[i] == 0 ? MMC_WRITE_OK : MMC_WRITE_FAIL;
-    }
-
-    std::vector<uint32_t> ranks(keys.size(), 0);
-    std::vector<uint16_t> mediaTypes(keys.size(), options.mediaType);
-
-    BatchUpdateRequest updateRequest{actionResults, keys, ranks, mediaTypes, operateId};
-    BatchUpdateResponse updateResponse;
-    Result updateResult = metaNetClient_->SyncCall(updateRequest, updateResponse, rpcTimeOut_);
-    if (updateResult != MMC_OK) {
-        MMC_LOG_ERROR("client " << name_ << " batch put update failed");
-    }
-
-    if (updateResponse.results_.size() != keys.size()) {
-        MMC_LOG_ERROR("Mismatch in number of update results");
-    }
-
-    for (size_t i = 0; i < updateResponse.results_.size(); ++i) {
-        if (updateResponse.results_[i] != MMC_OK) {
-            MMC_LOG_ERROR("client " << name_ << " batch put update for key " << keys[i] << " failed");
-        }
-    }
-
     return MMC_OK;
 }
 
@@ -294,23 +300,26 @@ Result MmcClientDefault::Get(const char *key, mmc_buffer *buf, uint32_t flags)
     uint64_t startTime = ock::dagger::Monotonic::TimeUs();
     MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, response, rpcTimeOut_),
                      "client " << name_ << " get " << key << " failed");
-    if (response.numBlobs_ == 0) {
-        MMC_LOG_ERROR("client " << name_ << " get " << key << " failed, numblob is 0");
+    if (response.numBlobs_ == 0 || response.blobs_.empty()) {
+        MMC_LOG_ERROR("client " << name_ << " get " << key << " failed, numblob is:" << response.numBlobs_);
         return MMC_ERROR;
     }
 
-    MMC_RETURN_ERROR(bmProxy_->Get(buf, response.blobs_[0].gva_, response.blobs_[0].size_),
-                     "client " << name_ << " get " << key << " read data failed.");
-    UpdateRequest updateRequest{MMC_READ_FINISH, key, rankId_, bmProxy_->GetMediaType(), operateId};
+    auto& blob = response.blobs_[0];
+    auto ret = bmProxy_->Get(buf, blob.gva_, blob.size_);
+    // 先回复状态消息
+    UpdateRequest updateRequest{MMC_READ_FINISH, key, blob.rank_, blob.mediaType_, operateId};
     Response updateResponse;
-    if (metaNetClient_->SyncCall(updateRequest, updateResponse, rpcTimeOut_) != MMC_OK) {
-        MMC_LOG_WARN("client" << name_ << " update " << key << " update state failed");
-    } else if (updateResponse.ret_ != MMC_OK) {
-        MMC_LOG_WARN("client" << name_ << " update " << key << " update state failed");
+    auto updateRet = metaNetClient_->SyncCall(updateRequest, updateResponse, rpcTimeOut_);
+    if (updateRet != MMC_OK || updateResponse.ret_ != MMC_OK) {
+        MMC_LOG_WARN("client" << name_ << " update " << key << " update state failed, ret:" << updateRet << ", "
+                              << updateResponse.ret_);
     }
-    uint64_t timeMs = (ock::dagger::Monotonic::TimeUs() - startTime) / 1000U;
-    MMC_ASSERT_RETURN(timeMs < defaultTtlMs_, MMC_ERROR);
 
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("client " << name_ << " get " << key << " read data failed.");
+        return ret;
+    }
     return MMC_OK;
 }
 
@@ -362,15 +371,23 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, std::vec
         return MMC_ERROR;
     };
 
+    std::vector<BlobActionResult> actionResults;
+    std::vector<uint32_t> ranks;
+    std::vector<uint16_t> mediaTypes;
+
     batchResult.resize(keys.size(), MMC_ERROR);
     for (size_t i = 0; i < keys.size(); ++i) {
         const auto& blobs = response.blobs_[i];
         uint8_t numBlobs = response.numBlobs_[i];
+        actionResults.push_back(MMC_READ_FINISH);
 
         if (numBlobs <= 0 || blobs.empty()) {
             MMC_LOG_ERROR("client " << name_ << " batch get failed for key " << keys[i] << ", blob:" << numBlobs
                                     << ", size:" << blobs.size());
             batchResult[i] = MMC_ERROR;
+
+            ranks.push_back(UINT32_MAX);
+            mediaTypes.push_back(MEDIA_NONE);
             continue;
         }
 
@@ -381,9 +398,26 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, std::vec
         } else {
             batchResult[i] = MMC_OK;
         }
+
+        ranks.push_back(blobs[0].rank_);
+        mediaTypes.push_back(blobs[0].mediaType_);
     }
-    uint64_t timeMs = (ock::dagger::Monotonic::TimeUs() - startTime) / 1000U;
-    MMC_ASSERT_RETURN(timeMs < (defaultTtlMs_ * keys.size()), MMC_ERROR);
+
+    BatchUpdateRequest updateRequest{actionResults, keys, ranks, mediaTypes, operateId};
+    BatchUpdateResponse updateResponse;
+    Result updateResult = metaNetClient_->SyncCall(updateRequest, updateResponse, rpcTimeOut_);
+    if (updateResult != MMC_OK || updateResponse.results_.size() != keys.size()) {
+        MMC_LOG_ERROR("client " << name_ << " batch get update failed:" << updateResult << ", key size:" << keys.size()
+                                << ", retsize:" << updateResponse.results_.size());
+    } else {
+        for (size_t i = 0; i < keys.size(); ++i) {
+            if (updateResponse.results_[i] != MMC_OK) {
+                MMC_LOG_ERROR("client " << name_ << " batch put update for key " << keys[i]
+                                        << " failed:" << updateResponse.results_[i]);
+            }
+        }
+    }
+
     return MMC_OK;
 }
 

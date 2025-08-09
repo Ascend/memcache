@@ -98,7 +98,7 @@ void MmcMetaMgrProxyDefault::HandleBlobReplication(size_t objIndex, size_t blobI
 Result MmcMetaMgrProxyDefault::UpdateState(const UpdateRequest& req, Response& resp)
 {
     MmcLocation loc{req.rank_, static_cast<MediaType>(req.mediaType_)};
-    Result ret = metaMangerPtr_->UpdateState(req.key_, loc, req.rank_, req.operateId_, req.actionResult_);
+    Result ret = metaMangerPtr_->UpdateState(req.key_, loc, req.actionResult_, req.operateId_);
     resp.ret_ = ret;
     return MMC_OK;
 }
@@ -106,18 +106,21 @@ Result MmcMetaMgrProxyDefault::UpdateState(const UpdateRequest& req, Response& r
 Result MmcMetaMgrProxyDefault::BatchUpdateState(const BatchUpdateRequest& req, BatchUpdateResponse& resp)
 {
     const size_t keyCount = req.keys_.size();
+    if (keyCount != req.ranks_.size() || keyCount != req.mediaTypes_.size()) {
+        MMC_LOG_ERROR("BatchUpdateState: Input vectors size mismatch {keyNum:"
+                      << req.keys_.size() << ", rankNum:" << req.ranks_.size()
+                      << ", mediaNum:" << req.mediaTypes_.size() << "}");
+        return MMC_ERROR;
+    }
 
     std::vector<MmcLocation> locs;
     locs.reserve(keyCount);
     for (size_t i = 0; i < keyCount; ++i) {
         locs.push_back({req.ranks_[i], static_cast<MediaType>(req.mediaTypes_[i])});
     }
-    std::vector<uint32_t> operateIds(keyCount, req.operateId_);
-    std::vector<Result> updateResults;
-    Result ret =
-        metaMangerPtr_->BatchUpdateState(req.keys_, locs, req.ranks_, operateIds, req.actionResults_, resp.results_);
 
-    size_t successCount = std::count(updateResults.begin(), updateResults.end(), MMC_OK);
+    Result ret = metaMangerPtr_->BatchUpdateState(req.keys_, locs, req.actionResults_, req.operateId_, resp.results_);
+    size_t successCount = std::count(resp.results_.begin(), resp.results_.end(), MMC_OK);
     MMC_LOG_INFO("BatchUpdate completed: " << successCount << "/" << keyCount << " updates succeeded, ret:" << ret);
     return ret;
 }
@@ -142,6 +145,7 @@ Result MmcMetaMgrProxyDefault::Get(const GetRequest &req, AllocResponse &resp)
             continue;
         }
         resp.blobs_.push_back(blob->GetDesc());
+        break;  // 只需返回一个
     }
 
     resp.numBlobs_ = resp.blobs_.size();
@@ -199,6 +203,7 @@ Result MmcMetaMgrProxyDefault::BatchGet(const BatchGetRequest &req, BatchAllocRe
                     continue;
                 }
                 descVec.push_back(blob->GetDesc());
+                break;  // 只需返回一个
             }
 
             resp.numBlobs_[i] = descVec.size();

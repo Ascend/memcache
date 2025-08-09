@@ -134,8 +134,8 @@ Result MmcMetaManager::BatchAlloc(const std::vector<std::string>& keys,
 }
 
 // todo update 方法没有兼容多blob情况
-Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &loc, uint32_t rankId, uint64_t operateId,
-                                   const BlobActionResult &actRet)
+Result MmcMetaManager::UpdateState(const std::string& key, const MmcLocation& loc, const BlobActionResult& actRet,
+                                   uint64_t operateId)
 {
     MmcMemObjMetaPtr metaObj;
     // when update state, do not update the lru
@@ -146,7 +146,7 @@ Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &lo
     }
 
     metaObj->Lock();
-    MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, NONE);
+    MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(loc.rank_, loc.mediaType_, NONE);
     MMC_ASSERT(filter != nullptr);
     std::vector<MmcMemBlobPtr> blobs = metaObj->GetBlobs(filter);
 
@@ -164,22 +164,20 @@ Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &lo
     return result;
 }
 
-Result MmcMetaManager::BatchUpdateState(const std::vector<std::string> &keys,
-                                        const std::vector<MmcLocation> &locs,
-                                        const std::vector<uint32_t> &rankIds,
-                                        const std::vector<uint32_t> &operateIds,
-                                        const std::vector<BlobActionResult> &actRets,
-                                        std::vector<Result> &updateResults)
+Result MmcMetaManager::BatchUpdateState(const std::vector<std::string>& keys, const std::vector<MmcLocation>& locs,
+                                        const std::vector<BlobActionResult>& actRets, uint64_t operateId,
+                                        std::vector<Result>& updateResults)
 {
     const size_t count = keys.size();
-    if (count != locs.size() || count != rankIds.size() || count != operateIds.size() || count != actRets.size()) {
-        MMC_LOG_ERROR("BatchUpdateState: Input vectors size mismatch.");
+    if (count != locs.size() || count != actRets.size()) {
+        MMC_LOG_ERROR("BatchUpdateState: Input vectors size mismatch {keyNum:"
+                      << keys.size() << ", locNum:" << locs.size() << ", actRetNum:" << actRets.size() << "}");
         return MMC_ERROR;
     }
     updateResults.clear();
     updateResults.resize(count, MMC_ERROR);
     for (size_t i = 0; i < count; ++i) {
-        updateResults[i] = UpdateState(keys[i], locs[i], rankIds[i], operateIds[i], actRets[i]);
+        updateResults[i] = UpdateState(keys[i], locs[i], actRets[i], operateId);
     }
     return MMC_OK;
 }

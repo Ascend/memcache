@@ -98,19 +98,16 @@ public:
      * @brief Update the state
      * @param req          [in] update state request
      */
-    Result UpdateState(const std::string& key, const MmcLocation& loc, uint32_t rankId, uint64_t requestId,
-                       const BlobActionResult& actRet);
+    Result UpdateState(const std::string& key, const MmcLocation& loc, const BlobActionResult& actRet,
+                       uint64_t operateId);
 
     /**
      * @brief Update the state
      * @param req          [in] update state request
      */
-    Result BatchUpdateState(const std::vector<std::string> &keys,
-                            const std::vector<MmcLocation> &locs,
-                            const std::vector<uint32_t> &rankIds,
-                            const std::vector<uint32_t> &operateIds,
-                            const std::vector<BlobActionResult> &actRets,
-                            std::vector<Result> &updateResults);
+    Result BatchUpdateState(const std::vector<std::string>& keys, const std::vector<MmcLocation>& locs,
+                            const std::vector<BlobActionResult>& actRets, uint64_t operateId,
+                            std::vector<Result>& updateResults);
 
     /**
      * @brief remove the meta object

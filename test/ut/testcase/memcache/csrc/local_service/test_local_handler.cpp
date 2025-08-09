@@ -64,7 +64,7 @@ TEST_F(TestLocalHandler, Alloc)
     ASSERT_TRUE(objMeta->NumBlobs() == 1);
     ASSERT_TRUE(objMeta->Size() == SIZE_32K);
 
-    metaMng->UpdateState("test_string", loc, 0, 1, MMC_WRITE_OK);
+    metaMng->UpdateState("test_string", loc, MMC_WRITE_OK, 1);
 
     ret = metaMng->Remove("test_string");
     ASSERT_TRUE(ret == MMC_OK);
