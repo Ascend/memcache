@@ -58,7 +58,7 @@ class MmcMemBlob final : public MmcReferable {
 public:
     MmcMemBlob() = delete;
     MmcMemBlob(const uint32_t &rank, const uint64_t &gva, const uint32_t &size, const MediaType &mediaType,
-               const BlobState &state = NONE)
+               const BlobState &state)
         : rank_(rank), gva_(gva), size_(size), mediaType_(mediaType), state_(state), nextBlob_(nullptr)
     {
     }
@@ -159,23 +159,28 @@ inline Result MmcMemBlob::UpdateState(uint32_t rankId, uint32_t operateId, BlobA
     std::lock_guard<Spinlock> guard(spinlock_);
     auto curStateIter = stateTransTable_.find(state_);
     if (curStateIter == stateTransTable_.end()) {
-        MMC_LOG_WARN("Cannot update state! The current state is not in the stateTransTable!");
+        MMC_LOG_ERROR("Cannot update state! The current state is not in the stateTransTable!");
         return MMC_UNMATCHED_STATE;
     }
 
     const auto retIter = curStateIter->second.find(ret);
     if (retIter == curStateIter->second.end()) {
-        MMC_LOG_WARN("Cannot update state! Current state is " << static_cast<int>(state_) << ", ret("
-                                                              << static_cast<int>(ret)
-                                                              << ") dismatch! RetCode: " << MMC_UNMATCHED_RET);
+        MMC_LOG_ERROR("Cannot update state! Current state is " << std::to_string(state_) << ", ret("
+                                                               << std::to_string(ret)
+                                                               << ") dismatch! RetCode: " << MMC_UNMATCHED_RET);
         return MMC_UNMATCHED_RET;
     }
+
+    MMC_LOG_INFO("update [" << this << "] state from " << std::to_string(state_) << " to ("
+                            << std::to_string(retIter->second.state_) << ")");
 
     state_ = retIter->second.state_;
     if (retIter->second.action_) {
         auto res = retIter->second.action_(metaLeaseManager_, rankId, operateId);
         if (res != MMC_OK) {
-            MMC_LOG_ERROR("Blob lease function failed! res=" << res);
+            MMC_LOG_ERROR("Blob update current state is " << std::to_string(state_) << " by ret(" << std::to_string(ret)
+                                                          << ") failed! res=" << res);
+            return res;
         }
     }
     return MMC_OK;

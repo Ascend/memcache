@@ -9,25 +9,15 @@
 namespace ock {
 namespace mmc {
 
-// TODO: 当前仅考虑单副本，因此需要所有副本的状态都为ready才能完成Get
 Result MmcMetaManager::Get(const std::string &key, MmcMemObjMetaPtr &objMeta)
 {
     auto ret = metaContainer_->Get(key, objMeta);
     if (ret != MMC_OK) {
-        MMC_LOG_ERROR("MmcMetaManager::Get Fail! key: " << key << ". ErrCode: " << ret);
+        MMC_LOG_ERROR("Get key: " << key << " failed. ErrCode: " << ret);
+        objMeta = nullptr;
         return ret;
     }
-    MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, DATA_READY);
-    std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs(filter);
-    if (blobs.size() != objMeta->NumBlobs()) {
-        MMC_LOG_ERROR("Fail to Get! Not all blobs are ready!" << blobs.size() << "," << objMeta->NumBlobs());
-        objMeta = nullptr;
-        return MMC_ERROR;
-    }
     metaContainer_->Promote(key);
-    for (auto blob : blobs) {
-        blob->UpdateState(0, 0, MMC_FIND_OK);
-    }
     return MMC_OK;
 }
 
@@ -41,149 +31,137 @@ Result MmcMetaManager::BatchExistKey(const std::vector<std::string> &keys, std::
 {
     results.reserve(keys.size());
     for (size_t i = 0; i < keys.size(); ++i) {
-        results.emplace_back(ExistKey(keys[i]));
-        if (results.back() != MMC_OK && results.back() != MMC_UNMATCHED_KEY) {
-            MMC_LOG_ERROR("BatchExistKey get unexpected result: " << results.back()
-                          << ", should be " << MMC_OK << " or " << MMC_UNMATCHED_KEY);
-            return results.back();
+        auto ret = ExistKey(keys[i]);
+        results.emplace_back(ret);
+        if (ret != MMC_OK && ret != MMC_UNMATCHED_KEY) {
+            MMC_LOG_ERROR("get unexpected result: " << ret << ", should be " << MMC_OK << " or " << MMC_UNMATCHED_KEY);
+            continue;
         }
     }
     return MMC_OK;
 }
 
-Result MmcMetaManager::BatchGet(const std::vector<std::string> &keys, std::vector<MmcMemObjMetaPtr> &objMetas,
-                                std::vector<Result> &getResults)
+Result MmcMetaManager::BatchGet(const std::vector<std::string>& keys, std::vector<MmcMemObjMetaPtr>& objMetas,
+                                std::vector<Result>& getResults)
 {
     objMetas.resize(keys.size());
     getResults.resize(keys.size());
 
     for (size_t i = 0; i < keys.size(); ++i) {
         getResults[i] = Get(keys[i], objMetas[i]);
-        if (getResults[i] == MMC_OK) {
-            MMC_LOG_DEBUG("Key " << keys[i] << " found successfully");
-        } else {
+        if (getResults[i] != MMC_OK) {
             objMetas[i] = nullptr;
-            MMC_LOG_INFO("Key " << keys[i] << " not found");
-        }
-    }
-
-    for (const Result &r : getResults) {
-        if (r != MMC_OK) {
-            return r;
+            MMC_LOG_ERROR("Key " << keys[i] << " not found");
         }
     }
     return MMC_OK;
 }
 
-Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOpt, uint32_t requestId,
-                             MmcMemObjMetaPtr &objMeta)
+void MmcMetaManager::CheckAndEvict()
 {
-    // TODO: 不能阻塞
     if (globalAllocator_->GetUsageRate() >= (uint64_t)evictThresholdHigh_) {
         std::vector<std::string> keys = metaContainer_->EvictCandidates(evictThresholdHigh_, evictThresholdLow_);
         std::vector<Result> remove_results;
         BatchRemove(keys, remove_results);
     }
+}
 
-    objMeta = MmcMakeRef<MmcMemObjMeta>();
+Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOpt, uint64_t operateId,
+                             MmcMemObjMetaPtr &objMeta)
+{
+    CheckAndEvict();
+
+    MmcMemObjMetaPtr tempMetaObj = MmcMakeRef<MmcMemObjMeta>();
     std::vector<MmcMemBlobPtr> blobs;
 
     Result ret = globalAllocator_->Alloc(allocOpt, blobs);
-    if (ret == MMC_ERROR) {
+    if (ret != MMC_OK) {
         if (!blobs.empty()) {
-            for (auto &blob : blobs) {
+            for (auto& blob : blobs) {
                 globalAllocator_->Free(blob);
             }
             blobs.clear();
         }
-        return MMC_ERROR;
+        MMC_LOG_ERROR("Alloc " << allocOpt.blobSize_ << "failed, ret:" << ret);
+        return ret;
     }
 
-    for (auto &blob : blobs) {
+    uint32_t opRankId = GetRankIdByOperateId(operateId);
+    uint32_t opSeq = GetSequenceByOperateId(operateId);
+    for (auto& blob : blobs) {
         MMC_LOG_DEBUG("Blob allocated, key=" << key << ", size=" << blob->Size() << ", rank=" << blob->Rank());
-        blob->UpdateState(blob->Rank(), requestId, MMC_ALLOCATED_OK);
-        objMeta->AddBlob(blob);
+        blob->UpdateState(opRankId, opSeq, MMC_ALLOCATED_OK);
+        tempMetaObj->AddBlob(blob);
     }
 
-    ret = metaContainer_->Insert(key, objMeta);
+    ret = metaContainer_->Insert(key, tempMetaObj);
     if (ret != MMC_OK) {
-        objMeta->FreeBlobs(globalAllocator_);
+        tempMetaObj->FreeBlobs(globalAllocator_);
         MMC_LOG_ERROR("Fail to insert " << key << " into MmcMetaContainer. ret:" << ret);
+    } else {
+        objMeta = tempMetaObj;
     }
     return ret;
 }
 
 Result MmcMetaManager::BatchAlloc(const std::vector<std::string>& keys,
                                   const std::vector<AllocOptions>& allocOpts,
-                                  uint32_t requestId,
+                                  uint64_t operateId,
                                   std::vector<MmcMemObjMetaPtr>& objMetas,
                                   std::vector<Result>& allocResults)
 {
-    if (globalAllocator_->GetUsageRate() >= (uint64_t)evictThresholdHigh_) {
-        std::vector<std::string> keysToEvict = metaContainer_->EvictCandidates(evictThresholdHigh_, evictThresholdLow_);
-        std::vector<Result> removeResults;
-        BatchRemove(keysToEvict, removeResults);
-    }
+    CheckAndEvict();
 
     objMetas.resize(keys.size(), nullptr);
     allocResults.resize(keys.size(), MMC_ERROR);
 
-    bool allSuccess = true;
     for (size_t i = 0; i < keys.size(); ++i) {
         const std::string& key = keys[i];
         const AllocOptions& opt = allocOpts[i];
 
-        MmcMemObjMetaPtr objMeta = MmcMakeRef<MmcMemObjMeta>();
-        std::vector<MmcMemBlobPtr> blobs;
-
-        Result ret = globalAllocator_->Alloc(opt, blobs);
+        MmcMemObjMetaPtr objMeta = nullptr;
+        auto ret = Alloc(key, opt, operateId, objMeta);
         if (ret != MMC_OK) {
-            MMC_LOG_ERROR("Allocation failed for key: " << key << ", error: " << ret);
+            MMC_LOG_ERROR("Allocation failed for key: " << key << ", reqId:" << operateId << ", error: " << ret);
             allocResults[i] = ret;
-            allSuccess = false;
             continue;
         }
-
-        for (auto& blob : blobs) {
-            MMC_LOG_DEBUG("Blob allocated, key=" << key << ", size=" << blob->Size() << ", rank=" << blob->Rank());
-            blob->UpdateState(blob->Rank(), requestId, MMC_ALLOCATED_OK);
-            objMeta->AddBlob(blob);
-        }
-
-        metaContainer_->Insert(key, objMeta);
         objMetas[i] = objMeta;
         allocResults[i] = MMC_OK;
-        MMC_LOG_DEBUG("Allocated for key: " << key);
     }
-    
-    return allSuccess ? MMC_OK : MMC_ERROR;
+    // 此处不返回失败，因为业务的结果由 allocResults 带回，将此原则推广到有结果返回值的所有请求
+    return MMC_OK;
 }
 
-Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &loc, uint32_t rankId, uint32_t operateId,
+// todo update 方法没有兼容多blob情况
+Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &loc, uint32_t rankId, uint64_t operateId,
                                    const BlobActionResult &actRet)
 {
     MmcMemObjMetaPtr metaObj;
     // when update state, do not update the lru
     Result ret = metaContainer_->Get(key, metaObj);
-    if (ret != MMC_OK) {
-        MMC_LOG_DEBUG("UpdateState: Cannot find memObjMeta!");
+    if (ret != MMC_OK || metaObj == nullptr) {
+        MMC_LOG_ERROR("UpdateState: Cannot find " << key << " memObjMeta! ret:" << ret);
         return MMC_UNMATCHED_KEY;
     }
 
-    MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(loc.rank_, loc.mediaType_, NONE);
+    metaObj->Lock();
+    MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, NONE);
     MMC_ASSERT(filter != nullptr);
     std::vector<MmcMemBlobPtr> blobs = metaObj->GetBlobs(filter);
 
-    if (blobs.size() != 1) {
-        MMC_LOG_ERROR("One blob is expected, actual number: " << blobs.size());
-        return MMC_ERROR;
+    uint32_t opRankId = GetRankIdByOperateId(operateId);
+    uint32_t opSeq = GetSequenceByOperateId(operateId);
+    Result result = MMC_OK;
+    for (auto blob : blobs) {
+        ret = blob->UpdateState(opRankId, opSeq, actRet);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("Update " << key << " blob state by " << std::to_string(actRet) << " Fail!");
+            result = MMC_ERROR;
+        }
     }
-    ret = blobs[0]->UpdateState(rankId, operateId, actRet);
-    if (ret != MMC_OK) {
-        MMC_LOG_WARN("UpdateState Fail!");
-        return ret;
-    }
-    return MMC_OK;
+    metaObj->Unlock();
+    return result;
 }
 
 Result MmcMetaManager::BatchUpdateState(const std::vector<std::string> &keys,
@@ -200,60 +178,16 @@ Result MmcMetaManager::BatchUpdateState(const std::vector<std::string> &keys,
     }
     updateResults.clear();
     updateResults.resize(count, MMC_ERROR);
-    std::vector<MmcMemObjMetaPtr> objMetas(count);
-    std::vector<Result> getResults(count);
     for (size_t i = 0; i < count; ++i) {
-        getResults[i] = metaContainer_->Get(keys[i], objMetas[i]);
+        updateResults[i] = UpdateState(keys[i], locs[i], rankIds[i], operateIds[i], actRets[i]);
     }
-    bool allSuccess = true;
-    for (size_t i = 0; i < count; ++i) {
-        const std::string& key = keys[i];
-        if (getResults[i] != MMC_OK) {
-            updateResults[i] = (getResults[i] == MMC_UNMATCHED_KEY) ?
-                MMC_UNMATCHED_KEY : MMC_ERROR;
-            allSuccess = false;
-            MMC_LOG_DEBUG("Key not found: " << key << " (code: " << getResults[i] << ")");
-            continue;
-        }
-
-        objMetas[i]->Lock();
-        MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(
-            locs[i].rank_, locs[i].mediaType_, NONE);
-        if (filter == nullptr) {
-            updateResults[i] = MMC_ERROR;
-            allSuccess = false;
-            objMetas[i]->Unlock();
-            MMC_LOG_ERROR("Filter creation failed for key: " << key);
-            continue;
-        }
-
-        std::vector<MmcMemBlobPtr> blobs = objMetas[i]->GetBlobs(filter);
-        if (blobs.size() != 1) {
-            updateResults[i] = MMC_ERROR;
-            allSuccess = false;
-            objMetas[i]->Unlock();
-            MMC_LOG_ERROR("Invalid blob count for key: " << key
-                          << ". Expected 1, found " << blobs.size());
-            continue;
-        }
-        updateResults[i] = blobs[0]->UpdateState(
-            rankIds[i], operateIds[i], actRets[i]);
-        objMetas[i]->Unlock();
-
-        if (updateResults[i] != MMC_OK) {
-            allSuccess = false;
-            MMC_LOG_WARN("Update failed for key: " << key << " (code: " << updateResults[i] << ")");
-        } else {
-            MMC_LOG_DEBUG("Updated key: " << key << ", Rank: " << rankIds[i]);
-        }
-    }
-    return allSuccess ? MMC_OK : MMC_ERROR;
+    return MMC_OK;
 }
 
-// TODO: 遍历的时候有问题
 Result MmcMetaManager::Remove(const std::string &key)
 {
     MmcMemObjMetaPtr objMeta;
+    // todo 优化为Erase接口返回meta
     MMC_RETURN_ERROR(metaContainer_->Get(key, objMeta), "remove: Cannot find memObjMeta!");
     MMC_RETURN_ERROR(metaContainer_->Erase(key), "remove: Fail to erase from container!");
     {
@@ -280,7 +214,7 @@ Result MmcMetaManager::ForceRemoveBlobs(const MmcMemObjMetaPtr &objMeta, const M
 {
     std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs(filter);
     for (size_t i = 0; i < blobs.size(); i++) {
-        blobs[i]->UpdateState(blobs[i]->Rank(), 0, MMC_REMOVE_START);
+        blobs[i]->UpdateState(0, 0, MMC_REMOVE_START);
         Result ret = globalAllocator_->Free(blobs[i]);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("Error in free blobs!");

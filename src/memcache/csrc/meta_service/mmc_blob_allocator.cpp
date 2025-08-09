@@ -69,7 +69,7 @@ MmcMemBlobPtr MmcBlobAllocator::Alloc(uint64_t blobSize)
     allocatedSize_ += alignedSize;
     spinlock_.unlock();
 
-    return MmcMakeRef<MmcMemBlob>(rank_, bm_ + targetOffset, blobSize, mediaType_, NONE);
+    return MmcMakeRef<MmcMemBlob>(rank_, bm_ + targetOffset, blobSize, mediaType_, ALLOCATED);
 }
 
 Result MmcBlobAllocator::Release(const MmcMemBlobPtr &blob)

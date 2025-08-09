@@ -151,8 +151,8 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
         bufs[i].oneDim.offset = 0;
         bufs[i].oneDim.len = SIZE_32K;
     }
-
-    ret = mmcc_batch_put(keys, keys_count, bufs, options, 0);
+    std::vector<int> results(keys_count, -1);
+    ret = mmcc_batch_put(keys, keys_count, bufs, options, 0, results.data());
     ASSERT_TRUE(ret == 0);
 
     for (uint32_t i = 0; i < keys_count; ++i) {
@@ -281,17 +281,18 @@ TEST_F(TestMmcServiceInterface, testBatchGetErrorHandling)
     mmc_client_config_t clientConfig{};
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_EQ(ret, ock::mmc::MMC_OK);
-
-    ret = mmcc_batch_get(nullptr, 2, nullptr, 0);
+    std::vector<int> results1(2, -1);
+    ret = mmcc_batch_get(nullptr, 2, nullptr, 0, results1.data());
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
 
     const char* keys[] = {"test_key"};
     mmc_buffer bufs[1];
-    ret = mmcc_batch_get(keys, 0, bufs, 0);
+    std::vector<int> results2(1, -1);
+    ret = mmcc_batch_get(keys, 0, bufs, 0, results2.data());
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
 
     const uint32_t oversize = MAX_BATCH_OP_COUNT + 1;
-    ret = mmcc_batch_get(keys, oversize, bufs, 0);
+    ret = mmcc_batch_get(keys, oversize, bufs, 0, results2.data());
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
 
     const char* validKeys[] = {"key1", "key2"};
@@ -307,8 +308,8 @@ TEST_F(TestMmcServiceInterface, testBatchGetErrorHandling)
     
     mmcc_put("key1", &writeBuf, putOpts, 0);
     mmcc_put("key2", &writeBuf, putOpts, 0);
-    
-    ret = mmcc_batch_get(validKeys, 2, invalidBufs, 0);
+    std::vector<int> results3(2, -1);
+    ret = mmcc_batch_get(validKeys, 2, invalidBufs, 0, results3.data());
     ASSERT_EQ(ret, ock::mmc::MMC_LINK_NOT_FOUND);
 
     EXPECT_NE(invalidBufs[0].addr, 0ULL);
@@ -354,8 +355,8 @@ TEST_F(TestMmcServiceInterface, testBatchGetWithPartialData)
             .oneDim = {0, SIZE_32K}
         };
     }
-
-    ret = mmcc_batch_get(keys, keyCount, readBufs, 0);
+    std::vector<int> results3(keyCount, -1);
+    ret = mmcc_batch_get(keys, keyCount, readBufs, 0, results3.data());
     ASSERT_EQ(ret, ock::mmc::MMC_LINK_NOT_FOUND);
 
     EXPECT_FALSE(CheckData(data1, destData[0]));

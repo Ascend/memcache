@@ -426,7 +426,8 @@ std::vector<int> DistributedObjectStore::batch_put_from(const std::vector<std::s
 
     mmc_put_options options{};
     options.policy = NATIVE_AFFINITY;
-    return {mmcc_batch_put(keyArray, count, bufferArray, options, 0)};
+    mmcc_batch_put(keyArray, count, bufferArray, options, 0, results.data());
+    return results;
 }
 
 std::vector<int> DistributedObjectStore::batch_get_into(
@@ -463,7 +464,9 @@ std::vector<int> DistributedObjectStore::batch_get_into(
             .oneDim={.offset=0, .len=static_cast<uint64_t>(sizes[i])}
         };
     }
-    return {mmcc_batch_get(keyArray, count, bufferArray, 0)};
+
+    mmcc_batch_get(keyArray, count, bufferArray, 0, results.data());
+    return results;
 }
 
 int DistributedObjectStore::put_from(const std::string &key, mmc_buffer &buffer) {

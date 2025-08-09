@@ -62,6 +62,9 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
 
     MMC_RETURN_ERROR(smem_bm_join(handle_, 0, &gva_), "Failed to join smem bm");
     started_ = true;
+
+    MMC_LOG_INFO("init bm success, rank:" << bmRankId_ << ", worldSize:" << initConfig.worldSize << ", mediaType:"
+                                          << std::to_string(mediaType_) << ", deviceId:" << initConfig.deviceId);
     return MMC_OK;
 }
 

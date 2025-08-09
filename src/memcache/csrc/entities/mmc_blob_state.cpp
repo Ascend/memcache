@@ -39,16 +39,6 @@ Result LeaseExtend(MmcMetaLeaseManager &leaseMgr, uint32_t rankId, uint32_t requ
     return leaseMgr.Extend(MMC_DATA_TTL_MS);
 }
 
-/**
- * @brief State transition table of mem object meta in local service
- */
-StateTransitionItem g_localStateTransItemTable[]{
-    {ALLOCATED, MMC_WRITE_OK, DATA_READY, nullptr},
-    {ALLOCATED, MMC_WRITE_FAIL, ALLOCATED, nullptr},
-    {DATA_READY, MMC_REMOVE_OK, FINAL, nullptr},
-    {ALLOCATED, MMC_REMOVE_OK, FINAL, nullptr},
-};
-
 StateTransTable BlobStateMachine::GetGlobalTransTable()
 {
     StateTransTable table;
@@ -56,16 +46,15 @@ StateTransTable BlobStateMachine::GetGlobalTransTable()
      * @brief State transition table of mem object meta in meta service
     */
     StateTransitionItem g_metaStateTransItemTable[] {
-        {NONE, MMC_ALLOCATED_OK, ALLOCATED, LeaseAdd},
-        {ALLOCATED, MMC_WRITE_OK, DATA_READY, LeaseRemove},
-        {ALLOCATED, MMC_REMOVE_START, REMOVING, nullptr},   // data may be transfering at local; can only start remove
-        {DATA_READY, MMC_READ_START, DATA_READING, LeaseAdd},   // data may be transfering at local; can only start remove
-        {DATA_READING, MMC_READ_OK, DATA_READY, LeaseRemove},   // data may be transfering at local; can only start remove
-        {DATA_READY, MMC_REMOVE_START, REMOVING, nullptr},  // data may be transfering at local; can only start remove
-        {DATA_READING, MMC_REMOVE_START, REMOVING, LeaseWait},  // data may be transfering at local; can only start remove
-        {DATA_READY, MMC_FIND_OK, DATA_READY, LeaseExtend},  // data may be transfering at local; can only start remove
-        {DATA_READING, MMC_FIND_OK, DATA_READING, LeaseExtend},  // data may be transfering at local; can only start remove
-        {REMOVING, MMC_REMOVE_OK, FINAL, nullptr},
+        {ALLOCATED, MMC_ALLOCATED_OK, ALLOCATED, LeaseAdd}, // prepare write，add <client, reqid> --> lease
+        {ALLOCATED, MMC_WRITE_OK, READABLE, LeaseRemove},   // write ok,    remove <client, reqid> --> lease
+        {ALLOCATED, MMC_WRITE_FAIL, REMOVING, LeaseRemove}, // write fail,  remove <client, reqid> --> lease
+
+        {ALLOCATED, MMC_REMOVE_START, REMOVING, nullptr},   // remove blob
+
+        {READABLE, MMC_READ_START, READABLE, LeaseAdd},     // prepare read，add <client, reqid> --> lease
+        {READABLE, MMC_READ_FINISH, READABLE, LeaseRemove}, // read finish, remove <client, reqid> --> lease
+        {READABLE, MMC_REMOVE_START, REMOVING, LeaseWait},  // remove blob, wait all lease timeout or no lease
     };
     for (size_t i = 0; i < sizeof(g_metaStateTransItemTable) / sizeof(StateTransitionItem); i++) {
         BlobStateAction action(g_metaStateTransItemTable[i].nextState, g_metaStateTransItemTable[i].function);

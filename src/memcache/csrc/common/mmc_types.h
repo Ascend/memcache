@@ -5,6 +5,7 @@
 #define MEMFABRIC_HYBRID_MMC_TYPES_H
 
 #include <cstdint>
+#include <atomic>
 
 namespace ock {
 namespace mmc {
@@ -83,6 +84,37 @@ struct MmcLocalMemlInitInfo {
     uint64_t bmAddr_;
     uint64_t capacity_;
 };
+
+union MmcOperateIdUnion {
+    uint64_t operateId_;
+    struct {
+        uint32_t sequence_;
+        uint32_t rankid_;
+    };
+};
+
+inline uint64_t GenerateOperateId(uint32_t rankid)
+{
+    static std::atomic<uint32_t> gRequestIdGenerator{0U};
+    MmcOperateIdUnion requestUnion{};
+    requestUnion.rankid_ = rankid;
+    requestUnion.sequence_ = gRequestIdGenerator.fetch_add(1U);
+    return requestUnion.operateId_;
+}
+
+inline uint64_t GetRankIdByOperateId(uint64_t operateId)
+{
+    MmcOperateIdUnion requestUnion{};
+    requestUnion.operateId_ = operateId;
+    return requestUnion.rankid_;
+}
+
+inline uint64_t GetSequenceByOperateId(uint64_t operateId)
+{
+    MmcOperateIdUnion requestUnion{};
+    requestUnion.operateId_ = operateId;
+    return requestUnion.sequence_;
+}
 
 }  // namespace mmc
 }  // namespace ock

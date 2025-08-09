@@ -239,7 +239,7 @@ MMC_API int32_t mmcc_batch_exist(const char **keys, const uint32_t keys_count, i
     return MMC_OK;
 }
 
-MMC_API int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffer *bufs, uint32_t flags)
+MMC_API int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffer *bufs, uint32_t flags, int* results)
 {
     MMC_VALIDATE_RETURN(keys != nullptr, "invalid param, keys is null", MMC_INVALID_PARAM);
     MMC_VALIDATE_RETURN(keys_count != 0 && keys_count <= MAX_BATCH_COUNT, "invalid param, keys_count: "
@@ -249,50 +249,33 @@ MMC_API int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffe
 
     std::vector<std::string> keys_vector;
     std::vector<mmc_buffer> bufs_vector;
-    std::vector<size_t> invalids;
+    std::vector<int> batchResult(keys_count, MMC_OK);
     keys_vector.reserve(keys_count);
     bufs_vector.reserve(keys_count);
-    invalids.reserve(keys_count);
 
-    // remove invalid keys
     for (size_t i = 0; i < keys_count; ++i) {
         if (keys[i] == nullptr || strlen(keys[i]) == 0 || strlen(keys[i]) > 256) {
-            MMC_LOG_WARN("Remove invalid key: " << keys[i]);
-            invalids.emplace_back(i);
-            continue;
+            MMC_LOG_ERROR("Remove invalid key: " << keys[i]);
+            return MMC_INVALID_PARAM;  // 这个错误属于入参不合法，直接给调用者返回错误
         }
         if (bufs == nullptr) {
-            MMC_LOG_WARN("Remove invalid buf with key: " << keys[i]);
-            invalids.emplace_back(i);
-            continue;
+            MMC_LOG_ERROR("Remove invalid buf with key: " << keys[i]);
+            return MMC_INVALID_PARAM;
         }
         keys_vector.emplace_back(keys[i]);
         bufs_vector.emplace_back(bufs[i]);
     }
 
-    MMC_RETURN_ERROR(MmcClientDefault::GetInstance()->BatchGet(keys_vector, bufs_vector, flags),
+    MMC_RETURN_ERROR(MmcClientDefault::GetInstance()->BatchGet(keys_vector, bufs_vector, flags, batchResult),
                      MmcClientDefault::GetInstance()->Name() << " batch_get failed!");
-
-    MMC_VALIDATE_RETURN(keys_count == bufs_vector.size() + invalids.size(),
-                        "invalid results' size (" << bufs_vector.size() << "), should be keys_count ("
-                        << keys_count << ") - invalid_keys' size (" << invalids.size() << ")", MMC_ERROR);
-
-    invalids.emplace_back(-1);
-    for (size_t i = 0, j = 0; i + j < keys_count;) {
-        if (i + j == invalids[j]) {
-            bufs[i + j] = mmc_buffer{.addr = 0, .type = 0, .dimType = 0, .oneDim = {0, 0}};
-            ++j;
-        } else {
-            bufs[i + j] = bufs_vector[i];
-            ++i;
-        }
+    for (uint32_t i = 0; i < keys_count; ++i) {
+        results[i] = batchResult[i];
     }
-
     return MMC_OK;
 }
 
-MMC_API int32_t mmcc_batch_put(const char **keys, uint32_t keys_count, const mmc_buffer *bufs,
-                               mmc_put_options& options, uint32_t flags)
+MMC_API int32_t mmcc_batch_put(const char** keys, uint32_t keys_count, const mmc_buffer* bufs, mmc_put_options& options,
+                               uint32_t flags, int* results)
 {
     MMC_VALIDATE_RETURN(keys != nullptr, "invalid param, keys is null", MMC_INVALID_PARAM);
     MMC_VALIDATE_RETURN(keys_count != 0 && keys_count <= MAX_BATCH_COUNT, "invalid param, keys_count: "
@@ -302,6 +285,7 @@ MMC_API int32_t mmcc_batch_put(const char **keys, uint32_t keys_count, const mmc
 
     std::vector<std::string> keys_vector;
     std::vector<mmc_buffer> bufs_vector;
+    std::vector<int> batchResult(keys_count, MMC_OK);
     keys_vector.reserve(keys_count);
     bufs_vector.reserve(keys_count);
 
@@ -309,18 +293,21 @@ MMC_API int32_t mmcc_batch_put(const char **keys, uint32_t keys_count, const mmc
     for (size_t i = 0; i < keys_count; ++i) {
         if (keys[i] == nullptr || strlen(keys[i]) == 0 || strlen(keys[i]) > 256) {
             MMC_LOG_WARN("Remove invalid key: " << keys[i]);
-            continue;
+            return MMC_INVALID_PARAM;  // 这个错误属于入参不合法，直接给调用者返回错误
         }
         if (bufs == nullptr || bufs[i].addr == 0 || bufs[i].type >= 2 || bufs[i].dimType >= 2) {
             MMC_LOG_WARN("Remove invalid buf with key: " << keys[i]);
-            continue;
+            return MMC_INVALID_PARAM;
         }
         keys_vector.emplace_back(keys[i]);
         bufs_vector.emplace_back(bufs[i]);
     }
 
-    MMC_RETURN_ERROR(MmcClientDefault::GetInstance()->BatchPut(keys_vector, bufs_vector, options, flags),
+    MMC_RETURN_ERROR(MmcClientDefault::GetInstance()->BatchPut(keys_vector, bufs_vector, options, flags, batchResult),
                      MmcClientDefault::GetInstance()->Name() << " batch_put failed!");
 
+    for (uint32_t i = 0; i < keys_count; ++i) {
+        results[i] = batchResult[i];
+    }
     return MMC_OK;
 }

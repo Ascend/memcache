@@ -157,8 +157,8 @@ TEST_F(TestMmcServiceError, metaService)
         bufs[i].oneDim.offset = 0;
         bufs[i].oneDim.len = SIZE_32K;
     }
-
-    ret = mmcc_batch_put(keys, keys_count, bufs, options, 0);
+    std::vector<int> results(keys_count, -1);
+    ret = mmcc_batch_put(keys, keys_count, bufs, options, 0, results.data());
     ASSERT_TRUE(ret == 0);
 
     for (uint32_t i = 0; i < keys_count; ++i) {

@@ -17,13 +17,19 @@ namespace mmc {
  */
 using BlobLeaseFunction = std::function<Result(MmcMetaLeaseManager &leaseMgr, uint32_t rankId, uint32_t requestId)>;
 
+/**
+ state machine:
+NONE -----> ALLOCATED -----------
+                |               |
+                |               |
+                |               |
+            READABLE -----> REMOVING -----> NONE
+*/
 enum BlobState : uint8_t {
-    NONE,
     ALLOCATED,
-    DATA_READY,
-    DATA_READING,
+    READABLE,
     REMOVING,
-    FINAL,
+    NONE,
 };
 
 struct BlobStateAction {
@@ -37,16 +43,15 @@ struct BlobStateAction {
  * @brief Block action result, which a part of transition table
  */
 enum BlobActionResult : uint8_t {
-    MMC_RESULT_NONE,
-    MMC_REMOVE_START,
-    MMC_REMOVE_OK,
+    MMC_ALLOCATED_OK,  // alloc complete
+
     MMC_WRITE_OK,
     MMC_WRITE_FAIL,
-    MMC_ALLOCATED_OK,
+
     MMC_READ_START,
-    MMC_READ_OK,
-    MMC_FIND_OK,
-    MMC_RECV_LOC_SIGN_REMOVE_OK,
+    MMC_READ_FINISH,
+
+    MMC_REMOVE_START
 };
 
 using StateTransTable = std::unordered_map<BlobState, std::unordered_map<Result , BlobStateAction>>;

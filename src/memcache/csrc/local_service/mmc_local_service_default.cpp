@@ -116,8 +116,8 @@ Result MmcLocalServiceDefault::RegisterBm()
     MMC_RETURN_ERROR(SyncCallMeta(req, resp, 30), "bm register failed, bmRankId=" << req.rank_);
     MMC_RETURN_ERROR(resp.ret_,
                      "bm register failed, bmRankId=" << req.rank_ << ", retCode=" << resp.ret_);
-    MMC_LOG_INFO("bm register succeed, bmRankId=" << req.rank_ << "media=" << req.mediaType_
-                                                  << "cap=" << req.capacity_);
+    MMC_LOG_INFO("bm register succeed, bmRankId=" << req.rank_ << ", media=" << req.mediaType_
+                                                  << ", cap=" << req.capacity_);
     return MMC_OK;
 }
 }

@@ -68,7 +68,7 @@ public:
      * @param key          [in] key of the meta object
      * @param objMeta      [out] the meta object obtained
      */
-    Result Get(const std::string &key, MmcMemObjMetaPtr &objMeta);
+    Result Get(const std::string& key, MmcMemObjMetaPtr& objMeta);
 
     /**
      * @brief Get multiple meta objects and extend their leases
@@ -84,22 +84,22 @@ public:
      * @param key          [in] key of the meta object
      * @param metaInfo     [out] the meta object created
      */
-    Result Alloc(const std::string &key, const AllocOptions &allocOpt, uint32_t requestId, MmcMemObjMetaPtr &objMeta);
+    Result Alloc(const std::string& key, const AllocOptions& allocOpt, uint64_t requestId, MmcMemObjMetaPtr& objMeta);
 
-   /**
+    /**
      * @brief Alloc the global memory space and create the meta object
      * @param key          [in] key of the meta object
      * @param metaInfo     [out] the meta object created
      */
     Result BatchAlloc(const std::vector<std::string>& keys, const std::vector<AllocOptions>& allocOpts,
-                     uint32_t requestId, std::vector<MmcMemObjMetaPtr>& objMetas, std::vector<Result>& allocResults);
+                      uint64_t requestId, std::vector<MmcMemObjMetaPtr>& objMetas, std::vector<Result>& allocResults);
 
     /**
      * @brief Update the state
      * @param req          [in] update state request
      */
-    Result UpdateState(const std::string &key, const MmcLocation &loc, uint32_t rankId, uint32_t operateId,
-                       const BlobActionResult &actRet);
+    Result UpdateState(const std::string& key, const MmcLocation& loc, uint32_t rankId, uint64_t requestId,
+                       const BlobActionResult& actRet);
 
     /**
      * @brief Update the state
@@ -172,6 +172,8 @@ private:
     Result ForceRemoveBlobs(const MmcMemObjMetaPtr &objMeta, const MmcBlobFilterPtr &filter = nullptr);
 
     void AsyncRemoveThreadFunc();
+
+    void CheckAndEvict();
 
     std::mutex mutex_;
     bool started_ = false;

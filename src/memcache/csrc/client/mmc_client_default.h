@@ -30,10 +30,11 @@ public:
 
     Result Get(const std::string &key, std::vector<mmc_buffer>& buffers, uint32_t flags);
 
-    Result BatchPut(const std::vector<std::string>& keys, const std::vector<mmc_buffer>& bufs,
-                    mmc_put_options& options, uint32_t flags);
+    Result BatchPut(const std::vector<std::string>& keys, const std::vector<mmc_buffer>& bufs, mmc_put_options& options,
+                    uint32_t flags, std::vector<int>& batchResult);
 
-    Result BatchGet(const std::vector<std::string> &keys, std::vector<mmc_buffer> &bufs, uint32_t flags);
+    Result BatchGet(const std::vector<std::string>& keys, std::vector<mmc_buffer>& bufs, uint32_t flags,
+                    std::vector<int>& batchResult);
 
     mmc_location_t GetLocation(const char *key, uint32_t flags);
 
@@ -83,7 +84,7 @@ public:
     }
 
 private:
-    explicit MmcClientDefault(const std::string& name) : name_(name) { operateId_ = 0; }
+    explicit MmcClientDefault(const std::string& name) : name_(name) {}
     explicit MmcClientDefault(const MmcClientDefault&) = delete;
     MmcClientDefault& operator=(const MmcClientDefault&) = delete;
 
@@ -92,7 +93,8 @@ private:
     Result ValidateBatchPutInputs(const std::vector<std::string>& keys, const std::vector<mmc_buffer>& bufs);
 
     Result AllocateAndPutBlobs(const std::vector<std::string>& keys, const std::vector<mmc_buffer>& bufs,
-                               const mmc_put_options& options, uint32_t flags, uint32_t operateId);
+                               const mmc_put_options& options, uint32_t flags, uint64_t operateId,
+                               std::vector<int>& batchResult);
 
     static std::mutex gClientHandlerMtx;
     static MmcClientDefault *gClientHandler;
@@ -104,7 +106,6 @@ private:
     uint32_t rankId_{UINT32_MAX};
     uint32_t rpcTimeOut_ = 60;
     uint64_t defaultTtlMs_ = MMC_DATA_TTL_MS;
-    std::atomic<uint32_t> operateId_;
 };
 
 uint32_t MmcClientDefault::RankId(const affinity_policy &policy)

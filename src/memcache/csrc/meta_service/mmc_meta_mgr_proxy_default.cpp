@@ -34,37 +34,45 @@ Result MmcMetaMgrProxyDefault::BatchAlloc(const BatchAllocRequest &req, BatchAll
     std::vector<MmcMemObjMetaPtr> objMetas;
     std::vector<Result> allocResults;
     Result batchRet = metaMangerPtr_->BatchAlloc(req.keys_, req.options_, req.operateId_, objMetas, allocResults);
-    
+    if (batchRet != MMC_OK) {
+        MMC_LOG_ERROR("batch alloc failed, error: " << batchRet);
+        return batchRet;
+    }
+
     resp.blobs_.resize(req.keys_.size());
-    
     for (size_t i = 0; i < req.keys_.size(); ++i) {
         if (allocResults[i] != MMC_OK) {
-            MMC_LOG_DEBUG("Allocation failed for key: " << req.keys_[i]
-                          << ", error: " << allocResults[i]);
-            continue;
+            MMC_LOG_ERROR("Allocation failed for key: " << req.keys_[i] << ", error: " << allocResults[i]);
         }
-        
         ProcessAllocatedObject(i, objMetas[i], req, resp);
     }
     
-    return batchRet;
+    return MMC_OK;
 }
 
 void MmcMetaMgrProxyDefault::ProcessAllocatedObject(size_t index, const MmcMemObjMetaPtr& objMeta,
                                                     const BatchAllocRequest &req, BatchAllocResponse &resp)
 {
+    if (objMeta == nullptr) {
+        resp.numBlobs_.push_back(0);
+        resp.prots_.push_back(0);
+        resp.priorities_.push_back(0);
+        resp.leases_.push_back(0);
+        resp.blobs_[index] = {};
+        return;
+    }
     resp.numBlobs_.push_back(objMeta->NumBlobs());
     resp.prots_.push_back(objMeta->Prot());
     resp.priorities_.push_back(objMeta->Priority());
     resp.leases_.push_back(0);
-    
+
     std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs();
     resp.blobs_[index].resize(blobs.size());
     
     for (size_t j = 0; j < blobs.size(); ++j) {
         const MmcMemBlobDesc& blobDesc = blobs[j]->GetDesc();
         resp.blobs_[index][j] = blobDesc;
-        
+
         if (req.options_[index].preferredRank_ != blobDesc.rank_) {
             HandleBlobReplication(index, j, blobDesc, objMeta, req);
         }
@@ -87,54 +95,31 @@ void MmcMetaMgrProxyDefault::HandleBlobReplication(size_t objIndex, size_t blobI
     netServerPtr_->SyncCall(blobDesc.rank_, replicateReq, replicateResp, timeOut_);
 }
 
-Result MmcMetaMgrProxyDefault::UpdateState(const UpdateRequest &req, Response &resp)
+Result MmcMetaMgrProxyDefault::UpdateState(const UpdateRequest& req, Response& resp)
 {
-
-    // const std::string &key, const MmcLocation &loc, const BlobActionResult &actRet
     MmcLocation loc{req.rank_, static_cast<MediaType>(req.mediaType_)};
     Result ret = metaMangerPtr_->UpdateState(req.key_, loc, req.rank_, req.operateId_, req.actionResult_);
     resp.ret_ = ret;
-    if (ret != MMC_OK) {
-        MMC_LOG_ERROR("Meta Update State Fail!");
-        return MMC_ERROR;
-    } else {
-        return MMC_OK;
-    }
+    return MMC_OK;
 }
 
-Result MmcMetaMgrProxyDefault::BatchUpdateState(const BatchUpdateRequest &req, BatchUpdateResponse &resp)
+Result MmcMetaMgrProxyDefault::BatchUpdateState(const BatchUpdateRequest& req, BatchUpdateResponse& resp)
 {
     const size_t keyCount = req.keys_.size();
-    std::vector<MediaType> mediaTypes;
-    mediaTypes.reserve(keyCount);
-    for (const auto mt : req.mediaTypes_) {
-        mediaTypes.push_back(static_cast<MediaType>(mt));
-    }
 
     std::vector<MmcLocation> locs;
     locs.reserve(keyCount);
     for (size_t i = 0; i < keyCount; ++i) {
-        locs.push_back({req.ranks_[i], mediaTypes[i]});
+        locs.push_back({req.ranks_[i], static_cast<MediaType>(req.mediaTypes_[i])});
     }
     std::vector<uint32_t> operateIds(keyCount, req.operateId_);
     std::vector<Result> updateResults;
-    Result ret = metaMangerPtr_->BatchUpdateState(
-        req.keys_,
-        locs,
-        req.ranks_,
-        operateIds,
-        req.actionResults_,
-        updateResults);
-    if (ret != MMC_OK) {
-        MMC_LOG_ERROR("BatchUpdate failed: " << ret);
-        return ret;
-    }
-    resp.results_ = updateResults;
+    Result ret =
+        metaMangerPtr_->BatchUpdateState(req.keys_, locs, req.ranks_, operateIds, req.actionResults_, resp.results_);
 
     size_t successCount = std::count(updateResults.begin(), updateResults.end(), MMC_OK);
-    MMC_LOG_INFO("BatchUpdate completed: "  << successCount << "/" << keyCount << " updates succeeded");
-    
-    return MMC_OK;
+    MMC_LOG_INFO("BatchUpdate completed: " << successCount << "/" << keyCount << " updates succeeded, ret:" << ret);
+    return ret;
 }
 
 Result MmcMetaMgrProxyDefault::Get(const GetRequest &req, AllocResponse &resp)
@@ -147,24 +132,27 @@ Result MmcMetaMgrProxyDefault::Get(const GetRequest &req, AllocResponse &resp)
         MMC_LOG_ERROR("key " << req.key_ << " already released ");
         return MMC_ERROR;
     }
-    resp.numBlobs_ = objMeta->NumBlobs();
+
+    MmcBlobFilterPtr filterPtr = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, READABLE);
+    std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs(filterPtr);
+    for (auto blob : blobs) {
+        auto ret = blob->UpdateState(req.rankId_, req.operateId_, MMC_READ_START);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("update key " << req.key_ << " blob state failed with error: " << ret);
+            continue;
+        }
+        resp.blobs_.push_back(blob->GetDesc());
+    }
+
+    resp.numBlobs_ = resp.blobs_.size();
+    if (resp.numBlobs_ == 0) {
+        MMC_LOG_ERROR("key " << req.key_ << " blob num is 0");
+        objMeta->Unlock();
+        return MMC_ERROR;
+    }
     resp.prot_ = objMeta->Prot();
     resp.priority_ = objMeta->Priority();
 
-
-    MmcBlobFilterPtr filterPtr = MmcMakeRef<MmcBlobFilter>(req.rankId_, MEDIA_NONE, NONE);
-    std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs(filterPtr);
-    MmcMemBlobPtr blobPtr = nullptr;
-    for (auto iter = blobs.begin(); iter != blobs.end(); iter++) {
-        if ((*iter)->Type() == MEDIA_HBM) {
-            blobPtr = *iter;
-        }
-    }
-    if (blobPtr == nullptr) {
-        blobPtr = objMeta->GetBlobs()[0];
-    }
-    blobPtr->UpdateState(req.rankId_, req.operateId_, MMC_READ_START);
-    resp.blobs_.push_back(blobPtr->GetDesc());
     objMeta->Unlock();
     return MMC_OK;
 }
@@ -192,7 +180,7 @@ Result MmcMetaMgrProxyDefault::BatchGet(const BatchGetRequest &req, BatchAllocRe
     resp.blobs_.resize(req.keys_.size());
 
     for (size_t i = 0; i < req.keys_.size(); ++i) {
-        if (getResults[i] == MMC_OK) {
+        if (getResults[i] == MMC_OK && objMetas[i] != nullptr) {
             const MmcMemObjMetaPtr &objMeta = objMetas[i];
             objMeta->Lock();
             if (objMeta->NumBlobs() == 0) {
@@ -200,30 +188,36 @@ Result MmcMetaMgrProxyDefault::BatchGet(const BatchGetRequest &req, BatchAllocRe
                 objMeta->Unlock();
                 continue;
             }
-            resp.numBlobs_[i] = objMeta->NumBlobs();
+
+            MmcBlobFilterPtr filterPtr = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, READABLE);
+            std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs(filterPtr);
+            std::vector<MmcMemBlobDesc> descVec;
+            for (auto blob : blobs) {
+                auto ret = blob->UpdateState(req.rankId_, req.operateId_, MMC_READ_START);
+                if (ret != MMC_OK) {
+                    MMC_LOG_ERROR("update key " << req.keys_[i] << " blob state failed with error: " << ret);
+                    continue;
+                }
+                descVec.push_back(blob->GetDesc());
+            }
+
+            resp.numBlobs_[i] = descVec.size();
+            if (resp.numBlobs_[i] == 0) {
+                getResults[i] = MMC_OBJECT_NOT_EXISTS;
+                MMC_LOG_ERROR("key " << req.keys_[i] << " blob num is 0");
+            }
+            resp.blobs_[i] = descVec;
             resp.prots_[i] = objMeta->Prot();
             resp.priorities_[i] = objMeta->Priority();
             resp.leases_[i] = 0;
-            MmcBlobFilterPtr filterPtr = MmcMakeRef<MmcBlobFilter>(req.rankId_, MEDIA_NONE, NONE);
-            std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs(filterPtr);
-            MmcMemBlobPtr blobPtr = nullptr;
-            for (auto iter = blobs.begin(); iter != blobs.end(); iter++) {
-                if ((*iter)->Type() == MEDIA_HBM) {
-                    blobPtr = *iter;
-                }
-            }
-            if (blobPtr == nullptr) {
-                blobPtr = objMeta->GetBlobs()[0];
-            }
-            blobPtr->UpdateState(req.rankId_, req.operateId_, MMC_READ_START);
-            resp.blobs_[i].push_back(blobPtr->GetDesc());
             objMeta->Unlock();
         } else {
+            getResults[i] = getResults[i] == MMC_OK ? MMC_OBJECT_NOT_EXISTS : getResults[i];
             resp.numBlobs_[i] = 0;
             resp.prots_[i] = 0;
             resp.priorities_[i] = 0;
             resp.leases_[i] = 0;
-            MMC_LOG_DEBUG("Key " << req.keys_[i] << " not found");
+            MMC_LOG_ERROR("Key " << req.keys_[i] << " not found");
         }
     }
     return MMC_OK;

@@ -28,10 +28,11 @@ public:
         Result ret = MmcLocalityStrategy::ArrangeLocality(allocators_, allocReq, blobs);
         globalAllocLock_.UnlockRead();
         if (ret != MMC_OK && !blobs.empty()) {
-            for (auto &blob : blobs) {
+            for (auto& blob : blobs) {
                 Free(blob);
             }
             blobs.clear();
+            MMC_LOG_ERROR("Alloc " << allocReq.blobSize_ << "failed, ret:" << ret);
         }
         return ret;
     };
