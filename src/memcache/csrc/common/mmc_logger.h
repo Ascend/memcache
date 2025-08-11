@@ -95,7 +95,8 @@ public:
                 return count;
             }
         }
-        return -1;
+        // 没有匹配到日志级别，使用默认级别INFO
+        return INFO_LEVEL;
     }
 
     MmcOutLogger(const MmcOutLogger &) = delete;

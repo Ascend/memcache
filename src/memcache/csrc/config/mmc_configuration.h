@@ -7,6 +7,7 @@
 #include <map>
 #include <utility>
 #include <vector>
+#include <cctype>
 
 #include "mmc_lock.h"
 #include "mmc_ref.h"
@@ -29,6 +30,13 @@ enum class ConfValueType {
     VBOOL = 3,
     VUINT64 = 4,
 };
+
+static void StringToLower(std::string &str)
+{
+    for (char &c : str) {
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+}
 
 class Configuration;
 using ConfigurationPtr = MmcRef<Configuration>;
@@ -161,6 +169,7 @@ public:
         const auto discoveryURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_URL);
         strncpy(config.discoveryURL, discoveryURL.c_str(), DISCOVERY_URL_SIZE);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
+        StringToLower(logLevelStr);
         config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
         config.evictThresholdHigh = GetInt(ConfConstant::OKC_MMC_EVICT_THRESHOLD_HIGH);
         config.evictThresholdLow = GetInt(ConfConstant::OKC_MMC_EVICT_THRESHOLD_LOW);
@@ -218,7 +227,8 @@ public:
         config.dataOpType = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_PROTOCOL);
         config.localDRAMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE);
         config.localHBMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE);
-        const auto logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
+        std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
+        StringToLower(logLevelStr);
         config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
         GetTlsConfig(config.tlsConfig);
     }
@@ -229,7 +239,8 @@ public:
         config.rankId = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_RANK_ID);
         config.timeOut = GetInt(ConfConstant::OCK_MMC_CLIENT_TIMEOUT_SECONDS);
         config.autoRanking = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_AUTO_RANKING);
-        const auto logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
+        std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
+        StringToLower(logLevelStr);
         config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
         GetTlsConfig(config.tlsConfig);
     }
