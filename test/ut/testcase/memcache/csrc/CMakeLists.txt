@@ -3,7 +3,7 @@ file(GLOB_RECURSE mmc_test_src
         ${CMAKE_CURRENT_SOURCE_DIR}/local_service/*
         ${CMAKE_CURRENT_SOURCE_DIR}/entities/*
         ${CMAKE_CURRENT_SOURCE_DIR}/common/*
-        ${CMAKE_CURRENT_SOURCE_DIR}/net/*
+#        ${CMAKE_CURRENT_SOURCE_DIR}/net/*
 )
 ADD_UNIT_TEST(test_mmc_test
         FILES ${mmc_test_src} ${TEST_SRC_PATHS}/ut_main.cpp

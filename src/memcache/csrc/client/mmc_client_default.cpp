@@ -297,7 +297,6 @@ Result MmcClientDefault::Get(const char *key, mmc_buffer *buf, uint32_t flags)
     uint64_t operateId = GenerateOperateId(rankId_);
     GetRequest request{key, rankId_, operateId, true};
     AllocResponse response;
-    uint64_t startTime = ock::dagger::Monotonic::TimeUs();
     MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, response, rpcTimeOut_),
                      "client " << name_ << " get " << key << " failed");
     if (response.numBlobs_ == 0 || response.blobs_.empty()) {
@@ -360,7 +359,6 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, std::vec
     uint64_t operateId = GenerateOperateId(rankId_);
     BatchGetRequest request{keys, rankId_, operateId};
     BatchAllocResponse response;
-    uint64_t startTime = ock::dagger::Monotonic::TimeUs();
     MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, response, rpcTimeOut_),
                      "client " << name_ << " batch get failed");
 

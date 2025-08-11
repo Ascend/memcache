@@ -8,7 +8,7 @@
 using namespace ock::mmc;
 
 namespace {
-constexpr uint32_t MAX_BATCH_COUNT = 512;
+constexpr uint32_t MAX_BATCH_COUNT = 16 * 1024;
 }
 
 MMC_API int32_t mmcc_init(mmc_client_config_t *config)

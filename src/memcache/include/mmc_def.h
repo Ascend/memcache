@@ -36,6 +36,8 @@ typedef struct {
 typedef struct {
     char discoveryURL[DISCOVERY_URL_SIZE]; /* composed by schema and url, e.g. tcp:// or etcd:// or zk:// */
     int32_t logLevel;
+    int32_t logRotationFileSize;
+    int32_t logRotationFileCount;
     uint16_t evictThresholdHigh;
     uint16_t evictThresholdLow;
     mmc_tls_config tlsConfig;

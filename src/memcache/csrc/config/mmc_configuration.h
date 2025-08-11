@@ -138,8 +138,11 @@ public:
     void LoadDefault() override {
         using namespace ConfConstant;
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
-        AddStrConf(OCK_MMC_LOG_LEVEL,
-                   VNoCheck::Create());
+        AddStrConf(OCK_MMC_LOG_LEVEL, VNoCheck::Create());
+        AddIntConf(OCK_MMC_LOG_ROTATION_FILE_SIZE, VIntRange::Create(OCK_MMC_LOG_ROTATION_FILE_SIZE.first,
+            MIN_LOG_ROTATION_FILE_SIZE, MAX_LOG_ROTATION_FILE_SIZE));
+        AddIntConf(OCK_MMC_LOG_ROTATION_FILE_COUNT, VIntRange::Create(OCK_MMC_LOG_ROTATION_FILE_COUNT.first,
+            MIN_LOG_ROTATION_FILE_COUNT, MAX_LOG_ROTATION_FILE_COUNT));
         AddIntConf(OKC_MMC_EVICT_THRESHOLD_HIGH,
             VIntRange::Create(OKC_MMC_EVICT_THRESHOLD_HIGH.first, MIN_EVICT_THRESHOLD, MAX_EVICT_THRESHOLD));
         AddIntConf(OKC_MMC_EVICT_THRESHOLD_LOW,
@@ -161,6 +164,8 @@ public:
         config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
         config.evictThresholdHigh = GetInt(ConfConstant::OKC_MMC_EVICT_THRESHOLD_HIGH);
         config.evictThresholdLow = GetInt(ConfConstant::OKC_MMC_EVICT_THRESHOLD_LOW);
+        config.logRotationFileSize = GetInt(ConfConstant::OCK_MMC_LOG_ROTATION_FILE_SIZE) * MB_NUM;
+        config.logRotationFileCount = GetInt(ConfConstant::OCK_MMC_LOG_ROTATION_FILE_COUNT);
         GetTlsConfig(config.tlsConfig);
     }
 };

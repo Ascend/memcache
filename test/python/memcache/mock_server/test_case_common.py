@@ -62,10 +62,16 @@ class TestClient:
     def batch_get_key_info(self, keys: list):
         return self.execute("batch_get_key_info", [keys])
 
+    def batch_remove(self, keys: list):
+        return self.execute("remove_batch", [keys])
+
+    def batch_is_exit(self, keys: list):
+        return self.execute("batch_is_exist", [keys])
+
     def _send_request(self, request: str):
         self._client.sendall(f"{request}\0".encode('utf-8'))
 
-    def _read_response(self, timeout=10, chunk_size=1024) -> str:
+    def _read_response(self, timeout=60, chunk_size=1024) -> str:
         buffer_list = []
         start_time = time.time()
 

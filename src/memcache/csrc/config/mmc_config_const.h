@@ -14,6 +14,8 @@ constexpr auto OCK_MMC_META_SERVICE_URL = std::make_pair("ock.mmc.meta_service_u
 constexpr auto OKC_MMC_EVICT_THRESHOLD_HIGH = std::make_pair("ock.mmc.evict_threshold_high", 70);
 constexpr auto OKC_MMC_EVICT_THRESHOLD_LOW = std::make_pair("ock.mmc.evict_threshold_low", 60);
 constexpr auto OCK_MMC_LOG_LEVEL = std::make_pair("ock.mmc.log_level", "error");
+constexpr auto OCK_MMC_LOG_ROTATION_FILE_SIZE = std::make_pair("ock.mmc.log_rotation_file_size", 20);
+constexpr auto OCK_MMC_LOG_ROTATION_FILE_COUNT = std::make_pair("ock.mmc.log_rotation_file_count", 50);
 
 constexpr auto OCK_MMC_TLS_ENABLE = std::make_pair("ock.mmc.tls.enable", true);
 constexpr auto OCK_MMC_TLS_TOP_PATH = std::make_pair("ock.mmc.tls.top.path", "");
@@ -37,6 +39,12 @@ constexpr auto OCK_MMC_CLIENT_TIMEOUT_SECONDS = std::make_pair("ock.mmc.client.t
 
 }
 
+constexpr int MIN_LOG_ROTATION_FILE_SIZE = 1;
+constexpr int MAX_LOG_ROTATION_FILE_SIZE = 500;
+
+constexpr int MIN_LOG_ROTATION_FILE_COUNT = 1;
+constexpr int MAX_LOG_ROTATION_FILE_COUNT = 50;
+
 constexpr int MIN_DEVICE_ID = 0;
 constexpr int MAX_DEVICE_ID = 383;
 
@@ -51,6 +59,8 @@ constexpr int MAX_EVICT_THRESHOLD = 100;
 
 constexpr uint64_t MAX_DRAM_SIZE = 1024ULL * 1024ULL * 1024ULL * 1024ULL;  // 1TB
 constexpr uint64_t MAX_HBM_SIZE = 1024ULL * 1024ULL * 1024ULL * 1024ULL;  // 1TB
+
+constexpr int MB_NUM = 1024 * 1024;
 
 constexpr unsigned long PATH_MAX_LEN = 1023;
 

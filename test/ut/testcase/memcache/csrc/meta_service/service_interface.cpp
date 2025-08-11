@@ -76,6 +76,8 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     std::string localUrl = "";
     mmc_meta_service_config_t metaServiceConfig;
     metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
+    metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.tlsConfig.tlsEnable = false;
     metaServiceConfig.evictThresholdHigh = 70;
     metaServiceConfig.evictThresholdLow = 60;

@@ -6,9 +6,9 @@
 #include "spdlogger.h"
 
 namespace ock::mmc::log {
-thread_local std::string SpdLogger::gLastErrorMessage("");
-constexpr int ROTATION_FILE_SIZE_MAX = 100 * 1024 * 1024; // 100MB
-constexpr int ROTATION_FILE_SIZE_MIN = 2 * 1024 * 1024;   // 2MB
+thread_local std::string SpdLogger::gLastErrorMessage;
+constexpr int ROTATION_FILE_SIZE_MAX = 500 * 1024 * 1024; // 500MB
+constexpr int ROTATION_FILE_SIZE_MIN = 1 * 1024 * 1024;   // 1MB
 constexpr int ROTATION_FILE_COUNT_MAX = 50;
 
 int SpdLogger::ValidateParams(int minLogLevel, const std::string& path, int rotationFileSize, int rotationFileCount)

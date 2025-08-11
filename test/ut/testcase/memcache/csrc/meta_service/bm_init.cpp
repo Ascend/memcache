@@ -51,6 +51,8 @@ TEST_F(TestBmInit, Init)
     std::string hcomUrl = "tcp://127.0.0.1:5682";
     mmc_meta_service_config_t metaServiceConfig;
     metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
+    metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.evictThresholdHigh = 70;
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.tlsConfig.tlsEnable = false;
