@@ -7,6 +7,8 @@
 
 #include <climits>
 #include <string>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "mmc_types.h"
 #include "mmc_logger.h"
 
@@ -76,6 +78,37 @@ inline Result Func::LibraryRealPath(const std::string &libDirPath, const std::st
     realPath = tmpFullPath;
     return MMC_OK;
 }
+
+/**
+ * 校验路径存在且不是软链接
+ * @param path 要校验的路径
+ * @return true: 路径存在且不是软链接, false: 路径不存在或是软链接
+ */
+inline int ValidatePathNotSymlink(const char* path)
+{
+    struct stat path_stat;
+
+    // 检查路径是否存在
+    if (access(path, F_OK) != 0) {
+        MMC_LOG_ERROR("path " << path << " does not exist. ");
+        return MMC_ERROR;
+    }
+
+    // 使用lstat检查是否为软链接
+    if (lstat(path, &path_stat) != 0) {
+        MMC_LOG_ERROR("lstat failed for path " << path << ", error: " << errno);
+        return MMC_ERROR;
+    }
+
+    // 检查是否为软链接
+    if (S_ISLNK(path_stat.st_mode)) {
+        MMC_LOG_ERROR("path " << path << " is a symlink. ");
+        return MMC_ERROR;
+    }
+
+    return MMC_OK;
+}
+
 }  // namespace mmc
 }  // namespace ock
 #endif  // MEM_FABRIC_HYBRID_SMEM_COMMON_FUNC_H

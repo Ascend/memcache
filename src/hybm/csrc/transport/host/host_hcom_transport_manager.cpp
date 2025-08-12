@@ -98,14 +98,14 @@ Result HcomTransportManager::RegisterMemoryRegion(const TransportMemoryRegion &m
 
     HcomMemoryRegion info{};
     if (GetMemoryRegionByAddr(rankId_, mr.addr, info) == BM_OK) {
-        BM_LOG_ERROR("Failed to register mem region, addr: " << mr.addr << " already registered");
+        BM_LOG_ERROR("Failed to register mem region, addr already registered");
         return BM_ERROR;
     }
 
     Service_MemoryRegion memoryRegion;
     int32_t ret = DlHcomApi::ServiceRegisterAssignMemoryRegion(rpcService_, mr.addr, mr.size, &memoryRegion);
     if (ret != 0) {
-        BM_LOG_ERROR("Failed to register mem region, addr: " << mr.addr << " size: " << mr.size
+        BM_LOG_ERROR("Failed to register mem region, size: " << mr.size
                                                              << " service: " << rpcService_ << " ret: " << ret);
         return BM_DL_FUNCTION_FAILED;
     }
@@ -113,7 +113,7 @@ Result HcomTransportManager::RegisterMemoryRegion(const TransportMemoryRegion &m
     Service_MemoryRegionInfo memoryRegionInfo;
     ret = DlHcomApi::ServiceGetMemoryRegionInfo(memoryRegion, &memoryRegionInfo);
     if (ret != 0) {
-        BM_LOG_ERROR("Failed to get mem region info, addr: " << mr.addr << " size: " << mr.size
+        BM_LOG_ERROR("Failed to get mem region info, size: " << mr.size
                                                              << " service: " << rpcService_ << " ret: " << ret);
         DlHcomApi::ServiceDestroyMemoryRegion(rpcService_, memoryRegion);
         return BM_DL_FUNCTION_FAILED;
@@ -129,7 +129,7 @@ Result HcomTransportManager::RegisterMemoryRegion(const TransportMemoryRegion &m
         std::unique_lock<std::mutex> lock(mrMutex_[rankId_]);
         mrs_[rankId_].push_back(mrInfo);
     }
-    BM_LOG_DEBUG("Success to register to mr info addr: " << mrInfo.addr << " size: " << mrInfo.size
+    BM_LOG_DEBUG("Success to register to mr info size: " << mrInfo.size
                                                          << " lKey: " << mrInfo.lKey.keys[0]);
     return BM_OK;
 }
@@ -155,7 +155,7 @@ Result HcomTransportManager::QueryMemoryKey(uint64_t addr, TransportMemoryKey &k
 {
     HcomMemoryRegion mrInfo{};
     if (GetMemoryRegionByAddr(rankId_, addr, mrInfo) != BM_OK) {
-        BM_LOG_ERROR("Failed to query memory region, addr: " << addr);
+        BM_LOG_ERROR("Failed to query memory region");
         return BM_ERROR;
     }
     RegMemoryKeyUnion hostKey{};
@@ -195,7 +195,7 @@ Result HcomTransportManager::Prepare(const HybmTransPrepareOptions &param)
             std::unique_lock<std::mutex> lock(mrMutex_[rankId]);
             mrs_[rankId].push_back(mrInfo);
         }
-        BM_LOG_DEBUG("Success to register to mr info addr: " << mrInfo.addr << " size: " << mrInfo.size
+        BM_LOG_DEBUG("Success to register to mr info size: " << mrInfo.size
                                                              << " lKey: " << mrInfo.lKey.keys[0]);
     }
     return BM_OK;
@@ -246,9 +246,9 @@ Result HcomTransportManager::UpdateRankMrInfos(const std::unordered_map<uint32_t
             mrs_[rankId].clear();
             mrs_[rankId].push_back(mrInfo);
         }
-        BM_LOG_DEBUG("Success to register to mr info rankId: " << rankId << " addr: "
-                                                               << mrInfo.addr << " size: " << mrInfo.size << " lKey: "
-                                                               << mrInfo.lKey.keys[0]);
+        BM_LOG_DEBUG("Success to register to mr info rankId: " << rankId
+                                                               << " size: " << mrInfo.size
+                                                               << " lKey: " << mrInfo.lKey.keys[0]);
     }
     return BM_OK;
 }
@@ -323,19 +323,19 @@ Result HcomTransportManager::ReadRemote(uint32_t rankId, uint64_t lAddr, uint64_
     HcomMemoryRegion mr{};
     auto ret = GetMemoryRegionByAddr(rankId_, lAddr, mr);
     if (ret != BM_OK) {
-        BM_LOG_ERROR("Failed to find lKey, lAddr: " << lAddr << " is not register");
+        BM_LOG_ERROR("Failed to find lKey, lAddr: is not register");
         return BM_ERROR;
     }
     std::copy_n(mr.lKey.keys, sizeof(req.lKey.keys) / sizeof(req.lKey.keys[0]), req.lKey.keys);
     ret = GetMemoryRegionByAddr(rankId, rAddr, mr);
     if (ret != BM_OK) {
-        BM_LOG_ERROR("Failed to find rKey, rankId: " << rankId << " rAddr" << rAddr << " is not set");
+        BM_LOG_ERROR("Failed to find rKey, rankId: " << rankId << " is not set");
         return BM_ERROR;
     }
     std::copy_n(mr.lKey.keys, sizeof(req.rKey.keys) / sizeof(req.rKey.keys[0]), req.rKey.keys);
     BM_LOG_DEBUG("Try to read remote rankId: " << rankId << " channel: " << (void *) channel
-                                               << " lAddr: " << (void *) lAddr << " lKey:" << req.lKey.keys[0]
-                                               << " rAddr: " << (void *) rAddr << " rKey: " << req.rKey.keys[0]
+                                               << " lKey:" << req.lKey.keys[0]
+                                               << " rKey: " << req.rKey.keys[0]
                                                << " size: " << size);
     return DlHcomApi::ChannelGet(channel, req, nullptr);
 }
@@ -357,19 +357,19 @@ Result HcomTransportManager::WriteRemote(uint32_t rankId, uint64_t lAddr, uint64
     HcomMemoryRegion mr{};
     auto ret = GetMemoryRegionByAddr(rankId_, lAddr, mr);
     if (ret != BM_OK) {
-        BM_LOG_ERROR("Failed to find lKey, lAddr: " << lAddr << " is not register");
+        BM_LOG_ERROR("Failed to find lKey, lAddr is not register");
         return BM_ERROR;
     }
     std::copy_n(mr.lKey.keys, sizeof(req.lKey.keys) / sizeof(req.lKey.keys[0]), req.lKey.keys);
     ret = GetMemoryRegionByAddr(rankId, rAddr, mr);
     if (ret != BM_OK) {
-        BM_LOG_ERROR("Failed to find rKey, rankId: " << rankId << " rAddr" << rAddr << " is not set");
+        BM_LOG_ERROR("Failed to find rKey, rankId: " << rankId << " is not set");
         return BM_ERROR;
     }
     std::copy_n(mr.lKey.keys, sizeof(req.rKey.keys) / sizeof(req.rKey.keys[0]), req.rKey.keys);
     BM_LOG_DEBUG("Try to write remote rankId: " << rankId << " channel: " << (void *) channel
-                                                << " lAddr: " << (void *) lAddr << " lKey:" << req.lKey.keys[0]
-                                                << " rAddr: " << (void *) rAddr << " rKey: " << req.rKey.keys[0]
+                                                << " lKey:" << req.lKey.keys[0]
+                                                << " rKey: " << req.rKey.keys[0]
                                                 << " size: " << size);
     return DlHcomApi::ChannelPut(channel, req, nullptr);
 }

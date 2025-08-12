@@ -47,6 +47,8 @@ MMC_API int32_t mmc_init()
     g_clientConfig->GetLocalServiceConfig(localServiceConfig);
     MMC_VALIDATE_RETURN(g_clientConfig->ValidateLocalServiceConfig(localServiceConfig) == MMC_OK,
         "Invalid local service config", MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(g_clientConfig->ValidateTLSConfig(localServiceConfig.tlsConfig) == MMC_OK,
+        "Invalid TLS config", MMC_INVALID_PARAM);
     localServiceConfig.logFunc = nullptr;
     g_localService = mmcs_local_service_start(&localServiceConfig);
     MMC_VALIDATE_RETURN(g_localService != nullptr, "failed to create or start local service", MMC_ERROR);

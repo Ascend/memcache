@@ -111,7 +111,7 @@ Result MetaNetClient::HandlePing(const NetContextPtr &context)
 
 Result MetaNetClient::HandleLinkBroken(const NetLinkPtr &link)
 {
-    MMC_LOG_INFO(name_ << " link addr " << link.Get() << " broken");
+    MMC_LOG_INFO(name_ << " link broken");
     for (uint32_t count = 0; count < retryCount_; count++) {
         Result ret = engine_->ConnectToPeer(rankId_, ip_, port_, link2Index_, false);
         if (ret != MMC_OK) {

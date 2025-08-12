@@ -85,6 +85,8 @@ public:
     std::vector<std::string> ValidateConf();
     void GetTlsConfig(mmc_tls_config &tlsConfig);
 
+    static int ValidateTLSConfig(const mmc_tls_config &tlsConfig);
+
     bool Initialized() const
     {
         return mInitialized;

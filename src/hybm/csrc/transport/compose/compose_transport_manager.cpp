@@ -114,7 +114,7 @@ Result ComposeTransportManager::UnregisterMemoryRegion(uint64_t addr)
     auto pos = mrs_.find(addr);
     if (pos == mrs_.end()) {
         uniqueLock.unlock();
-        BM_LOG_ERROR("input address: " << reinterpret_cast<void*>(addr) << " not register!");
+        BM_LOG_ERROR("input address not register!");
         return BM_INVALID_PARAM;
     }
 
@@ -123,7 +123,7 @@ Result ComposeTransportManager::UnregisterMemoryRegion(uint64_t addr)
     auto ret = transport->UnregisterMemoryRegion(addr);
     if (ret != 0) {
         uniqueLock.unlock();
-        BM_LOG_ERROR("Failed to unregister mr addr:" << reinterpret_cast<void*>(addr) << " ret: " << ret);
+        BM_LOG_ERROR("Failed to unregister mr addr, ret: " << ret);
         return BM_DL_FUNCTION_FAILED;
     }
     mrs_.erase(pos);
@@ -136,7 +136,7 @@ Result ComposeTransportManager::QueryMemoryKey(uint64_t addr, TransportMemoryKey
     auto pos = mrs_.find(addr);
     if (pos == mrs_.end()) {
         uniqueLock.unlock();
-        BM_LOG_ERROR("input address: " << reinterpret_cast<void*>(addr) << " not register!");
+        BM_LOG_ERROR("input address not register!");
         return BM_INVALID_PARAM;
     }
     auto transport = GetTransportFromType(pos->second.type);

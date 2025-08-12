@@ -110,6 +110,10 @@ int main(int argc, char* argv[])
 
     mmc_meta_service_config_t config;
     g_config->GetMetaServiceConfig(config);
+    if (g_config->ValidateTLSConfig(config.tlsConfig) != MMC_OK) {
+        std::cerr << "Error, invalid tls config." << std::endl;
+        return -1;
+    }
     MmcMetaService *serviceDefault = new (std::nothrow)MmcMetaServiceDefault("meta_service");
     if (serviceDefault == nullptr || serviceDefault->Start(config) != MMC_OK) {
         std::cerr << "Error, failed to start MmcMetaService." << std::endl;

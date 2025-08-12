@@ -155,7 +155,7 @@ static struct devmm_virt_com_heap *DevmmVirtAllocHeapForBaseMem(void *mgmt,
     heapIdx = DlHalApi::HalDevmmVaToHeapIdx(mgmt, allocPtr);
     heapSet = (struct devmm_virt_com_heap *)DlHalApi::HalDevmmVirtGetHeapFromQueue(mgmt, heapIdx, allocSize);
     if (heapSet == nullptr) {
-        BM_LOG_ERROR("Base alloc heap failed. (size=0x" << std::hex << allocSize << " ptr=0x" << allocPtr << ")");
+        BM_LOG_ERROR("Base alloc heap failed. (size=0x" << std::hex << allocSize << ")");
         return nullptr;
     }
     DlHalApi::HalDevmmVirtNormalHeapUpdateInfo(mgmt, heapSet, heapType, nullptr, allocSize);
@@ -235,7 +235,6 @@ static uint64_t DevmmVirtAllocGvaMem(void *mgmt, uint64_t allocPtr,
     retPtr = DlHalApi::HalDevmmVirtAllocMemFromBase(mgmt, allocSize, 0, allocPtr);
     if (retPtr != allocPtr) {
         BM_LOG_ERROR("gva alloc mem failed. (size=0x" << std::hex << allocSize <<
-            " ptr=0x" << allocPtr << " ret=0x" << retPtr <<
             (retPtr >= DEVMM_SVM_MEM_START ? ", maybe ascend driver need to update)" : ")"));
         return 0;
     }
@@ -243,14 +242,14 @@ static uint64_t DevmmVirtAllocGvaMem(void *mgmt, uint64_t allocPtr,
     /* alloc large mem para is addr of heap_type */
     heap = DevmmVirtAllocHeapForBaseMem(mgmt, heap_type, retPtr, allocSize);
     if (heap == nullptr) {
-        BM_LOG_ERROR("gva alloc heap failed. (size=0x" << std::hex << allocSize << " ptr=0x" << allocPtr << ")");
+        BM_LOG_ERROR("gva alloc heap failed. (size=0x" << std::hex << allocSize << ")");
         return 0;
     }
 
     ret = DlHalApi::HalDevmmIoctlEnableHeap(heap->heap_idx, heap_type->heap_type,
         heap_type->heap_sub_type, heap->heap_size, heap_type->heap_list_type);
     if (ret != 0) {
-        BM_LOG_ERROR("gva update heap failed. (size=0x" << std::hex << allocSize << " ptr=0x" << allocPtr << ")");
+        BM_LOG_ERROR("gva update heap failed. (size=0x" << std::hex << allocSize << ")");
         (void)DlHalApi::HalDevmmVirtSetHeapIdle(mgmt, heap);
         return 0;
     }
@@ -265,7 +264,7 @@ static uint64_t DevmmVirtAllocGvaMem(void *mgmt, uint64_t allocPtr,
     DevmmVirtListAdd(&heap->list, &heap_list->heap_list);
     heap_list->heap_cnt++;
     (void)pthread_rwlock_unlock(&heap_list->list_lock);
-    BM_LOG_INFO("gva alloc heap. (size=0x" << std::hex << allocSize << " ptr=0x" << allocPtr << ")");
+    BM_LOG_INFO("gva alloc heap. (size=0x" << std::hex << allocSize << ")");
     return retPtr;
 }
 
@@ -276,7 +275,7 @@ static int32_t DevmmFreeManagedNomal(uint64_t va)
     heap = (devmm_virt_com_heap *)DlHalApi::HalDevmmVaToHeap(va);
     if ((heap == nullptr) || heap->heap_type != DEVMM_HEAP_HUGE_PAGE || heap->heap_sub_type != SUB_SVM_TYPE ||
         heap->heap_list_type != SVM_LIST) {
-        BM_LOG_ERROR("DevmmFreeManagedNomal get heap info error. ptr=0x" << std::hex << va);
+        BM_LOG_ERROR("DevmmFreeManagedNomal get heap info error. ");
         return BM_ERROR;
     }
 
@@ -294,7 +293,7 @@ static int32_t DevmmFreeManagedNomal(uint64_t va)
     heap_type.heap_mem_type = heap->heap_mem_type;
 
     if (DlHalApi::HalDevmmGetHeapListByType(mgmt, &heap_type, &heap_list) != 0) {
-        BM_LOG_ERROR("get heap list error. ptr=0x" << std::hex << va);
+        BM_LOG_ERROR("get heap list error. ");
         return BM_ERROR;
     }
     (void)pthread_rwlock_wrlock(&heap_list->list_lock);
@@ -303,7 +302,7 @@ static int32_t DevmmFreeManagedNomal(uint64_t va)
     (void)pthread_rwlock_unlock(&heap_list->list_lock);
 
     if (DlHalApi::HalDevmmVirtDestroyHeap(mgmt, heap, true) != 0) {
-        BM_LOG_ERROR("Destory ptr error. ptr=0x" << std::hex << va);
+        BM_LOG_ERROR("Destroy ptr error. ");
         return BM_ERROR;
     }
     return BM_OK;
@@ -317,7 +316,7 @@ int32_t HalGvaReserveMemory(uint64_t *address, size_t size, int32_t deviceId, ui
 
     if (allocSize == 0 || allocSize > (DEVMM_SVM_MEM_SIZE >> 1) || address == nullptr) { // init size <= 4T
         BM_LOG_ERROR("gva init failed, (size must > 0 && <= 4T) or address is null. (flag=" << flags <<
-            " size=0x" << std::hex << size << " ptr=0x" << address << ")");
+            " size=0x" << std::hex << size << ")");
         return -1;
     }
 
@@ -340,13 +339,13 @@ int32_t HalGvaReserveMemory(uint64_t *address, size_t size, int32_t deviceId, ui
     uint64_t retVa = DevmmVirtAllocGvaMem(mgmt, va, allocSize, &heap_type, advise);
     if (retVa != va) {
         BM_LOG_ERROR("HalGvaInitMemory alloc mem failed. (flag=" << flags <<
-            " size=0x" << std::hex << size << " ptr=0x" << va << " ret=0x" << retVa << ")");
+            " size=0x" << std::hex << size << " ret=0x" << retVa << ")");
         return -1;
     }
 
     int32_t ret = InitGvaHeapMgmt(va, va + allocSize, deviceId);
     if (ret != 0) {
-        BM_LOG_ERROR("HalGvaInitMemory init gva heap failed. (ptr=0x" << std::hex << va << ")");
+        BM_LOG_ERROR("HalGvaInitMemory init gva heap failed. ");
         DevmmFreeManagedNomal(va);
         return -1;
     }
@@ -379,7 +378,7 @@ int32_t HalGvaAlloc(uint64_t address, size_t size, uint64_t flags)
     uint64_t va = address;
     if ((va % DEVMM_MAP_ALIGN_SIZE != 0) || (size % DEVMM_MAP_ALIGN_SIZE != 0)) {
         BM_LOG_ERROR("open gva va check failed, size must the align of 2M. (size=0x" <<
-            std::hex << size << " ptr=0x" << va << ")");
+            std::hex << size << ")");
         return -1;
     }
 
@@ -394,7 +393,7 @@ int32_t HalGvaAlloc(uint64_t address, size_t size, uint64_t flags)
     int32_t ret = HybmIoctlAllocAnddAdvice(va, size, g_gvaHeapMgr->deviceId, advise);
     if (ret != 0) {
         BM_LOG_ERROR("Alloc gva local mem error. (ret=" << ret << " size=0x" << std::hex <<
-            size << " ptr=0x" << va << "advise=0x" << advise << ")");
+            size << "advise=0x" << advise << ")");
         (void)DevmmRemoveInGvaHeap(va);
         return -1;
     }
@@ -415,7 +414,7 @@ static int32_t DevmmOpenGvaMalloc(uint64_t va, size_t len)
 {
     if ((va % DEVMM_MAP_ALIGN_SIZE != 0) || (len % DEVMM_MAP_ALIGN_SIZE != 0)) {
         BM_LOG_ERROR("open gva va check failed, size must the align of 2M. (size=0x" <<
-            std::hex << len << " ptr=0x" << va << ")");
+            std::hex << len << ")");
         return -1;
     }
 
@@ -429,7 +428,7 @@ static int32_t DevmmOpenGvaMalloc(uint64_t va, size_t len)
     int32_t ret = HybmIoctlAllocAnddAdvice(va, len, g_gvaHeapMgr->deviceId, advise);
     if (ret != 0) {
         BM_LOG_ERROR("Alloc gva open mem error. (ret=" << ret << " size=0x" << std::hex <<
-            len << " ptr=0x" << va << "advise=0x" << advise << ")");
+            len << "advise=0x" << advise << ")");
         (void)DevmmRemoveInGvaHeap(va);
         return -1;
     }
@@ -440,7 +439,7 @@ static int32_t DevmmOpenGvaMalloc(uint64_t va, size_t len)
 int32_t HalGvaOpen(uint64_t address, const char *name, size_t size, uint64_t flags)
 {
     if (DevmmOpenGvaMalloc(address, size) != 0) {
-        BM_LOG_ERROR("HalGvaOpen malloc gva error. (size=0x" << std::hex << size << " ptr=0x" << address << ")");
+        BM_LOG_ERROR("HalGvaOpen malloc gva error. (size=0x" << std::hex << size << ")");
         return -1;
     }
 
@@ -455,7 +454,7 @@ int32_t HalGvaClose(uint64_t address, uint64_t flags)
 {
     auto ret = HybmUnmapShareMemory((void *)address, flags);
     if (ret != 0) {
-        BM_LOG_ERROR("Close error. vptr=0x" << std::hex << address);
+        BM_LOG_ERROR("Close error. ret=" << ret);
         return ret;
     }
     

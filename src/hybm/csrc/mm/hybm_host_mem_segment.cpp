@@ -34,8 +34,7 @@ Result MemSegmentHost::ReserveMemorySpace(void **address) noexcept
     void *mapped = mmap(startAddr, totalSize, PROT_READ | PROT_WRITE,
                         MAP_FIXED | MAP_ANONYMOUS | MAP_NORESERVE | MAP_PRIVATE, -1, 0);
     if (mapped == MAP_FAILED) {
-        BM_LOG_ERROR("Failed to mmap startAddr:" << startAddr << " size:" << totalSize
-                     << " error: " << errno);
+        BM_LOG_ERROR("Failed to mmap size:" << totalSize << " error: " << errno);
         return BM_ERROR;
     }
     globalVirtualAddress_ = (uint8_t *) startAddr;
@@ -73,7 +72,7 @@ Result MemSegmentHost::AllocLocalMemory(uint64_t size, std::shared_ptr<MemSlice>
     void *mapped = mmap(sliceAddr, size, PROT_READ | PROT_WRITE,
                         MAP_FIXED | MAP_ANONYMOUS | MAP_HUGETLB | MAP_PRIVATE, -1, 0);
     if (mapped == MAP_FAILED) {
-        BM_LOG_ERROR("Failed to alloc startAddr:" << sliceAddr << " size:" << size << " error:" << errno);
+        BM_LOG_ERROR("Failed to alloc size:" << size << " error:" << errno);
         return BM_ERROR;
     }
     LvaShmReservePhysicalMemory(sliceAddr, size);
@@ -81,8 +80,7 @@ Result MemSegmentHost::AllocLocalMemory(uint64_t size, std::shared_ptr<MemSlice>
     slice = std::make_shared<MemSlice>(sliceCount_++, MEM_TYPE_HOST_DRAM, MEM_PT_TYPE_SVM,
                                        (uint64_t)(ptrdiff_t)(void *)sliceAddr, size);
     slices_.emplace(slice->index_, slice);
-    BM_LOG_DEBUG("allocate slice(idx:" << slice->index_ << ", size:" << slice->size_ << ", address:0x" << std::hex
-                                       << slice->vAddress_ << ").");
+    BM_LOG_DEBUG("allocate slice(idx:" << slice->index_ << ", size:" << slice->size_ << ").");
 
     return BM_OK;
 }

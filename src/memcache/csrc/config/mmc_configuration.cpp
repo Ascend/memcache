@@ -5,6 +5,7 @@
 #include "mmc_configuration.h"
 
 #include <iostream>
+#include <mmc_functions.h>
 
 #include "mmc_kv_parser.h"
 
@@ -451,5 +452,32 @@ void Configuration::GetTlsConfig(mmc_tls_config &tlsConfig)
     strncpy(tlsConfig.tlsKeyPath, GetString(ConfConstant::OCK_MMC_TLS_KEY_PATH).c_str(), PATH_MAX_SIZE);
     strncpy(tlsConfig.packagePath, GetString(ConfConstant::OCK_MMC_TLS_PACKAGE_PATH).c_str(), PATH_MAX_SIZE);
 }
+
+int Configuration::ValidateTLSConfig(const mmc_tls_config &tlsConfig)
+{
+    if (tlsConfig.tlsEnable == false) {
+        return MMC_OK;
+    }
+
+    const std::map<std::string, std::string> compulsoryMap{
+        {std::string(tlsConfig.tlsTopPath) + std::string(tlsConfig.tlsCaPath), "ca path"},
+        {std::string(tlsConfig.tlsTopPath) + std::string(tlsConfig.tlsCertPath), "cert path"},
+        {std::string(tlsConfig.tlsTopPath) + std::string(tlsConfig.tlsKeyPath), "key path"},
+        {std::string(tlsConfig.packagePath), "package path"},
+    };
+
+    for (const auto &item : compulsoryMap) {
+        MMC_RETURN_ERROR(ValidatePathNotSymlink(item.first.c_str()), item.second << " does not exist or is a symlink");
+    }
+
+    if (!std::string(tlsConfig.tlsCrlPath).empty()) {
+        MMC_RETURN_ERROR(ValidatePathNotSymlink(
+            (std::string(tlsConfig.tlsTopPath) + std::string(tlsConfig.tlsCrlPath)).c_str()),
+            "crl path does not exist or is a symlink");
+    }
+
+    return MMC_OK;
+}
+
 } // namespace common
 } // namespace ock

@@ -79,7 +79,7 @@ Result RdmaTransportManager::RegisterMemoryRegion(const TransportMemoryRegion &m
     }
 
     RegMemResult result{mr.addr, mr.size, mrHandle, info.lkey, info.rkey};
-    BM_LOG_DEBUG("register MR address=" << info.addr << ", result=" << result);
+    BM_LOG_DEBUG("register MR result=" << result);
 
     std::unique_lock<std::mutex> uniqueLock{mrsMutex_};
     registerMRS_.emplace(mr.addr, result);
@@ -92,15 +92,14 @@ Result RdmaTransportManager::UnregisterMemoryRegion(uint64_t addr)
     auto pos = registerMRS_.find(addr);
     if (pos == registerMRS_.end()) {
         uniqueLock.unlock();
-        BM_LOG_ERROR("input address: " <<  reinterpret_cast<void *>(addr) << " not register!");
+        BM_LOG_ERROR("input address not register!");
         return BM_INVALID_PARAM;
     }
 
     auto ret = DlHccpApi::RaDeregisterMR(rdmaHandle_, pos->second.mrHandle);
     if (ret != 0) {
         uniqueLock.unlock();
-        BM_LOG_ERROR("Unregister MR addr:" << reinterpret_cast<void *>(addr) << " : "
-                     << pos->second << " failed: " << ret);
+        BM_LOG_ERROR("Unregister MR addr failed: " << ret);
         return BM_DL_FUNCTION_FAILED;
     }
 
@@ -115,7 +114,7 @@ Result RdmaTransportManager::QueryMemoryKey(uint64_t addr, TransportMemoryKey &k
     auto pos = registerMRS_.lower_bound(addr);
     if (pos == registerMRS_.end() || pos->first + pos->second.size <= addr) {
         uniqueLock.unlock();
-        BM_LOG_ERROR("input address: " << reinterpret_cast<void *>(addr) << " not register!");
+        BM_LOG_ERROR("input address not register!");
         return BM_INVALID_PARAM;
     }
 

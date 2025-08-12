@@ -66,9 +66,9 @@ HRESULT KVParser::FromFile(const std::string &filePath)
         OckTrimString(strKey);
         OckTrimString(strValue);
 
-        if (strKey.empty() || strValue.empty()) {
+        if (strKey.empty()) {
             hr = MMC_FAIL;
-            std::cerr << "Configuration item has empty key or value." << std::endl;
+            std::cerr << "Configuration item has empty key." << std::endl;
             break;
         }
         if (RESULT_FAIL(SetItem(strKey, strValue))) {

@@ -126,13 +126,13 @@ Result MetaNetServer::HandlePing(const NetContextPtr &context)
 
 Result MetaNetServer::HandleNewLink(const NetLinkPtr &link)
 {
-    MMC_LOG_INFO(name_ << " new link addr " << link.Get());
+    MMC_LOG_INFO(name_ << " new link");
     return MMC_OK;
 }
 
 Result MetaNetServer::HandleLinkBroken(const NetLinkPtr &link)
 {
-    MMC_LOG_INFO(name_ << " link addr " << link.Get() << " broken");
+    MMC_LOG_INFO(name_ << " link broken");
     auto metaServiceDefaultPtr = Convert<MmcMetaService, MmcMetaServiceDefault>(metaService_);
     int32_t rankId = link->Id();
     return metaServiceDefaultPtr->ClearResource(rankId);

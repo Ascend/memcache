@@ -74,8 +74,7 @@ Result MemSegmentDevice::AllocLocalMemory(uint64_t size, std::shared_ptr<MemSlic
     slice = std::make_shared<MemSlice>(sliceCount_++, MEM_TYPE_DEVICE_HBM, MEM_PT_TYPE_SVM,
                                        (uint64_t)(ptrdiff_t)(void *)sliceAddr, size);
     slices_.emplace(slice->index_, slice);
-    BM_LOG_DEBUG("allocate slice(idx:" << slice->index_ << ", size:" << slice->size_ << ", address:0x" << std::hex
-                                       << slice->vAddress_ << ").");
+    BM_LOG_DEBUG("allocate slice(idx:" << slice->index_ << ", size:" << slice->size_ << ").");
 
     return BM_OK;
 }
@@ -350,7 +349,7 @@ int MemSegmentDevice::FillDeviceSuperPodInfo() noexcept
         return BM_DL_FUNCTION_FAILED;
     }
     serverId_ = static_cast<uint32_t>(value);
-    BM_LOG_DEBUG("local server=0x" << std::hex << serverId_);
+    BM_LOG_DEBUG("local server id=0x" << std::hex << serverId_);
 
     ret = DlAclApi::RtGetDeviceInfo(deviceId_, 0, INFO_TYPE_SUPER_POD_ID, &value);
     if (ret != BM_OK) {
@@ -369,7 +368,7 @@ int MemSegmentDevice::FillDeviceSuperPodInfo() noexcept
         serverId_ = networks[0];
     }
 
-    BM_LOG_DEBUG("local sdid=0x" << std::hex << sdid_ << ", local server=0x" << std::hex << serverId_
+    BM_LOG_DEBUG("local sdid=0x" << std::hex << sdid_ << ", local server id=0x" << std::hex << serverId_
                                  << ", spid=" << superPodId_);
 
     return BM_OK;

@@ -202,11 +202,11 @@ Result SmemBmEntry::DataCopy(const void *src, void *dest, uint64_t size, smem_bm
         case SMEMB_COPY_H2G:
         case SMEMB_COPY_L2GH:
         case SMEMB_COPY_H2GH:
-            SM_PARAM_VALIDATE(!AddressInRange(dest, size), "dest address: " << dest << ", size: " << size << " invalid.",
+            SM_PARAM_VALIDATE(!AddressInRange(dest, size), "size: " << size << " invalid.",
                               SM_INVALID_PARAM);
             break;
         default:
-            SM_PARAM_VALIDATE(!AddressInRange(src, size), "dest address: " << dest << ", size: " << size << " invalid.",
+            SM_PARAM_VALIDATE(!AddressInRange(src, size), "size: " << size << " invalid.",
                               SM_INVALID_PARAM);
             break;
     }
@@ -230,13 +230,13 @@ Result SmemBmEntry::DataCopy2d(const void *src, uint64_t spitch, void *dest, uin
         case SMEMB_COPY_H2G:
         case SMEMB_COPY_L2GH:
         case SMEMB_COPY_H2GH:
-            SM_PARAM_VALIDATE(!AddressInRange(dest, dpitch * (height - 1) + width), "dest address: " << dest
-                              << " dpitch: " << dpitch << " width: " << width
+            SM_PARAM_VALIDATE(!AddressInRange(dest, dpitch * (height - 1) + width),
+                              " dpitch: " << dpitch << " width: " << width
                               << " height: " << height << " invalid.", SM_INVALID_PARAM);
             break;
         default:
-            SM_PARAM_VALIDATE(!AddressInRange(src,  spitch * (height - 1) + width), "src address: " << src
-                              << ", spitch: " << spitch << " width: " << width
+            SM_PARAM_VALIDATE(!AddressInRange(src,  spitch * (height - 1) + width),
+                              ", spitch: " << spitch << " width: " << width
                               << " height: " << height << " invalid.", SM_INVALID_PARAM);
             break;
     }

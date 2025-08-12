@@ -30,8 +30,8 @@
 | ock.mmc.tls.top.path                   | string     | /opt/ock/security/           | 0 <= len < 1024       | common top path of the cert files                |
 | ock.mmc.tls.ca.path                    | string     | certs/ca.cert.pem            | 0 <= len < 1024       | CA path relative to the top path                 |
 | ock.mmc.tls.ca.crl.path                | string     | certs/ca.crl.pem             | 0 <= len < 1024       | CRL path relative to the top path                |
-| ock.mmc.tls.cert.path                  | string     | certs/server.cert.pem        | 0 <= len < 1024       | server certificate path relative to the top path |
-| ock.mmc.tls.key.path                   | string     | certs/server.private.key.pem | 0 <= len < 1024       | server private key path relative to the top path |
+| ock.mmc.tls.cert.path                  | string     | certs/client.cert.pem        | 0 <= len < 1024       | client certificate path relative to the top path |
+| ock.mmc.tls.key.path                   | string     | certs/client.private.key.pem | 0 <= len < 1024       | client private key path relative to the top path |
 | ock.mmc.tls.package.path               | string     | /opt/ock/security/libs/      | 0 <= len < 1024       | openssl dynamic lib absolute path                |
 |                                        |            |                              |                       |                                                  |
 | ock.mmc.local_service.device_id        | integer    | 0                            | [0, 383]              |                                                  |

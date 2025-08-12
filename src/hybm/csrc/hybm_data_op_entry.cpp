@@ -33,8 +33,8 @@ HYBM_API int32_t hybm_data_copy(hybm_entity_t e, const void *src, void *dest, si
     }
 
     if (!addressValid) {
-        BM_LOG_ERROR("input copy address(src: 0x" << std::hex << src << ", dest: 0x" << dest << ", size: " << std::oct
-                                                  << count << ") direction: " << direction << ", not in entity range.");
+        BM_LOG_ERROR("input copy address(size: " << std::oct << count
+            << ") direction: " << direction << ", not in entity range.");
         return BM_INVALID_PARAM;
     }
 
@@ -68,9 +68,9 @@ HYBM_API int32_t hybm_data_copy_2d(hybm_entity_t e, const void *src, uint64_t sp
     }
 
     if (!addressValid) {
-        BM_LOG_ERROR("input copy address(src: 0x" << std::hex << src << ", dest: 0x" << dest << ", spitch: " << std::oct
-                     << spitch << ", dpitch: " << dpitch << ", width: " << width << ", height: " << height
-                     << ") direction: " << direction << ", not in entity range.");
+        BM_LOG_ERROR("input copy address(spitch: " << std::oct << spitch << ", dpitch: " << dpitch
+            << ", width: " << width << ", height: " << height << ") direction: " << direction
+            << ", not in entity range.");
         return BM_INVALID_PARAM;
     }
 

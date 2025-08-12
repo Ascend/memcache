@@ -146,9 +146,8 @@ int HostDataOpSDMA::CopyHost2Gva2d(void *gvaAddr, uint64_t dpitch, const void *h
 
     ret = DlAclApi::AclrtMemcpy2d(copyDevice, width, hostAddr, spitch, width, height, ACL_MEMCPY_HOST_TO_DEVICE);
     if (ret != 0) {
-        BM_LOG_ERROR("copy2d host data to temp copy memory on local device failed: " << ret << " hostAddr: "
-                     << hostAddr << " spitch: " << spitch << " deviceAddr: " << copyDevice
-                     << " dpitch: " << width << " width: " << width << " height:" << height);
+        BM_LOG_ERROR("copy2d host data to temp copy memory on local device failed: " << ret
+                     << " spitch: " << spitch << " dpitch: " << width << " width: " << width << " height:" << height);
         DlAclApi::AclrtFree(copyDevice);
         return BM_DL_FUNCTION_FAILED;
     }
@@ -178,9 +177,9 @@ int HostDataOpSDMA::CopyDevice2Gva2d(void *gvaAddr, uint64_t dpitch, const void 
         auto asyncRet = DlAclApi::AclrtMemcpyAsync(dstAddr, width, srcAddr, width,
                                                    ACL_MEMCPY_DEVICE_TO_DEVICE, st);
         if (asyncRet != 0) {
-            BM_LOG_ERROR("copy2d memory on gva to device failed:: " << asyncRet << " gvaAddr: "
-                         << gvaAddr << " dpitch: " << dpitch << " deviceAddr: " << deviceAddr
-                         << " spitch: " << spitch << " width: " << width << " height:" << height << " stream:" << st);
+            BM_LOG_ERROR("copy2d memory on gva to device failed:: " << asyncRet
+                         << " dpitch: " << dpitch << " spitch: " << spitch << " width: " << width
+                         << " height:" << height << " stream:" << st);
             ret = asyncRet;
         }
     }
@@ -211,8 +210,8 @@ int HostDataOpSDMA::CopyGva2Host2d(void *hostAddr, uint64_t dpitch, const void *
 
     ret = DlAclApi::AclrtMemcpy2d(hostAddr, dpitch, copyDevice, width, width, height, ACL_MEMCPY_DEVICE_TO_HOST);
     if (ret != 0) {
-        BM_LOG_ERROR("copy data on temp DEVICE to GVA failed: " << ret << " gvaAddr: "
-                     << gvaAddr << " spitch: " << spitch << " width: " << width << " height:" << height);
+        BM_LOG_ERROR("copy data on temp DEVICE to GVA failed: " << ret
+                     << " spitch: " << spitch << " width: " << width << " height:" << height);
         DlAclApi::AclrtFree(copyDevice);
         return BM_DL_FUNCTION_FAILED;
     }
@@ -236,9 +235,9 @@ int HostDataOpSDMA::CopyGva2Device2d(void *deviceAddr, uint64_t dpitch, const vo
         auto asyncRet = DlAclApi::AclrtMemcpyAsync(dstAddr, width, srcAddr, width,
                                                    ACL_MEMCPY_DEVICE_TO_DEVICE, st);
         if (asyncRet != 0) {
-            BM_LOG_ERROR("copy2d memory on gva to device failed:: " << asyncRet << " gvaAddr: "
-                         << srcAddr << " spitch: " << spitch << " deviceAddr: " << dstAddr
-                         << " dpitch: " << dpitch << " width: " << width << " height:" << height << " stream:" << st);
+            BM_LOG_ERROR("copy2d memory on gva to device failed:: " << asyncRet
+                         << " spitch: " << spitch << " dpitch: " << dpitch << " width: " << width
+                         << " height:" << height << " stream:" << st);
             ret = asyncRet;
         }
     }

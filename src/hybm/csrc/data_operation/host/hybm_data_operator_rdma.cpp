@@ -25,8 +25,7 @@ int32_t HostDataOpRDMA::Initialized() noexcept
     input.size = RDMA_SWAP_SPACE_SIZE;
     auto ret = transportManager_->RegisterMemoryRegion(input);
     if (ret != BM_OK) {
-        BM_LOG_ERROR("Failed to register rdma swap memory, addr: " << rdmaSwapBaseAddr_
-                                                                   << " size: " << RDMA_SWAP_SPACE_SIZE);
+        BM_LOG_ERROR("Failed to register rdma swap memory, size: " << RDMA_SWAP_SPACE_SIZE);
         free(rdmaSwapBaseAddr_);
         rdmaSwapBaseAddr_ = nullptr;
         return BM_MALLOC_FAILED;
