@@ -92,8 +92,13 @@ int32_t MemEntityDefault::ReserveMemorySpace(void **reservedMem) noexcept
         BM_LOG_ERROR("the object is not initialized, please check whether Initialize is called.");
         return BM_NOT_INITIALIZED;
     }
-
-    return segment_->ReserveMemorySpace(reservedMem);
+    auto ret = segment_->ReserveMemorySpace(reservedMem);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("Failed to reserver memory space ret: " << ret);
+        return ret;
+    }
+    gva_ = *reservedMem;
+    return ret;
 }
 
 int32_t MemEntityDefault::UnReserveMemorySpace() noexcept
