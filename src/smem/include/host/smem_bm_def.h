@@ -14,6 +14,15 @@ extern "C" {
 typedef void *smem_bm_t;
 
 /**
+* @brief Smem memory type
+*/
+typedef enum {
+    SMEM_MEM_TYPE_DEVICE = 0,      /* memory on device */
+    SMEM_MEM_TYPE_HOST,            /* memory on host */
+
+    SMEM_MEM_TYPE_BUTT
+} smem_bm_mem_type;
+/**
  * @brief CPU initiated data operation type, currently only support SDMA
  */
 typedef enum {

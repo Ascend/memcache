@@ -30,6 +30,12 @@ int32_t HostDataOpSDMA::DataCopy(const void *srcVA, void *destVA, uint64_t lengt
         case HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE:
             ret = CopyDevice2Gva(destVA, srcVA, length, options.stream);
             break;
+        case HYBM_GLOBAL_DEVICE_TO_GLOBAL_HOST:
+            ret = CopyGva2HostGva(destVA, srcVA, length, options.stream);
+            break;
+        case HYBM_GLOBAL_HOST_TO_GLOBAL_DEVICE:
+            ret = CopyHostGva2Gva(destVA, srcVA, length, options.stream);
+            break;
 
         default:
             BM_LOG_ERROR("data copy invalid direction: " << direction);
@@ -300,6 +306,18 @@ int32_t HostDataOpSDMA::Initialized() noexcept
 void HostDataOpSDMA::UnInitialized() noexcept
 {
 
+}
+
+int HostDataOpSDMA::CopyGva2HostGva(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
+{
+    // HBM池拷贝到HOST池
+    return 0;
+}
+
+int HostDataOpSDMA::CopyHostGva2Gva(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
+{
+    // HOST池到HBM池的拷贝
+    return 0;
 }
 }
 }

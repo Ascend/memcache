@@ -50,6 +50,14 @@ int32_t hybm_reserve_mem_space(hybm_entity_t e, uint32_t flags, void **reservedM
 int32_t hybm_unreserve_mem_space(hybm_entity_t e, uint32_t flags, void *reservedMem);
 
 /**
+ *
+ * @param e                [in] entity created by hybm_create_entity
+ * @param mType            [in] memory type, device or host
+ * @return reserve memory ptr if successful, null ptr if failed
+ */
+void *hybm_get_memory_ptr(hybm_entity_t e, hybm_mem_type mType);
+
+/**
  * @brief Allocate memory at local side(mmap local memory)
  *
  * @param e                [in] entity created by hybm_create_entity

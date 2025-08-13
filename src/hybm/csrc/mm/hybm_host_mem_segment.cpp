@@ -26,8 +26,8 @@ Result MemSegmentHost::ValidateOptions() noexcept
 
 Result MemSegmentHost::ReserveMemorySpace(void **address) noexcept
 {
-    BM_LOG_ERROR_RETURN_IT_IF_NOT_OK(globalVirtualAddress_ != nullptr, "Already prepare virtual memory.");
-    BM_LOG_ERROR_RETURN_IT_IF_NOT_OK(address == nullptr, "Invalid param, address is NULL.");
+    BM_ASSERT_LOG_AND_RETURN(globalVirtualAddress_ == nullptr, "Already prepare virtual memory.", BM_NOT_INITIALIZED);
+    BM_ASSERT_LOG_AND_RETURN(address != nullptr, "Invalid param, address is NULL.", BM_INVALID_PARAM);
 
     void *startAddr = (void *) HYBM_HOST_GVA_START_ADDR;
     uint64_t totalSize = options_.rankCnt * options_.size;
@@ -204,15 +204,12 @@ bool MemSegmentHost::MemoryInRange(const void *begin, uint64_t size) const noexc
     return true;
 }
 
-void MemSegmentHost::GetRankIdByAddr(const void *addr, uint64_t size, uint32_t &rankId) const noexcept
+uint32_t MemSegmentHost::GetRankIdByAddr(const void *addr, uint64_t size) const noexcept
 {
     if (!MemoryInRange(addr, size)) {
-        rankId = UINT32_MAX;
-        return;
+        return UINT32_MAX;
     }
-    BM_ASSERT_RET_VOID(MemoryInRange(addr, size));
-    rankId =  ((uint64_t ) addr - (uint64_t)globalVirtualAddress_) / options_.size;
-    // TODO 如何处理地址段跨rank
+    return (reinterpret_cast<uint64_t>(addr) - reinterpret_cast<uint64_t>(globalVirtualAddress_)) / options_.size;
 }
 
 void MemSegmentHost::FreeMemory() noexcept

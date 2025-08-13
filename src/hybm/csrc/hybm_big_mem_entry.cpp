@@ -12,7 +12,7 @@ HYBM_API hybm_entity_t hybm_create_entity(uint16_t id, const hybm_options *optio
     BM_ASSERT_RETURN(HybmHasInited(), nullptr);
 
     auto &factory = MemEntityFactory::Instance();
-    auto entity = factory.GetOrCreateEngine(id, flags);
+    auto entity = factory.GetOrCreateEngine(id, options, flags);
     if (entity == nullptr) {
         BM_LOG_ERROR("create entity failed.");
         return nullptr;
@@ -49,6 +49,13 @@ HYBM_API int32_t hybm_unreserve_mem_space(hybm_entity_t e, uint32_t flags, void 
     auto entity = (MemEntity *)e;
     BM_ASSERT_RETURN(entity != nullptr, BM_INVALID_PARAM);
     return entity->UnReserveMemorySpace();
+}
+
+HYBM_API void *hybm_get_memory_ptr(hybm_entity_t e, hybm_mem_type mType)
+{
+    auto entity = (MemEntity *)e;
+    BM_ASSERT_RETURN(entity != nullptr, nullptr);
+    return entity->GetReservedMemoryPtr(mType);
 }
 
 HYBM_API hybm_mem_slice_t hybm_alloc_local_memory(hybm_entity_t e, hybm_mem_type mType, uint64_t size, uint32_t flags)
@@ -93,6 +100,7 @@ HYBM_API int32_t hybm_import(hybm_entity_t e, const hybm_exchange_info allExInfo
     auto entity = (MemEntity *)e;
     BM_ASSERT_RETURN(entity != nullptr, BM_INVALID_PARAM);
     BM_ASSERT_RETURN(allExInfo != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(count > 0, BM_INVALID_PARAM);
     return entity->ImportExchangeInfo(allExInfo, count, flags);
 }
 
@@ -115,6 +123,7 @@ HYBM_API int32_t hybm_entity_import(hybm_entity_t e, const hybm_exchange_info al
     auto entity = (MemEntity *)e;
     BM_ASSERT_RETURN(entity != nullptr, BM_INVALID_PARAM);
     BM_ASSERT_RETURN(allExInfo != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(count > 0, BM_INVALID_PARAM);
     return entity->ImportEntityExchangeInfo(allExInfo, count, flags);
 }
 

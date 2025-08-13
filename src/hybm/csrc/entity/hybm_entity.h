@@ -20,6 +20,7 @@ public:
 
     virtual int32_t ReserveMemorySpace(void **reservedMem) noexcept = 0;
     virtual int32_t UnReserveMemorySpace() noexcept = 0;
+    virtual void *GetReservedMemoryPtr(hybm_mem_type memType) noexcept = 0;
 
     virtual int32_t AllocLocalMemory(uint64_t size, uint32_t flags, hybm_mem_slice_t &slice) noexcept = 0;
     virtual void FreeLocalMemory(hybm_mem_slice_t slice, uint32_t flags) noexcept = 0;

@@ -107,6 +107,8 @@ SMEM_API smem_bm_t smem_bm_create(uint32_t id, uint32_t memberSize, smem_bm_data
     options.rankId = manager.GetRankId();
     options.devId = manager.GetDeviceId();
     options.singleRankVASpace = (localDRAMSize == 0) ? localHBMSize : localDRAMSize;
+    options.deviceVASpace = localHBMSize;
+    options.hostVASpace = localDRAMSize;
     options.preferredGVA = 0;
     options.role = HYBM_ROLE_PEER;
     bzero(options.nic, sizeof(options.nic));
@@ -192,6 +194,53 @@ SMEM_API void *smem_bm_ptr(smem_bm_t handle, uint16_t peerRankId)
 
     auto gvaAddress = entry->GetGvaAddress();
     return reinterpret_cast<uint8_t *>(gvaAddress) + coreOption.singleRankVASpace * peerRankId;
+}
+
+uint64_t smem_bm_get_local_mem_size_by_mem_type(smem_bm_t handle, smem_bm_mem_type memType)
+{
+    SM_PARAM_VALIDATE(handle == nullptr, "invalid param, handle is NULL", 0UL);
+
+    SmemBmEntryPtr entry = nullptr;
+    auto ret = SmemBmEntryManager::Instance().GetEntryByPtr(reinterpret_cast<uintptr_t>(handle), entry);
+    if (ret != SM_OK || entry == nullptr) {
+        SM_LOG_AND_SET_LAST_ERROR("input handle is invalid, result: " << ret);
+        return 0UL;
+    }
+    switch (memType) {
+        case SMEM_MEM_TYPE_DEVICE:
+            return entry->GetCoreOptions().deviceVASpace;
+        case SMEM_MEM_TYPE_HOST:
+            return entry->GetCoreOptions().hostVASpace;
+        default:
+            SM_LOG_AND_SET_LAST_ERROR("input mem type is invalid, memType: " << memType);
+            return 0UL;
+    }
+}
+
+void *smem_bm_ptr_by_mem_type(smem_bm_t handle, smem_bm_mem_type memType, uint16_t peerRankId)
+{
+    SM_PARAM_VALIDATE(handle == nullptr, "invalid param, handle is NULL", nullptr);
+    SM_PARAM_VALIDATE(!g_smemBmInited, "smem bm not initialized yet", nullptr);
+
+    SmemBmEntryPtr entry = nullptr;
+    auto ret = SmemBmEntryManager::Instance().GetEntryByPtr(reinterpret_cast<uintptr_t>(handle), entry);
+    if (ret != SM_OK || entry == nullptr) {
+        SM_LOG_AND_SET_LAST_ERROR("input handle is invalid, result: " << ret);
+        return nullptr;
+    }
+
+    auto &coreOption = entry->GetCoreOptions();
+    SM_PARAM_VALIDATE(peerRankId >= coreOption.rankCount, "invalid param, peerRankId too large", nullptr);
+
+    switch (memType) {
+        case SMEM_MEM_TYPE_DEVICE:
+            return entry->GetDeviceGvaAddress();
+        case SMEM_MEM_TYPE_HOST:
+            return entry->GetHostGvaAddress();
+        default:
+            SM_LOG_AND_SET_LAST_ERROR("input mem type is invalid, memType: " << memType);
+            return nullptr;
+    }
 }
 
 SMEM_API int32_t smem_bm_copy(smem_bm_t handle, const void *src, void *dest, uint64_t size, smem_bm_copy_type t,

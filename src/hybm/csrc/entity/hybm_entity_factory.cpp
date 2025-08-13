@@ -2,10 +2,12 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
 #include "hybm_entity_factory.h"
+#include "hybm_entity_compose.h"
+#include "hybm_entity_default.h"
 
 namespace ock {
 namespace mf {
-EngineImplPtr MemEntityFactory::GetOrCreateEngine(uint16_t id, uint32_t flags)
+MemEntityPtr MemEntityFactory::GetOrCreateEngine(uint16_t id,  const hybm_options *options, uint32_t flags)
 {
     std::lock_guard<std::mutex> guard(enginesMutex_);
     auto iter = engines_.find(id);
@@ -13,8 +15,16 @@ EngineImplPtr MemEntityFactory::GetOrCreateEngine(uint16_t id, uint32_t flags)
         return iter->second;
     }
 
+    MemEntityPtr engine = nullptr;
+    switch (options->bmType) {
+        case HYBM_TYPE_HBM_DRAM_HOST_INITIATE:
+            engine = std::make_shared<HybmEntityCompose>(id);
+            break;
+        default:
+            engine = std::make_shared<MemEntityDefault>(id);
+            break;
+    }
     /* create new engine */
-    auto engine = std::make_shared<MemEntityDefault>(id);
     engines_.emplace(id, engine);
     enginesFromAddress_.emplace(engine.get(), id);
     return engine;

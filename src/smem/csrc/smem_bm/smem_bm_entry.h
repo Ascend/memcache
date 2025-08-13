@@ -45,9 +45,14 @@ public:
     const hybm_options &GetCoreOptions() const;
 
     void *GetGvaAddress() const;
+    void *GetHostGvaAddress() const;
+    void *GetDeviceGvaAddress() const;
 
 private:
     bool AddressInRange(const void *address, uint64_t size);
+    bool AddrInHostGva(const void *address, uint64_t size);
+    bool AddrInDeviceGva(const void *address, uint64_t size);
+
     Result CreateGlobalTeam(uint32_t rankSize, uint32_t rankId);
 
     Result JoinHandle(uint32_t rk);
@@ -60,6 +65,8 @@ private:
     SmemGroupEnginePtr globalGroup_ = nullptr;
     hybm_entity_t entity_ = nullptr;
     void *gva_ = nullptr;
+    void *hostGva_ = nullptr;
+    void *deviceGva_ = nullptr;
 
     /* non-hot used variables */
     SmemBmEntryOptions options_;
@@ -83,6 +90,16 @@ inline const hybm_options &SmemBmEntry::GetCoreOptions() const
 inline void *SmemBmEntry::GetGvaAddress() const
 {
     return gva_;
+}
+
+inline void *SmemBmEntry::GetHostGvaAddress() const
+{
+    return hostGva_;
+}
+
+inline void *SmemBmEntry::GetDeviceGvaAddress() const
+{
+    return deviceGva_;
 }
 
 }  // namespace smem

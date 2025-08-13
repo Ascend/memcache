@@ -32,6 +32,8 @@ private:
     int CopyDevice2Gva(void *gvaAddr, const void *deviceAddr, size_t count, void *stream) noexcept;
     int CopyGva2Host(void *hostAddr, const void *gvaAddr, size_t count, void *stream) noexcept;
     int CopyGva2Device(void *deviceAddr, const void *gvaAddr, size_t count, void *stream) noexcept;
+    int CopyGva2HostGva(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept;
+    int CopyHostGva2Gva(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept;
 
     int CopyHost2Gva2d(void *gvaAddr, uint64_t dpitch, const void *hostAddr, uint64_t spitch,
                        size_t width, uint64_t height, void *stream) noexcept;

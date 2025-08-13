@@ -140,6 +140,14 @@ private:
         }                                        \
     } while (0)
 
+#define BM_ASSERT_LOG_AND_RETURN(ARGS, MSG, RESULT)      \
+    do {                                                 \
+        if (__builtin_expect(!(ARGS), 0) != 0) {         \
+            BM_LOG_ERROR(MSG);                           \
+            return RESULT;                               \
+        }                                                \
+    } while (0)
+
 #define BM_ASSERT_RET_VOID(ARGS)                 \
     do {                                         \
         if (__builtin_expect(!(ARGS), 0) != 0) { \

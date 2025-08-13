@@ -110,6 +110,23 @@ uint64_t smem_bm_get_local_mem_size(smem_bm_t handle);
 void *smem_bm_ptr(smem_bm_t handle, uint16_t peerRankId);
 
 /**
+ *
+ * @param handle        [in] Big Memory object handle created by smem_bm_create
+ * @param memType       [in] memory type, device or host
+ * @return local memory size in bytes
+ */
+uint64_t smem_bm_get_local_mem_size_by_mem_type(smem_bm_t handle, smem_bm_mem_type memType);
+
+/**
+ *
+ * @param handle        [in] Big Memory object handle created by smem_bm_create
+ * @param memType       [in] memory type, device or host
+ * @param peerRankId    [in] rank id of peer
+ * @return memory ptr of peer gva
+ */
+void *smem_bm_ptr_by_mem_type(smem_bm_t handle, smem_bm_mem_type memType, uint16_t peerRankId);
+
+/**
  * @brief Data copy on Big Memory object, several copy types supported:
  * L2G: local memory to global space
  * G2L: global space to local memory

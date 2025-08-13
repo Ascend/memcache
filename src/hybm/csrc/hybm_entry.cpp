@@ -220,7 +220,7 @@ HYBM_API int32_t hybm_init(uint16_t deviceId, uint64_t flags)
 
     auto libPath = std::string(path).append("/lib64");
     auto ret = DlApi::LoadLibrary(libPath);
-    BM_LOG_ERROR_RETURN_IT_IF_NOT_OK(ret, "load library from path: " << libPath << " failed: " << ret);
+    BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "load library from path: " << libPath << " failed: " << ret, ret);
 
     ret = DlAclApi::AclrtSetDevice(deviceId);
     if (ret != BM_OK) {

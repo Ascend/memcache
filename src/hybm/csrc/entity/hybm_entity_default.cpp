@@ -83,6 +83,7 @@ void MemEntityDefault::UnInitialize() noexcept
     transportManager_.reset();
     DlAclApi::AclrtDestroyStream(stream_);
     stream_ = nullptr;
+    initialized = false;
 }
 
 int32_t MemEntityDefault::ReserveMemorySpace(void **reservedMem) noexcept
@@ -377,8 +378,8 @@ int32_t MemEntityDefault::CopyData(const void *src, void *dest, uint64_t length,
 
     ExtOptions options{};
     options.flags = flags;
-    segment_->GetRankIdByAddr(src, length, options.srcRankId);
-    segment_->GetRankIdByAddr(dest, length, options.destRankId);
+    options.srcRankId = segment_->GetRankIdByAddr(src, length);
+    options.destRankId = segment_->GetRankIdByAddr(dest, length);
     options.stream = stream;
     return dataOperator_->DataCopy(src, dest, length, direction, options);
 }
@@ -394,8 +395,8 @@ int32_t MemEntityDefault::CopyData2d(const void *src, uint64_t spitch, void *des
     ExtOptions options{};
     options.flags = flags;
     options.stream = stream;
-    segment_->GetRankIdByAddr(src, spitch * height, options.srcRankId);
-    segment_->GetRankIdByAddr(dest, dpitch * height, options.destRankId);
+    options.srcRankId = segment_->GetRankIdByAddr(src, spitch * height);
+    options.destRankId = segment_->GetRankIdByAddr(dest, dpitch * height);
     return dataOperator_->DataCopy2d(src, spitch, dest, dpitch, width, height, direction, options);
 }
 
@@ -578,6 +579,11 @@ bool MemEntityDefault::SdmaReaches(uint32_t remoteRank) const noexcept
     }
     
     return segment_->CheckSmdaReaches(remoteRank);
+}
+
+void *MemEntityDefault::GetReservedMemoryPtr(hybm_mem_type memType) noexcept
+{
+    return gva_;
 }
 }
 }

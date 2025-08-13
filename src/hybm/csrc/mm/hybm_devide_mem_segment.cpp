@@ -390,7 +390,13 @@ bool MemSegmentDevice::CanMapRemote(const HbmExportInfo &rmi) noexcept
     return rmi.superPodId == superPodId_;
 }
 
-void MemSegmentDevice::GetRankIdByAddr(const void *addr, uint64_t size, uint32_t &rankId) const noexcept {}
+uint32_t MemSegmentDevice::GetRankIdByAddr(const void *addr, uint64_t size) const noexcept
+{
+    if (!MemoryInRange(addr, size)) {
+        return UINT32_MAX;
+    }
+    return (reinterpret_cast<uint64_t>(addr) - reinterpret_cast<uint64_t>(globalVirtualAddress_)) / options_.size;
+}
 
 bool MemSegmentDevice::CheckSmdaReaches(uint32_t rankId) const noexcept
 {

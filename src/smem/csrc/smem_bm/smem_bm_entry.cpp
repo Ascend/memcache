@@ -81,6 +81,8 @@ int32_t SmemBmEntry::Initialize(const hybm_options &options)
     coreOptions_ = options;
     entity_ = entity;
     gva_ = reservedMem;
+    hostGva_ = hybm_get_memory_ptr(entity, HYBM_MEM_TYPE_HOST);
+    deviceGva_ = hybm_get_memory_ptr(entity, HYBM_MEM_TYPE_DEVICE);
     inited_ = true;
     return 0;
 }
@@ -260,12 +262,31 @@ Result SmemBmEntry::CreateGlobalTeam(uint32_t rankSize, uint32_t rankId)
 
 bool SmemBmEntry::AddressInRange(const void *address, uint64_t size)
 {
-    if (address < gva_) {
+    return AddrInHostGva(address, size) || AddrInDeviceGva(address, size);
+}
+
+bool SmemBmEntry::AddrInHostGva(const void *address, uint64_t size)
+{
+    if (hostGva_ == nullptr) {
         return false;
     }
 
-    auto totalSize = coreOptions_.singleRankVASpace * coreOptions_.rankCount;
-    if ((const uint8_t *)address + size >= (const uint8_t *)gva_ + totalSize) {
+    auto totalSize = coreOptions_.hostVASpace * coreOptions_.rankCount;
+    if ((const uint8_t *)address + size >= (const uint8_t *)hostGva_ + totalSize) {
+        return false;
+    }
+
+    return true;
+}
+
+bool SmemBmEntry::AddrInDeviceGva(const void *address, uint64_t size)
+{
+    if (deviceGva_ == nullptr) {
+        return false;
+    }
+
+    auto totalSize = coreOptions_.deviceVASpace * coreOptions_.rankCount;
+    if ((const uint8_t *)address + size >= (const uint8_t *)deviceGva_ + totalSize) {
         return false;
     }
 

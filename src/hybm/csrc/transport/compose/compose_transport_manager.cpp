@@ -216,7 +216,7 @@ Result ComposeTransportManager::Prepare(const HybmTransPrepareOptions &options)
 
 Result ComposeTransportManager::Connect()
 {
-    if (!hostTransportManager_) {
+    if (hostTransportManager_) {
         auto ret = hostTransportManager_->Connect();
         if (ret != BM_OK) {
             BM_LOG_ERROR("Failed to connect host ret: " << ret);
@@ -224,7 +224,7 @@ Result ComposeTransportManager::Connect()
         }
     }
 
-    if (!deviceTransportManager_) {
+    if (deviceTransportManager_) {
         auto ret = hostTransportManager_->Connect();
         if (ret != BM_OK) {
             BM_LOG_ERROR("Failed to connect host ret: " << ret);
@@ -236,7 +236,7 @@ Result ComposeTransportManager::Connect()
 
 Result ComposeTransportManager::AsyncConnect()
 {
-    if (!hostTransportManager_) {
+    if (hostTransportManager_) {
         auto ret = hostTransportManager_->AsyncConnect();
         if (ret != BM_OK) {
             BM_LOG_ERROR("Failed to connect host ret: " << ret);
@@ -244,7 +244,7 @@ Result ComposeTransportManager::AsyncConnect()
         }
     }
 
-    if (!deviceTransportManager_) {
+    if (deviceTransportManager_) {
         auto ret = hostTransportManager_->AsyncConnect();
         if (ret != BM_OK) {
             BM_LOG_ERROR("Failed to connect host ret: " << ret);
@@ -256,7 +256,7 @@ Result ComposeTransportManager::AsyncConnect()
 
 Result ComposeTransportManager::WaitForConnected(int64_t timeoutNs)
 {
-    if (!hostTransportManager_) {
+    if (hostTransportManager_) {
         auto ret = hostTransportManager_->WaitForConnected(timeoutNs);
         if (ret != BM_OK) {
             BM_LOG_ERROR("Failed to connect host ret: " << ret);
@@ -264,7 +264,7 @@ Result ComposeTransportManager::WaitForConnected(int64_t timeoutNs)
         }
     }
 
-    if (!deviceTransportManager_) {
+    if (deviceTransportManager_) {
         auto ret = hostTransportManager_->WaitForConnected(timeoutNs);
         if (ret != BM_OK) {
             BM_LOG_ERROR("Failed to connect host ret: " << ret);
