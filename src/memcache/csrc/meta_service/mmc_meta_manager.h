@@ -9,6 +9,7 @@
 #include "mmc_meta_container.h"
 #include "mmc_meta_service.h"
 #include "mmc_msg_packer.h"
+#include "mmc_meta_backup_mgr.h"
 #include <functional>
 #include <thread>
 #include <list>
@@ -173,7 +174,7 @@ private:
     std::mutex removeThreadLock_;
     std::condition_variable removeThreadCv_;
     std::mutex removeListLock_;
-    std::list<MmcMemObjMetaPtr> removeList_;
+    std::list<std::pair<std::string, MmcMemObjMetaPtr>> removeList_;
     uint64_t defaultTtlMs_; /* defult ttl in miliseconds*/
     uint16_t evictThresholdHigh_;
     uint16_t evictThresholdLow_;

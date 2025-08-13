@@ -13,8 +13,8 @@ namespace ock {
 namespace mmc {
 
 /**
- * @brief State of blob
- */
+* @brief State of blob
+*/
 using BlobLeaseFunction = std::function<Result(MmcMetaLeaseManager &leaseMgr, uint32_t rankId, uint32_t requestId)>;
 
 /**

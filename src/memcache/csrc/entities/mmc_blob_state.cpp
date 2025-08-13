@@ -2,12 +2,13 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
 #include "mmc_blob_state.h"
+#include "mmc_mem_blob.h"
 
 namespace ock {
 namespace mmc {
 /**
- * @brief tuple struct of transition table of state machine
- */
+* @brief tuple struct of transition table of state machine
+*/
 struct StateTransitionItem {
     BlobState curState;
     Result retCode;

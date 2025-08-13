@@ -428,7 +428,7 @@ TEST_F(TestMmcBlobAllocator, testBlobAllocatorEdgeCases)
 TEST_F(TestMmcBlobAllocator, StopBehavior)
 {
     allocator->Stop();
-    
+
     EXPECT_FALSE(allocator->CanAlloc(1024));
     auto blob = allocator->Alloc(1024);
     EXPECT_EQ(blob.Get(), nullptr);
@@ -444,16 +444,16 @@ TEST_F(TestMmcBlobAllocator, AllocCoverage)
 {
     auto largeBlob = allocator->Alloc(CAPACITY * 2);
     EXPECT_EQ(largeBlob.Get(), nullptr);
-    
+
     auto exactBlob = allocator->Alloc(4096);
-    
+
     auto splitBlob = allocator->Alloc(2048);
-    
+
     uint64_t blobAddr = splitBlob->Gva();
     uint64_t baseAddr = reinterpret_cast<uint64_t>(baseMem);
     EXPECT_GE(blobAddr, baseAddr);
     EXPECT_LE(blobAddr - baseAddr, CAPACITY);
-    
+
     auto largeBlob2 = allocator->Alloc(CAPACITY - 1);
     EXPECT_EQ(largeBlob2.Get(), nullptr);
 }
@@ -498,11 +498,11 @@ TEST_F(TestMmcBlobAllocator, ReleaseCoverage)
 TEST_F(TestMmcBlobAllocator, AllocationAfterRelease)
 {
     auto blob1 = allocator->Alloc(8192);
-    
+
     auto blob2 = allocator->Alloc(4096);
-    
+
     EXPECT_EQ(allocator->Release(blob1), ock::mmc::MMC_OK);
     EXPECT_EQ(allocator->Release(blob2), ock::mmc::MMC_OK);
-    
+
     auto fullBlob = allocator->Alloc(CAPACITY - 1);
 }

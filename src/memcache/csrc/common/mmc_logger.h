@@ -168,13 +168,6 @@ private:
         }                                        \
     } while (0)
 
-#define MMC_ASSERT_RETURN_NOLOG(ARGS, RET)       \
-    do {                                         \
-        if (__builtin_expect(!(ARGS), 0) != 0) { \
-            return RET;                          \
-        }                                        \
-    } while (0)
-
 #define MMC_ASSERT(ARGS)                         \
     do {                                         \
         if (__builtin_expect(!(ARGS), 0) != 0) { \

@@ -549,26 +549,23 @@ struct BmUnregisterRequest : public MsgBase {
 
 struct MetaReplicateRequest : public MsgBase {
     std::string key_;
+    uint32_t op_;
     MmcMemBlobDesc blob_; /* pointers of blobs */
-    uint16_t prot_{0};    /* prot of the mem object, i.e. accessibility */
-    uint8_t priority_{0}; /* priority of the memory object, used for eviction */
 
     MetaReplicateRequest() : MsgBase{0, LM_META_REPLICATE_REQ, 0} {}
-    MetaReplicateRequest(const std::string &key, const MmcMemBlobDesc &blobDesc, const uint16_t &prot,
-                         const uint8_t &priority)
+    MetaReplicateRequest(const std::string &key, const uint32_t op, const MmcMemBlobDesc &blobDesc)
         : MsgBase{0, LM_META_REPLICATE_REQ, 0},
           key_(key),
-          blob_(blobDesc),
-          prot_(prot),
-          priority_(priority){}
+          op_(op),
+          blob_(blobDesc) {}
 
     Result Serialize(NetMsgPacker &packer) const override
     {
         packer.Serialize(msgVer);
         packer.Serialize(msgId);
         packer.Serialize(destRankId);
-        packer.Serialize(prot_);
-        packer.Serialize(priority_);
+        packer.Serialize(key_);
+        packer.Serialize(op_);
         packer.Serialize(blob_);
         return MMC_OK;
     }
@@ -578,8 +575,8 @@ struct MetaReplicateRequest : public MsgBase {
         packer.Deserialize(msgVer);
         packer.Deserialize(msgId);
         packer.Deserialize(destRankId);
-        packer.Deserialize(prot_);
-        packer.Deserialize(priority_);
+        packer.Deserialize(key_);
+        packer.Deserialize(op_);
         packer.Deserialize(blob_);
         return MMC_OK;
     }

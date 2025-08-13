@@ -9,6 +9,7 @@
 #include "mmc_meta_lease_manager.h"
 #include "mmc_montotonic.h"
 #include "mmc_def.h"
+#include "mmc_meta_backup_mgr_factory.h"
 
 namespace ock {
 namespace mmc {
@@ -38,22 +39,6 @@ struct MmcBlobFilter : public MmcReferable {
 };
 using MmcBlobFilterPtr = MmcRef<MmcBlobFilter>;
 
-struct MmcMemBlobDesc {
-    uint32_t rank_ = UINT32_MAX;        /* rank id of the blob located */
-    uint64_t size_ = 0;                 /* data size of the blob */
-    uint64_t gva_ = UINT64_MAX;         /* global virtual address */
-    uint16_t mediaType_ = UINT16_MAX;   /* media type where blob located */
-    uint16_t prot_ = 0;                 /* prot, i.e. access */
-    BlobState state_ = BlobState::NONE; /* state of the blob */
-
-    MmcMemBlobDesc() = default;
-    MmcMemBlobDesc(const uint32_t &rank, const uint64_t &gva, const uint64_t &size, const uint16_t &mediaType,
-                   const BlobState &state, const uint16_t &prot)
-        : rank_(rank), size_(size), gva_(gva), mediaType_(mediaType), prot_(prot), state_(state)
-    {
-    }
-};
-
 class MmcMemBlob final : public MmcReferable {
 public:
     MmcMemBlob() = delete;
@@ -69,7 +54,7 @@ public:
      *
      * @param ret     [in] BlobActionResult
      */
-    Result UpdateState(uint32_t rankId, uint32_t operateId, BlobActionResult ret);
+    Result UpdateState(const std::string &key, uint32_t rankId, uint32_t operateId, BlobActionResult ret);
 
     /**
      * @brief Link a blob to this blob
@@ -139,6 +124,11 @@ public:
     /**
      * 原则：blob由 MmcMemObjMeta 维护生命周期及锁的保护
      */
+
+    Result Backup(const std::string &key);
+
+    Result BackupRemove(const std::string &key);
+
 private:
     const uint32_t rank_;              /* rank id of the blob located */
     const uint64_t gva_;               /* global virtual address */
@@ -150,37 +140,6 @@ private:
     MmcMemBlobPtr nextBlob_;
     static const StateTransTable stateTransTable_;
 };
-
-inline Result MmcMemBlob::UpdateState(uint32_t rankId, uint32_t operateId, BlobActionResult ret)
-{
-    auto curStateIter = stateTransTable_.find(state_);
-    if (curStateIter == stateTransTable_.end()) {
-        MMC_LOG_ERROR("Cannot update state! The current state is not in the stateTransTable!");
-        return MMC_UNMATCHED_STATE;
-    }
-
-    const auto retIter = curStateIter->second.find(ret);
-    if (retIter == curStateIter->second.end()) {
-        MMC_LOG_ERROR("Cannot update state! Current state is " << std::to_string(state_) << ", ret("
-                                                               << std::to_string(ret)
-                                                               << ") dismatch! RetCode: " << MMC_UNMATCHED_RET);
-        return MMC_UNMATCHED_RET;
-    }
-
-    MMC_LOG_INFO("update blob state from " << std::to_string(state_) << " to ("
-        << std::to_string(retIter->second.state_) << ")");
-
-    state_ = retIter->second.state_;
-    if (retIter->second.action_) {
-        auto res = retIter->second.action_(metaLeaseManager_, rankId, operateId);
-        if (res != MMC_OK) {
-            MMC_LOG_ERROR("Blob update current state is " << std::to_string(state_) << " by ret(" << std::to_string(ret)
-                                                          << ") failed! res=" << res);
-            return res;
-        }
-    }
-    return MMC_OK;
-}
 
 inline Result MmcMemBlob::Next(const MmcMemBlobPtr &nextBlob)
 {
@@ -240,7 +199,7 @@ inline bool MmcMemBlob::MatchFilter(const MmcBlobFilterPtr &filter) const
 
 inline MmcMemBlobDesc MmcMemBlob::GetDesc() const
 {
-    return MmcMemBlobDesc{rank_, gva_, size_, mediaType_, state_, prot_};
+    return MmcMemBlobDesc{rank_, gva_, size_, mediaType_};
 }
 
 Result MmcMemBlob::ExtendLease(const uint32_t id, const uint32_t requestId, uint64_t ttl)
@@ -256,6 +215,7 @@ bool MmcMemBlob::IsLeaseExpired()
     metaLeaseManager_.Wait();
     return true;
 }
+
 }  // namespace mmc
 }  // namespace ock
 

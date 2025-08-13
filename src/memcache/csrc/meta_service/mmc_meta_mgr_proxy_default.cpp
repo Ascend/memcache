@@ -32,14 +32,14 @@ Result MmcMetaMgrProxyDefault::BatchAlloc(const BatchAllocRequest &req, BatchAll
         if (allocResults[i] != MMC_OK) {
             MMC_LOG_ERROR("Allocation failed for key: " << req.keys_[i] << ", error: " << allocResults[i]);
         }
-        ProcessAllocatedObject(i, objMetas[i], req, resp);
+        ProcessAllocatedObject(i, objMetas[i], resp);
     }
     
     return MMC_OK;
 }
 
 void MmcMetaMgrProxyDefault::ProcessAllocatedObject(size_t index, const MmcMemObjMetaPtr& objMeta,
-                                                    const BatchAllocRequest &req, BatchAllocResponse &resp)
+                                                    BatchAllocResponse &resp)
 {
     if (objMeta == nullptr) {
         resp.numBlobs_.push_back(0);
@@ -54,22 +54,6 @@ void MmcMetaMgrProxyDefault::ProcessAllocatedObject(size_t index, const MmcMemOb
     resp.priorities_.push_back(objMeta->Priority());
     resp.leases_.push_back(0);
     objMeta->GetBlobsDesc(resp.blobs_[index]);
-}
-
-void MmcMetaMgrProxyDefault::HandleBlobReplication(size_t objIndex, size_t blobIndex,
-                                                   const MmcMemBlobDesc& blobDesc,
-                                                   const MmcMemObjMetaPtr& objMeta,
-                                                   const BatchAllocRequest &req)
-{
-    MetaReplicateRequest replicateReq{
-        req.keys_[objIndex],
-        blobDesc,
-        objMeta->Prot(),
-        objMeta->Priority()
-    };
-    
-    Response replicateResp;
-    netServerPtr_->SyncCall(blobDesc.rank_, replicateReq, replicateResp, timeOut_);
 }
 
 Result MmcMetaMgrProxyDefault::UpdateState(const UpdateRequest& req, Response& resp)
@@ -116,7 +100,7 @@ Result MmcMetaMgrProxyDefault::Get(const GetRequest &req, AllocResponse &resp)
     MmcBlobFilterPtr filterPtr = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, READABLE);
     std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs(filterPtr);
     for (auto blob : blobs) {
-        auto ret = blob->UpdateState(req.rankId_, req.operateId_, MMC_READ_START);
+        auto ret = blob->UpdateState(req.key_, req.rankId_, req.operateId_, MMC_READ_START);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("update key " << req.key_ << " blob state failed with error: " << ret);
             continue;
@@ -171,7 +155,7 @@ Result MmcMetaMgrProxyDefault::BatchGet(const BatchGetRequest &req, BatchAllocRe
             std::vector<MmcMemBlobPtr> blobs = objMeta->GetBlobs(filterPtr);
             std::vector<MmcMemBlobDesc> descVec;
             for (auto blob : blobs) {
-                auto ret = blob->UpdateState(req.rankId_, req.operateId_, MMC_READ_START);
+                auto ret = blob->UpdateState(req.keys_[i], req.rankId_, req.operateId_, MMC_READ_START);
                 if (ret != MMC_OK) {
                     MMC_LOG_ERROR("update key " << req.keys_[i] << " blob state failed with error: " << ret);
                     continue;

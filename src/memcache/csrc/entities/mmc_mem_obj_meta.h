@@ -46,7 +46,8 @@ public:
      * @param allocator allocator ptr
      * @return 0 if removed
      */
-    Result FreeBlobs(MmcGlobalAllocatorPtr &allocator, const MmcBlobFilterPtr &filter = nullptr);
+    Result FreeBlobs(const std::string &key, MmcGlobalAllocatorPtr &allocator,
+                     const MmcBlobFilterPtr &filter = nullptr);
 
     /**
      * @brief Get the prot
@@ -75,7 +76,8 @@ public:
     void GetBlobsDesc(std::vector<MmcMemBlobDesc>& blobsDesc, const MmcBlobFilterPtr& filter = nullptr,
                       bool revert = false);
 
-    Result UpdateBlobsState(const MmcBlobFilterPtr& filter, uint64_t operateId, BlobActionResult actRet);
+    Result UpdateBlobsState(const std::string& key, const MmcBlobFilterPtr& filter, uint64_t operateId,
+                            BlobActionResult actRet);
 
     /**
      * @brief Get the size

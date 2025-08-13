@@ -40,6 +40,7 @@ private:
     Result GetLogPath(std::string &logPath, std::string &logAuditPath);
     MetaNetServerPtr metaNetServer_;
     MmcMetaMgrProxyPtr metaMgrProxy_;
+    MMCMetaBackUpMgrPtr metaBackUpMgrPtr_;
 
     std::mutex mutex_;
     bool started_ = false;

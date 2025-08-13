@@ -51,11 +51,7 @@ public:
 
     Result BatchAlloc(const BatchAllocRequest &req, BatchAllocResponse &resp) override;
 
-    void ProcessAllocatedObject(size_t index, const MmcMemObjMetaPtr& objMeta,
-                                const BatchAllocRequest &req, BatchAllocResponse &resp);
-
-    void HandleBlobReplication(size_t objIndex, size_t blobIndex, const MmcMemBlobDesc& blobDesc,
-                               const MmcMemObjMetaPtr& objMeta, const BatchAllocRequest &req);
+    void ProcessAllocatedObject(size_t index, const MmcMemObjMetaPtr& objMeta, BatchAllocResponse &resp);
 
     Result UpdateState(const UpdateRequest &req, Response &resp) override;
 

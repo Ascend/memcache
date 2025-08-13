@@ -90,13 +90,13 @@ Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOp
     uint32_t opSeq = GetSequenceByOperateId(operateId);
     for (auto& blob : blobs) {
         MMC_LOG_DEBUG("Blob allocated, key=" << key << ", size=" << blob->Size() << ", rank=" << blob->Rank());
-        blob->UpdateState(opRankId, opSeq, MMC_ALLOCATED_OK);
+        blob->UpdateState(key, opRankId, opSeq, MMC_ALLOCATED_OK);
         tempMetaObj->AddBlob(blob);
     }
 
     ret = metaContainer_->Insert(key, tempMetaObj);
     if (ret != MMC_OK) {
-        tempMetaObj->FreeBlobs(globalAllocator_);
+        tempMetaObj->FreeBlobs(key, globalAllocator_);
         MMC_LOG_ERROR("Fail to insert " << key << " into MmcMetaContainer. ret:" << ret);
     } else {
         objMeta = tempMetaObj;
@@ -145,7 +145,7 @@ Result MmcMetaManager::UpdateState(const std::string& key, const MmcLocation& lo
         return MMC_UNMATCHED_KEY;
     }
     MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(loc.rank_, loc.mediaType_, NONE);
-    return metaObj->UpdateBlobsState(filter, operateId, actRet);
+    return metaObj->UpdateBlobsState(key, filter, operateId, actRet);
 }
 
 Result MmcMetaManager::BatchUpdateState(const std::vector<std::string>& keys, const std::vector<MmcLocation>& locs,
@@ -172,7 +172,7 @@ Result MmcMetaManager::Remove(const std::string &key)
     MMC_RETURN_ERROR(metaContainer_->Erase(key, objMeta), "remove: Fail to erase from container!");
     {
         std::lock_guard<std::mutex> lg(removeListLock_);
-        removeList_.push_back(objMeta);
+        removeList_.push_back({key, objMeta});
     }
     {
         std::lock_guard<std::mutex> lk(removeThreadLock_);
@@ -212,7 +212,7 @@ Result MmcMetaManager::Unmount(const MmcLocation &loc)
         auto kv = **it;
         std::string key = kv.first;
         MmcMemObjMetaPtr objMeta = kv.second;
-        ret = objMeta->FreeBlobs(globalAllocator_, filter);
+        ret = objMeta->FreeBlobs(key, globalAllocator_, filter);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("Fail to force remove key:" << key << " blobs in when unmount!");
             return MMC_ERROR;
@@ -249,7 +249,7 @@ void MmcMetaManager::AsyncRemoveThreadFunc()
             std::lock_guard<std::mutex> lg(removeListLock_);
             MmcMemObjMetaPtr objMeta;
             for (auto iter = removeList_.begin(); iter != removeList_.end();) {
-                (*iter)->FreeBlobs(globalAllocator_);
+                (*iter).second->FreeBlobs((*iter).first, globalAllocator_);
                 iter = removeList_.erase(iter);
             }
         }

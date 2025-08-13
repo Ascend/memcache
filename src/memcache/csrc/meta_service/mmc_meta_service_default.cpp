@@ -1,6 +1,7 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
+#include "mmc_ref.h"
 #include "mmc_meta_service_default.h"
 #include "mmc_meta_mgr_proxy_default.h"
 #include "mmc_meta_net_server.h"
@@ -42,7 +43,7 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     std::string url{options_.discoveryURL};
     NetEngineOptions::ExtractIpPortFromUrl(url, netOptions);
     netOptions.name = name_;
-    netOptions.threadCount = 2;
+    netOptions.threadCount = 4;
     netOptions.rankId = 0;
     netOptions.startListener = true;
     netOptions.tlsOption = options_.tlsConfig;
@@ -50,9 +51,15 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     netOptions.logLevel = options_.logLevel;
     MMC_RETURN_ERROR(metaNetServer_->Start(netOptions), "Failed to start net server of meta service " << name_);
 
+    metaBackUpMgrPtr_ = MMCMetaBackUpMgrFactory::GetInstance("DefaultMetaBackup");
+    MMCMetaBackUpConfPtr defaultPtr = MmcMakeRef<MMCMetaBackUpConfDefault>(metaNetServer_).Get();
+    MMC_ASSERT_RETURN(metaBackUpMgrPtr_ != nullptr, MMC_MALLOC_FAILED);
+    MMC_RETURN_ERROR(metaBackUpMgrPtr_->Start(defaultPtr), "metaBackUpMgr start failed");
+
     metaMgrProxy_ = MmcMakeRef<MmcMetaMgrProxyDefault>(metaNetServer_).Get();
     MMC_RETURN_ERROR(metaMgrProxy_->Start(MMC_DATA_TTL_MS, options.evictThresholdHigh, options.evictThresholdLow),
                      "Failed to start meta mgr proxy of meta service " << name_);
+
     started_ = true;
     MMC_LOG_INFO("Started MetaService (" << name_ << ") at " << options_.discoveryURL);
     return MMC_OK;
@@ -129,6 +136,7 @@ void MmcMetaServiceDefault::Stop()
         MMC_LOG_WARN("MmcClientDefault has not been started");
         return;
     }
+    metaBackUpMgrPtr_->Stop();
     metaMgrProxy_->Stop();
     metaNetServer_->Stop();
     MMC_LOG_INFO("Stop MmcMetaServiceDefault (" << name_ << ") at " << options_.discoveryURL);

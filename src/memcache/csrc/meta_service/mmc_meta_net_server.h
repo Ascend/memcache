@@ -6,7 +6,6 @@
 #define SMEM_MMC_META_NET_SERVER_H
 #include "mmc_meta_common.h"
 #include "mmc_net_engine.h"
-#include "mmc_meta_mgr_proxy.h"
 
 namespace ock {
 namespace mmc {

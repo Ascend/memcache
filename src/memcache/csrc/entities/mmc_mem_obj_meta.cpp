@@ -71,7 +71,8 @@ Result MmcMemObjMeta::RemoveBlobs(const MmcBlobFilterPtr &filter, bool revert)
     return numBlobs_ < oldNumBlobs ? MMC_OK : MMC_ERROR;
 }
 
-Result MmcMemObjMeta::FreeBlobs(MmcGlobalAllocatorPtr& allocator, const MmcBlobFilterPtr& filter)
+Result MmcMemObjMeta::FreeBlobs(const std::string &key, MmcGlobalAllocatorPtr &allocator,
+                                const MmcBlobFilterPtr &filter)
 {
     std::lock_guard<std::recursive_mutex> guard(mtx_);
     if (NumBlobs() == 0) {
@@ -81,7 +82,8 @@ Result MmcMemObjMeta::FreeBlobs(MmcGlobalAllocatorPtr& allocator, const MmcBlobF
     RemoveBlobs(filter);
     Result result = MMC_OK;
     for (size_t i = 0; i < blobs.size(); i++) {
-        auto ret = blobs[i]->UpdateState(0, 0, MMC_REMOVE_START);
+        MMC_RETURN_ERROR(blobs[i]->BackupRemove(key), "memBlob remove backup error");
+        auto ret = blobs[i]->UpdateState(key, 0, 0, MMC_REMOVE_START);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("remove op, meta update failed:" << ret);
             result = MMC_ERROR;
@@ -126,7 +128,8 @@ void MmcMemObjMeta::GetBlobsDesc(std::vector<MmcMemBlobDesc>& blobsDesc, const M
     }
 }
 
-Result MmcMemObjMeta::UpdateBlobsState(const MmcBlobFilterPtr& filter, uint64_t operateId, BlobActionResult actRet)
+Result MmcMemObjMeta::UpdateBlobsState(const std::string& key, const MmcBlobFilterPtr& filter, uint64_t operateId,
+                                       BlobActionResult actRet)
 {
     std::lock_guard<std::recursive_mutex> guard(mtx_);
     std::vector<MmcMemBlobPtr> blobs = GetBlobs(filter);
@@ -136,7 +139,7 @@ Result MmcMemObjMeta::UpdateBlobsState(const MmcBlobFilterPtr& filter, uint64_t 
 
     Result result = MMC_OK;
     for (auto blob : blobs) {
-        auto ret = blob->UpdateState(opRankId, opSeq, actRet);
+        auto ret = blob->UpdateState(key, opRankId, opSeq, actRet);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("Update rank:" << opRankId << ", seq:" << opSeq << " blob state by " << std::to_string(actRet)
                                          << " Fail!");
