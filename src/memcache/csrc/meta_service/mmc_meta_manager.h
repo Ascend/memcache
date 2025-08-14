@@ -158,6 +158,11 @@ public:
      */
     Result Query(const std::string &key, MemObjQueryInfo &queryInfo);
 
+    /**
+     * @brief check and evict meta objects
+     */
+    void CheckAndEvict();
+
     inline uint64_t Ttl()
     {
         return defaultTtlMs_;
@@ -167,8 +172,6 @@ private:
     Result RebuildMeta(std::map<std::string, MmcMemBlobDesc> &blobMap);
 
     void AsyncRemoveThreadFunc();
-
-    void CheckAndEvict();
 
     std::mutex mutex_;
     bool started_ = false;

@@ -163,6 +163,7 @@ TEST_F(TestMmcMetaManager, LRU)
     for (int i = 0; i < numKeys; ++i) {
         MmcMemMetaDesc objMeta;
         string key = "testKey" + std::to_string(i);
+        metaMng->CheckAndEvict();
         ret = metaMng->Alloc(key, allocReq, 1, objMeta);
         ASSERT_TRUE(ret == MMC_OK);
         memMetaObjs.push_back(objMeta);

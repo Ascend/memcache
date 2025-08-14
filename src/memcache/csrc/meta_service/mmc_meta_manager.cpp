@@ -59,8 +59,6 @@ void MmcMetaManager::CheckAndEvict()
 Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOpt, uint64_t operateId,
                              MmcMemMetaDesc& objMeta)
 {
-    CheckAndEvict();
-
     MmcMemObjMetaPtr tempMetaObj = MmcMakeRef<MmcMemObjMeta>();
     std::vector<MmcMemBlobPtr> blobs;
 
