@@ -20,6 +20,7 @@ static constexpr uint32_t invalidSuperPodId = 0xFFFFFFFFU;
 static constexpr uint32_t invalidServerId = 0x3FFU;
 
 int MemSegmentDevice::deviceId_{-1};
+int MemSegmentDevice::logicDeviceId_{-1};
 int MemSegmentDevice::pid_{-1};
 uint32_t MemSegmentDevice::sdid_{0};
 uint32_t MemSegmentDevice::serverId_{0};
@@ -207,8 +208,8 @@ Result MemSegmentDevice::ReserveMemorySpace(void **address) noexcept
 
     void *globalMemoryBase = nullptr;
     size_t allocSize = HYBM_DEVICE_INFO_SIZE;  // 申请meta空间
-    drv::HybmInitialize(deviceId_, DlHalApi::GetDevmmFd());
-    auto ret = drv::HalGvaReserveMemory((uint64_t *)&globalMemoryBase, allocSize, (int32_t)deviceId_, 0);
+    drv::HybmInitialize(logicDeviceId_, DlHalApi::GetDevmmFd());
+    auto ret = drv::HalGvaReserveMemory((uint64_t *)&globalMemoryBase, allocSize, logicDeviceId_, 0);
     if (ret != 0) {
         BM_LOG_ERROR("initialize mete memory with size: " << allocSize << " failed: " << ret);
         return -1;
@@ -223,7 +224,7 @@ Result MemSegmentDevice::ReserveMemorySpace(void **address) noexcept
 
     uint64_t base = 0;
     totalVirtualSize_ = options_.rankCnt * options_.size;
-    ret = drv::HalGvaReserveMemory(&base, totalVirtualSize_, deviceId_, 0ULL);
+    ret = drv::HalGvaReserveMemory(&base, totalVirtualSize_, logicDeviceId_, 0ULL);
     if (ret != 0 || base == 0) {
         drv::HalGvaFree(HYBM_DEVICE_META_ADDR, HYBM_DEVICE_INFO_SIZE);
         BM_LOG_ERROR("prepare virtual memory size(" << totalVirtualSize_ << ") failed. ret: " << ret);
@@ -487,6 +488,43 @@ void MemSegmentDevice::FreeMemory() noexcept
     BM_LOG_INFO("uninitialize GVA memory return: " << ret);
 }
 
+static inline std::vector<std::string> Split(const std::string& str, char delimiter)
+{
+    std::vector<std::string> result;
+    std::stringstream ss(str);
+    std::string item;
+
+    while (std::getline(ss, item, delimiter)) {
+        result.push_back(item);
+    }
+
+    return result;
+}
+
+int MemSegmentDevice::GetLogicDeviceId(const int &deviceId) noexcept
+{
+    int logicDeviceId = -1;
+    auto visibleDevStr = std::getenv("ASCEND_RT_VISIBLE_DEVICES");
+    if (visibleDevStr == nullptr) {
+        BM_LOG_INFO("Not set rt visible env return deviceId: " << deviceId);
+        return deviceId;
+    } else {
+        auto devList = Split(visibleDevStr, ',');
+        if (devList.size() <= static_cast<uint32_t>(deviceId)) {
+            BM_LOG_ERROR("Failed to get visible dev: " << visibleDevStr << " deviceId: " << deviceId);
+            return -1;
+        } else {
+            try {
+                logicDeviceId = std::stoi(devList[deviceId]);
+            } catch (...) {
+                BM_LOG_ERROR("Failed to get visible dev: " << visibleDevStr << " deviceId: " << deviceId);
+                return BM_ERROR;
+            }
+        }
+    }
+    return logicDeviceId;
+}
+
 int MemSegmentDevice::GetDeviceId(int deviceId) noexcept
 {
     if (deviceId < 0) {
@@ -501,6 +539,12 @@ int MemSegmentDevice::GetDeviceId(int deviceId) noexcept
         return BM_INVALID_PARAM;
     }
 
+    auto logicDeviceId = GetLogicDeviceId(deviceId);
+    if (logicDeviceId < 0) {
+        BM_LOG_ERROR("Failed to get logic deviceId: " << deviceId);
+        return BM_ERROR;
+    }
+
     uint32_t tgid = 0;
     auto ret = DlAclApi::RtDeviceGetBareTgid(&tgid);
     if (ret != BM_OK) {
@@ -509,6 +553,7 @@ int MemSegmentDevice::GetDeviceId(int deviceId) noexcept
     }
 
     deviceId_ = deviceId;
+    logicDeviceId_ = logicDeviceId;
     pid_ = static_cast<int>(tgid);
     ret = FillDeviceSuperPodInfo();
     if (ret != BM_OK) {
