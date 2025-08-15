@@ -85,11 +85,8 @@ public:
      */
     uint64_t Size();
 
-    std::recursive_mutex& GetLock() { return mtx_; }
-
     friend std::ostream &operator<<(std::ostream &os, MmcMemObjMeta &obj)
     {
-        std::lock_guard<std::recursive_mutex> guard(obj.mtx_);
         os << "MmcMemObjMeta{numBlobs=" << static_cast<int>(obj.numBlobs_) << ",size=" << obj.size_
            << ",priority=" << obj.priority_ << ",prot=" << obj.prot_ << "}";
         return os;
@@ -105,32 +102,27 @@ private:
     uint8_t numBlobs_{0};                      /* number of blob that the memory object, i.e. replica count */
     MmcMemBlobPtr blobs_[MAX_NUM_BLOB_CHAINS]; /* pointers of blobs */
     uint64_t size_{0};                         /* byteSize of each blob */
-    std::recursive_mutex mtx_;            // classic 40 bytes
 };
 
 using MmcMemObjMetaPtr = MmcRef<MmcMemObjMeta>;
 
 inline uint16_t MmcMemObjMeta::Prot()
 {
-    std::lock_guard<std::recursive_mutex> guard(mtx_);
     return prot_;
 }
 
 inline uint8_t MmcMemObjMeta::Priority()
 {
-    std::lock_guard<std::recursive_mutex> guard(mtx_);
     return priority_;
 }
 
 inline uint16_t MmcMemObjMeta::NumBlobs()
 {
-    std::lock_guard<std::recursive_mutex> guard(mtx_);
     return numBlobs_;
 }
 
 inline uint64_t MmcMemObjMeta::Size()
 {
-    std::lock_guard<std::recursive_mutex> guard(mtx_);
     return size_;
 }
 

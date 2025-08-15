@@ -585,6 +585,36 @@ struct MetaReplicateRequest : public MsgBase {
     }
 };
 
+struct BlobCopyRequest : public MsgBase {
+    MmcMemBlobDesc srcBlob_;
+    MmcMemBlobDesc dstBlob_;
+
+    BlobCopyRequest() : MsgBase{0, LM_BLOB_COPY_REQ, 0} {}
+    BlobCopyRequest(const MmcMemBlobDesc& src, const MmcMemBlobDesc& dst)
+        : MsgBase{0, LM_BLOB_COPY_REQ, 0}, srcBlob_(src), dstBlob_(dst)
+    {}
+
+    Result Serialize(NetMsgPacker& packer) const override
+    {
+        packer.Serialize(msgVer);
+        packer.Serialize(msgId);
+        packer.Serialize(destRankId);
+        packer.Serialize(srcBlob_);
+        packer.Serialize(dstBlob_);
+        return MMC_OK;
+    }
+
+    Result Deserialize(NetMsgUnpacker& packer) override
+    {
+        packer.Deserialize(msgVer);
+        packer.Deserialize(msgId);
+        packer.Deserialize(destRankId);
+        packer.Deserialize(srcBlob_);
+        packer.Deserialize(dstBlob_);
+        return MMC_OK;
+    }
+};
+
 struct IsExistRequest : MsgBase {
     std::string key_;
 

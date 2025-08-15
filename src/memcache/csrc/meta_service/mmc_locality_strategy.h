@@ -15,6 +15,10 @@
 namespace ock {
 namespace mmc {
 
+enum AllocFlags {
+    ALLOC_FORCE_BY_RANK = 1 << 0, // 按照rank强制分配
+};
+
 struct AllocOptions {
     uint64_t blobSize_{0};
     uint32_t numBlobs_{0};

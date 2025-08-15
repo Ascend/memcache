@@ -10,14 +10,17 @@
 #include "mmc_meta_service.h"
 #include "mmc_msg_packer.h"
 #include "mmc_meta_backup_mgr.h"
+#include "mmc_meta_net_server.h"
 #include <functional>
 #include <thread>
 #include <list>
+#include <mutex>
 
 namespace ock {
 namespace mmc {
 
 static const uint16_t NUM_BUCKETS = 29;
+constexpr uint32_t META_MAMAGER_MTX_NUM = 16;
 
 struct MmcMemMetaDesc {
     uint16_t prot_{0};
@@ -167,21 +170,45 @@ public:
     {
         return defaultTtlMs_;
     }
+    
+    /**
+     * @brief copy blob to loc
+     */
+    Result ReplicateBlob(MetaNetServerPtr metaNetServer, const std::string& key, const MmcLocation& loc);
+
+    /**
+     * @brief from src loc copy blob to dst loc, and delete the blobs which belong to src loc
+     */
+    Result MoveBlob(MetaNetServerPtr metaNetServer, const std::string& key, const MmcLocation& src, const MmcLocation& dst);
 
 private:
-    Result RebuildMeta(std::map<std::string, MmcMemBlobDesc> &blobMap);
+    Result CopyBlob(MetaNetServerPtr metaNetServer, const MmcMemObjMetaPtr& objMeta, const MmcMemBlobDesc& srcBlob,
+                    const MmcLocation& dstLoc);
+
+    Result RebuildMeta(std::map<std::string, MmcMemBlobDesc>& blobMap);
 
     void AsyncRemoveThreadFunc();
 
+    inline std::size_t GetIndex(const MmcMemObjMetaPtr& meta) const
+    {
+        static std::hash<void*> keyHasher_;
+        return keyHasher_(meta.Get()) % META_MAMAGER_MTX_NUM;
+    }
+
+private:
     std::mutex mutex_;
     bool started_ = false;
+
+    std::mutex metaItemMtxs_[META_MAMAGER_MTX_NUM];
     MmcRef<MmcMetaContainer<std::string, MmcMemObjMetaPtr>> metaContainer_;
     MmcGlobalAllocatorPtr globalAllocator_;
+
     std::thread removeThread_;
     std::mutex removeThreadLock_;
     std::condition_variable removeThreadCv_;
     std::mutex removeListLock_;
     std::list<std::pair<std::string, MmcMemObjMetaPtr>> removeList_;
+
     uint64_t defaultTtlMs_; /* defult ttl in miliseconds*/
     uint16_t evictThresholdHigh_;
     uint16_t evictThresholdLow_;

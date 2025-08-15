@@ -5,21 +5,29 @@
 #ifndef MF_HYBRID_MMC_BLOB_COMMON_H
 #define MF_HYBRID_MMC_BLOB_COMMON_H
 #include "mmc_ref.h"
+#include <iostream>
 namespace ock {
 namespace mmc {
 class MmcMemBlob;
 using MmcMemBlobPtr = MmcRef<MmcMemBlob>;
 
 struct MmcMemBlobDesc {
-    uint32_t rank_ = UINT32_MAX;        /* rank id of the blob located */
-    uint64_t size_ = 0;                 /* data size of the blob */
-    uint64_t gva_ = UINT64_MAX;         /* global virtual address */
-    uint16_t mediaType_ = UINT16_MAX;   /* media type where blob located */
+    uint64_t size_ = 0;               /* data size of the blob */
+    uint64_t gva_ = UINT64_MAX;       /* global virtual address */
+    uint32_t rank_ = UINT32_MAX;      /* rank id of the blob located */
+    uint16_t mediaType_ = UINT16_MAX; /* media type where blob located */
 
     MmcMemBlobDesc() = default;
     MmcMemBlobDesc(const uint32_t &rank, const uint64_t &gva, const uint32_t &size, const uint16_t &mediaType)
         : rank_(rank), size_(size), gva_(gva), mediaType_(mediaType)
     {
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const MmcMemBlobDesc& blob)
+    {
+        os << "blob{size=" << blob.size_ << ",gva=" << blob.gva_ << ",rank=" << blob.rank_
+           << ",mediaType=" << blob.mediaType_ << "}";
+        return os;
     }
 };
 }

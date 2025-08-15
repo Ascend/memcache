@@ -85,7 +85,17 @@ void MmcBmProxy::DestroyBm()
     }
     started_ = false;
 }
-// todo size校验
+
+Result MmcBmProxy::Put(uint64_t srcBmAddr, uint64_t dstBmAddr, uint64_t size, smem_bm_copy_type type)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (handle_ == nullptr) {
+        MMC_LOG_ERROR("Failed to put data to smem bm, handle is null");
+        return MMC_ERROR;
+    }
+    return smem_bm_copy(handle_, (void*)srcBmAddr, (void*)dstBmAddr, size, type, 0);
+}
+
 Result MmcBmProxy::Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
 {
     std::lock_guard<std::mutex> lock(mutex_);

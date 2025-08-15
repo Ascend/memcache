@@ -46,6 +46,8 @@ Result MetaNetClient::Start(const NetEngineOptions &config)
                                       std::bind(&MetaNetClient::HandlePing, this, std::placeholders::_1));
     client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::LM_META_REPLICATE_REQ,
                                       std::bind(&MetaNetClient::HandleMetaReplicate, this, std::placeholders::_1));
+    client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::LM_BLOB_COPY_REQ,
+                                      std::bind(&MetaNetClient::HandleBlobCopy, this, std::placeholders::_1));
     client->RegLinkBrokenHandler(std::bind(&MetaNetClient::HandleLinkBroken, this, std::placeholders::_1));
     /* start engine */
     MMC_ASSERT_RETURN(client->Start(config) == MMC_OK, MMC_NOT_STARTED);
@@ -105,6 +107,23 @@ Result MetaNetClient::HandleMetaReplicate(const NetContextPtr &context)
         resp.ret_ = MMC_ERROR;
     }
 
+    return context->Reply(req.msgId, resp);
+}
+
+Result MetaNetClient::HandleBlobCopy(const NetContextPtr& context)
+{
+    BlobCopyRequest req;
+    Response resp;
+    context->GetRequest<BlobCopyRequest>(req);
+    if (blobCopyHandler_ != nullptr) {
+        resp.ret_ = blobCopyHandler_(req.srcBlob_, req.dstBlob_);
+        if (resp.ret_ != MMC_OK) {
+            MMC_LOG_ERROR("blobCopy failed, ret:" << resp.ret_);
+        }
+    } else {
+        MMC_LOG_ERROR("blobCopyHandler_ is nullptr");
+        resp.ret_ = MMC_ERROR;
+    }
     return context->Reply(req.msgId, resp);
 }
 

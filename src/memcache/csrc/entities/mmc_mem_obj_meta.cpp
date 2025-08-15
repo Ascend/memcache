@@ -13,7 +13,6 @@ namespace mmc {
 // TODO: 此处去重成本比较高，先不做
 Result MmcMemObjMeta::AddBlob(const MmcMemBlobPtr &blob)
 {
-    std::lock_guard<std::recursive_mutex> guard(mtx_);
     if (numBlobs_ != 0 && size_ != blob->Size()) {
         MMC_LOG_ERROR("add blob size:" << blob->Size() << " != meta size:" << size_);
         return MMC_ERROR;
@@ -41,7 +40,6 @@ Result MmcMemObjMeta::AddBlob(const MmcMemBlobPtr &blob)
 
 Result MmcMemObjMeta::RemoveBlobs(const MmcBlobFilterPtr &filter, bool revert)
 {
-    std::lock_guard<std::recursive_mutex> guard(mtx_);
     uint8_t oldNumBlobs = numBlobs_;
     for (size_t i = 0; i < MAX_NUM_BLOB_CHAINS - 1; ++i) {
         if (blobs_[i] != nullptr && blobs_[i]->MatchFilter(filter) ^ revert) {
@@ -74,7 +72,6 @@ Result MmcMemObjMeta::RemoveBlobs(const MmcBlobFilterPtr &filter, bool revert)
 Result MmcMemObjMeta::FreeBlobs(const std::string &key, MmcGlobalAllocatorPtr &allocator,
                                 const MmcBlobFilterPtr &filter)
 {
-    std::lock_guard<std::recursive_mutex> guard(mtx_);
     if (NumBlobs() == 0) {
         return MMC_OK;
     }
@@ -99,7 +96,6 @@ Result MmcMemObjMeta::FreeBlobs(const std::string &key, MmcGlobalAllocatorPtr &a
 
 std::vector<MmcMemBlobPtr> MmcMemObjMeta::GetBlobs(const MmcBlobFilterPtr &filter, bool revert)
 {
-    std::lock_guard<std::recursive_mutex> guard(mtx_);
     std::vector<MmcMemBlobPtr> blobs;
     MmcMemBlobPtr curBlob;
     for (size_t i = 0; i < MAX_NUM_BLOB_CHAINS; ++i) {
@@ -121,7 +117,6 @@ std::vector<MmcMemBlobPtr> MmcMemObjMeta::GetBlobs(const MmcBlobFilterPtr &filte
 
 void MmcMemObjMeta::GetBlobsDesc(std::vector<MmcMemBlobDesc>& blobsDesc, const MmcBlobFilterPtr& filter, bool revert)
 {
-    std::lock_guard<std::recursive_mutex> guard(mtx_);
     std::vector<MmcMemBlobPtr> blobs = GetBlobs(filter, revert);
     for (const auto& blob : blobs) {
         blobsDesc.emplace_back(blob->GetDesc());
@@ -131,7 +126,6 @@ void MmcMemObjMeta::GetBlobsDesc(std::vector<MmcMemBlobDesc>& blobsDesc, const M
 Result MmcMemObjMeta::UpdateBlobsState(const std::string& key, const MmcBlobFilterPtr& filter, uint64_t operateId,
                                        BlobActionResult actRet)
 {
-    std::lock_guard<std::recursive_mutex> guard(mtx_);
     std::vector<MmcMemBlobPtr> blobs = GetBlobs(filter);
 
     uint32_t opRankId = GetRankIdByOperateId(operateId);

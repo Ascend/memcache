@@ -40,6 +40,7 @@ enum LOCAL_META_OPCODE_REQ : int16_t {
     ML_BATCH_QUERY_REQ = 14,   /* query keys to meta service to get blob info */
     ML_BATCH_ALLOC_REQ = 15,   /* allocate batch of objects by key and size */
     ML_BATCH_UPDATE_REQ = 16,  /* update batch of objects by key and size */
+    LM_BLOB_COPY_REQ = 17,     /* copy blob for other rank */
 };
 
 enum LOCAL_META_OPCODE_RESP : int16_t {

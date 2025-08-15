@@ -29,6 +29,13 @@ typedef enum {
     SMEMB_COPY_G2L = 1,              /* copy data from global space to local space */
     SMEMB_COPY_G2H = 2,              /* copy data from global space to host memory */
     SMEMB_COPY_H2G = 3,              /* copy data from host memory to global space */
+
+    SMEMB_COPY_L2GH = 4,              /* copy data from local space to global host space */
+    SMEMB_COPY_GH2L = 5,              /* copy data from global host space to local space */
+    SMEMB_COPY_GH2H = 6,              /* copy data from global host space to host memory */
+    SMEMB_COPY_H2GH = 7,              /* copy data from host memory to global host space */
+
+    SMEMB_COPY_G2G = 8,               /* copy data from global space to global space */
     /* add here */
     SMEMB_COPY_BUTT
 } smem_bm_copy_type;

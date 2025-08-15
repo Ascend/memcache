@@ -53,12 +53,14 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
     metaNetClient_->RegisterRetryHandler(
         std::bind(&MmcLocalServiceDefault::RegisterBm, this),
         std::bind(&MmcLocalServiceDefault::Replicate, this, std::placeholders::_1, std::placeholders::_2),
-        std::bind(&MmcLocalServiceDefault::ReplicateRemove, this, std::placeholders::_1)
+        std::bind(&MmcLocalServiceDefault::ReplicateRemove, this, std::placeholders::_1),
+        std::bind(&MmcLocalServiceDefault::CopyBlob, this, std::placeholders::_1, std::placeholders::_2)
     );
     started_ = true;
     MMC_LOG_INFO("Started LocalService (" << name_ << ") server " << options_.discoveryURL);
     return MMC_OK;
 }
+
 void MmcLocalServiceDefault::Stop()
 {    std::lock_guard<std::mutex> guard(mutex_);
     if (!started_) {
@@ -143,6 +145,22 @@ Result MmcLocalServiceDefault::ReplicateRemove(const std::string &key)
     auto result = blobMap_.erase(key);
     if (result == 0) {
         MMC_LOG_ERROR("Local service dereplicate fail, key: " << key << " not exists");
+        return MMC_ERROR;
+    }
+    return MMC_OK;
+}
+
+Result MmcLocalServiceDefault::CopyBlob(const MmcMemBlobDesc& src, const MmcMemBlobDesc& dst)
+{
+    MmcBmProxyPtr bmProxy = MmcBmProxyFactory::GetInstance("bmProxyDefault");
+    if (bmProxy == nullptr) {
+        MMC_LOG_ERROR("bm proxy is null, src=" << src << ", dst=" << dst);
+        return MMC_ERROR;
+    }
+
+    auto ret = bmProxy->Put(src.gva_, dst.gva_, dst.size_, SMEMB_COPY_G2G);
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("bm put failed:" << ret << ", src=" << src << ", dst=" << dst);
         return MMC_ERROR;
     }
     return MMC_OK;

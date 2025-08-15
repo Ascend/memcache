@@ -34,6 +34,8 @@ public:
 
     Result ReplicateRemove(const std::string &key);
 
+    Result CopyBlob(const MmcMemBlobDesc &src, const MmcMemBlobDesc &dst);
+
     const std::string &Name() const override;
 
     const mmc_local_service_config_t &Options() const override;

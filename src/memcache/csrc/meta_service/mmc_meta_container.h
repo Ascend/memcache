@@ -28,7 +28,10 @@ public:
     virtual Result Get(const Key &key, Value &value) = 0;
     virtual Result Erase(const Key &key) = 0;
     virtual Result Erase(const Key& key, Value& value) = 0;
-    virtual Result Promote(const Key &key) = 0;
+    virtual void EraseIf(std::function<bool(const Key&, const Value&)> matchFunc) = 0;
+    virtual void IterateIf(std::function<bool(const Key&, const Value&)> matchFunc,
+                           std::map<Key, Value>& matchedValues) = 0;
+    virtual Result Promote(const Key& key) = 0;
     virtual std::vector<Key> EvictCandidates(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow) = 0;
 
     static MmcRef<MmcMetaContainer<Key, Value>> Create();

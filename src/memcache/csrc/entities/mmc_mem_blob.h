@@ -114,7 +114,7 @@ public:
 
     inline bool IsLeaseExpired();
 
-    friend std::ostream &operator<<(std::ostream &os, MmcMemBlob &blob)
+    friend std::ostream &operator<<(std::ostream &os, const MmcMemBlob &blob)
     {
         os << "MmcMemBlob{rank=" << blob.rank_ << ",gva=" << blob.gva_ << ",size=" << blob.size_
            << ",mediaType=" << static_cast<int>(blob.mediaType_) << ",state=" << static_cast<int>(blob.state_)

@@ -123,6 +123,30 @@ public:
         return MMC_ERROR;
     }
 
+    void EraseIf(std::function<bool(const Key&, const Value&)> matchFunc) override
+    {
+        std::lock_guard<std::mutex> guard(mutex_);
+        for (auto iter = metaMap_.begin(); iter != metaMap_.end();) {
+            if (matchFunc(iter->first, iter->second.value_)) {
+                iter = metaMap_.erase(iter);
+            } else {
+                ++iter;
+            }
+        }
+    }
+
+    void IterateIf(std::function<bool(const Key&, const Value&)> matchFunc,
+                   std::map<Key, Value>& matchedValues) override
+    {
+        std::lock_guard<std::mutex> guard(mutex_);
+        for (auto iter = metaMap_.begin(); iter != metaMap_.end();) {
+            if (matchFunc(iter->first, iter->second.value_)) {
+                matchedValues.emplace(std::make_pair(iter->first, iter->second.value_));
+            }
+            ++iter;
+        }
+    }
+
     Result Promote(const Key &key)
     {
         std::lock_guard<std::mutex> guard(mutex_);
