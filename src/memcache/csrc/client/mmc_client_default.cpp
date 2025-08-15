@@ -111,7 +111,7 @@ Result MmcClientDefault::Put(const std::string &key, const MmcBufferArray& bufAr
 
     for (uint8_t i = 0; i < response.numBlobs_; i++) {
         auto blob = response.blobs_[i];
-        MMC_LOG_INFO("Attempting to put to blob " << i);
+        MMC_LOG_DEBUG("Attempting to put to blob " << i << " key " << key);
         Result ret = bmProxy_->Put(bufArr, blob);
         if (ret != MMC_OK) {
             UpdateRequest updateRequest{MMC_WRITE_FAIL, key, blob.rank_, blob.mediaType_, operateId};

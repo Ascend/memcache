@@ -1,0 +1,75 @@
+# MetaService 主备Pod定义（与lease相同命名空间）
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: meta-service-pod
+  namespace: meta-service
+spec:
+  serviceName: meta-service
+  replicas: 2
+  selector:
+    matchLabels:
+      app: meta-service
+  template:
+    metadata:
+      labels:
+        app: meta-service
+        role: backup  # 初始标签可设为backup，主节点由程序动态更新
+    spec:
+      serviceAccountName: meta-service-account
+      terminationGracePeriodSeconds: 10
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: meta-service
+          image: 7.218.30.112:5000/meta:0807_v6
+          command: [ "/bin/sh", "-c" ]
+          args:
+            - |
+              sleep 20 && \
+              /usr/local/mxc/memfabric_hybrid/latest/aarch64-linux/bin/mmc_meta_service
+          ports:
+            - containerPort: 5000
+              name: meta
+          env:
+            - name: LD_LIBRARY_PATH
+              value: "/usr/local/python3.11/lib:$(LD_LIBRARY_PATH)"
+            - name: MMC_META_CONFIG_PATH
+              value: /home/meta/config/mmc-meta.conf
+            - name: META_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: META_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: META_NAMESPACE
+              value: meta-service
+            - name: META_LEASE_NAME
+              value: meta-lock-lease
+          volumeMounts:
+            - name: host-home
+              mountPath: /home
+      initContainers:
+        - name: change-pod-ip
+          image: 7.218.30.112:5000/meta:0807_v6
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              # 该端口请与 'ClusterIP#targetPort' 保持一致
+              sed -i '/^ock.mmc.meta_service_url/c ock.mmc.meta_service_url = tcp://metaServiceUrl:5000' /home/meta/config/mmc-meta.conf && \
+              sed -i s/metaServiceUrl/$META_POD_IP/ /home/meta/config/mmc-meta.conf
+          env:
+            - name: META_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          volumeMounts:
+            - name: host-home
+              mountPath: /home
+      volumes:
+        - name: host-home
+          hostPath:
+            path: /home
+            type: Directory

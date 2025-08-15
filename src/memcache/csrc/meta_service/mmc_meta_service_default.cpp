@@ -18,21 +18,6 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
         return MMC_OK;
     }
     options_ = options;
-    std::string logPath;
-    std::string logAuditPath;
-    MMC_RETURN_ERROR(GetLogPath(logPath, logAuditPath), "failed to get log path");
-    MMC_LOG_INFO("Starting meta service " << name_ << ", log path: " << logPath << " log level: " << options.logLevel
-                 << " log rotation file size: " << options.logRotationFileSize
-                 << " log rotation file count: " << options.logRotationFileCount);
-    MMC_RETURN_ERROR(ock::mmc::MmcOutLogger::Instance().SetLogLevel(static_cast<LogLevel>(options.logLevel)),
-                     "failed to set log level " << options.logLevel);
-    MMC_RETURN_ERROR(SPDLOG_Init(logPath.c_str(), options.logLevel, options.logRotationFileSize,
-        options.logRotationFileCount), "failed to init spdlog, error: " << SPDLOG_GetLastErrorMessage());
-
-    ock::mmc::MmcOutLogger::Instance().SetExternalLogFunction(SPDLOG_LogMessage);
-    MMC_RETURN_ERROR(SPDLOG_AuditInit(logAuditPath.c_str(), OBJ_MAX_LOG_FILE_SIZE, OBJ_MAX_LOG_FILE_NUM),
-                     "failed to init spdlog, error: " << SPDLOG_GetLastErrorMessage());
-
     MMC_VALIDATE_RETURN(options.evictThresholdHigh > options.evictThresholdLow,
         "invalid param, evictThresholdHigh must large than evictThresholdLow", MMC_INVALID_PARAM);
 
@@ -149,19 +134,5 @@ void MmcMetaServiceDefault::Stop()
     started_ = false;
 }
 
-Result MmcMetaServiceDefault::GetLogPath(std::string& logPath, std::string& logAuditPath)
-{
-    char pathBuf[PATH_MAX] = {0};
-    ssize_t count = readlink("/proc/self/exe", pathBuf, PATH_MAX);
-    if (count == -1) {
-        MMC_LOG_ERROR("mmc meta service not found bin path");
-    }
-    pathBuf[count] = '\0';
-    std::string binPath = pathBuf;
-    binPath = binPath.substr(0, binPath.find_last_of('/'));
-    logPath = binPath + "/../logs/mmc-meta.log";
-    logAuditPath = binPath + "/../logs/mmc-meta-audit.log";
-    return MMC_OK;
-}
 }  // namespace mmc
 }  // namespace ock

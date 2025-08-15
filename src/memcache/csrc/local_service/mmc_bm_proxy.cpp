@@ -39,6 +39,21 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
 
     bmRankId_ = (initConfig.autoRanking == 1) ? smem_bm_get_rank_id() : initConfig.rankId;
 
+    auto ret = InternalCreateBm(createConfig);
+    if (ret != MMC_OK) {
+        return ret;
+    }
+
+    MMC_RETURN_ERROR(smem_bm_join(handle_, 0, &gva_), "Failed to join smem bm");
+    started_ = true;
+
+    MMC_LOG_INFO("init bm success, rank:" << bmRankId_ << ", worldSize:" << initConfig.worldSize << ", mediaType:"
+                                          << std::to_string(mediaType_) << ", deviceId:" << initConfig.deviceId);
+    return MMC_OK;
+}
+
+Result MmcBmProxy::InternalCreateBm(const mmc_bm_create_config_t &createConfig)
+{
     if (createConfig.localHBMSize > 0 && createConfig.localDRAMSize == 0) {
         mediaType_ = MEDIA_HBM;
     } else if (createConfig.localDRAMSize > 0 && createConfig.localHBMSize == 0) {
@@ -60,11 +75,6 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
         return MMC_ERROR;
     }
 
-    MMC_RETURN_ERROR(smem_bm_join(handle_, 0, &gva_), "Failed to join smem bm");
-    started_ = true;
-
-    MMC_LOG_INFO("init bm success, rank:" << bmRankId_ << ", worldSize:" << initConfig.worldSize << ", mediaType:"
-                                          << std::to_string(mediaType_) << ", deviceId:" << initConfig.deviceId);
     return MMC_OK;
 }
 
@@ -84,6 +94,7 @@ void MmcBmProxy::DestroyBm()
         gva_ = nullptr;
     }
     started_ = false;
+    MMC_LOG_INFO("MmcBmProxy (" << name_ << ") is destroyed successfully");
 }
 
 Result MmcBmProxy::Put(uint64_t srcBmAddr, uint64_t dstBmAddr, uint64_t size, smem_bm_copy_type type)

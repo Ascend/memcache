@@ -87,6 +87,9 @@ public:
 
     static int ValidateTLSConfig(const mmc_tls_config &tlsConfig);
 
+    const std::string GetLogPath(const std::string &logPath);
+    static int ValidateLogPathConfig(const std::string &logPath);
+
     bool Initialized() const
     {
         return mInitialized;
@@ -148,7 +151,9 @@ public:
     void LoadDefault() override {
         using namespace ConfConstant;
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
+        AddBoolConf(OCK_MMC_META_HA_ENABLE, VNoCheck::Create());
         AddStrConf(OCK_MMC_LOG_LEVEL, VNoCheck::Create());
+        AddStrConf(OCK_MMC_LOG_PATH, VStrLength::Create(OCK_MMC_LOG_PATH.first, PATH_MAX_LEN));
         AddIntConf(OCK_MMC_LOG_ROTATION_FILE_SIZE, VIntRange::Create(OCK_MMC_LOG_ROTATION_FILE_SIZE.first,
             MIN_LOG_ROTATION_FILE_SIZE, MAX_LOG_ROTATION_FILE_SIZE));
         AddIntConf(OCK_MMC_LOG_ROTATION_FILE_COUNT, VIntRange::Create(OCK_MMC_LOG_ROTATION_FILE_COUNT.first,
@@ -171,10 +176,20 @@ public:
 
     void GetMetaServiceConfig(mmc_meta_service_config_t &config) {
         const auto discoveryURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_URL);
-        strncpy(config.discoveryURL, discoveryURL.c_str(), DISCOVERY_URL_SIZE);
+        size_t copy_count = std::min(std::strlen(discoveryURL.c_str()), static_cast<size_t>(DISCOVERY_URL_SIZE - 1));
+        std::copy_n(discoveryURL.c_str(), copy_count, config.discoveryURL);
+        config.discoveryURL[copy_count] = '\0';
+
+        config.haEnable = GetBool(ConfConstant::OCK_MMC_META_HA_ENABLE);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         StringToLower(logLevelStr);
         config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
+
+        const auto logPath = GetLogPath(GetString(ConfConstant::OCK_MMC_LOG_PATH));
+        copy_count = std::min(std::strlen(logPath.c_str()), static_cast<size_t>(PATH_MAX_SIZE - 1));
+        std::copy_n(logPath.c_str(), copy_count, config.logPath);
+        config.logPath[copy_count] = '\0';
+
         config.evictThresholdHigh = GetInt(ConfConstant::OKC_MMC_EVICT_THRESHOLD_HIGH);
         config.evictThresholdLow = GetInt(ConfConstant::OKC_MMC_EVICT_THRESHOLD_LOW);
         config.logRotationFileSize = GetInt(ConfConstant::OCK_MMC_LOG_ROTATION_FILE_SIZE) * MB_NUM;
@@ -189,8 +204,7 @@ public:
     void LoadDefault() override {
         using namespace ConfConstant;
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
-        AddStrConf(OCK_MMC_LOG_LEVEL,
-                   VNoCheck::Create());
+        AddStrConf(OCK_MMC_LOG_LEVEL, VNoCheck::Create());
 
         AddBoolConf(OCK_MMC_TLS_ENABLE, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_TOP_PATH, VStrLength::Create(OCK_MMC_TLS_TOP_PATH.first, PATH_MAX_LEN));
@@ -222,7 +236,10 @@ public:
 
     void GetLocalServiceConfig(mmc_local_service_config_t &config) {
         const auto discoveryURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_URL);
-        strncpy(config.discoveryURL, discoveryURL.c_str(), DISCOVERY_URL_SIZE);
+        size_t copy_count = std::min(std::strlen(discoveryURL.c_str()), static_cast<size_t>(DISCOVERY_URL_SIZE - 1));
+        std::copy_n(discoveryURL.c_str(), copy_count, config.discoveryURL);
+        config.discoveryURL[copy_count] = '\0';
+
         config.deviceId = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_DEVICE_ID);
         config.rankId = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_RANK_ID);
         config.worldSize = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_WORLD_SIZE);
@@ -241,7 +258,10 @@ public:
 
     void GetClientConfig(mmc_client_config_t &config) {
         const auto discoveryURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_URL);
-        strncpy(config.discoveryURL, discoveryURL.c_str(), DISCOVERY_URL_SIZE);
+        size_t copy_count = std::min(std::strlen(discoveryURL.c_str()), static_cast<size_t>(DISCOVERY_URL_SIZE - 1));
+        std::copy_n(discoveryURL.c_str(), copy_count, config.discoveryURL);
+        config.discoveryURL[copy_count] = '\0';
+
         config.rankId = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_RANK_ID);
         config.timeOut = GetInt(ConfConstant::OCK_MMC_CLIENT_TIMEOUT_SECONDS);
         config.autoRanking = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_AUTO_RANKING);

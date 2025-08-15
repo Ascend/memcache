@@ -56,6 +56,8 @@ public:
     inline uint32_t RankId() const;
 
 private:
+    Result InternalCreateBm(const mmc_bm_create_config_t &createConfig);
+
     void *gva_ = nullptr;
     smem_bm_t handle_ = nullptr;
     std::string name_;

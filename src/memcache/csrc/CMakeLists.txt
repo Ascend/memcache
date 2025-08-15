@@ -1,3 +1,6 @@
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+find_package(pybind11 REQUIRED)
+
 include_directories(
         ${PROJECT_MMC_SRC_BASE}/include/
         ${PROJECT_MMC_SRC_BASE}/csrc/common
@@ -17,6 +20,8 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/3rdparty/net/acc_links/src/net/include
         ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/include/
         ${PROJECT_SOURCE_DIR}/3rdparty/log/spdlog/include/
+        ${PYTHON_HOME}/include/python3.11/
+        ${PYTHON_HOME}/lib/python3.11/site-packages/pybind11/include/
 )
 
 ## define src variables
@@ -69,13 +74,15 @@ target_link_directories(mmc_static PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/
 target_link_libraries(mmc_static PUBLIC pthread libacc_tcp_net.a)
 target_link_directories(mmc_static PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib)
 target_link_directories(mmc_static PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib64)
+
+target_link_libraries(mmc_static PRIVATE pybind11::module Python3::Python)
+
 if (x${CMAKE_BUILD_TYPE} STREQUAL "xDEBUG")
     target_link_libraries(mmc_static PUBLIC pthread libspdlogd.a)
 else (
     target_link_libraries(mmc_static PUBLIC pthread libspdlog.a)
 )
 endif ()
-message(STATUS "spdlog: check if need to build at ${CHECK_FILE_LINKS}")
 
 add_library(mmc_shared SHARED $<TARGET_OBJECTS:mmc_objects>)
 set_target_properties(mmc_shared PROPERTIES OUTPUT_NAME "mf_memcache")

@@ -231,7 +231,7 @@ void MmcMetaManager::AsyncRemoveThreadFunc()
         if (removeThreadCv_.wait_for(lock, std::chrono::milliseconds(defaultTtlMs_),
                                      [this] {return removeList_.size() || !started_;})) {
             if (!started_) {
-                MMC_LOG_INFO("async thread destroy, thread id " << pthread_self());
+                MMC_LOG_WARN("async thread destroy, thread id " << pthread_self());
                 break;
             }
             MMC_LOG_DEBUG("async remove in thread ttl " << defaultTtlMs_ << " will remove count " <<
@@ -246,8 +246,7 @@ void MmcMetaManager::AsyncRemoveThreadFunc()
 
         auto now = std::chrono::steady_clock::now();
         if (now - lastCheckTime >= checkInterval) {
-            MMC_LOG_INFO("allocator usage rate: " << globalAllocator_->GetUsageRate());
-
+            MMC_LOG_DEBUG("allocator usage rate: " << globalAllocator_->GetUsageRate());
             lastCheckTime = now;
         }
     }

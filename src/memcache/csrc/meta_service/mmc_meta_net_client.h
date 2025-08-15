@@ -9,7 +9,7 @@
 #include "mmc_blob_common.h"
 namespace ock {
 namespace mmc {
-#define NET_RETRY_COUNT 3
+#define NET_RETRY_COUNT 180
 using ClientRetryHandler = std::function<int32_t(void)>;
 using ClientReplicateHandler = std::function<int32_t(const std::string &key, const MmcMemBlobDesc &blobDesc)>;
 using ClientReplicateRemoveHandler = std::function<int32_t(const std::string &key)>;

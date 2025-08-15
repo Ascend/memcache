@@ -20,7 +20,7 @@ Result MmcMemBlob::UpdateState(const std::string &key, uint32_t rankId, uint32_t
         return MMC_UNMATCHED_RET;
     }
 
-    MMC_LOG_INFO("update [" << this << "] state from " << std::to_string(state_) << " to ("
+    MMC_LOG_INFO("update [" << key << "] state from " << std::to_string(state_) << " to ("
                             << std::to_string(retIter->second.state_) << ")");
 
     if (state_ == ALLOCATED && ret == MMC_WRITE_OK) {

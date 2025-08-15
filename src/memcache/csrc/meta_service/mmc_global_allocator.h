@@ -67,6 +67,8 @@ public:
 
         allocators_[loc] =
             MmcMakeRef<MmcBlobAllocator>(loc.rank_, loc.mediaType_, localMemInitInfo.bmAddr_, localMemInitInfo.capacity_);
+
+        MMC_LOG_INFO("Mount one bm successfully, bmRankId=" << loc.rank_);
         globalAllocLock_.UnlockWrite();
         return MMC_OK;
     }
@@ -99,6 +101,7 @@ public:
 
         const auto &allocator = iter->second;
         allocator->Stop();
+        MMC_LOG_INFO("Stop one bm successfully, bmRankId=" << loc.rank_);
         globalAllocLock_.UnlockRead();
         return MMC_OK;
     }
@@ -120,6 +123,7 @@ public:
             return MMC_INVALID_PARAM;
         }
         allocators_.erase(iter);
+        MMC_LOG_INFO("Unmount one bm successfully, bmRankId=" << loc.rank_);
         globalAllocLock_.UnlockWrite();
         return MMC_OK;
     }

@@ -18,6 +18,9 @@
 
 namespace ock {
 namespace mmc {
+#define OBJ_MAX_LOG_FILE_SIZE 20971520 // 每个日志文件的最大大小
+#define OBJ_MAX_LOG_FILE_NUM 50
+
 using ExternalLog = void (*)(int, const char *);
 
 enum LogLevel : int {
@@ -180,6 +183,15 @@ private:
         auto innerResult = (result);                         \
         if (UNLIKELY(innerResult != 0)) {                    \
             MMC_LOG_ERROR_WITH_ERRCODE(msg, innerResult);    \
+            return innerResult;                              \
+        }                                                    \
+    } while (0)
+
+#define MMC_FALSE_ERROR(result, msg)                         \
+    do {                                                     \
+        auto innerResult = (result);                         \
+        if (UNLIKELY(!innerResult)) {                        \
+            MMC_LOG_ERROR(msg);                              \
             return innerResult;                              \
         }                                                    \
     } while (0)

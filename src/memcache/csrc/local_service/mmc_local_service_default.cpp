@@ -104,7 +104,6 @@ Result MmcLocalServiceDefault::DestroyBm()
     req.mediaType_ = bmProxyPtr_->GetMediaType();
 
     Response resp;
-
     Result ret = SyncCallMeta(req, resp, 30);
     MMC_RETURN_ERROR(ret, "bm destroy failed!");
     MMC_RETURN_ERROR(resp.ret_, "bm destroy failed!");

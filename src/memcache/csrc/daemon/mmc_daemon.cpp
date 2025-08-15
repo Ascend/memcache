@@ -9,9 +9,13 @@
 #include <iostream>
 #include <mutex>
 #include <unistd.h>
+#include "spdlogger4c.h"
+#include "spdlogger.h"
 
 #include "mmc_configuration.h"
 #include "mmc_env.h"
+#include "mmc_logger.h"
+#include "mmc_leader_election.h"
 #include "mmc_meta_service_default.h"
 
 using namespace ock::mmc;
@@ -71,7 +75,8 @@ void RegisterSignal()
     }
 }
 
-int LoadConfig(const std::string& confPath) {
+int LoadConfig(const std::string& confPath)
+{
     g_config = new MetaServiceConfig();
     if (g_config == nullptr) {
         std::cerr << "Configuration initialize failed." << std::endl;
@@ -92,8 +97,48 @@ int LoadConfig(const std::string& confPath) {
     return 0;
 }
 
+int InitLogger(const mmc_meta_service_config_t &options)
+{
+    if (g_config->ValidateLogPathConfig(options.logPath) != MMC_OK) {
+        std::cerr << "Error, invalid log path, please check 'ock.mmc.log_path' " << std::endl;
+        return -1;
+    }
+
+    std::string logPath = std::string(options.logPath) + "/logs/mmc-meta.log";
+    std::string logAuditPath = std::string(options.logPath) + "/logs/mmc-meta-audit.log";
+
+    std::cout << "Meta service log path " << logPath
+              << ", audit log path: " << logAuditPath
+              << ", log level: " << options.logLevel
+              << ", log rotation file size: " << options.logRotationFileSize
+              << ", log rotation file count: " << options.logRotationFileCount
+              << std::endl;
+
+    auto ret = ock::mmc::MmcOutLogger::Instance().SetLogLevel(static_cast<LogLevel>(options.logLevel));
+    if (ret != 0) {
+        std::cerr << "Failed to set log level " << options.logLevel << std::endl;
+        return -1;
+    }
+
+    ret = SPDLOG_Init(logPath.c_str(), options.logLevel, options.logRotationFileSize, options.logRotationFileCount);
+    if (ret != 0) {
+        std::cerr << "Failed to init spdlog, error: " << SPDLOG_GetLastErrorMessage() << std::endl;
+        return -1;
+    }
+
+    ock::mmc::MmcOutLogger::Instance().SetExternalLogFunction(SPDLOG_LogMessage);
+    ret = SPDLOG_AuditInit(logAuditPath.c_str(), OBJ_MAX_LOG_FILE_SIZE, OBJ_MAX_LOG_FILE_NUM);
+    if (ret != 0) {
+        std::cerr << "Failed to init audit spdlog, error: " << SPDLOG_GetLastErrorMessage() << std::endl;
+        return -1;
+    }
+    return 0;
+}
+
 int main(int argc, char* argv[])
 {
+    pybind11::scoped_interpreter guard{};
+    pybind11::gil_scoped_release release;
     if (CheckIsRunning()) {
         std::cerr << "Error, meta service is already running." << std::endl;
         return -1;
@@ -114,6 +159,21 @@ int main(int argc, char* argv[])
         std::cerr << "Error, invalid tls config." << std::endl;
         return -1;
     }
+
+    if (InitLogger(config)) {
+        std::cerr << "Error, failed to init logger." << std::endl;
+        return -1;
+    }
+
+    MmcMetaServiceLeaderElection *leaderElection = nullptr;
+    if (config.haEnable) {
+        leaderElection = new(std::nothrow)MmcMetaServiceLeaderElection("leader_election", META_POD_NAME, META_NAMESPACE, META_LEASE_NAME);
+        if (leaderElection == nullptr || leaderElection->Start(config) != MMC_OK) {
+            std::cerr << "Error, failed to start meta service leader election." << std::endl;
+            return -1;
+        }
+    }
+
     MmcMetaService *serviceDefault = new (std::nothrow)MmcMetaServiceDefault("meta_service");
     if (serviceDefault == nullptr || serviceDefault->Start(config) != MMC_OK) {
         std::cerr << "Error, failed to start MmcMetaService." << std::endl;
@@ -124,5 +184,8 @@ int main(int argc, char* argv[])
     g_exitCv.wait(lock, []() { return g_processExit; });
 
     serviceDefault->Stop();
+    if (leaderElection != nullptr) {
+        leaderElection->Stop();
+    }
     return 0;
 }

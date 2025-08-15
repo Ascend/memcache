@@ -41,7 +41,8 @@ cd ${ROOT_PATH}/..
 PROJ_DIR=$(pwd)
 bash script/gen_last_git_commit.sh
 
-rm -rf ./build ./output
+rm -rf ./build ./output/memcache ./output/hybm ./output/smem
+rm -f ./output/mxc-memfabric_hybrid-1.0.0_linux_aarch64.run
 
 mkdir build/
 cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_TESTS="${BUILD_TESTS}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -DBUILD_PYTHON="${BUILD_PYTHON}" -DBUILD_ASAN="${BUILD_ASAN}" -S . -B build/
@@ -73,7 +74,25 @@ cp VERSION "${PROJ_DIR}/src/memcache/python/pymmc/"
 rm -f VERSION
 
 readonly BACK_PATH_EVN=$PATH
-python_path_list=("/opt/buildtools/python-3.8.5" "/opt/buildtools/python-3.9.11" "/opt/buildtools/python-3.10.2" "/opt/buildtools/python-3.11.4")
+
+# 如果 PYTHON_HOME 不存在，则设置默认值
+if [ -z "$PYTHON_HOME" ]; then
+    # 定义要检查的目录路径
+    CHECK_DIR="/usr/local/python3.11"
+    # 判断目录是否存在
+    if [ -d "$CHECK_DIR" ]; then
+        export PYTHON_HOME="$CHECK_DIR"
+    else
+        export PYTHON_HOME="/usr/local/"
+    fi
+    echo "Not set PYTHON_HOME，and use $PYTHON_HOME"
+fi
+
+export LD_LIBRARY_PATH=$PYTHON_HOME/lib:$LD_LIBRARY_PATH
+export PATH=$PYTHON_HOME/bin:$BACK_PATH_EVN
+export CMAKE_PREFIX_PATH=$PYTHON_HOME
+
+python_path_list=("/opt/buildtools/python-3.11.4")
 for python_path in "${python_path_list[@]}"
 do
     if [ -n "${multiple_python}" ]; then

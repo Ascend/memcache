@@ -1,0 +1,102 @@
+# 注意 本yaml文件用于测试memcache local，需要以下必要条件：
+# 1. 请提前在宿主机上调整大页配置： sysctl -w vm.nr_hugepages=2048
+# 2. 重启kubelet: systemctl restart kubelet
+# 3. 查看 kubernetes nodes 资源，是否已经识别大页： kubectl describe node <NODE名称> | grep hugepages
+# 4. POD中使用大页：
+#    4.1 需要将大页资源挂载到pod中：本yaml中的 'hugepages' 挂载项，使用大小为2MB的大页
+#    4.2 需要指定容器需要的大页资源：在resources.requests和resources.limits配置项中指定 hugepages-2Mi: 500Mi
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mmc-local-pod
+  namespace: meta-service
+spec:
+  serviceName: mmc-local
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mmc-local
+  template:
+    metadata:
+      labels:
+        app: mmc-local
+    spec:
+      serviceAccountName: meta-service-account
+      terminationGracePeriodSeconds: 10
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: mmc-local
+          image: 110.3.229.11:5000/meta:0814_v4
+          resources:
+            requests:
+              memory: "2Gi"
+              hugepages-2Mi: 500Mi  # 容器需要500MB的大页内存，请提前在宿主机上创建大页
+            limits:
+              memory: "4Gi"
+              hugepages-2Mi: 500Mi  # 容器需要500MB的大页内存，请提前在宿主机上创建大页
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              . /usr/local/Ascend/ascend-toolkit/set_env.sh && \
+              python3 /home/meta/bin/mmc-local-test.py
+          env:
+            - name: LD_LIBRARY_PATH  # 追加lib库：python3.11 lib， libhcom.so lib
+              value: "/usr/local/python3.11/lib:/home/meta/lib:$(LD_LIBRARY_PATH)"
+            - name: MMC_LOCAL_CONFIG_PATH
+              value: /home/meta/config/mmc-local.conf
+          volumeMounts:
+            - name: host-home
+              mountPath: /home
+            - name: ascend-dir
+              mountPath: /usr/local/Ascend
+            - name: host-ping
+              mountPath: /usr/local/bin/ping
+            - name: hugepages                # 挂载大页2Mi
+              mountPath: /hugepages-2Mi
+      initContainers:
+        - name: change-pod-ip
+          image: 110.3.229.11:5000/meta:0814_v4
+          command: [ "/bin/sh", "-c"]
+          args:
+            - |
+              TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token) && \
+              # META_POD0_IP=$(curl -s -H "Authorization: Bearer $TOKEN" -k https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT/api/v1/namespaces/meta-service/pods/mmc-local-pod-0 | grep -oP '(?<="podIP": ")[^"]+') && \
+              # 重试机制：等待 Pod0 就绪
+              for i in {1..10}; do \
+                META_POD0_IP=$(curl -s -H "Authorization: Bearer $TOKEN" -k https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT/api/v1/namespaces/meta-service/pods/mmc-local-pod-0 | grep -oP '(?<="podIP": ")[^"]+') && \
+                if [ -n "$META_POD0_IP" ]; then break; fi; \
+                echo "Waiting for mmc-local-pod-0 (attempt $i/10)..."; \
+                sleep 2; \
+              done; \
+              if [ -z "$META_POD0_IP" ]; then \
+                echo "Error: Failed to get mmc-local-pod-0 IP"; \
+                exit 1; \
+              fi; \
+              echo "Service IP: $META_CLUSTER_IP_SERVICE_HOST"; \
+              echo "Service Port: $META_CLUSTER_IP_SERVICE_PORT"; \
+              META_CLUSTER_IP_PORT="$META_CLUSTER_IP_SERVICE_HOST:$META_CLUSTER_IP_SERVICE_PORT"; \
+              # 修改配置文件
+              sed -i '/^ock.mmc.local_service.config_store_url/c ock.mmc.local_service.config_store_url = tcp://configStoreUrl:6000' /home/meta/config/mmc-local.conf && \
+              sed -i s/configStoreUrl/$META_POD0_IP/ /home/meta/config/mmc-local.conf && \
+              sed -i '/^ock.mmc.meta_service_url/c ock.mmc.meta_service_url = tcp://metaServiceUrl' /home/meta/config/mmc-local.conf && \
+              sed -i s/metaServiceUrl/$META_CLUSTER_IP_PORT/ /home/meta/config/mmc-local.conf
+          volumeMounts:
+            - name: host-home  # 与下方volumes.name对应
+              mountPath: /home  # 容器内的挂载点
+      volumes:
+        - name: host-home
+          hostPath:
+            path: /home
+            type: Directory
+        - name: ascend-dir
+          hostPath:
+            path: /usr/local/Ascend  # 昇腾驱动安装目录
+            type: Directory
+        - name: host-ping
+          hostPath:
+            path: /usr/bin/ping
+            type: File
+        - name: hugepages
+          emptyDir:
+            medium: HugePages-2Mi

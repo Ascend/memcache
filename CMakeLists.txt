@@ -113,7 +113,8 @@ else ()
     message(STATUS "add gcc definition for last commit: empty")
 endif ()
 
-set(PROJECT_BUILD_PATH ${PROJECT_SOURCE_DIR}/build)
+#set(PROJECT_BUILD_PATH ${PROJECT_SOURCE_DIR}/build)
+set(PROJECT_BUILD_PATH ${PROJECT_BINARY_DIR})
 set(PROJECT_3RDPARTY_SRC_DIR ${PROJECT_SOURCE_DIR}/3rdparty)
 set(PROJECT_3RDPARTY_BIN_DIR ${PROJECT_SOURCE_DIR}/output/3rdparty)
 set(PROJECT_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/output)
@@ -145,6 +146,46 @@ message(STATUS "install dir ${TARGET_INSTALL_DIR}")
 
 #set(PROJECT_PLATFORM_SRC_BASE ${PROJECT_SOURCE_DIR}/src/platform)
 #set(PROJECT_PLATFORM_OUTPUT ${PROJECT_SOURCE_DIR}/output/platform)
+
+# 判断环境变量 PYTHON_HOME 是否存在
+if(DEFINED ENV{PYTHON_HOME})
+    # 如果环境变量存在，将其值赋给 CMake 变量
+    set(PYTHON_HOME "$ENV{PYTHON_HOME}")
+    message(STATUS "Already set python home to ${PYTHON_HOME}")
+else()
+    # 如果环境变量不存在，设置 CMake 变量的默认值
+    set(CHECK_DIR "/usr/local/python3.11")
+    if(EXISTS ${CHECK_DIR})
+        if(IS_DIRECTORY ${CHECK_DIR})
+            set(PYTHON_HOME "/usr/local/python3.11")
+        else()
+            set(PYTHON_HOME "/usr/local")
+        endif()
+    else()
+        set(PYTHON_HOME "/usr/local")
+    endif()
+    message(STATUS "No set python home, set default python home to ${PYTHON_HOME}")
+endif()
+
+set(pybind11_cmake_dir "${PYTHON_HOME}/lib/python3.11/site-packages/pybind11/share/cmake/pybind11")
+
+# 检查路径是否存在且是目录
+if(NOT EXISTS "${pybind11_cmake_dir}" OR NOT IS_DIRECTORY "${pybind11_cmake_dir}")
+    message(SEND_ERROR "Can not find pybind11 directory: ${pybind11_cmake_dir}\nPlease 'pip3 install pybind11 or pybind11-dev'")
+endif()
+
+# 判断环境变量 CMAKE_PREFIX_PATH 是否存在
+if(DEFINED ENV{CMAKE_PREFIX_PATH})
+    # 如果环境变量存在，将其值赋给 CMake 变量
+    set(CMAKE_PREFIX_PATH "$ENV{CMAKE_PREFIX_PATH}")
+    list(APPEND CMAKE_PREFIX_PATH "${pybind11_cmake_dir}")
+    message(STATUS "CMAKE_PREFIX_PATH is exist, and append: ${pybind11_cmake_dir}")
+    message(STATUS "Now CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+else()
+    # 如果环境变量不存在，设置 CMake 变量的默认值
+    set(CMAKE_PREFIX_PATH "${pybind11_cmake_dir}")
+    message(STATUS "Not set CMAKE_PREFIX_PATH, and initialize to: ${CMAKE_PREFIX_PATH}")
+endif()
 
 include_directories(
         ${PROJECT_SMEM_SRC_BASE}/include/host

@@ -272,8 +272,8 @@ Result MetaNetServer::HandleIsExist(const NetContextPtr &context)
 
     MMC_LOG_DEBUG("HandleIsExist key " << req.key_ << " start.");
     auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
-    MMC_LOG_DEBUG("HandleIsExist key " << req.key_ << " finish.");
     metaMgrProxy->ExistKey(req, resp);
+    MMC_LOG_DEBUG("HandleIsExist key " << req.key_ << " finish.");
 
     return context->Reply(req.msgId, resp);
 }

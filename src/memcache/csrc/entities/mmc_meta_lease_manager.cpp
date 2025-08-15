@@ -18,7 +18,7 @@ Result MmcMetaLeaseManager::Add(uint32_t id, uint32_t requestId, uint64_t ttl)
 
 Result MmcMetaLeaseManager::Remove(uint32_t id, uint32_t requestId)
 {
-    MMC_LOG_DEBUG("MmcMetaLeaseManager Remove " << " id " << id << " requestId " << requestId);
+    MMC_LOG_DEBUG("MmcMetaLeaseManager Remove id " << id << " requestId " << requestId);
     std::unique_lock<std::mutex> lockGuard(lock_);
     useClient.erase(GenerateClientId(id, requestId));
     cv_.notify_all();
