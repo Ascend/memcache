@@ -7,7 +7,7 @@ namespace ock {
 namespace mmc {
 Result MmcMetaMgrProxyDefault::Alloc(const AllocRequest &req, AllocResponse &resp)
 {
-    metaMangerPtr_->CheckAndEvict();
+    metaMangerPtr_->CheckAndEvict(netServerPtr_);
     MmcMemMetaDesc objMeta;
     MMC_RETURN_ERROR(metaMangerPtr_->Alloc(req.key_, req.options_, req.operateId_, objMeta),
                      "Meta Alloc Fail, key  " << req.key_);
@@ -20,7 +20,7 @@ Result MmcMetaMgrProxyDefault::Alloc(const AllocRequest &req, AllocResponse &res
 
 Result MmcMetaMgrProxyDefault::BatchAlloc(const BatchAllocRequest &req, BatchAllocResponse &resp)
 {
-    metaMangerPtr_->CheckAndEvict();
+    metaMangerPtr_->CheckAndEvict(netServerPtr_);
     resp.results_.resize(req.keys_.size());
     resp.blobs_.resize(req.keys_.size());
     for (size_t i = 0; i < req.keys_.size(); ++i) {

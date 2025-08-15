@@ -47,14 +47,30 @@ Result MmcMetaManager::ExistKey(const std::string& key)
     return metaContainer_->Get(key, memObj);
 }
 
-void MmcMetaManager::CheckAndEvict()
+void MmcMetaManager::CheckAndEvict(MetaNetServerPtr metaNetServer)
 {
-    if (globalAllocator_->GetUsageRate() >= (uint64_t)evictThresholdHigh_) {
-        std::vector<std::string> keys = metaContainer_->EvictCandidates(evictThresholdHigh_, evictThresholdLow_);
-        for (const std::string& key : keys) {
-            Remove(key);
-        }
+    if (globalAllocator_->GetUsageRate() < (uint64_t)evictThresholdHigh_) {
+        return;
     }
+
+    auto moveFunc = [&](const std::string& key, const MmcMemObjMetaPtr& objMeta) -> bool {
+        std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(objMeta)]);
+
+        MediaType type = objMeta->MoveTo();
+        if (type == MediaType::MEDIA_NONE) {
+            PushRemoveList(key, objMeta);
+            return true;  // 向下淘汰已无可能，直接删除
+        }
+        MmcLocation src{UINT32_MAX, static_cast<MediaType>(type + 1)};
+        MmcLocation dst{UINT32_MAX, type};
+        auto ret = MoveBlob(metaNetServer, key, src, dst);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("key: " << key << " move blob from " << src << " to " << dst << " failed, ret " << ret);
+        }
+        return false;
+    };
+
+    metaContainer_->MultiLevelElimination(evictThresholdHigh_, evictThresholdLow_, moveFunc);
 }
 
 Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOpt, uint64_t operateId,
@@ -114,18 +130,23 @@ Result MmcMetaManager::UpdateState(const std::string& key, const MmcLocation& lo
     return metaObj->UpdateBlobsState(key, filter, operateId, actRet);
 }
 
-Result MmcMetaManager::Remove(const std::string &key)
+void MmcMetaManager::PushRemoveList(const std::string& key, const MmcMemObjMetaPtr& meta)
 {
-    MmcMemObjMetaPtr objMeta;
-    MMC_RETURN_ERROR(metaContainer_->Erase(key, objMeta), "remove: Fail to erase from container!");
     {
         std::lock_guard<std::mutex> lg(removeListLock_);
-        removeList_.push_back({key, objMeta});
+        removeList_.push_back({key, meta});
     }
     {
         std::lock_guard<std::mutex> lk(removeThreadLock_);
         removeThreadCv_.notify_all();
     }
+}
+
+Result MmcMetaManager::Remove(const std::string &key)
+{
+    MmcMemObjMetaPtr objMeta;
+    MMC_RETURN_ERROR(metaContainer_->Erase(key, objMeta), "remove: Fail to erase from container!");
+    PushRemoveList(key, objMeta);
     return MMC_OK;
 }
 

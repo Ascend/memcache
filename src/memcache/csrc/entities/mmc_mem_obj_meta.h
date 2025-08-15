@@ -13,6 +13,7 @@
 #include "mmc_global_allocator.h"
 #include <vector>
 #include <mutex>
+#include <list>
 
 namespace ock {
 namespace mmc {
@@ -85,6 +86,12 @@ public:
      */
     uint64_t Size();
 
+    /**
+     * @brief move to next level
+     * @return size
+     */
+    MediaType MoveTo();
+
     friend std::ostream &operator<<(std::ostream &os, MmcMemObjMeta &obj)
     {
         os << "MmcMemObjMeta{numBlobs=" << static_cast<int>(obj.numBlobs_) << ",size=" << obj.size_
@@ -100,7 +107,7 @@ private:
     uint16_t prot_{0};                         /* prot of the mem object, i.e. accessibility */
     uint8_t priority_{0};                      /* priority of the memory object, used for eviction */
     uint8_t numBlobs_{0};                      /* number of blob that the memory object, i.e. replica count */
-    MmcMemBlobPtr blobs_[MAX_NUM_BLOB_CHAINS]; /* pointers of blobs */
+    std::list<MmcMemBlobPtr> blobs_;           /* 24 bytes */
     uint64_t size_{0};                         /* byteSize of each blob */
 };
 

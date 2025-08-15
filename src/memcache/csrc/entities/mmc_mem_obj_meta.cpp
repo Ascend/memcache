@@ -11,59 +11,31 @@ namespace ock {
 namespace mmc {
 
 // TODO: 此处去重成本比较高，先不做
-Result MmcMemObjMeta::AddBlob(const MmcMemBlobPtr &blob)
+Result MmcMemObjMeta::AddBlob(const MmcMemBlobPtr& blob)
 {
     if (numBlobs_ != 0 && size_ != blob->Size()) {
         MMC_LOG_ERROR("add blob size:" << blob->Size() << " != meta size:" << size_);
         return MMC_ERROR;
     }
 
-    if (numBlobs_ < MAX_NUM_BLOB_CHAINS) {
-        for (size_t i = 0; i < MAX_NUM_BLOB_CHAINS; ++i) {
-            if (blobs_[i] == nullptr) {
-                blobs_[i] = blob;
-                numBlobs_++;
-                size_ = blob->Size();
-                break;
-            }
-        }
-    } else {
-        MmcMemBlobPtr last = blobs_[MAX_NUM_BLOB_CHAINS - 1];
-        while (last->Next() != nullptr) {
-            last = last->Next();
-        }
-        last->Next(blob);
-        numBlobs_++;
-    }
+    blobs_.emplace_back(blob);
+    numBlobs_++;
+    size_ = blob->Size();
     return MMC_OK;
 }
 
-Result MmcMemObjMeta::RemoveBlobs(const MmcBlobFilterPtr &filter, bool revert)
+Result MmcMemObjMeta::RemoveBlobs(const MmcBlobFilterPtr& filter, bool revert)
 {
     uint8_t oldNumBlobs = numBlobs_;
-    for (size_t i = 0; i < MAX_NUM_BLOB_CHAINS - 1; ++i) {
-        if (blobs_[i] != nullptr && blobs_[i]->MatchFilter(filter) ^ revert) {
-            blobs_[i] = nullptr;
-            numBlobs_--;
-        }
-    }
 
-    MmcMemBlobPtr pre = blobs_[MAX_NUM_BLOB_CHAINS - 1];
-    while (pre != nullptr && pre->Next() != nullptr) {
-        MmcMemBlobPtr cur = pre->Next();
-        if (cur->MatchFilter(filter) ^ revert) {
-            pre->Next() = cur->Next();
-            cur = nullptr;
+    for (auto iter = blobs_.begin(); iter != blobs_.end();) {
+        auto& blob = *iter;
+        if (blob != nullptr && blob->MatchFilter(filter) ^ revert) {
+            iter = blobs_.erase(iter);
             numBlobs_--;
+        } else {
+            iter++;
         }
-        pre = pre->Next();
-    }
-
-    MmcMemBlobPtr head = blobs_[MAX_NUM_BLOB_CHAINS - 1];
-    if (head != nullptr && head->MatchFilter(filter) ^ revert) {
-        blobs_[MAX_NUM_BLOB_CHAINS - 1] = head->Next();
-        head = nullptr;
-        numBlobs_--;
     }
 
     return numBlobs_ < oldNumBlobs ? MMC_OK : MMC_ERROR;
@@ -99,21 +71,11 @@ Result MmcMemObjMeta::FreeBlobs(const std::string &key, MmcGlobalAllocatorPtr &a
 std::vector<MmcMemBlobPtr> MmcMemObjMeta::GetBlobs(const MmcBlobFilterPtr &filter, bool revert)
 {
     std::vector<MmcMemBlobPtr> blobs;
-    MmcMemBlobPtr curBlob;
-    for (size_t i = 0; i < MAX_NUM_BLOB_CHAINS; ++i) {
-        curBlob = blobs_[i];
-        if (curBlob != nullptr && (curBlob->MatchFilter(filter) ^ revert)) {
-            blobs.push_back(curBlob);
+    for (auto blob : blobs_) {
+        if (blob != nullptr && blob->MatchFilter(filter) ^ revert) {
+            blobs.emplace_back(blob);
         }
     }
-
-    while (curBlob != nullptr) {
-        curBlob = curBlob->Next();
-        if (curBlob != nullptr && (curBlob->MatchFilter(filter) ^ revert)) {
-            blobs.push_back(curBlob);
-        }
-    }
-
     return blobs;
 }
 
@@ -144,5 +106,26 @@ Result MmcMemObjMeta::UpdateBlobsState(const std::string& key, const MmcBlobFilt
     }
     return result;
 }
+
+MediaType MmcMemObjMeta::MoveTo()
+{
+    MediaType mediaType = MediaType::MEDIA_NONE;
+    for (auto blob : blobs_) {
+        if (blob != nullptr) {
+            mediaType = static_cast<MediaType>(blob->Type());
+            break;
+        }
+    }
+
+    if (mediaType == MediaType::MEDIA_HBM) {
+        return MediaType::MEDIA_NONE; // 暂时先不支持淘汰到DRAM
+    } else if (mediaType == MediaType::MEDIA_DRAM) {
+        return MediaType::MEDIA_NONE;
+    } else {
+        MMC_LOG_ERROR("type is :" << std::to_string(mediaType) << ", size:" << blobs_.size());
+        return MediaType::MEDIA_NONE;
+    }
+}
+
 }  // namespace mmc
 }  // namespace ock

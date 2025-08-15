@@ -128,6 +128,7 @@ public:
         std::lock_guard<std::mutex> guard(mutex_);
         for (auto iter = metaMap_.begin(); iter != metaMap_.end();) {
             if (matchFunc(iter->first, iter->second.value_)) {
+                lruList_.erase(iter->second.lruIter_);
                 iter = metaMap_.erase(iter);
             } else {
                 ++iter;
@@ -169,12 +170,51 @@ public:
         std::vector<Key> candidates;
         candidates.reserve(numEvictObjs);
         auto iter = lruList_.rbegin();
-        for (size_t i = 0; i < numEvictObjs; ++i, ++iter) {
+        for (size_t i = 0; i < numEvictObjs && iter != lruList_.rend(); ++i, ++iter) {
             candidates.push_back(*iter);
         }
         MMC_LOG_INFO("Touched threshold evict, total size: " << lruList_.size()
             << ", evict size: " << candidates.size());
         return candidates;
+    }
+
+    std::vector<Key> MultiLevelElimination(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow,
+                                           std::function<bool(const Key&, const Value&)> moveFunc)
+    {
+        std::lock_guard<std::mutex> guard(mutex_);
+        size_t oriNum = lruList_.size();
+        uint32_t numEvictObjs =
+            std::min(oriNum * (evictThresholdHigh - evictThresholdLow) / evictThresholdHigh, oriNum);
+        std::vector<Key> removed;
+        removed.reserve(numEvictObjs);
+        auto iter = lruList_.end();
+        for (size_t i = 0; i < numEvictObjs && iter != lruList_.begin(); ++i) {
+            --iter; // iter前移
+            // 1、查找value
+            Key& key = *iter;
+            auto mapIter = metaMap_.find(key);
+            if (mapIter == metaMap_.end()) {
+                MMC_LOG_INFO("Key " << key << " not found in MmcMetaContainer.");
+                iter = lruList_.erase(iter);
+                continue;
+            }
+            // 2、删除map和lru
+            Value& value = mapIter->second.value_;
+
+            // 3、回调处理key，value
+            if (moveFunc(key, value)) {
+                MMC_LOG_INFO("Key " << key << " removed by evict.");
+                metaMap_.erase(mapIter);
+                iter = lruList_.erase(iter);
+                removed.push_back(key);
+            }
+        }
+
+        if (!removed.empty()) {
+            MMC_LOG_INFO("evict items from " << oriNum << " to " << lruList_.size()
+                                             << ", evict size: " << removed.size());
+        }
+        return removed;
     }
 
 private:

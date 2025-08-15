@@ -33,6 +33,8 @@ public:
                            std::map<Key, Value>& matchedValues) = 0;
     virtual Result Promote(const Key& key) = 0;
     virtual std::vector<Key> EvictCandidates(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow) = 0;
+    virtual std::vector<Key> MultiLevelElimination(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow,
+                                                   std::function<bool(const Key&, const Value&)> removeFunc) = 0;
 
     static MmcRef<MmcMetaContainer<Key, Value>> Create();
 };

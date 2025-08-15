@@ -164,7 +164,7 @@ public:
     /**
      * @brief check and evict meta objects
      */
-    void CheckAndEvict();
+    void CheckAndEvict(MetaNetServerPtr metaNetServer);
 
     inline uint64_t Ttl()
     {
@@ -188,6 +188,8 @@ private:
     Result RebuildMeta(std::map<std::string, MmcMemBlobDesc>& blobMap);
 
     void AsyncRemoveThreadFunc();
+
+    void PushRemoveList(const std::string& key, const MmcMemObjMetaPtr& meta);
 
     inline std::size_t GetIndex(const MmcMemObjMetaPtr& meta) const
     {

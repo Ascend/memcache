@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <atomic>
+#include <iostream>
 
 #include <mmc_def.h>
 
@@ -81,6 +82,12 @@ struct MmcLocation {
     bool operator==(const MmcLocation &other) const
     {
         return rank_ == other.rank_ && mediaType_ == other.mediaType_;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const MmcLocation& loc)
+    {
+        os << "location{rank=" << loc.rank_ << ",mediaType=" << loc.mediaType_ << "}";
+        return os;
     }
 };
 
