@@ -360,6 +360,7 @@ struct AllocResponse : MsgBase {
     uint8_t numBlobs_{0};               /* number of blob that the memory object, i.e. replica count */
     uint16_t prot_{0};                  /* prot of the mem object, i.e. accessibility */
     uint8_t priority_{0};               /* priority of the memory object, used for eviction */
+    Result result_{0};                  /* result of the operation */
 
     AllocResponse() : MsgBase{0, ML_ALLOC_RESP, 0} {}
     AllocResponse(const uint8_t &numBlobs, const uint16_t &prot, const uint8_t &priority, const uint64_t &lease)
@@ -377,6 +378,7 @@ struct AllocResponse : MsgBase {
         packer.Serialize(priority_);
         packer.Serialize(numBlobs_);
         packer.Serialize(blobs_);
+        packer.Serialize(result_);
         return MMC_OK;
     }
 
@@ -389,6 +391,7 @@ struct AllocResponse : MsgBase {
         packer.Deserialize(priority_);
         packer.Deserialize(numBlobs_);
         packer.Deserialize(blobs_);
+        packer.Deserialize(result_);
         return MMC_OK;
     }
 };

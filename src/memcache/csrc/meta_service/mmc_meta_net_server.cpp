@@ -145,8 +145,13 @@ Result MetaNetServer::HandleAlloc(const NetContextPtr &context)
     AllocResponse resp;
     context->GetRequest<AllocRequest>(req);
     auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
-    metaMgrProxy->Alloc(req, resp);
-    MMC_LOG_DEBUG("HandleAlloc key " << req.key_ << " finish.");
+    const auto result = metaMgrProxy->Alloc(req, resp);
+    if (result != MMC_OK) {
+        MMC_LOG_ERROR("HandleAlloc key " << req.key_ << " failed, error code=" << result);
+    } else {
+        MMC_LOG_DEBUG("HandleAlloc key " << req.key_ << " success.");
+    }
+    resp.result_ = result;
 
     return context->Reply(req.msgId, resp);
 }

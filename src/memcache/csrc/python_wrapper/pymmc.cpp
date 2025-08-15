@@ -123,7 +123,8 @@ int DistributedObjectStore::put(const std::string &key, mmc_buffer &buffer) {
     mmc_put_options options{};
     options.mediaType = 0; // will set by client proxy
     options.policy = NATIVE_AFFINITY;
-    return mmcc_put(key.c_str(), &buffer, options, 0);
+    const auto res = mmcc_put(key.c_str(), &buffer, options, 0);
+    return returnWrapper(res, key);
 }
 
 int DistributedObjectStore::put_batch(
@@ -383,7 +384,7 @@ std::vector<int> DistributedObjectStore::batch_put_from(const std::vector<std::s
                                                         const std::vector<void *> &buffers,
                                                         const std::vector<size_t> &sizes, const int32_t &direct)
 {
-    size_t count = keys.size();
+    const size_t count = keys.size();
     std::vector<int> results(count, -1);
     if (buffers.size() != count || sizes.size() != count) {
         MMC_LOG_ERROR("Input vector sizes mismatch: keys=" << keys.size()
@@ -419,6 +420,9 @@ std::vector<int> DistributedObjectStore::batch_put_from(const std::vector<std::s
     options.mediaType = 0;
     options.policy = NATIVE_AFFINITY;
     mmcc_batch_put(keyArray, count, bufferArray, options, 0, results.data());
+    for (size_t i = 0; i < count; i++) {
+        results[i] = returnWrapper(results[i], keys[i]);
+    }
     return results;
 }
 
@@ -491,6 +495,7 @@ int DistributedObjectStore::put_from_layers(const std::string& key, const std::v
 
     mmc_put_options options{};
     options.policy = NATIVE_AFFINITY;
+    Result res;
     if (is2D(buffers, sizes)) {
         mmc_buffer buffer = {
             .addr=reinterpret_cast<uint64_t>(buffers[0]),
@@ -504,20 +509,21 @@ int DistributedObjectStore::put_from_layers(const std::string& key, const std::v
                 .layerCount = static_cast<uint16_t>(layerNum)
             }
         };
-        return mmcc_put(key.c_str(), &buffer, options, 0);
+        res = mmcc_put(key.c_str(), &buffer, options, 0);
     } else {
-        std::vector<mmc_buffer> mmc_buffers;
+        MmcBufferArray bufArr;
         for (size_t i = 0; i < layerNum; i += 1) {
-            mmc_buffers.push_back({
+            bufArr.AddBuffer({
                 .addr=reinterpret_cast<uint64_t>(buffers[i]),
                 .type=type,
                 .dimType=0,
                 .oneDim = {.offset=0, .len=static_cast<uint64_t>(sizes[i])}
             });
         }
-        MmcBufferArray bufArr(mmc_buffers);
-        return MmcClientDefault::GetInstance()->Put(key, bufArr, options, 0);
+        res = MmcClientDefault::GetInstance()->Put(key, bufArr, options, 0);
     }
+
+    return returnWrapper(res, key);
 }
 
 std::vector<int> DistributedObjectStore::batch_put_from_layers(const std::vector<std::string>& keys,
@@ -540,8 +546,7 @@ std::vector<int> DistributedObjectStore::batch_put_from_layers(const std::vector
 
     if (batchSize != buffers.size() || batchSize != sizes.size()) {
         MMC_LOG_ERROR("Input vector sizes mismatch: keys=" << keys.size()
-                      << ", buffers=" << buffers.size()
-                      << ", sizes=" << sizes.size());
+                      << ", buffers=" << buffers.size() << ", sizes=" << sizes.size());
         return results;
     }
 
@@ -567,6 +572,10 @@ std::vector<int> DistributedObjectStore::batch_put_from_layers(const std::vector
         std::vector<MmcBufferArray> bufferArrays;
         getBufferArrays(batchSize, type, buffers, sizes, bufferArrays);
         MmcClientDefault::GetInstance()->BatchPut(keys, bufferArrays, options, 0, results);
+    }
+
+    for (size_t i = 0; i < batchSize; i++) {
+        results[i] = returnWrapper(results[i], keys[i]);
     }
 
     return results;
@@ -772,6 +781,20 @@ void DistributedObjectStore::getBufferArrays(const size_t batchSize, const uint3
         MmcBufferArray bufArr(mmc_buffers);
         bufferArrays.push_back(bufArr);
     }
+}
+
+int DistributedObjectStore::returnWrapper(const int result, const std::string& key)
+{
+    if (result != MMC_OK) {
+        if (result == MMC_DUPLICATED_OBJECT) {
+            MMC_LOG_WARN("Duplicated key " << key << ", put operation skipped");
+            return MMC_OK;
+        } else {
+            MMC_LOG_ERROR("Failed to put key " << key << ", error code=" << result);
+            return result;
+        }
+    }
+    return MMC_OK;
 }
 
 void DefineMmcStructModule(py::module_& m)

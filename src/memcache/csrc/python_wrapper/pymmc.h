@@ -301,6 +301,8 @@ private:
                          const std::vector<std::vector<uint8_t*>>& bufferLists,
                          const std::vector<std::vector<size_t>>& sizeLists,
                          std::vector<ock::mmc::MmcBufferArray>& bufferArrays);
+
+    static int returnWrapper(int result, const std::string& keyval);
 };
 
 #endif

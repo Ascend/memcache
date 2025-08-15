@@ -102,6 +102,7 @@ Result MmcClientDefault::Put(const std::string &key, const MmcBufferArray& bufAr
     AllocResponse response;
     MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, response, rpcTimeOut_),
                      "client " << name_ << " alloc " << key << " failed");
+    MMC_RETURN_ERROR(response.result_, "client " << name_ << " alloc " << key << " failed");
     if (response.numBlobs_ == 0 || response.numBlobs_ != response.blobs_.size()) {
         MMC_LOG_ERROR("client " << name_ << " alloc " << key << " failed, blobs size:" << response.blobs_.size()
                                 << ", numBlob:" << response.numBlobs_);
@@ -510,7 +511,8 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
     BatchAllocRequest request(keys, allocOptionsList, flags, operateId);
     MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, allocResponse, rpcTimeOut_), "batch put alloc failed");
 
-    if (keys.size() != allocResponse.blobs_.size() || keys.size() != allocResponse.numBlobs_.size()) {
+    if (keys.size() != allocResponse.blobs_.size() || keys.size() != allocResponse.numBlobs_.size() ||
+        keys.size() != allocResponse.results_.size()) {
         MMC_LOG_ERROR("Mismatch in number of keys and allocated blobs");
         return MMC_ERROR;
     }
@@ -521,22 +523,26 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
         const auto& blobs = allocResponse.blobs_[i];
         const auto numBlobs = allocResponse.numBlobs_[i];
 
-        if (numBlobs == 0 || blobs.size() != numBlobs) {
+        if (allocResponse.results_[i] != MMC_OK) {
+            // alloc has error, reserve alloc error code
+            MMC_LOG_ERROR("Alloc blob failed for key " << key << ", error code=" << allocResponse.results_[i]);
+            batchResult[i] = allocResponse.results_[i];
+            continue;
+        } else if (numBlobs == 0 || blobs.size() != numBlobs) {
             MMC_LOG_ERROR("Invalid number of blobs for key " << key);
             batchResult[i] = MMC_ERROR;
             continue;
         }
 
-        bool putSuccess = true;
+        batchResult[i] = MMC_OK;
         for (uint8_t j = 0; j < numBlobs; ++j) {
             Result putResult = bmProxy_->Put(bufArr, blobs[j]);
             if (putResult != MMC_OK) {
                 MMC_LOG_ERROR("client " << name_ << " batch put " << key << " failed");
-                putSuccess = false;
+                batchResult[i] = putResult;
                 break;
             }
         }
-        batchResult[i] = putSuccess ? MMC_OK : MMC_ERROR;
     }
 
     return MMC_OK;
