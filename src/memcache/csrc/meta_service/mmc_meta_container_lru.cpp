@@ -166,7 +166,7 @@ public:
 
         uint32_t numEvictObjs = std::max(std::min(
             lruList_.size() * (evictThresholdHigh - evictThresholdLow) / evictThresholdHigh,
-            lruList_.size()), (size_t)1);
+            lruList_.size()), static_cast<size_t>(1));
         std::vector<Key> candidates;
         candidates.reserve(numEvictObjs);
         auto iter = lruList_.rbegin();
@@ -183,8 +183,9 @@ public:
     {
         std::lock_guard<std::mutex> guard(mutex_);
         size_t oriNum = lruList_.size();
-        uint32_t numEvictObjs =
-            std::min(oriNum * (evictThresholdHigh - evictThresholdLow) / evictThresholdHigh, oriNum);
+        uint32_t numEvictObjs = std::max(std::min(
+            oriNum * (evictThresholdHigh - evictThresholdLow) / evictThresholdHigh,
+            oriNum), static_cast<size_t>(1));
         std::vector<Key> removed;
         removed.reserve(numEvictObjs);
         auto iter = lruList_.end();
