@@ -81,7 +81,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     metaServiceConfig.tlsConfig.tlsEnable = false;
     metaServiceConfig.evictThresholdHigh = 70;
     metaServiceConfig.evictThresholdLow = 60;
-    metaServiceConfig.metaRebuildEnable = true;
+    metaServiceConfig.haEnable = true;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
     ASSERT_TRUE(meta_service != nullptr);

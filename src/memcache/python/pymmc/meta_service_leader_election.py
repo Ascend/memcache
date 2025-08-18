@@ -120,10 +120,6 @@ class MetaServiceLeaderElection:
 
     def _retry_update_lease(self, is_renew):
         try:
-
-
-
-
             return 1 if self._update_lease(is_renew) else 0
         except ApiException as e:
             logger.error(f'Failed in retry updating lease {self.pod_name=}, ApiException: {e}')

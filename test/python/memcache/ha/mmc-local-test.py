@@ -44,45 +44,65 @@ class MemCacheStore:
         print(f"init结果: {ret}")
 
         self.key = "key_loop_" + str(uuid.uuid4())
-        self.key_t = "key_ha_rebuild_" + str(uuid.uuid4())
+        self.key_rebuild_prefix = "key_ha_rebuild_"
         self.tensor = malloc_cpu(min_block_size=100)
+        self.tensor_get = malloc_cpu(min_block_size=100)
 
-    def put(self):
+    def put_from(self):
         direct = int(MmcDirect.COPY_H2G.value)
         ret = self.store.put_from(self.key, self.tensor.data_ptr(), 100, direct)
-        print(f"put 结果: {self.key=}, {ret=}")
+        print(f"put_from 结果: {self.key=}, {ret=}")
 
-    def put_t(self):
+    def put_from_rebuild(self):
         """测试 HA rebuild"""
         direct = int(MmcDirect.COPY_H2G.value)
-        ret = self.store.put_from(self.key_t, self.tensor.data_ptr(), 100, direct)
-        print(f"put_t 结果: {self.key_t=}, {ret=}")
+        for i in range(128):
+            key = self.key_rebuild_prefix + "_" + str(i)
+            ret = self.store.put_from(key, self.tensor.data_ptr(), 100, direct)
+            print(f"put_from_rebuild 结果: {key=}, {ret=}")
 
-    def exist(self, prompt):
+    def get_into(self):
+        direct = int(MmcDirect.COPY_G2H.value)
+        ret = self.store.get_into(self.key, self.tensor_get.data_ptr(), 100, direct)
+        print(f"get_into 结果: {self.key=}, {ret=}")
+
+    def get_into_rebuild(self):
+        direct = int(MmcDirect.COPY_G2H.value)
+        for i in range(128):
+            key = self.key_rebuild_prefix + "_" + str(i)
+            ret = self.store.get_into(key, self.tensor_get.data_ptr(), 100, direct)
+            print(f"get_into_rebuild 结果: {key=}, {ret=}")
+
+    def is_exist(self, prompt):
         ret = self.store.is_exist(self.key)
-        print(f"{prompt}, is_exist 结果: {self.key=}, {ret}")
+        print(f"{prompt}, is_exist 结果: {self.key=}, {ret=}")
 
-    def exist_t(self, prompt):
+    def is_exist_rebuild(self):
         """测试 HA rebuild"""
-        ret = self.store.is_exist(self.key_t)
-        print(f"{prompt}, exist_t 结果: {self.key_t=}, {ret}")
+        for i in range(128):
+            key = self.key_rebuild_prefix + "_" + str(i)
+            ret = self.store.is_exist(key)
+            print(f"is_exist_rebuild 结果: {key=}, {ret=}")
 
     def remove(self):
         ret = self.store.remove(self.key)
-        print(f"remove 结果: {self.key=}, {ret}")
+        print(f"remove 结果: {self.key=}, {ret=}")
 
     def test_loop(self):
         loop = 0
         while True:
-            self.exist_t(f"loop {loop} after put_t")
+            self.is_exist_rebuild()
+            self.get_into_rebuild()
             time.sleep(2)
-            self.put()
+            self.put_from()
             time.sleep(2)
-            self.exist(f"loop {loop} after put")
+            self.is_exist(f"loop {loop} after put")
+            time.sleep(2)
+            self.get_into()
             time.sleep(2)
             self.remove()
             time.sleep(2)
-            self.exist(f"loop {loop} after remove")
+            self.is_exist(f"loop {loop} after remove")
             loop += 1
 
             time.sleep(10)  # 休眠10秒，减少CPU占用
@@ -133,7 +153,8 @@ if __name__ == "__main__":
 
     # 无限循环保持程序运行
     try:
-        meta_store.put_t()
+        meta_store.is_exist_rebuild()
+        meta_store.put_from_rebuild()
         meta_store.test_loop()
     finally:
         # 捕获 Ctrl+C 中断信号，优雅退出

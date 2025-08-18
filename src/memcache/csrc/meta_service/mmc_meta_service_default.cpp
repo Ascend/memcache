@@ -39,7 +39,7 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     metaBackUpMgrPtr_ = MMCMetaBackUpMgrFactory::GetInstance("DefaultMetaBackup");
     MMCMetaBackUpConfPtr defaultPtr = MmcMakeRef<MMCMetaBackUpConfDefault>(metaNetServer_).Get();
     MMC_ASSERT_RETURN(metaBackUpMgrPtr_ != nullptr, MMC_MALLOC_FAILED);
-    if (options.metaRebuildEnable) {
+    if (options.haEnable) {
         MMC_RETURN_ERROR(metaBackUpMgrPtr_->Start(defaultPtr), "metaBackUpMgr start failed");
     }
 
