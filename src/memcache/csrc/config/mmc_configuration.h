@@ -22,6 +22,7 @@ namespace ock {
 namespace mmc {
 constexpr uint32_t CONF_MUST = 1;
 constexpr uint64_t DRAM_SIZE_ALIGNMENT = 2097152; // 2MB
+constexpr uint64_t HBM_SIZE_ALIGNMENT = 2097152; // 2MB
 
 enum class ConfValueType {
     VINT = 0,
@@ -269,8 +270,8 @@ public:
             MMC_LOG_ERROR("DRAM size and HBM size cannot be zero at the same time");
             return MMC_INVALID_PARAM;
         }
-        if (config.localDRAMSize > 0 && config.localHBMSize > 0) {
-            MMC_LOG_ERROR("DRAM pool and HBM pool cannot be used simultaneously");
+        if (config.localHBMSize % HBM_SIZE_ALIGNMENT != 0) {
+            MMC_LOG_ERROR("HBM size should be aligned at a integer multiple of 2M (2097152 bytes)");
             return MMC_INVALID_PARAM;
         }
         if (config.localDRAMSize % DRAM_SIZE_ALIGNMENT != 0) {

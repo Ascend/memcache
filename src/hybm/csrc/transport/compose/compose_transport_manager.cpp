@@ -50,14 +50,12 @@ Result ComposeTransportManager::OpenDevice(const TransportOptions &options)
         if (StrHelper::StartsWith(nic, HOST_TRANSPORT_TYPE)) {
             TransportOptions option = options;
             option.nic = nic.substr(HOST_TRANSPORT_TYPE.length());
-            hostTransportManager_->OpenDevice(option);
             ret = OpenHostTransport(option);
         }
 
         if (StrHelper::StartsWith(nic, DEVICE_TRANSPORT_TYPE)) {
             TransportOptions option = options;
             option.nic = nic.substr(DEVICE_TRANSPORT_TYPE.length());
-            hostTransportManager_->OpenDevice(option);
             ret = OpenDeviceTransport(option);
         }
 
@@ -170,10 +168,9 @@ void ComposeTransportManager::GetHostPrepareOptions(const HybmTransPrepareOption
 }
 
 void ComposeTransportManager::GetDevicePrepareOptions(const HybmTransPrepareOptions &param,
-                                                      HybmTransPrepareOptions &DeviceOptions)
+                                                      HybmTransPrepareOptions &deviceOptions)
 {
     auto options = param.options;
-    HybmTransPrepareOptions deviceOptions{};
     for (const auto &item: options) {
         auto rankId = item.first;
         TransportRankPrepareInfo info{};
@@ -332,10 +329,13 @@ TransportType ComposeTransportManager::GetTransportTypeFromFlag(uint32_t flags)
     // 取index开始的后两位作为TransportType
     static uint8_t index = 0;
     auto type = flags & ((3) << index);
-    if (type >= TT_BUTT) {
-        return TT_BUTT;
+    if (type == REG_MR_FLAG_DRAM) {
+        return TT_HCOM;
     }
-    return static_cast<TransportType>(type);
+    if (type == REG_MR_FLAG_HBM) {
+        return TT_HCCP;
+    }
+    return TT_BUTT;
 }
 
 Result ComposeTransportManager::UpdateRankOptions(const HybmTransPrepareOptions &options)

@@ -177,19 +177,55 @@ Result SmemBmEntry::Leave(uint32_t flags)
     return SM_OK;
 }
 
-static hybm_data_copy_direction directMap[SMEMB_COPY_BUTT] = {
-    HYBM_LOCAL_DEVICE_TO_GLOBAL_DEVICE, HYBM_GLOBAL_DEVICE_TO_LOCAL_DEVICE,
-    HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST, HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE,
-    HYBM_LOCAL_DEVICE_TO_GLOBAL_HOST, HYBM_GLOBAL_HOST_TO_LOCAL_DEVICE,
-    HYBM_GLOBAL_HOST_TO_LOCAL_HOST, HYBM_LOCAL_HOST_TO_GLOBAL_HOST,
+static hybm_data_copy_direction directMap[SMEMB_COPY_BUTT + 1][SMEM_MEM_TYPE_BUTT + 1] = {
+    {HYBM_DATA_COPY_DIRECTION_BUTT, HYBM_DATA_COPY_DIRECTION_BUTT, HYBM_LOCAL_DEVICE_TO_GLOBAL_DEVICE,
+     HYBM_LOCAL_DEVICE_TO_GLOBAL_HOST, HYBM_DATA_COPY_DIRECTION_BUTT},
+    {HYBM_DATA_COPY_DIRECTION_BUTT, HYBM_DATA_COPY_DIRECTION_BUTT, HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE,
+     HYBM_LOCAL_HOST_TO_GLOBAL_HOST, HYBM_DATA_COPY_DIRECTION_BUTT},
+    {HYBM_GLOBAL_DEVICE_TO_LOCAL_DEVICE, HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST, HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE,
+     HYBM_GLOBAL_DEVICE_TO_GLOBAL_HOST, HYBM_DATA_COPY_DIRECTION_BUTT},
+    {HYBM_GLOBAL_HOST_TO_GLOBAL_DEVICE, HYBM_GLOBAL_HOST_TO_LOCAL_HOST, HYBM_GLOBAL_HOST_TO_GLOBAL_DEVICE,
+     HYBM_GLOBAL_HOST_TO_GLOBAL_HOST, HYBM_DATA_COPY_DIRECTION_BUTT},
+    {HYBM_DATA_COPY_DIRECTION_BUTT, HYBM_DATA_COPY_DIRECTION_BUTT, HYBM_DATA_COPY_DIRECTION_BUTT,
+     HYBM_DATA_COPY_DIRECTION_BUTT, HYBM_DATA_COPY_DIRECTION_BUTT},
 };
 
-static hybm_data_copy_direction dramDirectMap[SMEMB_COPY_BUTT] = {
-    HYBM_LOCAL_DEVICE_TO_GLOBAL_HOST, HYBM_GLOBAL_HOST_TO_LOCAL_DEVICE,
-    HYBM_GLOBAL_HOST_TO_LOCAL_HOST, HYBM_LOCAL_HOST_TO_GLOBAL_HOST,
-    HYBM_LOCAL_DEVICE_TO_GLOBAL_HOST, HYBM_GLOBAL_HOST_TO_LOCAL_DEVICE,
-    HYBM_GLOBAL_HOST_TO_LOCAL_HOST, HYBM_LOCAL_HOST_TO_GLOBAL_HOST,
-};
+smem_bm_mem_type SmemBmEntry::GetHybmMemTypeFromGva(const void *addr, uint64_t size)
+{
+    if (AddrInHostGva(addr, size)) {
+        return SMEM_MEM_TYPE_HOST;
+    }
+    if (AddrInDeviceGva(addr, size)) {
+        return SMEM_MEM_TYPE_DEVICE;
+    }
+    return SMEM_MEM_TYPE_BUTT;
+}
+
+hybm_data_copy_direction SmemBmEntry::TransToHybmDirection(const smem_bm_copy_type &smemDirect, const void *src,
+                                                           uint64_t srcSize, const void *dest, uint64_t destSize)
+{
+    smem_bm_mem_type srcMemType = GetHybmMemTypeFromGva(src, srcSize);
+    smem_bm_mem_type destMemType = GetHybmMemTypeFromGva(dest, destSize);
+    switch (smemDirect) {
+        case SMEMB_COPY_L2G:
+            srcMemType = SMEM_MEM_TYPE_LOCAL_DEVICE;
+            break;
+        case SMEMB_COPY_G2L:
+            destMemType = SMEM_MEM_TYPE_LOCAL_DEVICE;
+            break;
+        case SMEMB_COPY_G2H:
+            destMemType = SMEM_MEM_TYPE_LOCAL_HOST;
+            break;
+        case SMEMB_COPY_H2G:
+            srcMemType = SMEM_MEM_TYPE_LOCAL_HOST;
+            break;
+        case SMEMB_COPY_G2G:
+        default:
+            break;
+    }
+    SM_LOG_INFO("Get srcMemType: " << srcMemType << " destMemType: " << destMemType);
+    return directMap[srcMemType][destMemType];
+}
 
 Result SmemBmEntry::DataCopy(const void *src, void *dest, uint64_t size, smem_bm_copy_type t, uint32_t flags)
 {
@@ -199,21 +235,11 @@ Result SmemBmEntry::DataCopy(const void *src, void *dest, uint64_t size, smem_bm
     SM_PARAM_VALIDATE(t >= SMEMB_COPY_BUTT, "invalid param, type invalid: " << t, SM_INVALID_PARAM);
     SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
 
-    switch (t) {
-        case SMEMB_COPY_L2G:
-        case SMEMB_COPY_H2G:
-        case SMEMB_COPY_L2GH:
-        case SMEMB_COPY_H2GH:
-            SM_PARAM_VALIDATE(!AddressInRange(dest, size), "size: " << size << " invalid.",
-                              SM_INVALID_PARAM);
-            break;
-        default:
-            SM_PARAM_VALIDATE(!AddressInRange(src, size), "size: " << size << " invalid.",
-                              SM_INVALID_PARAM);
-            break;
+    auto direct = TransToHybmDirection(t, src, size, dest, size);
+    if (direct == HYBM_DATA_COPY_DIRECTION_BUTT) {
+        SM_LOG_ERROR("Failed to trans to hybm direct, smem direct: " << t << " src: " << src << " dest: " << dest);
+        return SM_INVALID_PARAM;
     }
-
-    auto direct = coreOptions_.bmType == HYBM_TYPE_DRAM_HOST_INITIATE ? dramDirectMap[t] : directMap[t];
     return hybm_data_copy(entity_, src, dest, size, direct, nullptr, flags);
 }
 
@@ -227,23 +253,12 @@ Result SmemBmEntry::DataCopy2d(const void *src, uint64_t spitch, void *dest, uin
     SM_PARAM_VALIDATE(t >= SMEMB_COPY_BUTT, "invalid param, type invalid: " << t, SM_INVALID_PARAM);
     SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
 
-    switch (t) {
-        case SMEMB_COPY_L2G:
-        case SMEMB_COPY_H2G:
-        case SMEMB_COPY_L2GH:
-        case SMEMB_COPY_H2GH:
-            SM_PARAM_VALIDATE(!AddressInRange(dest, dpitch * (height - 1) + width),
-                              " dpitch: " << dpitch << " width: " << width
-                              << " height: " << height << " invalid.", SM_INVALID_PARAM);
-            break;
-        default:
-            SM_PARAM_VALIDATE(!AddressInRange(src,  spitch * (height - 1) + width),
-                              ", spitch: " << spitch << " width: " << width
-                              << " height: " << height << " invalid.", SM_INVALID_PARAM);
-            break;
+    auto direct = TransToHybmDirection(t, src, spitch * height, dest, dpitch * height);
+    if (direct == HYBM_DATA_COPY_DIRECTION_BUTT) {
+        SM_LOG_ERROR("Failed to trans to hybm direct, smem direct: " << t << " src: " << src << " dest: " << dest);
+        return SM_INVALID_PARAM;
     }
 
-    auto direct = coreOptions_.bmType == HYBM_TYPE_DRAM_HOST_INITIATE ? dramDirectMap[t] : directMap[t];
     return hybm_data_copy_2d(entity_, src, spitch, dest, dpitch, width, height, direct, nullptr, flags);
 }
 
@@ -258,11 +273,6 @@ Result SmemBmEntry::CreateGlobalTeam(uint32_t rankSize, uint32_t rankId)
 
     globalGroup_ = group;
     return SM_OK;
-}
-
-bool SmemBmEntry::AddressInRange(const void *address, uint64_t size)
-{
-    return AddrInHostGva(address, size) || AddrInDeviceGva(address, size);
 }
 
 bool SmemBmEntry::AddrInHostGva(const void *address, uint64_t size)

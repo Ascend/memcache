@@ -116,6 +116,7 @@ int32_t HybmEntityCompose::ReserveMemorySpace(void **reservedMem) noexcept
         BM_LOG_ERROR("Failed to reserve host segment, ret: " << ret);
         return ret;
     }
+    *reservedMem = hostGva_;
     return BM_OK;
 }
 
@@ -208,7 +209,7 @@ int32_t HybmEntityCompose::ExportExchangeInfo(hybm_mem_slice_t slice, hybm_excha
         return ret;
     }
     std::string hostInfo;
-    ret = hostSegment_->Export(hostSlice_, deviceInfo);
+    ret = hostSegment_->Export(hostSlice_, hostInfo);
     if (ret != 0) {
         BM_LOG_ERROR("Failed to export to string ret: " << ret);
         return ret;
@@ -556,10 +557,12 @@ Result HybmEntityCompose::InitTransManager()
         return BM_OK;
     }
     transportManager_ = transport::TransportManager::Create(transport::TT_COMPOSE);
+    std::string deviceNic = "device#tcp://0.0.0.0/0:10002";
+    std::string hostNic = "host#" + std::string(options_.nic);
     transport::TransportOptions options;
     options.rankId = options_.rankId;
     options.rankCount = options_.rankCount;
-    options.nic = options_.nic;
+    options.nic = deviceNic + ';' + hostNic;
     options.protocol = options_.bmDataOpType;
     auto ret = transportManager_->OpenDevice(options);
     if (ret != 0) {
