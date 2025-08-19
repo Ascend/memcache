@@ -140,10 +140,14 @@ Result MmcBlobAllocator::BuildFromBlobs(std::map<std::string, MmcMemBlobDesc> &b
     
     // 处理每个已分配的blob
     for (auto it = blobMap.begin(); it != blobMap.end();) {
-        if (it->second.rank_ != rank_ || it->second.mediaType_ != mediaType_) {
-            MMC_LOG_WARN("rebuild blob not match, allocator rank: " << rank_ << " mediaType: " << mediaType_
-                << ", blob rank: " << it->second.rank_ << " mediaType: " << it->second.mediaType_);
+        if (it->second.rank_ != rank_) {
+            MMC_LOG_WARN("rebuild blob not match, allocator rank: " << rank_ << ", blob rank: " << it->second.rank_);
             it = blobMap.erase(it);
+            continue;
+        }
+
+        if (it->second.mediaType_ != mediaType_) {
+             ++it;
             continue;
         }
         uint64_t gva = it->second.gva_;
@@ -152,8 +156,8 @@ Result MmcBlobAllocator::BuildFromBlobs(std::map<std::string, MmcMemBlobDesc> &b
 
         Result res = ValidateAndAddAllocation(offset, size);
         if (res != MMC_OK) {
-            MMC_LOG_WARN("rebuild allocator failed, rank: " << rank_ << " mediaType: " << mediaType_
-                << ", blob add allocation error");
+            MMC_LOG_ERROR("rebuild allocator failed, rank: " << rank_ << " mediaType: " << mediaType_
+                                                             << ", blob off:" << offset << ", size: " << size);
             it = blobMap.erase(it);
             continue;
         }

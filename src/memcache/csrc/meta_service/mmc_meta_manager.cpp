@@ -61,11 +61,13 @@ void MmcMetaManager::CheckAndEvict(MetaNetServerPtr metaNetServer)
             PushRemoveList(key, objMeta);
             return true;  // 向下淘汰已无可能，直接删除
         }
-        MmcLocation src{UINT32_MAX, static_cast<MediaType>(type + 1)};
+        MmcLocation src{UINT32_MAX, MEDIA_NONE};
         MmcLocation dst{UINT32_MAX, type};
         auto ret = MoveBlob(metaNetServer, key, src, dst);
         if (ret != MMC_OK) {
-            MMC_LOG_ERROR("key: " << key << " move blob from " << src << " to " << dst << " failed, ret " << ret);
+            MMC_LOG_WARN("key: " << key << " move blob from " << src << " to " << dst << " failed, ret " << ret);
+            PushRemoveList(key, objMeta);
+            return true;  // 向下淘汰失败，直接删除
         }
         return false;
     };
@@ -171,6 +173,26 @@ Result MmcMetaManager::Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo 
         ret = RebuildMeta(blobMap);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("rebuild meta failed, loc rank: " << loc.rank_ << " mediaType_: " << loc.mediaType_);
+            return ret;
+        }
+    }
+    return MMC_OK;
+}
+
+Result MmcMetaManager::Mount(const std::vector<MmcLocation>& locs,
+                             const std::vector<MmcLocalMemlInitInfo>& localMemInitInfos,
+                             std::map<std::string, MmcMemBlobDesc>& blobMap)
+{
+    if (locs.size() != localMemInitInfos.size()) {
+        MMC_LOG_ERROR("Mount: loc size:" << locs.size() << " != localMemInitInfo size:" << localMemInitInfos.size());
+        return MMC_INVALID_PARAM;
+    }
+
+    for (uint32_t i = 0; i < locs.size(); i++) {
+        Result ret = Mount(locs[i], localMemInitInfos[i], blobMap);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("Mount failed ret:" << ret << " loc rank:" << locs[i].rank_
+                                              << " mediaType_: " << locs[i].mediaType_);
             return ret;
         }
     }
@@ -315,6 +337,7 @@ Result MmcMetaManager::CopyBlob(MetaNetServerPtr metaNetServer, const MmcMemObjM
         ret = globalAllocator_->Alloc(allocOpt, blobs);
         if (ret != MMC_OK || blobs.empty()) {
             MMC_LOG_ERROR("alloc failed, ret " << ret);
+            ret = MMC_MALLOC_FAILED;
             break;
         }
 
@@ -325,6 +348,7 @@ Result MmcMetaManager::CopyBlob(MetaNetServerPtr metaNetServer, const MmcMemObjM
         if (ret != MMC_OK || response.ret_ != MMC_OK) {
             MMC_LOG_ERROR("copy blob from rank " << request.srcBlob_.rank_ << " to rank " << request.dstBlob_.rank_
                                                  << " failed:" << ret << "," << response.ret_);
+            ret = MMC_ERROR;
             break;
         }
         // 挂载

@@ -592,6 +592,9 @@ bool MemEntityDefault::SdmaReaches(uint32_t remoteRank) const noexcept
 
 void *MemEntityDefault::GetReservedMemoryPtr(hybm_mem_type memType) noexcept
 {
+    if (segment_ == nullptr || memType != segment_->GetMemoryType()) {
+        return nullptr;
+    }
     return gva_;
 }
 }

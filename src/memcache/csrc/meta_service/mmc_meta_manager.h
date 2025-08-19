@@ -142,6 +142,8 @@ public:
     Result Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo &localMemInitInfo,
         std::map<std::string, MmcMemBlobDesc> &blobMap);
 
+    Result Mount(const std::vector<MmcLocation>& locs, const std::vector<MmcLocalMemlInitInfo>& localMemInitInfos,
+                 std::map<std::string, MmcMemBlobDesc>& blobMap);
     /**
      * @brief unmount the mempool contributor at given location
      * @param loc          [in] location of the mem pool contributor to be unmounted

@@ -49,14 +49,31 @@ public:
     Result Get(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size);
     Result Put(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
     Result Get(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
-    uint64_t GetGva() const { return reinterpret_cast<uint64_t>(gva_); }
-    MediaType GetMediaType() const {return mediaType_; }
+
+    uint64_t GetGva(MediaType type) const
+    {
+        if (type == MEDIA_NONE) {
+            return 0;
+        }
+        return reinterpret_cast<uint64_t>(gvas_[type]);
+    }
+
+    uint64_t GetCapacity(MediaType type) const
+    {
+        if (type == MEDIA_NONE) {
+            return 0;
+        }
+        return spaces_[type];
+    }
+
+    MediaType GetMediaType();
     inline uint32_t RankId() const;
 
 private:
     Result InternalCreateBm(const mmc_bm_create_config_t &createConfig);
 
-    void *gva_ = nullptr;
+    void* gvas_[MEDIA_NONE]{};
+    uint64_t spaces_[MEDIA_NONE];
     smem_bm_t handle_ = nullptr;
     std::string name_;
     bool started_ = false;

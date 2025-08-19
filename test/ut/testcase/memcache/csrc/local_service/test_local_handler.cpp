@@ -154,13 +154,13 @@ TEST_F(TestMmcBmProxy, DestroyBm_Success)
 {
     InitBmWithConfig();
     proxy->DestroyBm();
-    EXPECT_EQ(proxy->GetGva(), 0UL);
+    EXPECT_EQ(proxy->GetGva(MEDIA_HBM), 0UL);
 }
 
 TEST_F(TestMmcBmProxy, DestroyBm_NotStarted)
 {
     proxy->DestroyBm();
-    EXPECT_EQ(proxy->GetGva(), 0UL);
+    EXPECT_EQ(proxy->GetGva(MEDIA_HBM), 0UL);
 }
 
 TEST_F(TestMmcBmProxy, Put_OneDimSuccess)

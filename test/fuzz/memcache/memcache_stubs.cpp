@@ -23,6 +23,8 @@ void MockSmemBm()
     MOCKER(smem_bm_ptr).stubs().will(returnValue((void *)(1)));
     MOCKER(smem_bm_copy).stubs().will(returnValue(0));
     MOCKER(smem_bm_copy_2d).stubs().will(returnValue(0));
+    MOCKER(smem_bm_ptr_by_mem_type).stubs().will(returnValue((void *)(1)));
+    MOCKER(smem_bm_get_local_mem_size_by_mem_type).stubs().will(returnValue(0));
 }
 
 // meta service

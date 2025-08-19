@@ -38,12 +38,18 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
     if (ret != MMC_OK) {
         return ret;
     }
+    void* tmpGva = nullptr;
+    MMC_RETURN_ERROR(smem_bm_join(handle_, 0, &tmpGva), "Failed to join smem bm");
 
-    MMC_RETURN_ERROR(smem_bm_join(handle_, 0, &gva_), "Failed to join smem bm");
+    gvas_[MEDIA_HBM] = smem_bm_ptr_by_mem_type(handle_, SMEM_MEM_TYPE_DEVICE, 0);
+    gvas_[MEDIA_DRAM] = smem_bm_ptr_by_mem_type(handle_, SMEM_MEM_TYPE_HOST, 0);
+    spaces_[MEDIA_HBM] = smem_bm_get_local_mem_size_by_mem_type(handle_, SMEM_MEM_TYPE_DEVICE);
+    spaces_[MEDIA_DRAM] = smem_bm_get_local_mem_size_by_mem_type(handle_, SMEM_MEM_TYPE_HOST);
     started_ = true;
 
-    MMC_LOG_INFO("init bm success, rank:" << bmRankId_ << ", worldSize:" << initConfig.worldSize << ", mediaType:"
-                                          << std::to_string(mediaType_) << ", deviceId:" << initConfig.deviceId);
+    MMC_LOG_INFO("init bm success, rank:" << bmRankId_ << ", worldSize:" << initConfig.worldSize << ", hbm{"
+                                          << gvas_[MEDIA_HBM] << ", " << spaces_[MEDIA_HBM] << "}, dram{"
+                                          << gvas_[MEDIA_DRAM] << "," << spaces_[MEDIA_DRAM] << "}");
     return MMC_OK;
 }
 
@@ -54,8 +60,7 @@ Result MmcBmProxy::InternalCreateBm(const mmc_bm_create_config_t &createConfig)
     } else if (createConfig.localDRAMSize > 0 && createConfig.localHBMSize == 0) {
         mediaType_ = MEDIA_DRAM;
     } else {
-        MMC_LOG_ERROR("Invalid BM config, both HBM size and DRAM size is 0");
-        return MMC_INVALID_PARAM;
+        MMC_LOG_INFO("dram and hbm hybrid pool");
     }
 
     smem_bm_data_op_type opType = MmcSmemBmHelper::TransSmemBmDataOpType(createConfig.dataOpType);
@@ -86,10 +91,23 @@ void MmcBmProxy::DestroyBm()
         smem_bm_uninit(0);
         smem_uninit();
         handle_ = nullptr;
-        gva_ = nullptr;
+        std::fill(gvas_, gvas_ + MEDIA_NONE, nullptr);
     }
     started_ = false;
     MMC_LOG_INFO("MmcBmProxy (" << name_ << ") is destroyed successfully");
+}
+
+MediaType MmcBmProxy::GetMediaType()
+{
+    // 从上到下选择写入的介质
+    for (MediaType type = MEDIA_HBM; type != MEDIA_NONE;) {
+        if (GetGva(type) != 0) {
+            return type;
+        }
+        type = MoveDown(type);
+    }
+    MMC_LOG_ERROR("MmcBmProxy GetMediaType unknown media type");
+    return MEDIA_NONE;
 }
 
 Result MmcBmProxy::Put(uint64_t srcBmAddr, uint64_t dstBmAddr, uint64_t size, smem_bm_copy_type type)

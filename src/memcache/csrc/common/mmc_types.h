@@ -43,6 +43,12 @@ enum MmcErrorCode : int32_t {
     MMC_META_BACKUP_ERROR = -3105,
 };
 
+static inline std::ostream& operator<<(std::ostream& os, MmcErrorCode errCode)
+{
+    os << std::to_string(static_cast<int32_t>(errCode));
+    return os;
+}
+
 constexpr int32_t N16 = 16;
 constexpr int32_t N64 = 64;
 constexpr int32_t N256 = 256;
@@ -65,9 +71,43 @@ enum MediaType : uint8_t {
     MEDIA_NONE,
 };
 
+static inline MediaType MoveUp(MediaType mediaType)
+{
+    if (mediaType == MediaType::MEDIA_HBM) {
+        return MediaType::MEDIA_NONE;
+    } else if (mediaType == MediaType::MEDIA_DRAM) {
+        return MediaType::MEDIA_HBM;
+    } else {
+        return MediaType::MEDIA_NONE;
+    }
+}
+
+static inline MediaType MoveDown(MediaType mediaType)
+{
+    if (mediaType == MediaType::MEDIA_HBM) {
+        return MediaType::MEDIA_DRAM;
+    } else if (mediaType == MediaType::MEDIA_DRAM) {
+        return MediaType::MEDIA_NONE;
+    } else {
+        return MediaType::MEDIA_NONE;
+    }
+}
+
+static inline std::ostream& operator<<(std::ostream& os, MediaType type)
+{
+    switch (type) {
+        case MEDIA_DRAM: os << "MEDIA_DRAM"; break;
+        case MEDIA_HBM: os << "MEDIA_HBM"; break;
+        default: os << "UNKNOWN"; break;
+    }
+    return os;
+}
+
 struct MmcLocation {
     uint32_t rank_;
     MediaType mediaType_;
+    MmcLocation() : rank_(UINT32_MAX), mediaType_(MediaType::MEDIA_NONE) {}
+    MmcLocation(uint32_t rank, MediaType mediaType) : rank_(rank), mediaType_(mediaType) {}
 
     bool operator<(const MmcLocation &other) const
     {

@@ -491,9 +491,9 @@ struct BatchUpdateResponse : MsgBase {
 
 struct BmRegisterRequest : MsgBase {
     uint32_t rank_{UINT32_MAX};
-    uint16_t mediaType_{UINT16_MAX};
-    uint64_t addr_{UINT64_MAX};
-    uint64_t capacity_{UINT64_MAX};
+    std::vector<uint16_t> mediaType_{};
+    std::vector<uint64_t> addr_{};
+    std::vector<uint64_t> capacity_{};
     std::map<std::string, MmcMemBlobDesc> blobMap_;
 
     BmRegisterRequest() : MsgBase{0, ML_BM_REGISTER_REQ, 0} {}
@@ -526,8 +526,8 @@ struct BmRegisterRequest : MsgBase {
 };
 
 struct BmUnregisterRequest : public MsgBase {
-    uint32_t rank_{UINT32_MAX};
-    uint16_t mediaType_{UINT16_MAX};
+    uint32_t rank_;
+    std::vector<uint16_t> mediaType_{UINT16_MAX};
 
     BmUnregisterRequest() : MsgBase{0, ML_BM_UNREGISTER_REQ, 0}{}
     explicit BmUnregisterRequest(uint32_t rank, uint16_t mediaType) :

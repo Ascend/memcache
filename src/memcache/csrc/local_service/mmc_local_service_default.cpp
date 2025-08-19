@@ -99,8 +99,12 @@ Result MmcLocalServiceDefault::DestroyBm()
 
     BmUnregisterRequest req;
     req.rank_ = options_.rankId;
-    req.mediaType_ = bmProxyPtr_->GetMediaType();
-
+    for (MediaType type = MEDIA_DRAM; type != MEDIA_NONE;) {
+        if (bmProxyPtr_->GetGva(type) != 0) {
+            req.mediaType_.emplace_back(type);
+        }
+        type = MoveUp(type);
+    }
     Response resp;
     Result ret = SyncCallMeta(req, resp, 30);
     MMC_RETURN_ERROR(ret, "bm destroy failed!");
@@ -113,9 +117,16 @@ Result MmcLocalServiceDefault::RegisterBm()
 {
     BmRegisterRequest req;
     req.rank_ = options_.rankId;
-    req.mediaType_ = bmProxyPtr_->GetMediaType();
-    req.addr_ = bmProxyPtr_->GetGva();
-    req.capacity_ = options_.localDRAMSize + options_.localHBMSize;
+    for (MediaType type = MEDIA_DRAM; type != MEDIA_NONE;) {
+        uint64_t gva = bmProxyPtr_->GetGva(type);
+        if (gva != 0) {
+            req.addr_.emplace_back(gva);
+            req.mediaType_.emplace_back(type);
+            req.capacity_.emplace_back(bmProxyPtr_->GetCapacity(type));
+            MMC_LOG_INFO("mmc local register capacity:" << req.capacity_.back() << ", type:" << req.mediaType_.back());
+        }
+        type = MoveUp(type);
+    }
     req.blobMap_.clear();
 
     Response resp;
@@ -138,8 +149,7 @@ Result MmcLocalServiceDefault::RegisterBm()
     MMC_RETURN_ERROR(SyncCallMeta(req, resp, 30), "bm register failed, bmRankId=" << req.rank_);
     MMC_RETURN_ERROR(resp.ret_,
                      "bm register failed, bmRankId=" << req.rank_ << ", retCode=" << resp.ret_);
-    MMC_LOG_INFO("bm register succeed, bmRankId=" << req.rank_ << ", media=" << req.mediaType_
-                                                  << ", cap=" << req.capacity_);
+    MMC_LOG_INFO("bm register succeed, bmRankId=" << req.rank_ << ", type num=" << req.mediaType_.size());
     return MMC_OK;
 }
 

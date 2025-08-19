@@ -73,8 +73,8 @@ public:
         return MMC_OK;
     }
 
-    Result Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo &localMemInitInfo,
-        std::map<std::string, MmcMemBlobDesc> &blobMap) override
+    Result Mount(const std::vector<MmcLocation>& loc, const std::vector<MmcLocalMemlInitInfo>& localMemInitInfo,
+                 std::map<std::string, MmcMemBlobDesc>& blobMap) override
     {
         return metaMangerPtr_->Mount(loc, localMemInitInfo, blobMap);
     }

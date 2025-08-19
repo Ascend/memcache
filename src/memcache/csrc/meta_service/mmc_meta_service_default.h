@@ -21,8 +21,8 @@ public:
 
     void Stop() override;
 
-    Result BmRegister(uint32_t rank, uint16_t mediaType, uint64_t bm, uint64_t capacity,
-        std::map<std::string, MmcMemBlobDesc> &blobMap);
+    Result BmRegister(uint32_t rank, std::vector<uint16_t> mediaType, std::vector<uint64_t> bm,
+                      std::vector<uint64_t> capacity, std::map<std::string, MmcMemBlobDesc>& blobMap);
 
     Result BmUnregister(uint32_t rank, uint16_t mediaType);
 
@@ -42,7 +42,6 @@ private:
     std::mutex mutex_;
     bool started_ = false;
     std::string name_;
-    uint32_t registerRank_ = 0;
     mmc_meta_service_config_t options_;
     std::unordered_map<uint32_t, std::unordered_set<uint16_t>> rankMediaTypeMap_;
 };

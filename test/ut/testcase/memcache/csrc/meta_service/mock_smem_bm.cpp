@@ -3,6 +3,8 @@
  */
 #include "smem_bm.h"
 
+static uint64_t g_spaces[SMEM_MEM_TYPE_BUTT] = {0};
+
 // 实现所有函数返回0或默认值
 int32_t smem_bm_config_init(smem_bm_config_t *config)
 {
@@ -29,6 +31,8 @@ smem_bm_t smem_bm_create(uint32_t id, uint32_t memberSize,
                         smem_bm_data_op_type dataOpType, uint64_t localDRAMSize,
                         uint64_t localHBMSize, uint32_t flags)
 {
+    g_spaces[SMEM_MEM_TYPE_DEVICE] = localHBMSize;
+    g_spaces[SMEM_MEM_TYPE_HOST] = localDRAMSize;
     return reinterpret_cast<smem_bm_t>(0x1234); // 返回非空伪句柄
 }
 
@@ -55,6 +59,19 @@ uint64_t smem_bm_get_local_mem_size(smem_bm_t handle)
 void *smem_bm_ptr(smem_bm_t handle, uint16_t peerRankId)
 {
     return reinterpret_cast<void*>(0x5678);
+}
+
+void* smem_bm_ptr_by_mem_type(smem_bm_t handle, smem_bm_mem_type memType, uint16_t peerRankId)
+{
+    return reinterpret_cast<void*>(0x5678);
+}
+
+uint64_t smem_bm_get_local_mem_size_by_mem_type(smem_bm_t handle, smem_bm_mem_type memType)
+{
+    if (memType >= SMEM_MEM_TYPE_BUTT) {
+        return 0;
+    }
+    return g_spaces[memType];
 }
 
 int32_t smem_bm_copy(smem_bm_t handle, const void *src, void *dest,

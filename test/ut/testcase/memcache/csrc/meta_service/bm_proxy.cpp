@@ -108,7 +108,7 @@ TEST_F(TestBmProxy, Copy)
     Result ret = bmProxy->InitBm(initConfig, createConfig);
     EXPECT_EQ(ret, MMC_OK);
 
-    uint64_t bmAddr = bmProxy->GetGva();
+    uint64_t bmAddr = bmProxy->GetGva(MEDIA_HBM);
 
     void *hostSrc1 = malloc(SIZE_32K);
     void *hostSrc2 = malloc(SIZE_32K);

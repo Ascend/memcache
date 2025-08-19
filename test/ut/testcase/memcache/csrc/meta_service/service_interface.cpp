@@ -70,9 +70,9 @@ static bool CheckData(void *base, void *ptr)
 
 TEST_F(TestMmcServiceInterface, metaServiceStart)
 {
-    std::string metaUrl = "tcp://127.0.0.1:5868";
-    std::string bmUrl = "tcp://127.0.0.1:5881";
-    std::string hcomUrl = "tcp://127.0.0.1:5882";
+    std::string metaUrl = "tcp://127.0.0.1:5869";
+    std::string bmUrl = "tcp://127.0.0.1:5882";
+    std::string hcomUrl = "tcp://127.0.0.1:5883";
     std::string localUrl = "";
     mmc_meta_service_config_t metaServiceConfig;
     metaServiceConfig.logLevel = 0;
@@ -86,7 +86,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
     ASSERT_TRUE(meta_service != nullptr);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, "sdma", 0, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, "sdma", 104857600, 104857600, 0};
     localServiceConfig.logLevel = 0;
     localServiceConfig.tlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -116,7 +116,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
 
     mmc_put_options options{0, NATIVE_AFFINITY};
     ret = mmcc_put(test.c_str(), &buffer, options, 0);
-    ASSERT_TRUE(ret == 0);
+    EXPECT_EQ(ret, 0);
 
     mmc_buffer readBuffer;
     readBuffer.addr = (uint64_t)hostDest;
@@ -194,7 +194,7 @@ TEST_F(TestMmcServiceInterface, testClientInitUninit)
 {
     mmc_client_config_t clientConfig{};
     int32_t ret = mmcc_init(&clientConfig);
-    ASSERT_TRUE(ret == ock::mmc::MMC_INVALID_PARAM);
+    ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
 
     ret = mmcc_init(nullptr);
     ASSERT_TRUE(ret == ock::mmc::MMC_INVALID_PARAM);
@@ -270,7 +270,7 @@ TEST_F(TestMmcServiceInterface, testExistOperations)
     mmcc_init(&clientConfig);
 
     int32_t ret = mmcc_exist("non_existent_key", 0);
-    ASSERT_EQ(ret, ock::mmc::MMC_LINK_NOT_FOUND);
+    EXPECT_EQ(ret, ock::mmc::MMC_LINK_NOT_FOUND);
 
     const char* keys[] = {"key1", "key2", "non_existent"};
     int32_t exists[3];

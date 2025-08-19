@@ -117,14 +117,7 @@ MediaType MmcMemObjMeta::MoveTo()
         }
     }
 
-    if (mediaType == MediaType::MEDIA_HBM) {
-        return MediaType::MEDIA_NONE; // 暂时先不支持淘汰到DRAM
-    } else if (mediaType == MediaType::MEDIA_DRAM) {
-        return MediaType::MEDIA_NONE;
-    } else {
-        MMC_LOG_ERROR("type is :" << std::to_string(mediaType) << ", size:" << blobs_.size());
-        return MediaType::MEDIA_NONE;
-    }
+    return MoveDown(mediaType);
 }
 
 }  // namespace mmc

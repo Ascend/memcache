@@ -90,8 +90,8 @@ Result MetaNetServer::HandleBmRegister(const NetContextPtr &context)
     BmRegisterRequest req;
     context->GetRequest<BmRegisterRequest>(req);
     auto result = metaServiceDefaultPtr->BmRegister(req.rank_, req.mediaType_, req.addr_, req.capacity_, req.blobMap_);
-    MMC_LOG_INFO("HandleBmRegister rank:" << req.rank_ << ", capacity:" << req.capacity_ << ", media:" << req.mediaType_
-                                          << " rebuild blob size " << req.blobMap_.size() << ", ret:" << result);
+    MMC_LOG_INFO("HandleBmRegister rank:" << req.rank_ << ", rebuild blob size " << req.blobMap_.size()
+                                          << ", ret:" << result);
     Response resp;
     resp.ret_ = result;
     return context->Reply(req.msgId, resp);
@@ -101,11 +101,17 @@ Result MetaNetServer::HandleBmUnregister(const NetContextPtr &context)
 {
     auto metaServiceDefaultPtr = Convert<MmcMetaService, MmcMetaServiceDefault>(metaService_);
     BmUnregisterRequest req;
-    context->GetRequest<BmUnregisterRequest>(req);
-    auto result = metaServiceDefaultPtr->BmUnregister(req.rank_, req.mediaType_);
-    MMC_LOG_INFO("HandleBmUnregister rank:" << req.rank_ << ", media:" << req.mediaType_ << ", ret:" << result);
     Response resp;
-    resp.ret_ = result;
+    resp.ret_ = MMC_OK;
+    context->GetRequest<BmUnregisterRequest>(req);
+    for (auto type : req.mediaType_) {
+        auto result = metaServiceDefaultPtr->BmUnregister(req.rank_, type);
+        MMC_LOG_INFO("HandleBmUnregister rank:" << req.rank_ << ", media:" << type << ", ret:" << result);
+        if (result != MMC_OK) {
+            MMC_LOG_ERROR("HandleBmUnregister rank:" << req.rank_ << ", media:" << type << ", ret:" << result);
+            resp.ret_ = result;
+        }
+    }
     return context->Reply(req.msgId, resp);
 }
 
