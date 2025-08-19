@@ -94,8 +94,9 @@ DistributedObjectStore::~DistributedObjectStore() {
     ResourceTracker::getInstance().unregisterInstance(this);
 }
 
-int DistributedObjectStore::init() {
-    return mmc_init();
+int DistributedObjectStore::init(const uint32_t &deviceId) {
+    mmc_init_config config{deviceId};
+    return mmc_init(config);
 }
 
 int DistributedObjectStore::setup(const std::string &local_hostname,
@@ -857,7 +858,8 @@ PYBIND11_MODULE(_pymmc, m) {
     // Define the DistributedObjectStore class
     py::class_<DistributedObjectStore>(m, "DistributedObjectStore")
         .def(py::init<>())
-        .def("init", &DistributedObjectStore::init)
+        .def("init", &DistributedObjectStore::init,
+             py::call_guard<py::gil_scoped_release>(), py::arg("device_id"))
         .def("setup", &DistributedObjectStore::setup)
         .def("init_all", &DistributedObjectStore::initAll)
         .def("get", &DistributedObjectStore::get)

@@ -283,7 +283,7 @@ HYBM_API int32_t hybm_init(uint16_t deviceId, uint64_t flags)
 
     initedDeviceId = deviceId;
     initialized = 1L;
-    BM_LOG_INFO("hybm init successfully, " << LIB_VERSION);
+    BM_LOG_INFO("hybm init successfully, " << LIB_VERSION << ", deviceId: " << deviceId);
     return 0;
 }
 

@@ -143,7 +143,7 @@ public:
     DistributedObjectStore();
     ~DistributedObjectStore();
 
-    int init();
+    int init(const uint32_t &deviceId);
 
     int setup(const std::string &local_hostname,
               const std::string &metadata_server,

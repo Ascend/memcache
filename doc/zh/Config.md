@@ -37,8 +37,6 @@
 | ock.mmc.tls.key.path                   | string     | certs/client.private.key.pem | 0 <= len < 1024       | client private key path relative to the top path            |
 | ock.mmc.tls.key.pass.path              | string     | certs/client.passphrase      | 0 <= len < 1024       | client private key passphrase path relative to the top path |
 | ock.mmc.tls.package.path               | string     | /opt/ock/security/libs/      | 0 <= len < 1024       | openssl dynamic lib absolute path                           |
-|                                        |            |                              |                       |                                                             |
-| ock.mmc.local_service.device_id        | integer    | 0                            | [0, 383]              |                                                             |
 | ock.mmc.local_service.world_size       | integer    | 1                            | [1, 1024]             |                                                             |
 | ock.mmc.local_service.config_store_url | string     | tcp://127.0.0.1:6000         | tcp://\<ip>\<port>    | port in [1025, 65535]                                       |
 | ock.mmc.local_service.hcom_url         | string     | tcp://127.0.0.1:7000         | tcp://\<ip>\<port>    | used in dram pool, port in [1, 65535]                       |

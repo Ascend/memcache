@@ -10,12 +10,15 @@
 extern "C" {
 #endif
 
+typedef struct {
+    uint32_t deviceId;
+} mmc_init_config;
 /**
  * @brief Initialize the memcache client and local service
- *
+ * @param config              [in] init confid @mmc_init_config
  * @return 0 if successful,
  */
-int32_t mmc_init();
+int32_t mmc_init(const mmc_init_config &config);
 
 /**
  * @brief Set external log function, user can set customized logger function,

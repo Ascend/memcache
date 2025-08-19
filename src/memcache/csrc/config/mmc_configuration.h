@@ -214,8 +214,6 @@ public:
         AddStrConf(OCK_MMC_TLS_KEY_PASS_PATH, VStrLength::Create(OCK_MMC_TLS_KEY_PASS_PATH.first, PATH_MAX_LEN));
         AddStrConf(OCK_MMC_TLS_PACKAGE_PATH, VStrLength::Create(OCK_MMC_TLS_PACKAGE_PATH.first, PATH_MAX_LEN));
 
-        AddIntConf(OKC_MMC_LOCAL_SERVICE_DEVICE_ID,
-            VIntRange::Create(OKC_MMC_LOCAL_SERVICE_DEVICE_ID.first, MIN_DEVICE_ID, MAX_DEVICE_ID));
         AddIntConf(OKC_MMC_LOCAL_SERVICE_WORLD_SIZE,
             VIntRange::Create(OKC_MMC_LOCAL_SERVICE_WORLD_SIZE.first, MIN_WORLD_SIZE, MAX_WORLD_SIZE));
         AddStrConf(OKC_MMC_LOCAL_SERVICE_BM_IP_PORT, VNoCheck::Create());
@@ -235,7 +233,6 @@ public:
         std::copy_n(discoveryURL.c_str(), copy_count, config.discoveryURL);
         config.discoveryURL[copy_count] = '\0';
 
-        config.deviceId = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_DEVICE_ID);
         config.worldSize = GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_WORLD_SIZE);
         config.bmIpPort = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_IP_PORT);
         config.bmHcomUrl = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL);

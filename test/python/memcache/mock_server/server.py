@@ -18,6 +18,8 @@ from typing import Callable, Dict, List
 
 from pymmc import DistributedObjectStore
 
+DEVICE_ID: int = 0
+
 
 @dataclasses.dataclass
 class CliCommand:
@@ -184,7 +186,8 @@ class MmcDirect(Enum):
 
 def acl_set_device():
     acl.init()
-    ret = acl.rt.set_device(0)
+    global DEVICE_ID
+    ret = acl.rt.set_device(DEVICE_ID)
     if ret != 0:
         raise RuntimeError("acl set device failed")
 
@@ -254,7 +257,8 @@ class MmcTest(TestServer):
     @result_handler
     def init_mmc(self):
         self.__distributed_store_object = DistributedObjectStore()
-        res = self.__distributed_store_object.init()
+        global DEVICE_ID
+        res = self.__distributed_store_object.init(DEVICE_ID)
         self.cli_return(res)
 
     @result_handler

@@ -18,8 +18,10 @@ static mmc_local_service_t g_localService;
 static std::mutex gMmcMutex;
 static bool mmcInit = false;
 
-MMC_API int32_t mmc_init()
+MMC_API int32_t mmc_init(const mmc_init_config &config)
 {
+    MMC_VALIDATE_RETURN(config.deviceId <= MAX_DEVICE_ID, "Invalid param deviceId: "
+                        << config.deviceId, MMC_INVALID_PARAM);
     std::lock_guard<std::mutex> lock(gMmcMutex);
     if (mmcInit) {
         MMC_LOG_INFO("mmc is already init");
@@ -44,6 +46,7 @@ MMC_API int32_t mmc_init()
     }
 
     mmc_local_service_config_t localServiceConfig;
+    localServiceConfig.deviceId = config.deviceId;
     g_clientConfig->GetLocalServiceConfig(localServiceConfig);
     MMC_VALIDATE_RETURN(g_clientConfig->ValidateLocalServiceConfig(localServiceConfig) == MMC_OK,
         "Invalid local service config", MMC_INVALID_PARAM);
