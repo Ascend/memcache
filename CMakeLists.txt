@@ -12,6 +12,7 @@ option(BUILD_GIT_COMMIT_GEN_FILE "generate commit log file" ON)
 option(INSTALL_HIGH_LEVEL_API "add device high level api into pkg" ON)
 option(BUILD_PYTHON "build python file" ON)
 option(BUILD_ASAN "build python file" OFF)
+option(BUILD_HTRACER "build htracer" OFF)
 
 message(STATUS "BUILD_EXAMPLE = ${BUILD_EXAMPLE}")
 message(STATUS "BUILD_TESTS = ${BUILD_TESTS}")
@@ -21,6 +22,7 @@ message(STATUS "BUILD_GIT_COMMIT = ${BUILD_GIT_COMMIT}")
 message(STATUS "BUILD_GIT_COMMIT_GEN_FILE = ${BUILD_GIT_COMMIT_GEN_FILE}")
 message(STATUS "BUILD_PYTHON = ${BUILD_PYTHON}")
 message(STATUS "BUILD_ASAN = ${BUILD_ASAN}")
+message(STATUS "BUILD_HTRACER = ${BUILD_HTRACER}")
 
 message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
@@ -60,6 +62,10 @@ if(BUILD_TESTS STREQUAL "ON")
     add_link_options(-lgcov --coverage)
     set(BUILD_OPEN_ABI "ON")
 endif()
+
+if (BUILD_HTRACER STREQUAL "ON")
+    add_definitions(-DBUILD_HTRACER=ON)
+endif ()
 
 if(NOT BUILD_OPEN_ABI STREQUAL "ON")
     add_compile_options(-D_GLIBCXX_USE_CXX11_ABI=0)

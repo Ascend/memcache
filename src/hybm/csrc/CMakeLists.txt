@@ -13,6 +13,7 @@ include_directories(
         ${PROJECT_HYBM_SRC_BASE}/csrc/transport/host
         ${PROJECT_HYBM_SRC_BASE}/csrc/transport/utils
         ${PROJECT_HYBM_SRC_BASE}/csrc/under_api
+        ${PROJECT_UTIL_SRC_BASE}/htracer
 )
 
 ## add files into src variables
@@ -53,7 +54,7 @@ target_link_libraries(hybmm_static PUBLIC pthread dl)
 
 add_library(hybmm_shared SHARED $<TARGET_OBJECTS:hybmm_objects>)
 set_target_properties(hybmm_shared PROPERTIES OUTPUT_NAME "mf_hybm_core")
-target_link_libraries(hybmm_shared PUBLIC pthread dl)
+target_link_libraries(hybmm_shared PUBLIC pthread dl htracer_static)
 
 ## install header files
 file(GLOB HEADER_FILES ${PROJECT_HYBM_SRC_BASE}/include/*.h)

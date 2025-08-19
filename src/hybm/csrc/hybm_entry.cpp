@@ -17,8 +17,10 @@
 #include "devmm_svm_gva.h"
 #include "hybm_cmd.h"
 #include "hybm.h"
+#include "htracer.h"
 
 using namespace ock::mf;
+using namespace ock::htracer;
 
 namespace {
 constexpr uint16_t HYBM_INIT_MODULE_ID_MAX = 32;
@@ -270,6 +272,15 @@ HYBM_API int32_t hybm_init(uint16_t deviceId, uint64_t flags)
         return BM_ERROR;
     }
 
+#ifdef BUILD_HTRACER
+    auto result = HTracerInit();
+    if (result != BM_OK) {
+        BM_LOG_ERROR("init htracer module failed, result: " << result);
+        return result;
+    }
+    BM_LOG_INFO("smem init htracer successfully");
+#endif
+
     initedDeviceId = deviceId;
     initialized = 1L;
     BM_LOG_INFO("hybm init successfully, " << LIB_VERSION);
@@ -287,6 +298,10 @@ HYBM_API void hybm_uninit()
     if (--initialized > 0L) {
         return;
     }
+
+#ifdef BUILD_HTRACER
+    HTracerExit();
+#endif
 
     auto ret = drv::HalGvaUnreserveMemory();
     BM_LOG_INFO("uninitialize GVA memory return: " << ret);

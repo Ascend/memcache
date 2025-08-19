@@ -5,7 +5,10 @@
 #include "smem_common_includes.h"
 #include "smem_version.h"
 #include "hybm.h"
+#include "htracer.h"
 #include "acc_links/net/acc_log.h"
+
+using namespace ock::htracer;
 
 namespace {
 bool g_smemInited = false;
@@ -20,14 +23,23 @@ SMEM_API int32_t smem_init(uint32_t flags)
 
     g_smemInited = true;
     SM_LOG_INFO("smem init successfully, " << LIB_VERSION);
-	
+#ifdef BUILD_HTRACER
+    auto result = HTracerInit();
+    if (result != SM_OK) {
+        SM_LOG_AND_SET_LAST_ERROR("init htracer module failed, result: " << result);
+        return result;
+    }
+    SM_LOG_INFO("smem init htracer successfully");
+#endif
     return SM_OK;
 }
 
 SMEM_API void smem_uninit()
 {
     g_smemInited = false;
-    return;
+#ifdef BUILD_HTRACER
+    HTracerExit();
+#endif
 }
 
 SMEM_API int32_t smem_set_extern_logger(void (*fun)(int, const char *))

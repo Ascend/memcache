@@ -5,6 +5,7 @@ BUILD_TESTS=${2:-OFF}
 BUILD_OPEN_ABI=${3:-ON}
 BUILD_PYTHON=${4:-ON}
 BUILD_ASAN=${5:-OFF}
+BUILD_HTRACER=${6:-ON}
 
 if [ "$BUILD_ASAN" = "ON" ]; then
   if [ "$BUILD_MODE" = "RELEASE" ]; then
@@ -45,7 +46,7 @@ rm -rf ./build ./output/memcache ./output/hybm ./output/smem
 rm -f ./output/mxc-memfabric_hybrid-1.0.0_linux_aarch64.run
 
 mkdir build/
-cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_TESTS="${BUILD_TESTS}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -DBUILD_PYTHON="${BUILD_PYTHON}" -DBUILD_ASAN="${BUILD_ASAN}" -S . -B build/
+cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_TESTS="${BUILD_TESTS}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -DBUILD_PYTHON="${BUILD_PYTHON}" -DBUILD_ASAN="${BUILD_ASAN}" -DBUILD_HTRACER="${BUILD_HTRACER}" -S . -B build/
 make install -j5 -C build/
 
 mkdir -p "${PROJ_DIR}/src/smem/python/mf_smem/lib"
