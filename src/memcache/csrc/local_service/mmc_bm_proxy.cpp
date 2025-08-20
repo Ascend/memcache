@@ -41,8 +41,8 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
     void* tmpGva = nullptr;
     MMC_RETURN_ERROR(smem_bm_join(handle_, 0, &tmpGva), "Failed to join smem bm");
 
-    gvas_[MEDIA_HBM] = smem_bm_ptr_by_mem_type(handle_, SMEM_MEM_TYPE_DEVICE, 0);
-    gvas_[MEDIA_DRAM] = smem_bm_ptr_by_mem_type(handle_, SMEM_MEM_TYPE_HOST, 0);
+    gvas_[MEDIA_HBM] = smem_bm_ptr_by_mem_type(handle_, SMEM_MEM_TYPE_DEVICE, bmRankId_);
+    gvas_[MEDIA_DRAM] = smem_bm_ptr_by_mem_type(handle_, SMEM_MEM_TYPE_HOST, bmRankId_);
     spaces_[MEDIA_HBM] = smem_bm_get_local_mem_size_by_mem_type(handle_, SMEM_MEM_TYPE_DEVICE);
     spaces_[MEDIA_DRAM] = smem_bm_get_local_mem_size_by_mem_type(handle_, SMEM_MEM_TYPE_HOST);
     started_ = true;

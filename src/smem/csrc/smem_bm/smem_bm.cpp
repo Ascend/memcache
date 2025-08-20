@@ -236,11 +236,14 @@ void *smem_bm_ptr_by_mem_type(smem_bm_t handle, smem_bm_mem_type memType, uint16
     auto &coreOption = entry->GetCoreOptions();
     SM_PARAM_VALIDATE(peerRankId >= coreOption.rankCount, "invalid param, peerRankId too large", nullptr);
 
+    void *addr = nullptr;
     switch (memType) {
         case SMEM_MEM_TYPE_DEVICE:
-            return entry->GetDeviceGvaAddress();
+            addr = entry->GetDeviceGvaAddress();
+            return static_cast<uint8_t *>(addr) + coreOption.deviceVASpace * peerRankId;
         case SMEM_MEM_TYPE_HOST:
-            return entry->GetHostGvaAddress();
+            addr = entry->GetHostGvaAddress();
+            return static_cast<uint8_t *>(addr) + coreOption.hostVASpace * peerRankId;
         default:
             SM_LOG_AND_SET_LAST_ERROR("input mem type is invalid, memType: " << memType);
             return nullptr;
