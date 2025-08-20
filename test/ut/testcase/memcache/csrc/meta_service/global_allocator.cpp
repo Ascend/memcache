@@ -591,3 +591,132 @@ TEST_F(TestMmcGlobalAllocator, ReBuild)
     }
 
 }
+
+TEST_F(TestMmcGlobalAllocator, AllocForce)
+{
+    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>();
+    uint64_t size = SIZE_32K * 10;
+    for (int i = 0; i < 10; i++) {
+        MmcLocation loc;
+        MmcLocalMemlInitInfo info;
+        loc.mediaType_ = MEDIA_DRAM;
+        loc.rank_ = i;
+        info.bmAddr_ = size * i;
+        info.capacity_ = size;
+        std::map<std::string, MmcMemBlobDesc> blobMap;
+        allocator->Mount(loc, info);
+        allocator->BuildFromBlobs(loc, blobMap);
+        allocator->Start(loc);
+    }
+    for (int i = 0; i < 5; i++) {
+        MmcLocation loc;
+        MmcLocalMemlInitInfo info;
+        loc.mediaType_ = MEDIA_HBM;
+        loc.rank_ = i;
+        info.bmAddr_ = size * i;
+        info.capacity_ = size;
+        std::map<std::string, MmcMemBlobDesc> blobMap;
+        allocator->Mount(loc, info);
+        allocator->BuildFromBlobs(loc, blobMap);
+        allocator->Start(loc);
+    }
+
+    AllocOptions allocReq;
+    std::vector<MmcMemBlobPtr> blobs;
+
+    allocReq.blobSize_ = SIZE_32K;
+    allocReq.numBlobs_ = 10;
+    allocReq.preferredRank_ = 5;
+    allocReq.mediaType_ = 0;
+    allocReq.flags_ = ALLOC_FORCE_BY_RANK;
+
+    Result ret = allocator->Alloc(allocReq, blobs);
+    EXPECT_EQ(ret, MMC_ERROR);
+    EXPECT_EQ(blobs.size(), 0U);
+
+    allocReq.numBlobs_ = 1;
+    allocReq.preferredRank_ = 10;
+    ret = allocator->Alloc(allocReq, blobs);
+    EXPECT_EQ(ret, MMC_ERROR);
+    EXPECT_EQ(blobs.size(), 0U);
+
+    allocReq.preferredRank_ = 5;
+    ret = allocator->Alloc(allocReq, blobs);
+    EXPECT_EQ(ret, MMC_OK);
+    EXPECT_EQ(blobs.size(), 1U);
+    EXPECT_EQ(blobs[0]->Rank(), allocReq.preferredRank_);
+    EXPECT_EQ(blobs[0]->Size(), allocReq.blobSize_);
+    EXPECT_EQ(blobs[0]->Type(), allocReq.mediaType_);
+    EXPECT_EQ(blobs[0]->Gva(), size * allocReq.preferredRank_);
+}
+
+TEST_F(TestMmcGlobalAllocator, AllocRandom)
+{
+    MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>();
+    uint64_t size = SIZE_32K * 10;
+    for (int i = 0; i < 10; i++) {
+        MmcLocation loc;
+        MmcLocalMemlInitInfo info;
+        loc.mediaType_ = MEDIA_DRAM;
+        loc.rank_ = i;
+        info.bmAddr_ = size * i;
+        info.capacity_ = size;
+        std::map<std::string, MmcMemBlobDesc> blobMap;
+        allocator->Mount(loc, info);
+        allocator->BuildFromBlobs(loc, blobMap);
+        allocator->Start(loc);
+    }
+    for (int i = 0; i < 5; i++) {
+        MmcLocation loc;
+        MmcLocalMemlInitInfo info;
+        loc.mediaType_ = MEDIA_HBM;
+        loc.rank_ = i;
+        info.bmAddr_ = size * i;
+        info.capacity_ = size;
+        std::map<std::string, MmcMemBlobDesc> blobMap;
+        allocator->Mount(loc, info);
+        allocator->BuildFromBlobs(loc, blobMap);
+        allocator->Start(loc);
+    }
+
+    AllocOptions allocReq;
+    std::vector<MmcMemBlobPtr> blobs;
+
+    allocReq.blobSize_ = SIZE_32K;
+    allocReq.numBlobs_ = 10;
+    allocReq.preferredRank_ = 0;
+    allocReq.mediaType_ = 1;
+    allocReq.flags_ = ALLOC_RANDOM;
+
+    Result ret = allocator->Alloc(allocReq, blobs);
+    EXPECT_EQ(ret, MMC_ERROR);
+    EXPECT_EQ(blobs.size(), 0U);
+
+    allocReq.mediaType_ = 0;
+
+    ret = allocator->Alloc(allocReq, blobs);
+    EXPECT_EQ(ret, MMC_OK);
+    EXPECT_EQ(blobs.size(), 10U);
+    for (size_t i = 0; i < blobs.size(); i++) {
+        cout << "blob[" << i << "] rank: " << blobs[i]->Rank() << endl;
+        EXPECT_EQ(blobs[i]->Size(), allocReq.blobSize_);
+        EXPECT_EQ(blobs[i]->Type(), allocReq.mediaType_);
+        EXPECT_EQ(blobs[i]->Gva(), size * blobs[i]->Rank());
+    }
+
+    std::vector<MmcMemBlobPtr> blobs1;
+    ret = allocator->Alloc(allocReq, blobs1);
+    EXPECT_EQ(ret, MMC_OK);
+    EXPECT_EQ(blobs1.size(), 10U);
+    bool isEqual = true;
+    for (size_t i = 0; i < blobs1.size(); i++) {
+        cout << "blob[" << i << "] rank: " << blobs1[i]->Rank() << endl;
+        if (blobs[i] != blobs1[i]) {
+            isEqual = false;
+        }
+        EXPECT_EQ(blobs1[i]->Size(), allocReq.blobSize_);
+        EXPECT_EQ(blobs1[i]->Type(), allocReq.mediaType_);
+        EXPECT_EQ(blobs1[i]->Gva(), size * blobs1[i]->Rank() + SIZE_32K);
+    }
+    EXPECT_FALSE(isEqual);
+}

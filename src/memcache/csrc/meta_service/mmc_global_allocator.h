@@ -25,7 +25,24 @@ public:
             MMC_LOG_ERROR("Alloc allocators_ is empty");
             return MMC_ERROR;
         }
-        Result ret = MmcLocalityStrategy::ArrangeLocality(allocators_, allocReq, blobs);
+        Result ret;
+        switch (allocReq.flags_) {
+            case ALLOC_ARRANGE:
+                ret = MmcLocalityStrategy::ArrangeLocality(allocators_, allocReq, blobs);
+                break;
+            
+            case ALLOC_FORCE_BY_RANK:
+                ret = MmcLocalityStrategy::ForceAssign(allocators_, allocReq, blobs);
+                break;
+            
+            case ALLOC_RANDOM:
+                ret = MmcLocalityStrategy::RandomAssign(allocators_, allocReq, blobs);
+                break;
+            
+            default:
+                ret = MmcLocalityStrategy::ArrangeLocality(allocators_, allocReq, blobs);
+                break;
+        }
         globalAllocLock_.UnlockRead();
         if (ret != MMC_OK && !blobs.empty()) {
             for (auto& blob : blobs) {
