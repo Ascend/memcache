@@ -120,31 +120,31 @@ int gvm_agent_init_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
 {
     int devpid, pasid, svspid, ret;
     if (msg == NULL || msg->type != HYBM_GVM_AGENT_MSG_INIT) {
-        hybm_gvm_err("input msg is invalid.\n");
+        hybm_gvm_err("input msg is invalid.");
         return -EINVAL;
     }
 
     ret = g_gvm_agent_symbol.devdrv_query_pid_func(msg->init.hostpid, devid, DEVDRV_PROCESS_CP1, 0, &devpid);
     if (ret != 0) {
-        hybm_gvm_err("query devpid failed. ret:%d,devid:%u,hostpid:%d\n", ret, devid, msg->init.hostpid);
+        hybm_gvm_err("query devpid failed. ret:%d,devid:%u,hostpid:%d", ret, devid, msg->init.hostpid);
         return -EINVAL;
     }
 
     pasid = g_gvm_agent_symbol.get_pasid_func(devpid, devid);
     if (pasid < 0) {
-        hybm_gvm_err("get pasid failed. ret:%d,hostpid:%d,devpid:%d\n", pasid, msg->init.hostpid, devpid);
+        hybm_gvm_err("get pasid failed. ret:%d,hostpid:%d,devpid:%d", pasid, msg->init.hostpid, devpid);
         return -EINVAL;
     }
 
     svspid = g_gvm_agent_symbol.get_svsp_pasid_func(devpid, devid);
     if (svspid < 0) {
-        hybm_gvm_err("get svsp pasid failed. ret:%d,hostpid:%d,devpid:%d\n", svspid, msg->init.hostpid, devpid);
+        hybm_gvm_err("get svsp pasid failed. ret:%d,hostpid:%d,devpid:%d", svspid, msg->init.hostpid, devpid);
         return -EINVAL;
     }
 
     msg->init.pasid = pasid;
     msg->init.svspid = svspid;
-    hybm_gvm_debug("gvm_agent_init_recv, hostpid:%d,devpid:%d,pasid:%d,svspid:%d\n", msg->init.hostpid, devpid, pasid,
+    hybm_gvm_debug("gvm_agent_init_recv, hostpid:%d,devpid:%d,pasid:%d,svspid:%d", msg->init.hostpid, devpid, pasid,
                    svspid);
     return 0;
 }
@@ -155,7 +155,7 @@ int gvm_agent_map_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
     u32 pasid, i;
     int ret;
     if (msg == NULL || msg->type != HYBM_GVM_AGENT_MSG_MAP) {
-        hybm_gvm_err("input msg type is invalid.\n");
+        hybm_gvm_err("input msg type is invalid.");
         return -EINVAL;
     }
 
@@ -164,7 +164,7 @@ int gvm_agent_map_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
     pa = msg->mmap.pa;
     size = msg->mmap.size;
     if (size != HYBM_GVM_PAGE_SIZE || pa % PAGE_SIZE) {
-        hybm_gvm_err("input addr error.pa:0x%llx,size:0x%llx\n", pa, size);
+        hybm_gvm_err("input addr error.pa:0x%llx,size:0x%llx", pa, size);
         return -EINVAL;
     }
 
@@ -174,14 +174,14 @@ int gvm_agent_map_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
         va = g_gvm_agent_symbol.svsp_mmap_func(size, pasid, va, size, true);
     }
     if (va < HYBM_SVSP_START || va > HYBM_SVSP_END || (msg->mmap.va != 0ULL && msg->mmap.va != va)) {
-        hybm_gvm_err("mmap addr error.iva:0x%llx,va:0x%llx,pa:0x%llx,size:0x%llx\n", msg->mmap.va, va, pa, size);
+        hybm_gvm_err("mmap addr error.iva:0x%llx,va:0x%llx,pa:0x%llx,size:0x%llx", msg->mmap.va, va, pa, size);
         return -EINVAL;
     }
 
     ret = g_gvm_agent_symbol.svsp_populate_func(va, pa / PAGE_SIZE, size, pasid);
     if (ret != 0) {
         g_gvm_agent_symbol.svsp_unmap_func(va, size, pasid);
-        hybm_gvm_err("mem populate failed, va:0x%llx,pa:0x%llx,size:0x%llx,ret:%d\n", va, pa, size, ret);
+        hybm_gvm_err("mem populate failed, va:0x%llx,pa:0x%llx,size:0x%llx,ret:%d", va, pa, size, ret);
         return ret;
     }
 
@@ -202,7 +202,7 @@ int gvm_agent_map_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
     }
 
     msg->mmap.va = va;
-    hybm_gvm_debug("gvm_agent_map_recv, va:0x%llx,pa:0x%llx,size:0x%llx\n", va, pa, size);
+    hybm_gvm_debug("gvm_agent_map_recv, va:0x%llx,pa:0x%llx,size:0x%llx", va, pa, size);
     return ret;
 }
 
@@ -211,7 +211,7 @@ int gvm_agent_unmap_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
     u64 va, size, page_size, num, i;
     u32 pasid;
     if (msg == NULL || msg->type != HYBM_GVM_AGENT_MSG_UNMAP) {
-        hybm_gvm_err("input msg type is invalid.\n");
+        hybm_gvm_err("input msg type is invalid.");
         return -EINVAL;
     }
 
@@ -220,7 +220,7 @@ int gvm_agent_unmap_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
     size = msg->unmap.size;
     page_size = msg->unmap.page_size;
     if (va % HYBM_GVM_PAGE_SIZE || size % HYBM_GVM_PAGE_SIZE || page_size % PAGE_SIZE || size % page_size) {
-        hybm_gvm_err("input addr error. va:0x%llx,size:0x%llx,pg_size:0x%llx\n", va, size, page_size);
+        hybm_gvm_err("input addr error. va:0x%llx,size:0x%llx,pg_size:0x%llx", va, size, page_size);
         return -EINVAL;
     }
 
@@ -238,7 +238,7 @@ int gvm_agent_unmap_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
         }
     }
 
-    hybm_gvm_debug("gvm_agent_unmap, va:0x%llx,size:0x%llx\n", va, size);
+    hybm_gvm_debug("gvm_agent_unmap, va:0x%llx,size:0x%llx", va, size);
     return 0;
 }
 
@@ -251,7 +251,7 @@ static int gvm_agent_map_svm_pa(int hostpid, u64 va, u64 size, u64 *pa_list, u64
 
     ret = g_gvm_agent_symbol.get_mem_pa_func(&id, va, size, pa_list, num);
     if (ret != 0) {
-        hybm_gvm_err("get svm pa failed. ret:%d\n", ret);
+        hybm_gvm_err("get svm pa failed. ret:%d", ret);
         return -EINVAL;
     }
 
@@ -259,13 +259,13 @@ static int gvm_agent_map_svm_pa(int hostpid, u64 va, u64 size, u64 *pa_list, u64
     for (i = 0; i < num; i++) {
         ret_va = g_gvm_agent_symbol.svsp_mmap_func(HYBM_HPAGE_SIZE, pasid, iva, HYBM_HPAGE_SIZE, true);
         if (ret_va != iva) {
-            hybm_gvm_err("map mem failed, va:0x%llx,pa:0x%llx,ret_va:0x%llx\n", iva, pa_list[i], ret_va);
+            hybm_gvm_err("map mem failed, va:0x%llx,pa:0x%llx,ret_va:0x%llx", iva, pa_list[i], ret_va);
             break;
         }
 
         ret = g_gvm_agent_symbol.svsp_populate_func(iva, pa_list[i] / PAGE_SIZE, HYBM_HPAGE_SIZE, pasid);
         if (ret != 0) {
-            hybm_gvm_err("populate mem failed, va:0x%llx,pa:0x%llx,ret:%d\n", iva, pa_list[i], ret);
+            hybm_gvm_err("populate mem failed, va:0x%llx,pa:0x%llx,ret:%d", iva, pa_list[i], ret);
             i++;
             break;
         }
@@ -290,11 +290,11 @@ int gvm_agent_fetch_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
     int ret = 0;
 
     if (msg == NULL || msg->type != HYBM_GVM_AGENT_MSG_FETCH) {
-        hybm_gvm_err("input msg type is invalid.\n");
+        hybm_gvm_err("input msg type is invalid.");
         return -EINVAL;
     }
     if (msg->fetch.va % HYBM_GVM_PAGE_SIZE || msg->fetch.size % HYBM_GVM_PAGE_SIZE) {
-        hybm_gvm_err("input addr error.va:0x%llx,size:0x%llx\n", msg->fetch.va, msg->fetch.size);
+        hybm_gvm_err("input addr error.va:0x%llx,size:0x%llx", msg->fetch.va, msg->fetch.size);
         return -EINVAL;
     }
 
@@ -303,7 +303,7 @@ int gvm_agent_fetch_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
     num = msg->fetch.size / HYBM_GVM_PAGE_SIZE;
     pa_list = kzalloc(sizeof(u64) * HYBM_GVM_PAGE_NUM, GFP_KERNEL | __GFP_ACCOUNT);
     if (pa_list == NULL) {
-        hybm_gvm_err("Kzalloc pa_list is NULL.\n");
+        hybm_gvm_err("Kzalloc pa_list is NULL.");
         return -EINVAL;
     }
 
@@ -311,7 +311,7 @@ int gvm_agent_fetch_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
         iva = va + i * HYBM_GVM_PAGE_SIZE;
         ret = gvm_agent_map_svm_pa(msg->fetch.hostpid, iva, HYBM_GVM_PAGE_SIZE, pa_list, HYBM_GVM_PAGE_NUM, pasid);
         if (ret != 0) {
-            hybm_gvm_err("map svm mem failed. va:0x%llx,ret:%d\n", iva, ret);
+            hybm_gvm_err("map svm mem failed. va:0x%llx,ret:%d", iva, ret);
             break;
         }
     }
@@ -340,23 +340,23 @@ static int gvm_common_msg_process(u32 devid, void *data, u32 in_data_len, u32 ou
     int ret;
 
     if (data == NULL) {
-        hybm_gvm_err("Data is NULL. \n");
+        hybm_gvm_err("Data is NULL. ");
         return -EINVAL;
     }
     if (real_out_len == NULL) {
-        hybm_gvm_err("Out_data_len is NULL. \n");
+        hybm_gvm_err("Out_data_len is NULL. ");
         return -EINVAL;
     }
     if (in_data_len != sizeof(struct hybm_gvm_agent_msg)) {
-        hybm_gvm_err("In_data_len is invalid. (in_data_len=%u)\n", in_data_len);
+        hybm_gvm_err("In_data_len is invalid. (in_data_len=%u)", in_data_len);
         return -EMSGSIZE;
     }
     if (msg->valid != HYBM_GVM_S2A_MSG_SEND_MAGIC) {
-        hybm_gvm_err("Invalid magic. (magic=0x%x;devid=%u;cmdtype=%d)\n", msg->valid, devid, msg->type);
+        hybm_gvm_err("Invalid magic. (magic=0x%x;devid=%u;cmdtype=%d)", msg->valid, devid, msg->type);
         return -EINVAL;
     }
     if (msg->type < 0 || msg->type >= HYBM_GVM_AGENT_MSG_MAX || rcv_ops[msg->type] == NULL) {
-        hybm_gvm_err("msg type is error. type(%d)\n", msg->type);
+        hybm_gvm_err("msg type is error. type(%d)", msg->type);
         ret = -EINVAL;
         goto save_msg_ret;
     }
@@ -371,7 +371,7 @@ save_msg_ret:
 
 static void gvm_common_msg_notify(u32 devid)
 {
-    hybm_gvm_info("device common message chan is initing device. (dev=%u)\n", devid);
+    hybm_gvm_info("device common message chan is initing device. (dev=%u)", devid);
     return;
 }
 
@@ -404,11 +404,11 @@ int gvm_peer_mem_acquire(unsigned long addr, size_t size, void *peer_mem_data, c
     u32 page_num, i;
 
     if ((memory_data == NULL) || (client_context == NULL)) {
-        hybm_gvm_err("input err check private_data, client_context.\n");
+        hybm_gvm_err("input err check private_data, client_context.");
         return false;
     }
     if (size != HYBM_GVM_PAGE_SIZE) {
-        hybm_gvm_err("input size must 1G, va:0x%lx,size:0x%lx\n", addr, size);
+        hybm_gvm_err("input size must equals to 1G, va:0x%lx,size:0x%lx", addr, size);
         return false;
     }
 
@@ -418,7 +418,7 @@ int gvm_peer_mem_acquire(unsigned long addr, size_t size, void *peer_mem_data, c
         }
     }
     if (i == HYBM_ROCE_MEM_NUM) {
-        hybm_gvm_err("not found this mem, va:0x%lx\n", addr);
+        hybm_gvm_err("input addr has not been mapped, va:0x%lx", addr);
         return false;
     }
 
@@ -430,7 +430,7 @@ int gvm_peer_mem_acquire(unsigned long addr, size_t size, void *peer_mem_data, c
     page_num = (aligned_size) / page_size;
     mm_context = (struct gvm_peer_mem_context *)vzalloc(sizeof(struct gvm_peer_mem_context) + sizeof(u64) * page_num);
     if (mm_context == NULL) {
-        hybm_gvm_err("kalloc err. addr=0x%lx, num=%u\n", addr, page_num);
+        hybm_gvm_err("kalloc mm_context fail. addr=0x%lx, num=%u", addr, page_num);
         return false;
     }
     mm_context->sg_head = NULL;
@@ -443,7 +443,7 @@ int gvm_peer_mem_acquire(unsigned long addr, size_t size, void *peer_mem_data, c
     mutex_init(&mm_context->context_mutex);
     mm_context->inited_flag = GVM_PEER_INITED_FLAG;
     *client_context = (void *)mm_context;
-    hybm_gvm_debug("gvm_peer_mem_acquire, va:0x%lx,size:0x%lx,pg_size:0x%llx\n", addr, size, page_size);
+    hybm_gvm_debug("gvm_peer_mem_acquire, va:0x%lx,size:0x%lx,pg_size:0x%llx", addr, size, page_size);
     return true;
 }
 
@@ -455,13 +455,13 @@ int gvm_peer_mem_get_pages(unsigned long addr, size_t size, int write, int force
     u32 i;
 
     if ((mm_context == NULL) || (mm_context->inited_flag != GVM_PEER_INITED_FLAG)) {
-        hybm_gvm_err("mm_context(%pK) is null or hasnot inited(%u).\n", mm_context,
+        hybm_gvm_err("mm_context(%pK) is null or has not been initialized(%u).", mm_context,
                      (mm_context != NULL ? mm_context->inited_flag : 0));
         return -EINVAL;
     }
 
     if (mm_context->page_size != HYBM_HPAGE_SIZE || mm_context->aligned_size != HYBM_GVM_PAGE_SIZE) {
-        hybm_gvm_err("input param is invalid, pg_size:0x%x,size:0x%llx\n", mm_context->page_size,
+        hybm_gvm_err("input param is invalid, pg_size:0x%x,size:0x%llx", mm_context->page_size,
                      mm_context->aligned_size);
         return -EINVAL;
     }
@@ -473,13 +473,13 @@ int gvm_peer_mem_get_pages(unsigned long addr, size_t size, int write, int force
         }
     }
     if (i == HYBM_ROCE_MEM_NUM) {
-        hybm_gvm_err("not found this mem, va:0x%lx\n", addr);
+        hybm_gvm_err("input addr has not been mapped, va:0x%lx", addr);
         return -EINVAL;
     }
 
     mutex_lock(&mm_context->context_mutex);
     if (mm_context->get_flag == 1) {
-        hybm_gvm_err("va=0x%lx, already geted pages", addr);
+        hybm_gvm_err("va=0x%lx, already got pages", addr);
         mutex_unlock(&mm_context->context_mutex);
         return -EINVAL;
     }
@@ -489,7 +489,7 @@ int gvm_peer_mem_get_pages(unsigned long addr, size_t size, int write, int force
     }
     mm_context->get_flag = 1;
     mutex_unlock(&mm_context->context_mutex);
-    hybm_gvm_debug("gvm_peer_mem_get_pages, va:0x%lx,size:0x%lx,pg_size:0x%x,pa:0x%llx\n", addr, size,
+    hybm_gvm_debug("gvm_peer_mem_get_pages, va:0x%lx,size:0x%lx,pg_size:0x%x,pa:0x%llx", addr, size,
                    mm_context->page_size, pa);
     return 0;
 }
@@ -502,25 +502,25 @@ int gvm_peer_mem_dma_map(struct sg_table *sg_head, void *context, struct device 
     int ret;
 
     if ((mm_context == NULL) || (mm_context->inited_flag != GVM_PEER_INITED_FLAG)) {
-        hybm_gvm_err("mm_context(%pK) is null or hasnot inited(%u).\n", mm_context,
+        hybm_gvm_err("mm_context(%pK) is null or has not been initialized(%u).", mm_context,
                      (mm_context != NULL ? mm_context->inited_flag : 0));
         return -EINVAL;
     }
     mutex_lock(&mm_context->context_mutex);
     if (mm_context->sg_head != NULL) {
-        hybm_gvm_err("sg_allocated, va=0x%llx.\n", mm_context->va);
+        hybm_gvm_err("sg_head has already been allocated, va=0x%llx.", mm_context->va);
         ret = -EINVAL;
         goto dma_map_exit;
     }
     ret = sg_alloc_table(sg_head, mm_context->pa_num, GFP_KERNEL);
     if (ret) {
-        hybm_gvm_err("alloc err, num=%u.\n", mm_context->pa_num);
+        hybm_gvm_err("alloc sg_head fail, num=%u.", mm_context->pa_num);
         goto dma_map_exit;
     }
     for_each_sg(sg_head->sgl, sg, mm_context->pa_num, i)
     {
         if (sg == NULL) {
-            hybm_gvm_err("sg is null.\n");
+            hybm_gvm_err("sg is null.");
             ret = -ENOMEM;
             goto dma_map_exit;
         }
@@ -535,7 +535,7 @@ int gvm_peer_mem_dma_map(struct sg_table *sg_head, void *context, struct device 
 
 dma_map_exit:
     mutex_unlock(&mm_context->context_mutex);
-    hybm_gvm_debug("gvm_peer_mem_dma_map, va:0x%llx,pa:0x%llx\n", mm_context->va, mm_context->pa_list[0]);
+    hybm_gvm_debug("gvm_peer_mem_dma_map, va:0x%llx,pa:0x%llx", mm_context->va, mm_context->pa_list[0]);
     return ret;
 }
 
@@ -544,21 +544,21 @@ int gvm_peer_mem_dma_unmap(struct sg_table *sg_head, void *context, struct devic
     struct gvm_peer_mem_context *mm_context = (struct gvm_peer_mem_context *)context;
 
     if ((mm_context == NULL) || (sg_head == NULL) || (mm_context->inited_flag != GVM_PEER_INITED_FLAG)) {
-        hybm_gvm_err("mm_context(%d) is not inited(%u),sg_head null(%d).\n", (mm_context == NULL),
+        hybm_gvm_err("mm_context(%d) has not been initialized(%u),sg_head null(%d).", (mm_context == NULL),
                      (mm_context != NULL ? mm_context->inited_flag : 0), (sg_head == NULL));
         return -EINVAL;
     }
     mutex_lock(&mm_context->context_mutex);
     if (sg_head != mm_context->sg_head) {
         mutex_unlock(&mm_context->context_mutex);
-        hybm_gvm_err("sg_head not eq map.\n");
+        hybm_gvm_err("input sg_head is incorrect.");
         return -EINVAL;
     }
 
     sg_free_table(sg_head);
     mm_context->sg_head = NULL;
     mutex_unlock(&mm_context->context_mutex);
-    hybm_gvm_debug("gvm_peer_mem_dma_unmap, va:0x%llx,pa:0x%llx\n", mm_context->va, mm_context->pa_list[0]);
+    hybm_gvm_debug("gvm_peer_mem_dma_unmap, va:0x%llx,pa:0x%llx", mm_context->va, mm_context->pa_list[0]);
     return 0;
 }
 
@@ -568,25 +568,27 @@ unsigned long gvm_peer_mem_get_page_size(void *mm_context)
     unsigned long page_size;
 
     if ((context == NULL) || (context->inited_flag != GVM_PEER_INITED_FLAG)) {
-        hybm_gvm_err("mm_context is NULL.\n");
+        hybm_gvm_err("mm_context is NULL.");
         return 0;
     }
     page_size = context->page_size;
-    hybm_gvm_debug("gvm_peer_mem_get_page_size, va:0x%llx\n", context->va);
+    hybm_gvm_debug("gvm_peer_mem_get_page_size, va:0x%llx", context->va);
     return page_size;
 }
 
 void gvm_peer_mem_put_pages(struct sg_table *sg_head, void *context)
 {
     struct gvm_peer_mem_context *mm_context = (struct gvm_peer_mem_context *)context;
-    hybm_gvm_debug("gvm_peer_mem_put_pages, va:0x%llx\n", mm_context->va);
+    // TODO: not implemented
+    hybm_gvm_debug("gvm_peer_mem_put_pages, va:0x%llx", mm_context->va);
     return;
 }
 
 void gvm_peer_mem_release(void *context)
 {
     struct gvm_peer_mem_context *mm_context = (struct gvm_peer_mem_context *)context;
-    hybm_gvm_debug("gvm_peer_mem_release, va:0x%llx\n", mm_context->va);
+    // TODO: not implemented
+    hybm_gvm_debug("gvm_peer_mem_release, va:0x%llx", mm_context->va);
     return;
 }
 
@@ -618,73 +620,73 @@ static int agent_symbol_get(void)
 {
     g_gvm_agent_symbol.agentdrv_msg_register_func = __symbol_get("agentdrv_register_common_msg_client");
     if (g_gvm_agent_symbol.agentdrv_msg_register_func == NULL) {
-        hybm_gvm_err("get symbol agentdrv_register_common_msg_client fail.\n");
+        hybm_gvm_err("get symbol agentdrv_register_common_msg_client fail.");
         return -EBUSY;
     }
 
     g_gvm_agent_symbol.agentdrv_msg_unregister_func = __symbol_get("agentdrv_unregister_common_msg_client");
     if (g_gvm_agent_symbol.agentdrv_msg_unregister_func == NULL) {
-        hybm_gvm_err("get symbol agentdrv_unregister_common_msg_client fail.\n");
+        hybm_gvm_err("get symbol agentdrv_unregister_common_msg_client fail.");
         return -EBUSY;
     }
 
     g_gvm_agent_symbol.get_mem_pa_func = __symbol_get("devmm_get_mem_pa_list");
     if (g_gvm_agent_symbol.get_mem_pa_func == NULL) {
-        hybm_gvm_err("get symbol devmm_get_mem_pa_list fail.\n");
+        hybm_gvm_err("get symbol devmm_get_mem_pa_list fail.");
         return -EBUSY;
     }
 
     g_gvm_agent_symbol.put_mem_pa_func = __symbol_get("devmm_put_mem_pa_list");
     if (g_gvm_agent_symbol.put_mem_pa_func == NULL) {
-        hybm_gvm_err("get symbol devmm_put_mem_pa_list fail.\n");
+        hybm_gvm_err("get symbol devmm_put_mem_pa_list fail.");
         return -EBUSY;
     }
 
     g_gvm_agent_symbol.get_pasid_func = __symbol_get("svm_get_pasid");
     if (g_gvm_agent_symbol.get_pasid_func == NULL) {
-        hybm_gvm_err("get symbol svm_get_pasid fail.\n");
+        hybm_gvm_err("get symbol svm_get_pasid fail.");
         return -EBUSY;
     }
 
     g_gvm_agent_symbol.get_svsp_pasid_func = __symbol_get("svm_get_svsp_pasid");
     if (g_gvm_agent_symbol.get_svsp_pasid_func == NULL) {
-        hybm_gvm_err("get symbol svm_get_svsp_pasid fail.\n");
+        hybm_gvm_err("get symbol svm_get_svsp_pasid fail.");
         return -EBUSY;
     }
 
     g_gvm_agent_symbol.svsp_mmap_func = __symbol_get("svm_svsp_roce_mmap");
     if (g_gvm_agent_symbol.svsp_mmap_func == NULL) {
-        hybm_gvm_err("get symbol svm_svsp_roce_mmap fail.\n");
+        hybm_gvm_err("get symbol svm_svsp_roce_mmap fail.");
         return -EBUSY;
     }
 
     g_gvm_agent_symbol.svsp_populate_func = __symbol_get("svm_svsp_roce_populate");
     if (g_gvm_agent_symbol.svsp_populate_func == NULL) {
-        hybm_gvm_err("get symbol svm_svsp_roce_populate fail.\n");
+        hybm_gvm_err("get symbol svm_svsp_roce_populate fail.");
         return -EBUSY;
     }
 
     g_gvm_agent_symbol.svsp_unmap_func = __symbol_get("svm_svsp_roce_munmap");
     if (g_gvm_agent_symbol.svsp_unmap_func == NULL) {
-        hybm_gvm_err("get symbol svm_svsp_roce_munmap fail.\n");
+        hybm_gvm_err("get symbol svm_svsp_roce_munmap fail.");
         return -EBUSY;
     }
 
     g_gvm_agent_symbol.devdrv_query_pid_func = __symbol_get("devdrv_query_process_by_host_pid_kernel");
     if (g_gvm_agent_symbol.devdrv_query_pid_func == NULL) {
-        hybm_gvm_err("get symbol devdrv_query_process_by_host_pid_kernel fail.\n");
+        hybm_gvm_err("get symbol devdrv_query_process_by_host_pid_kernel fail.");
         return -EBUSY;
     }
 
     g_gvm_agent_symbol.ib_register_func = __symbol_get("ib_register_peer_memory_client");
     if (g_gvm_agent_symbol.ib_register_func == NULL) {
-        hybm_gvm_err("get symbol ib_register_peer_memory_client fail.\n");
+        hybm_gvm_err("get symbol ib_register_peer_memory_client fail.");
         return -EBUSY;
     }
 
     g_gvm_agent_symbol.ib_unregister_func = __symbol_get("ib_unregister_peer_memory_client");
     if (g_gvm_agent_symbol.ib_unregister_func == NULL) {
-        hybm_gvm_err("get symbol ib_unregister_peer_memory_client fail.\n");
+        hybm_gvm_err("get symbol ib_unregister_peer_memory_client fail.");
         return -EBUSY;
     }
 
@@ -746,11 +748,11 @@ static void agent_symbol_put(void)
 static int __init gvm_agent_init(void)
 {
     int ret;
-    hybm_gvm_info("gvm agent init start.\n");
+    hybm_gvm_info("gvm agent init start.");
     g_gvm_agent_symbol.node_list =
         kzalloc(sizeof(struct gvm_agent_mem_node) * HYBM_ROCE_MEM_NUM, GFP_KERNEL | __GFP_ACCOUNT);
     if (g_gvm_agent_symbol.node_list == NULL) {
-        hybm_gvm_err("kzalloc node_list fail.\n");
+        hybm_gvm_err("kzalloc node_list fail.");
         return -ENOMEM;
     }
 
@@ -762,17 +764,17 @@ static int __init gvm_agent_init(void)
 
     ret = g_gvm_agent_symbol.agentdrv_msg_register_func(&gvm_common_msg_client);
     if (ret != 0) {
-        hybm_gvm_err("register_common failed. (ret=%d)\n", ret);
+        hybm_gvm_err("register_common failed. (ret=%d)", ret);
         goto init_failed1;
     }
 
     g_gvm_agent_symbol.ib_priv = hybm_gvm_ib_register_peer();
     if (g_gvm_agent_symbol.ib_priv == NULL) {
-        hybm_gvm_err("register ib handle failed.\n");
+        hybm_gvm_err("register ib handle failed.");
         goto init_failed2;
     }
 
-    hybm_gvm_info("gvm agent init success.\n");
+    hybm_gvm_info("gvm agent init success.");
     return 0;
 
 init_failed2:
@@ -784,7 +786,7 @@ init_failed1:
 
 static void __exit gvm_agent_exit(void)
 {
-    hybm_gvm_info("gvm agent exit.\n");
+    hybm_gvm_info("gvm agent exit.");
     if (g_gvm_agent_symbol.node_list != NULL) {
         kfree(g_gvm_agent_symbol.node_list);
         g_gvm_agent_symbol.node_list = NULL;

@@ -41,7 +41,7 @@ struct mem_node {
 };
 
 struct hybm_gvm_process {
-    int inited;
+    int initialized;
 
     u32 devid; // 每个devid仅有一个proc,暂不考虑多个进程关联同一个dev
     u32 sdid;

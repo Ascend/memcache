@@ -7,7 +7,7 @@
 #include <linux/kernel.h>
 
 #define hybm_gvm_printk(level, fmt, ...) \
-    (void)printk(level "[GVM][%s:%d][%d] " fmt, __func__, __LINE__, current->tgid, ##__VA_ARGS__)
+    (void)printk(level "[GVM][%s:%d][%d] " fmt "\n", __func__, __LINE__, current->tgid, ##__VA_ARGS__)
 
 #define hybm_gvm_err(fmt, ...)   hybm_gvm_printk(KERN_ERR, fmt, ##__VA_ARGS__)
 #define hybm_gvm_warn(fmt, ...)  hybm_gvm_printk(KERN_WARNING, fmt, ##__VA_ARGS__)
