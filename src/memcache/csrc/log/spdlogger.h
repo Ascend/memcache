@@ -49,11 +49,15 @@ public:
     void AuditLogMessage(const char *message);
     static const char *GetLastErrorMessage();
     void Flush(void);
+
 private:
     static int ValidateParams(int minLogLevel, const std::string& path, int rotationFileSize,
         int rotationFileCount);
 
-private:
+    static void BeforeOpenCallback(const std::string& filename);
+    static void AfterOpenCallback(const std::string& filename, std::FILE *file_stream);
+    static void AfterCloseCallback(const std::string& filename);
+
     std::mutex mutex_;
     bool started_ = false;
     std::shared_ptr<spdlog::logger> mSPDLogger;

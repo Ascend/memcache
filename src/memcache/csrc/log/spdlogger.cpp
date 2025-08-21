@@ -64,8 +64,13 @@ int SpdLogger::Initialize(const std::string &path, int minLogLevel, int rotation
             return -1;
         }
         std::string logName = "log:" + path;
-        mSPDLogger = spdlog::rotating_logger_mt(logName.c_str(), path, rotationFileSize,
-                                                rotationFileCount);
+        spdlog::file_event_handlers handlers;
+        handlers.before_open = &BeforeOpenCallback;
+        handlers.after_open = &AfterOpenCallback;
+        handlers.after_close = &AfterCloseCallback;
+        mSPDLogger = spdlog::rotating_logger_mt(logName.c_str(), path,
+                                                rotationFileSize, rotationFileCount,
+                                                true, handlers);
         if (mSPDLogger == nullptr) {
             gLastErrorMessage = "spdlog logger is not created yet";
             return -1;
@@ -110,4 +115,20 @@ void SpdLogger::Flush(void)
         mSPDLogger->flush();
     }
 }
+
+void SpdLogger::BeforeOpenCallback(const std::string &filename)
+{
+    chmod(filename.c_str(), 0640);
+}
+
+void SpdLogger::AfterOpenCallback(const std::string &filename, std::FILE *file_stream)
+{
+    chmod(filename.c_str(), 0440);
+}
+
+void SpdLogger::AfterCloseCallback(const std::string &filename)
+{
+    chmod(filename.c_str(), 0440);
+}
+
 }

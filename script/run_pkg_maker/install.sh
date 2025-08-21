@@ -54,6 +54,7 @@ function chmod_file()
     chmod_recursion ${1} "440" "file" "*.info"
     chmod_recursion ${1} "440" "file" "*.so"
     chmod_recursion ${1} "440" "file" "*.a"
+    chmod_recursion ${1} "640" "file" "*.conf"
 }
 
 function chmod_dir()
