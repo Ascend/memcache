@@ -26,7 +26,7 @@ struct MmcMemBlobDesc {
     friend std::ostream& operator<<(std::ostream& os, const MmcMemBlobDesc& blob)
     {
         os << "blob{size=" << blob.size_ << ",gva=" << blob.gva_ << ",rank=" << blob.rank_
-           << ",mediaType=" << blob.mediaType_ << "}";
+           << ",media=" << blob.mediaType_ << "}";
         return os;
     }
 };

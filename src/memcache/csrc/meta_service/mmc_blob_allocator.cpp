@@ -44,8 +44,8 @@ MmcMemBlobPtr MmcBlobAllocator::Alloc(uint64_t blobSize)
     auto sizePos = sizeTree_.lower_bound(anchor);
     if (sizePos == sizeTree_.end()) {
         spinlock_.unlock();
-        MMC_LOG_WARN("Allocator rank: " << rank_ << " mediaType: " << mediaType_
-            << " cannot allocate with size: " << blobSize);
+        MMC_LOG_WARN("Allocator rank: " << rank_ << " mediaType: " << mediaType_ << ", cap:" << allocatedSize_ << "/"
+                                        << capacity_ << " cannot allocate with size: " << blobSize);
         return nullptr;
     }
 

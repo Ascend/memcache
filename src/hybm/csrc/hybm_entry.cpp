@@ -20,7 +20,6 @@
 #include "htracer.h"
 
 using namespace ock::mf;
-using namespace ock::htracer;
 
 namespace {
 constexpr uint16_t HYBM_INIT_MODULE_ID_MAX = 32;

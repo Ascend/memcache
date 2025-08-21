@@ -17,7 +17,7 @@
 #include "htracer_service.h"
 
 namespace ock {
-namespace htracer {
+namespace mf {
 constexpr int DUMP_PERIOD = 90;
 constexpr size_t MAX_DUMP_SIZE = 10 * 1024 * 1024;
 

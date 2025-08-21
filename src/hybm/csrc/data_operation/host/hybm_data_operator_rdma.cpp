@@ -8,7 +8,6 @@
 #include "htracer.h"
 
 using namespace ock::mf;
-using namespace ock::htracer;
 
 namespace {
 constexpr uint64_t RDMA_SWAP_SPACE_SIZE = 1024 * 1024 * 128;

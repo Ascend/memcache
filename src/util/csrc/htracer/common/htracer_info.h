@@ -10,7 +10,7 @@
 #include "htracer_utils.h"
 
 namespace ock {
-namespace htracer {
+namespace mf {
 class HtracerInfo {
 public:
     __always_inline void DelayBegin(std::string &tpName)

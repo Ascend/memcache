@@ -8,9 +8,11 @@
 #include "mmc_client.h"
 #include "mmc_mem_blob.h"
 #include "mmc_blob_allocator.h"
+#include "mmc_types.h"
 
 using namespace testing;
 using namespace std;
+using namespace ock::mmc;
 
 class TestMmcServiceInterface : public testing::Test {
 public:
@@ -66,6 +68,88 @@ static bool CheckData(void *base, void *ptr)
         if (arr1[i] != arr2[i]) return false;
     }
     return true;
+}
+
+TEST_F(TestMmcServiceInterface, MultiLevelEvict)
+{
+    std::string metaUrl = "tcp://127.0.0.1:5869";
+    std::string bmUrl = "tcp://127.0.0.1:5882";
+    std::string hcomUrl = "tcp://127.0.0.1:5883";
+
+    mmc_meta_service_config_t metaServiceConfig;
+    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
+    metaServiceConfig.logRotationFileCount = 20;
+    metaServiceConfig.tlsConfig.tlsEnable = false;
+    metaServiceConfig.evictThresholdHigh = 80;
+    metaServiceConfig.evictThresholdLow = 60;
+    metaServiceConfig.haEnable = false;
+    UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
+    mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
+    ASSERT_TRUE(meta_service != nullptr);
+
+    uint64_t totalSize = SIZE_32K * 10;
+
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, "sdma", totalSize, totalSize, 0};
+    localServiceConfig.logLevel = 0;
+    localServiceConfig.tlsConfig.tlsEnable = false;
+    UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
+    mmc_meta_service_t local_service = mmcs_local_service_start(&localServiceConfig);
+    ASSERT_TRUE(local_service != nullptr);
+
+    mmc_client_config_t clientConfig;
+    clientConfig.logLevel = 0;
+    clientConfig.tlsConfig.tlsEnable = false;
+    clientConfig.rankId = 0;
+    UrlStringToChar(metaUrl, clientConfig.discoveryURL);
+    int32_t ret = mmcc_init(&clientConfig);
+    ASSERT_EQ(ret, 0);
+
+    void *hostSrc = malloc(SIZE_32K);
+    GenerateData(hostSrc, 1);
+    mmc_buffer buffer;
+    buffer.addr = (uint64_t)hostSrc;
+    buffer.type = 0;
+    buffer.dimType = 0;
+    buffer.oneDim.offset = 0;
+    buffer.oneDim.len = SIZE_32K;
+    std::vector<std::string> keys;
+
+    mmc_put_options options{0, NATIVE_AFFINITY};
+    for (int i = 0; i < 12; i++) {
+        std::string key = "test_" + std::to_string(i);
+        ret = mmcc_put(key.c_str(), &buffer, options, 0);
+        EXPECT_EQ(ret, 0);
+        keys.emplace_back(key);
+
+        if (i == 6) {
+            ret = mmcc_get(keys[0].c_str(), &buffer, 0);
+            EXPECT_EQ(ret, 0);
+        }
+    }
+
+    std::vector<int> results;
+    results.resize(keys.size(), -1);
+    const char** c_keys = new (std::nothrow) const char*[keys.size()];
+    for (size_t i = 0 ; i < keys.size(); ++i) {
+        c_keys[i] = keys[i].c_str();
+    }
+
+    ret = mmcc_batch_exist(c_keys, keys.size(), results.data(), 0);
+    EXPECT_EQ(ret, 0);
+
+    EXPECT_EQ(results[0], MMC_OK);
+    EXPECT_EQ(results[1], MMC_UNMATCHED_KEY);  // 被淘汰
+    EXPECT_EQ(results[2], MMC_UNMATCHED_KEY);  // 被淘汰
+    for (size_t i = 3; i < keys.size(); ++i) {
+        EXPECT_EQ(results[i], MMC_OK);
+    }
+
+    sleep(1);
+    free(hostSrc);
+    mmcs_local_service_stop(local_service);
+    mmcc_uninit();
+    mmcs_meta_service_stop(meta_service);
 }
 
 TEST_F(TestMmcServiceInterface, metaServiceStart)

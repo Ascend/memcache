@@ -63,6 +63,11 @@ void *smem_bm_ptr(smem_bm_t handle, uint16_t peerRankId)
 
 void* smem_bm_ptr_by_mem_type(smem_bm_t handle, smem_bm_mem_type memType, uint16_t peerRankId)
 {
+    if (memType == SMEM_MEM_TYPE_DEVICE) {
+        return reinterpret_cast<void*>(0x200000000);
+    } else if (memType == SMEM_MEM_TYPE_HOST) {
+        return reinterpret_cast<void*>(0x800000000);
+    }
     return reinterpret_cast<void*>(0x5678);
 }
 

@@ -77,7 +77,8 @@ Result MmcMetaServiceDefault::BmRegister(uint32_t rank, std::vector<uint16_t> me
     }
 
     MMC_RETURN_ERROR(metaMgrProxy_->Mount(locs, infos, blobMap), "Mount loc { " << rank << " } failed");
-    MMC_LOG_INFO("Mount loc {rank:" << rank << ", rebuild size:" << blobMap.size() << "} finish");
+    MMC_LOG_INFO("Mount loc {rank:" << rank << ", rebuild size:" << blobMap.size() << ", mediaNum:" << typeNum
+                                    << "} finish");
     if (blobMap.size() == 0) {
         if (rankMediaTypeMap_.find(rank) == rankMediaTypeMap_.end()) {
             rankMediaTypeMap_.insert({rank, {}});

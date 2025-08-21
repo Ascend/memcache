@@ -31,6 +31,7 @@ public:
             MMC_LOG_ERROR("new object failed, probably out of memory");
             return MMC_NEW_OBJECT_FAILED;
         }
+        metaMangerPtr_->SetMetaNetServer(netServerPtr_);
         MMC_RETURN_ERROR(metaMangerPtr_->Start(), "MmcMetaManager start failed");
         started_ = true;
         return MMC_OK;

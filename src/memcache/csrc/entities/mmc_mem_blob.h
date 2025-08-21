@@ -114,18 +114,21 @@ public:
 
     inline bool IsLeaseExpired();
 
-    friend std::ostream &operator<<(std::ostream &os, const MmcMemBlob &blob)
+    friend std::ostream& operator<<(std::ostream& os, const MmcMemBlob& blob)
     {
-        os << "MmcMemBlob{rank=" << blob.rank_ << ",gva=" << blob.gva_ << ",size=" << blob.size_
-           << ",mediaType=" << static_cast<int>(blob.mediaType_) << ",state=" << static_cast<int>(blob.state_)
-           << ",prot=" << blob.prot_ << ",metaLeaseManager=" << blob.metaLeaseManager_ << "}";
+        os << "Blob{rank=" << blob.rank_ << ",gva=" << blob.gva_ << ",size=" << blob.size_
+           << ",media=" << static_cast<int>(blob.mediaType_) << ",state=" << static_cast<int>(blob.state_)
+           << ",prot=" << blob.prot_ << "," << blob.metaLeaseManager_ << "}";
         return os;
     }
+
+    friend std::ostream& operator<<(std::ostream& os, const MmcRef<MmcMemBlob>& blob) { return os << *blob.Get(); }
+
     /**
      * 原则：blob由 MmcMemObjMeta 维护生命周期及锁的保护
      */
 
-    Result Backup(const std::string &key);
+    Result Backup(const std::string& key);
 
     Result BackupRemove(const std::string &key);
 

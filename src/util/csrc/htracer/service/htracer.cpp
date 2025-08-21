@@ -6,7 +6,7 @@
 #include "htracer_service.h"
 
 namespace ock {
-namespace htracer {
+namespace mf {
 bool HtracerManager::mEnable = true;
 
 int32_t HTracerInit(const std::string &dumpDir)

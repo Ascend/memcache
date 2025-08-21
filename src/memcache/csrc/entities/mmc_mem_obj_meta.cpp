@@ -107,7 +107,7 @@ Result MmcMemObjMeta::UpdateBlobsState(const std::string& key, const MmcBlobFilt
     return result;
 }
 
-MediaType MmcMemObjMeta::MoveTo()
+MediaType MmcMemObjMeta::MoveTo(bool down)
 {
     MediaType mediaType = MediaType::MEDIA_NONE;
     for (auto blob : blobs_) {
@@ -117,7 +117,7 @@ MediaType MmcMemObjMeta::MoveTo()
         }
     }
 
-    return MediaType::MEDIA_NONE;
+    return down ? MoveDown(mediaType) : MoveUp(mediaType);
 }
 
 }  // namespace mmc

@@ -90,14 +90,21 @@ public:
      * @brief move to next level
      * @return size
      */
-    MediaType MoveTo();
+    MediaType MoveTo(bool down);
 
-    friend std::ostream &operator<<(std::ostream &os, MmcMemObjMeta &obj)
+    friend std::ostream& operator<<(std::ostream& os, const MmcMemObjMeta& obj)
     {
         os << "MmcMemObjMeta{numBlobs=" << static_cast<int>(obj.numBlobs_) << ",size=" << obj.size_
-           << ",priority=" << obj.priority_ << ",prot=" << obj.prot_ << "}";
+           << ",priority=" << static_cast<int>(obj.priority_) << ",prot=" << obj.prot_ << "}";
+
+        for (const auto& blob : obj.blobs_) {
+            os << blob;
+        }
+
         return os;
     }
+
+    friend std::ostream& operator<<(std::ostream& os, const MmcRef<MmcMemObjMeta>& obj) { return os << *obj.Get(); }
 
 private:
     Result RemoveBlobs(const MmcBlobFilterPtr &filter = nullptr, bool revert = false);

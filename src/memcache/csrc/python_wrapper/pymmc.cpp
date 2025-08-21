@@ -12,9 +12,11 @@
 #include "mmc_logger.h"
 #include "mmc_types.h"
 #include "smem_bm_def.h"
+#include "htracer.h"
 
 namespace py = pybind11;
 using namespace ock::mmc;
+using namespace ock::mf;
 
 constexpr int MAX_LAYER_NUM = 255;
 constexpr int MAX_BATCH_SIZE = 512;
@@ -373,7 +375,9 @@ int DistributedObjectStore::register_buffer(void *buffer, size_t size) {
 }
 
 int DistributedObjectStore::get_into(const std::string &key, mmc_buffer &buffer) {
+    TP_DELAY_BEGIN(MF_MMC_LOCAL_GET);
     auto res = mmcc_get(key.c_str(), &buffer, 0);
+    TP_DELAY_END(MF_MMC_LOCAL_GET, res);
     if (res != MMC_OK) {
         MMC_LOG_ERROR("Failed to get key " << key << ", error code: " << res);
     }
@@ -420,7 +424,9 @@ std::vector<int> DistributedObjectStore::batch_put_from(const std::vector<std::s
     mmc_put_options options{};
     options.mediaType = 0;
     options.policy = NATIVE_AFFINITY;
+    TP_DELAY_BEGIN(MF_MMC_LOCAL_BATCH_PUT);
     mmcc_batch_put(keyArray, count, bufferArray, options, 0, results.data());
+    TP_DELAY_END(MF_MMC_LOCAL_BATCH_PUT, 0);
     for (size_t i = 0; i < count; i++) {
         results[i] = returnWrapper(results[i], keys[i]);
     }

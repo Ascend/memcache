@@ -126,7 +126,7 @@ struct MmcLocation {
 
     friend std::ostream& operator<<(std::ostream& os, const MmcLocation& loc)
     {
-        os << "location{rank=" << loc.rank_ << ",mediaType=" << loc.mediaType_ << "}";
+        os << "loc{rank=" << loc.rank_ << ",media=" << loc.mediaType_ << "}";
         return os;
     }
 };

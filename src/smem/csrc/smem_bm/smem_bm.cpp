@@ -12,7 +12,7 @@
 #include "htracer.h"
 
 using namespace ock::smem;
-using namespace ock::htracer;
+using namespace ock::mf;
 #ifdef UT_ENABLED
 thread_local std::mutex g_smemBmMutex_;
 thread_local bool g_smemBmInited = false;

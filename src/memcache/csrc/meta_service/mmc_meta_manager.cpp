@@ -47,25 +47,28 @@ Result MmcMetaManager::ExistKey(const std::string& key)
     return metaContainer_->Get(key, memObj);
 }
 
-void MmcMetaManager::CheckAndEvict(MetaNetServerPtr metaNetServer)
+void MmcMetaManager::CheckAndEvict()
 {
-    if (globalAllocator_->GetUsageRate() < (uint64_t)evictThresholdHigh_) {
+    if (!globalAllocator_->NeedEvict(evictThresholdHigh_)) {
         return;
     }
 
     auto moveFunc = [&](const std::string& key, const MmcMemObjMetaPtr& objMeta) -> bool {
         std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(objMeta)]);
 
-        MediaType type = objMeta->MoveTo();
-        if (type == MediaType::MEDIA_NONE) {
+        MediaType type = objMeta->MoveTo(true);
+        MediaType srcType = MoveUp(type);
+        if (type == MediaType::MEDIA_NONE || srcType == MediaType::MEDIA_NONE) {
             PushRemoveList(key, objMeta);
             return true;  // 向下淘汰已无可能，直接删除
         }
-        MmcLocation src{UINT32_MAX, MEDIA_NONE};
+        MmcLocation src{UINT32_MAX, srcType};
         MmcLocation dst{UINT32_MAX, type};
-        auto ret = MoveBlob(metaNetServer, key, src, dst);
-        if (ret != MMC_OK) {
-            MMC_LOG_WARN("key: " << key << " move blob from " << src << " to " << dst << " failed, ret " << ret);
+        auto future = threadPool_->Enqueue([&](const std::string keyL, const MmcLocation srcL,
+                                               const MmcLocation dstL) { return MoveBlob(keyL, srcL, dstL); },
+                                           key, src, dst);
+        if (!future.valid()) {
+            MMC_LOG_WARN("key: " << key << " move blob from " << src << " to " << dst << " failed");
             PushRemoveList(key, objMeta);
             return true;  // 向下淘汰失败，直接删除
         }
@@ -136,13 +139,11 @@ Result MmcMetaManager::UpdateState(const std::string& key, const MmcLocation& lo
 
 void MmcMetaManager::PushRemoveList(const std::string& key, const MmcMemObjMetaPtr& meta)
 {
-    {
-        std::lock_guard<std::mutex> lg(removeListLock_);
-        removeList_.push_back({key, meta});
-    }
-    {
-        std::lock_guard<std::mutex> lk(removeThreadLock_);
-        removeThreadCv_.notify_all();
+    auto future = threadPool_->Enqueue([&](const std::string& key, const MmcMemObjMetaPtr& meta,
+                                           MmcGlobalAllocatorPtr allocator) { return meta->FreeBlobs(key, allocator); },
+                                       key, meta, globalAllocator_);
+    if (!future.valid()) {
+        meta->FreeBlobs(key, globalAllocator_);
     }
 }
 
@@ -267,36 +268,6 @@ Result MmcMetaManager::Unmount(const MmcLocation &loc)
     return ret;
 }
 
-void MmcMetaManager::AsyncRemoveThreadFunc()
-{
-    auto lastCheckTime = std::chrono::steady_clock::now();
-    constexpr auto checkInterval = std::chrono::seconds(MMC_THRESHOLD_PRINT_SECONDS);
-    while (true) {
-        std::unique_lock<std::mutex> lock(removeThreadLock_);
-        if (removeThreadCv_.wait_for(lock, std::chrono::milliseconds(defaultTtlMs_),
-                                     [this] {return removeList_.size() || !started_;})) {
-            if (!started_) {
-                MMC_LOG_WARN("async thread destroy, thread id " << pthread_self());
-                break;
-            }
-            MMC_LOG_DEBUG("async remove in thread ttl " << defaultTtlMs_ << " will remove count " <<
-            removeList_.size() << " thread id " << pthread_self());
-            std::lock_guard<std::mutex> lg(removeListLock_);
-            MmcMemObjMetaPtr objMeta;
-            for (auto iter = removeList_.begin(); iter != removeList_.end();) {
-                (*iter).second->FreeBlobs((*iter).first, globalAllocator_);
-                iter = removeList_.erase(iter);
-            }
-        }
-
-        auto now = std::chrono::steady_clock::now();
-        if (now - lastCheckTime >= checkInterval) {
-            MMC_LOG_DEBUG("allocator usage rate: " << globalAllocator_->GetUsageRate());
-            lastCheckTime = now;
-        }
-    }
-}
-
 Result MmcMetaManager::Query(const std::string &key, MemObjQueryInfo &queryInfo)
 {
     MmcMemObjMetaPtr objMeta;
@@ -323,8 +294,8 @@ Result MmcMetaManager::Query(const std::string &key, MemObjQueryInfo &queryInfo)
     return MMC_OK;
 }
 
-Result MmcMetaManager::CopyBlob(MetaNetServerPtr metaNetServer, const MmcMemObjMetaPtr& objMeta,
-                                const MmcMemBlobDesc& srcBlob, const MmcLocation& dstLoc)
+Result MmcMetaManager::CopyBlob(const MmcMemObjMetaPtr& objMeta, const MmcMemBlobDesc& srcBlob,
+                                const MmcLocation& dstLoc)
 {
     AllocOptions allocOpt{};
     allocOpt.blobSize_ = srcBlob.size_;
@@ -346,7 +317,7 @@ Result MmcMetaManager::CopyBlob(MetaNetServerPtr metaNetServer, const MmcMemObjM
         BlobCopyRequest request{srcBlob, blobs[0]->GetDesc()};
         Response response;
         // rpc 到目标节点复制
-        ret = metaNetServer->SyncCall(request.dstBlob_.rank_, request, response, 60);
+        ret = metaNetServer_->SyncCall(request.dstBlob_.rank_, request, response, 60);
         if (ret != MMC_OK || response.ret_ != MMC_OK) {
             MMC_LOG_ERROR("copy blob from rank " << request.srcBlob_.rank_ << " to rank " << request.dstBlob_.rank_
                                                  << " failed:" << ret << "," << response.ret_);
@@ -369,8 +340,7 @@ Result MmcMetaManager::CopyBlob(MetaNetServerPtr metaNetServer, const MmcMemObjM
     return ret;
 }
 
-Result MmcMetaManager::MoveBlob(MetaNetServerPtr metaNetServer, const std::string& key, const MmcLocation& src,
-                                const MmcLocation& dst)
+Result MmcMetaManager::MoveBlob(const std::string& key, const MmcLocation& src, const MmcLocation& dst)
 {
     MmcMemObjMetaPtr objMeta;
     if (metaContainer_->Get(key, objMeta) != MMC_OK) {
@@ -382,11 +352,11 @@ Result MmcMetaManager::MoveBlob(MetaNetServerPtr metaNetServer, const std::strin
     MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(src.rank_, src.mediaType_, READABLE);
     objMeta->GetBlobsDesc(blobsDesc, filter);
     if (blobsDesc.empty()) {
-        MMC_LOG_ERROR("blob is empty with key : " << key);
+        MMC_LOG_ERROR("blob for " << src << " to " << dst << " is empty with key : " << key << "," << objMeta);
         return MMC_UNMATCHED_KEY;
     }
 
-    auto ret = CopyBlob(metaNetServer, objMeta, blobsDesc[0], dst);
+    auto ret = CopyBlob(objMeta, blobsDesc[0], dst);
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("key: " << key << " copy blob failed, ret " << ret);
         return ret;
@@ -397,10 +367,12 @@ Result MmcMetaManager::MoveBlob(MetaNetServerPtr metaNetServer, const std::strin
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("key: " << key << " free blob failed, ret " << ret);
     }
+
+    MMC_LOG_INFO("move " << key << " from " << src << " to " << dst << " " << blobsDesc[0] << ", " << objMeta);
     return MMC_OK;
 }
 
-Result MmcMetaManager::ReplicateBlob(MetaNetServerPtr metaNetServer, const std::string& key, const MmcLocation& loc)
+Result MmcMetaManager::ReplicateBlob(const std::string& key, const MmcLocation& loc)
 {
     MmcMemObjMetaPtr objMeta;
     if (metaContainer_->Get(key, objMeta) != MMC_OK) {
@@ -416,7 +388,7 @@ Result MmcMetaManager::ReplicateBlob(MetaNetServerPtr metaNetServer, const std::
         return MMC_UNMATCHED_KEY;
     }
 
-    return CopyBlob(metaNetServer, objMeta, blobsDesc[0], loc);
+    return CopyBlob(objMeta, blobsDesc[0], loc);
 }
 
 }  // namespace mmc

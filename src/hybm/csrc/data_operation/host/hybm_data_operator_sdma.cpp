@@ -36,7 +36,18 @@ int32_t HostDataOpSDMA::DataCopy(const void *srcVA, void *destVA, uint64_t lengt
         case HYBM_GLOBAL_HOST_TO_GLOBAL_DEVICE:
             ret = CopyHostGva2Gva(destVA, srcVA, length, options.stream);
             break;
-
+        case HYBM_LOCAL_DEVICE_TO_GLOBAL_HOST:
+            ret = CopyDevice2HostGva(destVA, srcVA, length, options.stream);
+            break;
+        case HYBM_LOCAL_HOST_TO_GLOBAL_HOST:
+            ret = CopyHost2HostGva(destVA, srcVA, length, options.stream);
+            break;
+        case HYBM_GLOBAL_HOST_TO_LOCAL_HOST:
+            ret = CopyHostGva2Device(destVA, srcVA, length, options.stream);
+            break;
+        case HYBM_GLOBAL_HOST_TO_LOCAL_DEVICE:
+            ret = CopyHostGva2Host(destVA, srcVA, length, options.stream);
+            break;
         default:
             BM_LOG_ERROR("data copy invalid direction: " << direction);
             ret = BM_INVALID_PARAM;
@@ -319,5 +330,30 @@ int HostDataOpSDMA::CopyHostGva2Gva(void *destVA, const void *srcVA, uint64_t le
     // HOST池到HBM池的拷贝
     return 0;
 }
+
+int HostDataOpSDMA::CopyDevice2HostGva(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
+{
+    // local device到dram池的拷贝
+    return 0;
+}
+
+int HostDataOpSDMA::CopyHost2HostGva(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
+{
+    // local host到dram池的拷贝
+    return 0;
+}
+
+int HostDataOpSDMA::CopyHostGva2Device(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
+{
+    // dram池的拷贝到local device
+    return 0;
+}
+
+int HostDataOpSDMA::CopyHostGva2Host(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
+{
+    // dram池的拷贝到local host
+    return 0;
+}
+
 }
 }

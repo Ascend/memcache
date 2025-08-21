@@ -282,7 +282,11 @@ bool SmemBmEntry::AddrInHostGva(const void *address, uint64_t size)
     }
 
     auto totalSize = coreOptions_.hostVASpace * coreOptions_.rankCount;
-    if ((const uint8_t *)address + size >= (const uint8_t *)hostGva_ + totalSize) {
+    if ((const uint8_t*)address + size > (const uint8_t*)hostGva_ + totalSize) {
+        return false;
+    }
+
+    if ((const uint8_t*)address < (const uint8_t*)hostGva_) {
         return false;
     }
 
@@ -296,7 +300,11 @@ bool SmemBmEntry::AddrInDeviceGva(const void *address, uint64_t size)
     }
 
     auto totalSize = coreOptions_.deviceVASpace * coreOptions_.rankCount;
-    if ((const uint8_t *)address + size >= (const uint8_t *)deviceGva_ + totalSize) {
+    if ((const uint8_t*)address + size > (const uint8_t*)deviceGva_ + totalSize) {
+        return false;
+    }
+
+    if ((const uint8_t*)address < (const uint8_t*)deviceGva_) {
         return false;
     }
 

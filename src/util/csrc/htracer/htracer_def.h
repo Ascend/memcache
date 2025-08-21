@@ -5,7 +5,7 @@
 #define MF_HYBRID_HTRACER_DEF_H
 
 namespace ock {
-namespace htracer {
+namespace mf {
 
 #define TRACE_ID(SERVICE_ID_, INNER_ID_) ((SERVICE_ID_) << 16 | ((INNER_ID_) & 0xFFFF))
 
@@ -29,6 +29,21 @@ enum MF_HYBM_MOD {
 enum MF_SMEM_MOD {
     MF_SMEM_START = TRACE_ID(MF_SMEM, 0U),
     MF_SMEM_BM_CREATE_ENTITY,
+};
+
+enum MF_MMC_MOD {
+    MF_MMC_START = TRACE_ID(MF_MMC, 0U),
+    MF_MMC_LOCAL_PUT,
+    MF_MMC_LOCAL_BATCH_PUT,
+    MF_MMC_LOCAL_GET,
+    MF_MMC_LOCAL_BATCH_GET,
+    MF_MMC_LOCAL_UPDATE,
+    MF_MMC_LOCAL_BATCH_UPDATE,
+
+    MF_MMC_META_PUT,
+    MF_MMC_META_BATCH_PUT,
+    MF_MMC_META_GET,
+    MF_MMC_META_BATCH_GET,
 };
 }
 }

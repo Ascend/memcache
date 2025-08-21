@@ -11,6 +11,7 @@
 #include "mmc_msg_packer.h"
 #include "mmc_meta_backup_mgr.h"
 #include "mmc_meta_net_server.h"
+#include "mmc_thread_pool.h"
 #include <functional>
 #include <thread>
 #include <list>
@@ -20,7 +21,7 @@ namespace ock {
 namespace mmc {
 
 static const uint16_t NUM_BUCKETS = 29;
-constexpr uint32_t META_MAMAGER_MTX_NUM = 16;
+constexpr uint32_t META_MAMAGER_MTX_NUM = 29;
 
 struct MmcMemMetaDesc {
     uint16_t prot_{0};
@@ -86,8 +87,10 @@ public:
         MMC_ASSERT_RETURN(globalAllocator_ != nullptr, MMC_MALLOC_FAILED);
         metaContainer_ = MmcMetaContainer<std::string, MmcMemObjMetaPtr>::Create();
         MMC_ASSERT_RETURN(metaContainer_ != nullptr, MMC_MALLOC_FAILED);
+        threadPool_ = MmcMakeRef<MmcThreadPool>("metamgr_pool", 4);
+        MMC_ASSERT_RETURN(threadPool_ != nullptr, MMC_MALLOC_FAILED);
+        MMC_RETURN_ERROR(threadPool_->Start(), "thread pool start failed");
         started_ = true;
-        removeThread_ = std::thread(std::bind(&MmcMetaManager::AsyncRemoveThreadFunc, this));
         return MMC_OK;
     }
 
@@ -97,12 +100,8 @@ public:
         if (!started_) {
             return;
         }
-        {
-            std::lock_guard<std::mutex> lk(removeThreadLock_);
-            started_ = false;
-            removeThreadCv_.notify_all();
-        }
-        removeThread_.join();
+        threadPool_->Shutdown();
+        started_ = false;
         MMC_LOG_INFO("Stop MmcMetaManager");
     }
 
@@ -166,7 +165,7 @@ public:
     /**
      * @brief check and evict meta objects
      */
-    void CheckAndEvict(MetaNetServerPtr metaNetServer);
+    void CheckAndEvict();
 
     inline uint64_t Ttl()
     {
@@ -176,26 +175,26 @@ public:
     /**
      * @brief copy blob to loc
      */
-    Result ReplicateBlob(MetaNetServerPtr metaNetServer, const std::string& key, const MmcLocation& loc);
+    Result ReplicateBlob(const std::string& key, const MmcLocation& loc);
 
     /**
      * @brief from src loc copy blob to dst loc, and delete the blobs which belong to src loc
      */
-    Result MoveBlob(MetaNetServerPtr metaNetServer, const std::string& key, const MmcLocation& src, const MmcLocation& dst);
+    Result MoveBlob(const std::string& key, const MmcLocation& src, const MmcLocation& dst);
+
+    // 临时方案
+    void SetMetaNetServer(MetaNetServerPtr metaNetServer) { metaNetServer_ = metaNetServer; }
 
 private:
-    Result CopyBlob(MetaNetServerPtr metaNetServer, const MmcMemObjMetaPtr& objMeta, const MmcMemBlobDesc& srcBlob,
-                    const MmcLocation& dstLoc);
+    Result CopyBlob(const MmcMemObjMetaPtr& objMeta, const MmcMemBlobDesc& srcBlob, const MmcLocation& dstLoc);
 
     Result RebuildMeta(std::map<std::string, MmcMemBlobDesc>& blobMap);
-
-    void AsyncRemoveThreadFunc();
 
     void PushRemoveList(const std::string& key, const MmcMemObjMetaPtr& meta);
 
     inline std::size_t GetIndex(const MmcMemObjMetaPtr& meta) const
     {
-        static std::hash<void*> keyHasher_;
+        static std::hash<MmcMemObjMeta*> keyHasher_;
         return keyHasher_(meta.Get()) % META_MAMAGER_MTX_NUM;
     }
 
@@ -207,15 +206,11 @@ private:
     MmcRef<MmcMetaContainer<std::string, MmcMemObjMetaPtr>> metaContainer_;
     MmcGlobalAllocatorPtr globalAllocator_;
 
-    std::thread removeThread_;
-    std::mutex removeThreadLock_;
-    std::condition_variable removeThreadCv_;
-    std::mutex removeListLock_;
-    std::list<std::pair<std::string, MmcMemObjMetaPtr>> removeList_;
-
     uint64_t defaultTtlMs_; /* defult ttl in miliseconds*/
     uint16_t evictThresholdHigh_;
     uint16_t evictThresholdLow_;
+    MetaNetServerPtr metaNetServer_;
+    MmcThreadPoolPtr threadPool_;
 };
 using MmcMetaManagerPtr = MmcRef<MmcMetaManager>;
 }  // namespace mmc

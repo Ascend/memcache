@@ -13,7 +13,7 @@
 #include "htracer.h"
 
 namespace ock {
-namespace htracer {
+namespace mf {
 class HTracerService {
 public:
     static HTracerService &GetInstance()
