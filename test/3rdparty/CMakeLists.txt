@@ -71,7 +71,7 @@ set(MOCKCPP_PATCH ${PROJECT_SOURCE_DIR}/test/3rdparty/patch/mockcpp_support_arm6
 externalproject_add(mock_cpp
         URL ${THIRD_PARTY_DIR}/mockcpp
         CMAKE_ARGS ${MOCKCPP_CMAKE_ARGS}
-        PATCH_COMMAND patch -p1 --forward -i ${MOCKCPP_PATCH} WORKING_DIRECTORY <SOURCE_DIR>
+        PATCH_COMMAND patch -p1 --forward -i ${MOCKCPP_PATCH}
         BUILD_ALWAYS OFF
         LOG_DOWNLOAD On
         LOG_CONFIGURE On
