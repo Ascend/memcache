@@ -53,9 +53,9 @@ struct hybm_gvm_process {
     u64 va_page_num;
     struct mem_node *mem_array;
     struct rb_root key_tree;
-    struct list_head fetch_head;       // TODO: 使用树记录,可以支持提前删除
-    struct list_head dev_alloced_head; // TODO: 使用树记录,可以支持提前删除
-    struct rw_semaphore ioctl_rwsem;   // proc所有ioctl都有加锁,避免并发
+    struct list_head fetch_head;         // TODO: 使用树记录,可以支持提前删除
+    struct list_head dev_allocated_head; // TODO: 使用树记录,可以支持提前删除
+    struct rw_semaphore ioctl_rwsem;     // proc所有ioctl都有加锁,避免并发
 
     struct vm_area_struct *vma;
     struct mm_struct *mm;
