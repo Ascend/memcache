@@ -75,6 +75,6 @@ struct hybm_gvm_ioctl_arg {
 #define HYBM_GVM_CMD_MEM_OPEN    _IOW(HYBM_GVM_CMD_MAGIC, 6, struct hybm_gvm_ioctl_arg)
 #define HYBM_GVM_CMD_MEM_CLOSE   _IOW(HYBM_GVM_CMD_MAGIC, 7, struct hybm_gvm_ioctl_arg)
 #define HYBM_GVM_CMD_MEM_FETCH   _IOW(HYBM_GVM_CMD_MAGIC, 8, struct hybm_gvm_ioctl_arg)
-#define HYBM_SVM_CMD_MAX_CMD     9 /* max cmd id */
+#define HYBM_GVM_CMD_MAX_CMD     9 /* max cmd id */
 
 #endif // MF_HYBRID_HYBM_GVM_CMD_H

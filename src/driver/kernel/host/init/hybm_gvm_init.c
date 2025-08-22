@@ -12,7 +12,6 @@
 #include "hybm_gvm_ioctl.h"
 #include "hybm_gvm_log.h"
 #include "hybm_gvm_p2p.h"
-#include "hybm_gvm_phy_page.h"
 #include "hybm_gvm_proc.h"
 #include "hybm_gvm_symbol_get.h"
 
@@ -62,7 +61,7 @@ static long hybm_gvm_ioctl(struct file *file, u32 cmd, unsigned long arg)
         return -EINVAL;
     }
 
-    if (cmd_id >= HYBM_SVM_CMD_MAX_CMD) {
+    if (cmd_id >= HYBM_GVM_CMD_MAX_CMD) {
         hybm_gvm_err("Cmd not support. (cmd=0x%x; cmd_id=0x%x)", cmd, cmd_id);
         return -EINVAL;
     }
@@ -170,11 +169,6 @@ static int __init gvm_driver_init(void)
         goto davinci_register_failed;
     }
 
-    ret = hybm_gvm_pg_init();
-    if (ret != 0) {
-        hybm_gvm_err("hybm_gvm_pg_init fail. ret:%d", ret);
-        goto phy_page_init_failed;
-    }
 
     ret = hybm_gvm_p2p_msg_register();
     if (ret != 0) {
@@ -186,8 +180,6 @@ static int __init gvm_driver_init(void)
     return 0;
 
 p2p_init_failed:
-    hybm_gvm_pg_uninit();
-phy_page_init_failed:
     gvm_davinci_module_uninit();
 davinci_register_failed:
     gvm_symbol_put();
@@ -198,7 +190,6 @@ static void __exit gvm_driver_exit(void)
 {
     hybm_gvm_info("gvm model exit.");
     hybm_gvm_p2p_msg_unregister();
-    hybm_gvm_pg_uninit();
     gvm_davinci_module_uninit();
     gvm_symbol_put();
 }
