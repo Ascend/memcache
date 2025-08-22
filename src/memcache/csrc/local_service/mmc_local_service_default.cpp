@@ -162,8 +162,8 @@ Result MmcLocalServiceDefault::UpdateMetaBackup(
     const auto keyCount = keys.size();
     const auto blobCount = blobs.size();
     auto length = keyCount;
-    // 检查keys和blobs大小是否一致，避免越界访问
-    if (keyCount != blobCount) {
+    // 检查ops、keys和blobs大小是否一致，避免越界访问
+    if (keyCount != blobCount || keyCount != opCount || opCount != blobCount) {
         MMC_LOG_ERROR("Local service replicate warning, length is not equal: opSize=" << opCount
             << ", keySize=" << keyCount << ", blobSize=" << blobCount);
         length = std::min({opCount, keyCount, blobCount});
@@ -182,6 +182,8 @@ Result MmcLocalServiceDefault::UpdateMetaBackup(
             MMC_LOG_ERROR("UpdateMetaBackup error, key: " << keys[i]);
         }
     }
+
+    MMC_LOG_DEBUG("Handle " << length <<" metas backup");
     return MMC_OK;
 }
 

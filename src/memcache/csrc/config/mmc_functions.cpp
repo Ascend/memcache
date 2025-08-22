@@ -14,8 +14,8 @@ void OckTrimString(std::string &str)
         return;
     }
 
-    str.erase(0, str.find_first_not_of(' '));
-    str.erase(str.find_last_not_of(' ') + 1);
+    str.erase(0, str.find_first_not_of(" \t\n\r"));
+    str.erase(str.find_last_not_of(" \t\n\r") + 1);
 }
 
 void SplitStr(const std::string &str, const std::string &separator, std::set<std::string> &result)

@@ -24,6 +24,16 @@ constexpr uint32_t CONF_MUST = 1;
 constexpr uint64_t DRAM_SIZE_ALIGNMENT = 2097152; // 2MB
 constexpr uint64_t HBM_SIZE_ALIGNMENT = 2097152; // 2MB
 
+// 定义单位与字节的转换关系
+enum class MemUnit {
+    B,
+    KB,
+    MB,
+    GB,
+    TB,
+    UNKNOWN
+};
+
 enum class ConfValueType {
     VINT = 0,
     VFLOAT = 1,
@@ -62,6 +72,7 @@ public:
     std::string GetString(const std::pair<const char *, const char *> &item);
     bool GetBool(const std::pair<const char *, bool> &item);
     uint64_t GetUInt64(const std::pair<const char *, uint64_t> &item);
+    uint64_t GetUInt64(const char *key, uint64_t defaultValue);
     std::string GetConvertedValue(const std::string &key);
 
     void Set(const std::string &key, int32_t value);
@@ -97,6 +108,10 @@ public:
     }
 
 private:
+    bool SetWithStrAutoConvert(const std::string &key, const std::string &value);
+    uint64_t ParseMemSize(const std::string &memStr);
+    MemUnit ParseMemUnit(const std::string& unit);
+
     void SetValidator(const std::string &key, const ValidatorPtr &validator, uint32_t flag);
 
     void ValidateOneValueMap(std::vector<std::string> &errors,
@@ -219,10 +234,8 @@ public:
         AddStrConf(OKC_MMC_LOCAL_SERVICE_BM_IP_PORT, VNoCheck::Create());
         AddStrConf(OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL, VNoCheck::Create());
         AddStrConf(OKC_MMC_LOCAL_SERVICE_PROTOCOL, VNoCheck::Create());
-        AddUInt64Conf(OKC_MMC_LOCAL_SERVICE_DRAM_SIZE,
-            VUInt64Range::Create(OKC_MMC_LOCAL_SERVICE_DRAM_SIZE.first, 0, MAX_DRAM_SIZE));
-        AddUInt64Conf(OKC_MMC_LOCAL_SERVICE_HBM_SIZE,
-            VUInt64Range::Create(OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first, 0, MAX_HBM_SIZE));
+        AddStrConf(OKC_MMC_LOCAL_SERVICE_DRAM_SIZE, VNoCheck::Create());
+        AddStrConf(OKC_MMC_LOCAL_SERVICE_HBM_SIZE, VNoCheck::Create());
         AddIntConf(OCK_MMC_CLIENT_TIMEOUT_SECONDS,
             VIntRange::Create(OCK_MMC_CLIENT_TIMEOUT_SECONDS.first, 1, 600));
     }
@@ -238,8 +251,8 @@ public:
         config.bmHcomUrl = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL);
         config.createId = 0;
         config.dataOpType = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_PROTOCOL);
-        config.localDRAMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE);
-        config.localHBMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE);
+        config.localDRAMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE.first, MEM_128MB_BYTES);
+        config.localHBMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first, MEM_2MB_BYTES);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         StringToLower(logLevelStr);
         config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
@@ -259,20 +272,29 @@ public:
         GetTlsConfig(config.tlsConfig);
     }
 
-    static Result ValidateLocalServiceConfig(const mmc_local_service_config_t &config)
+    static Result ValidateLocalServiceConfig(mmc_local_service_config_t &config)
     {
+        if (config.localDRAMSize > MAX_DRAM_SIZE) {
+            MMC_LOG_ERROR("After alignment 2MB, DRAM size (" << config.localDRAMSize << ") exceeds 1TB");
+            return MMC_INVALID_PARAM;
+        }
+
+        if (config.localHBMSize > MAX_HBM_SIZE) {
+            MMC_LOG_ERROR("After alignment 2MB, HBM size (" << config.localHBMSize << ") exceeds 1TB");
+            return MMC_INVALID_PARAM;
+        }
+
+        config.localDRAMSize = (config.localDRAMSize / DRAM_SIZE_ALIGNMENT) * DRAM_SIZE_ALIGNMENT;
+        config.localHBMSize = (config.localHBMSize / DRAM_SIZE_ALIGNMENT) * DRAM_SIZE_ALIGNMENT;
+
+        MMC_LOG_INFO("After alignment 2MB, DRAM size is " << config.localDRAMSize);
+        MMC_LOG_INFO("After alignment 2MB, HBM size is " << config.localHBMSize);
+
         if (config.localDRAMSize == 0 && config.localHBMSize == 0) {
-            MMC_LOG_ERROR("DRAM size and HBM size cannot be zero at the same time");
+            MMC_LOG_ERROR("After alignment 2MB, DRAM size and HBM size cannot be 0 at the same time");
             return MMC_INVALID_PARAM;
         }
-        if (config.localHBMSize % HBM_SIZE_ALIGNMENT != 0) {
-            MMC_LOG_ERROR("HBM size should be aligned at a integer multiple of 2M (2097152 bytes)");
-            return MMC_INVALID_PARAM;
-        }
-        if (config.localDRAMSize % DRAM_SIZE_ALIGNMENT != 0) {
-            MMC_LOG_ERROR("DRAM size should be aligned at a integer multiple of 2M (2097152 bytes)");
-            return MMC_INVALID_PARAM;
-        }
+
         return MMC_OK;
     }
 };

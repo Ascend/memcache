@@ -153,7 +153,9 @@ Result MetaNetServer::HandleAlloc(const NetContextPtr &context)
     auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
     const auto result = metaMgrProxy->Alloc(req, resp);
     if (result != MMC_OK) {
-        MMC_LOG_ERROR("HandleAlloc key " << req.key_ << " failed, error code=" << result);
+        if (result != MMC_DUPLICATED_OBJECT) {
+            MMC_LOG_ERROR("HandleAlloc key " << req.key_ << " failed, error code=" << result);
+        }
     } else {
         MMC_LOG_DEBUG("HandleAlloc key " << req.key_ << " success.");
     }

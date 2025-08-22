@@ -95,7 +95,8 @@ std::string Configuration::GetString(const std::pair<const char *, const char *>
     return item.second;
 }
 
-bool Configuration::GetBool(const std::pair<const char *, bool> &item) {
+bool Configuration::GetBool(const std::pair<const char *, bool> &item)
+{
     GUARD(&mLock, mLock);
     const auto iter = mBoolItems.find(item.first);
     if (iter != mBoolItems.end()) {
@@ -104,13 +105,24 @@ bool Configuration::GetBool(const std::pair<const char *, bool> &item) {
     return item.second;
 }
 
-uint64_t Configuration::GetUInt64(const std::pair<const char *, uint64_t> &item) {
+uint64_t Configuration::GetUInt64(const std::pair<const char *, uint64_t> &item)
+{
     GUARD(&mLock, mLock);
     const auto iter = mUInt64Items.find(item.first);
     if (iter != mUInt64Items.end()) {
         return iter->second;
     }
     return item.second;
+}
+
+uint64_t Configuration::GetUInt64(const char * key, uint64_t defaultValue)
+{
+    GUARD(&mLock, mLock);
+    const auto iter = mUInt64Items.find(key);
+    if (iter != mUInt64Items.end()) {
+        return iter->second;
+    }
+    return defaultValue;
 }
 
 std::string Configuration::GetConvertedValue(const std::string &key)
@@ -223,13 +235,7 @@ bool Configuration::SetWithTypeAutoConvert(const std::string &key, const std::st
         }
     } else if (valueType == ConfValueType::VSTRING) {
         if (mStrItems.count(key) > 0) {
-            std::string tempValue = value;
-            if (find(mPathConfs.begin(), mPathConfs.end(), key) != mPathConfs.end() &&
-                !GetRealPath(tempValue)) { // 简化路径为绝对路径
-                std::cerr << "Simplify <" << key << "> to absolute path failed." << std::endl;
-                return false;
-            }
-            mStrItems.at(key) = tempValue;
+            return SetWithStrAutoConvert(key, value);
         }
     } else if (valueType == ConfValueType::VBOOL) {
         bool b = false;
@@ -250,6 +256,29 @@ bool Configuration::SetWithTypeAutoConvert(const std::string &key, const std::st
             mUInt64Items.at(key) = tmp;
         }
     }
+    return true;
+}
+
+bool Configuration::SetWithStrAutoConvert(const std::string &key, const std::string &value)
+{
+    std::string tempValue = value;
+    if (key == ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE.first
+        || key == ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first) {
+        auto memSize = ParseMemSize(tempValue);
+        if (memSize == UINT64_MAX) {
+            std::cerr << "DRAM or HBM value (" << tempValue <<") is invalid, "
+                      << "please check 'ock.mmc.local_service.dram.size' "
+                      << "or 'ock.mmc.local_service.hbm.size'" << std::endl;
+            return false;
+        }
+        mUInt64Items.insert(std::make_pair(key, memSize));
+    }
+    if (find(mPathConfs.begin(), mPathConfs.end(), key) != mPathConfs.end() &&
+        !GetRealPath(tempValue)) { // 简化路径为绝对路径
+        std::cerr << "Simplify <" << key << "> to absolute path failed." << std::endl;
+        return false;
+    }
+    mStrItems.at(key) = tempValue;
     return true;
 }
 
@@ -399,11 +428,11 @@ void Configuration::ValidateOneValueMap(std::vector<std::string> &errors,
 void Configuration::ValidateItem(const std::string &itemKey, std::vector<std::string> &errors)
 {
     auto validatorIter = mValueValidator.find(itemKey);
-    auto typeIter = mValueTypes.find(itemKey);
     if (validatorIter == mValueValidator.end()) {
         errors.push_back("Failed to find <" + itemKey + "> in Validator map, which should not happen.");
         return;
     }
+    auto typeIter = mValueTypes.find(itemKey);
     if (typeIter == mValueTypes.end()) {
         errors.push_back("Failed to find <" + itemKey + "> in type map, which should not happen.");
         return;
@@ -493,6 +522,7 @@ const std::string Configuration::GetLogPath(const std::string &logPath)
     }
 
     // 处理相对路径：获取当前可执行文件所在目录的父目录
+    // 第一步：获取mmc_meta_service路径
     char pathBuf[PATH_MAX] = {0};
     ssize_t count = readlink("/proc/self/exe", pathBuf, PATH_MAX - 1); // 预留终止符空间
     if (count == -1) {
@@ -501,15 +531,15 @@ const std::string Configuration::GetLogPath(const std::string &logPath)
     }
     pathBuf[count] = '\0'; // 确保字符串终止
 
-    // 第一步：获取可执行文件所在目录
+    // 第二步：获取可执行文件所在目录
     std::string binPath(pathBuf);
     size_t lastSlash = binPath.find_last_of('/');
     if (lastSlash == std::string::npos) {
         return ""; // 无效路径
     }
-    std::string exeDir = binPath.substr(0, lastSlash); // 修正变量名，使用binPath而非exePath
+    std::string exeDir = binPath.substr(0, lastSlash);
 
-    // 第二步：获取该目录的父目录
+    // 第三步：获取该目录的父目录
     size_t parentLastSlash = exeDir.find_last_of('/');
     if (parentLastSlash == std::string::npos) {
         return "/" + logPath; // 根目录下直接拼接相对路径
@@ -524,6 +554,63 @@ int Configuration::ValidateLogPathConfig(const std::string &logPath)
 {
     MMC_RETURN_ERROR(ValidatePathNotSymlink(logPath.c_str()), logPath << " does not exist or is a symlink");
     return MMC_OK;
+}
+
+uint64_t Configuration::ParseMemSize(const std::string &memStr)
+{
+    if (memStr.empty()) {
+        // UINT64_MAX代表无效值
+        return UINT64_MAX;
+    }
+    // 查找第一个非数字字符，区分数值和单位
+    size_t i = 0;
+    while (i < memStr.size() && (isdigit(memStr[i]) || memStr[i] == '.')) {
+        i++;
+    }
+
+    // 提取数值部分
+    std::string numStr = memStr.substr(0, i);
+    double num;
+    try {
+        num = std::stod(numStr);
+    } catch (const std::exception& e) {
+        return UINT64_MAX;
+    }
+
+    // 提取单位部分
+    std::string unitStr = (i < memStr.size()) ? memStr.substr(i) : "b";
+    OckTrimString(unitStr);
+    MemUnit unit = ParseMemUnit(unitStr);
+
+    // 转换为字节数
+    uint64_t bytes;
+    switch (unit) {
+        case MemUnit::B:  bytes = static_cast<uint64_t>(num); break;
+        case MemUnit::KB: bytes = static_cast<uint64_t>(num * KB_MEM_BYTES); break;
+        case MemUnit::MB: bytes = static_cast<uint64_t>(num * MB_MEM_BYTES); break;
+        case MemUnit::GB: bytes = static_cast<uint64_t>(num * GB_MEM_BYTES); break;
+        case MemUnit::TB: bytes = static_cast<uint64_t>(num * TB_MEM_BYTES); break;
+        default: bytes = UINT64_MAX;
+    }
+
+    return bytes;
+}
+
+// 转换字符串单位到枚举
+MemUnit Configuration::ParseMemUnit(const std::string& unit)
+{
+    if (unit.empty()) { return MemUnit::B; }
+
+    std::string lowerUnit = unit;
+    std::transform(lowerUnit.begin(), lowerUnit.end(), lowerUnit.begin(), ::tolower);
+
+    if (lowerUnit == "b") { return MemUnit::B; }
+    if (lowerUnit == "k" || lowerUnit == "kb") { return MemUnit::KB; }
+    if (lowerUnit == "m" || lowerUnit == "mb") { return MemUnit::MB; }
+    if (lowerUnit == "g" || lowerUnit == "gb") { return MemUnit::GB; }
+    if (lowerUnit == "t" || lowerUnit == "tb") { return MemUnit::TB; }
+
+    return MemUnit::UNKNOWN;
 }
 
 } // namespace common

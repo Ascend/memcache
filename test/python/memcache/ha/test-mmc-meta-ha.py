@@ -1,5 +1,6 @@
 import time
 import signal
+import random
 import torch
 import uuid
 import acl
@@ -76,6 +77,7 @@ class MemCacheStore:
             data_ptrs.append(tensor.data_ptr())
 
         for j in range(self.batch_rebuild_128):
+            time.sleep(random.uniform(0.0, 3.0))
             keys = []
             for i in range(self.batch_rebuild_1024):
                 keys.append(self.key_batch_rb_prefix + str(j * self.batch_rebuild_1024 + i))

@@ -9,8 +9,14 @@ Result MmcMetaMgrProxyDefault::Alloc(const AllocRequest &req, AllocResponse &res
 {
     metaMangerPtr_->CheckAndEvict();
     MmcMemMetaDesc objMeta;
-    MMC_RETURN_ERROR(metaMangerPtr_->Alloc(req.key_, req.options_, req.operateId_, objMeta),
-                     "Meta Alloc Fail, key  " << req.key_);
+    auto ret = metaMangerPtr_->Alloc(req.key_, req.options_, req.operateId_, objMeta);
+    if (ret != MMC_OK) {
+        if (ret != MMC_DUPLICATED_OBJECT) {
+            MMC_RETURN_ERROR(ret, "Meta Alloc Fail, key  " << req.key_);
+        } else {
+            return ret;
+        }
+    }
     resp.numBlobs_ = objMeta.numBlobs_;
     resp.prot_ = objMeta.prot_;
     resp.priority_ = objMeta.priority_;

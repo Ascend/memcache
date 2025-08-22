@@ -32,8 +32,8 @@ constexpr auto OKC_MMC_LOCAL_SERVICE_WORLD_SIZE = std::make_pair("ock.mmc.local_
 constexpr auto OKC_MMC_LOCAL_SERVICE_BM_IP_PORT = std::make_pair("ock.mmc.local_service.config_store_url", "tcp://127.0.0.1:6000");
 constexpr auto OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL = std::make_pair("ock.mmc.local_service.hcom_url", "tcp://127.0.0.1:7000");
 constexpr auto OKC_MMC_LOCAL_SERVICE_PROTOCOL = std::make_pair("ock.mmc.local_service.protocol", "sdma");
-constexpr auto OKC_MMC_LOCAL_SERVICE_DRAM_SIZE = std::make_pair("ock.mmc.local_service.dram.size", 2097152ULL);
-constexpr auto OKC_MMC_LOCAL_SERVICE_HBM_SIZE = std::make_pair("ock.mmc.local_service.hbm.size", 2097152ULL);
+constexpr auto OKC_MMC_LOCAL_SERVICE_DRAM_SIZE = std::make_pair("ock.mmc.local_service.dram.size", "128MB");
+constexpr auto OKC_MMC_LOCAL_SERVICE_HBM_SIZE = std::make_pair("ock.mmc.local_service.hbm.size", "2097152");
 
 constexpr auto OCK_MMC_CLIENT_TIMEOUT_SECONDS = std::make_pair("ock.mmc.client.timeout.seconds", 60);
 
@@ -57,7 +57,14 @@ constexpr int MAX_EVICT_THRESHOLD = 100;
 constexpr uint64_t MAX_DRAM_SIZE = 1024ULL * 1024ULL * 1024ULL * 1024ULL;  // 1TB
 constexpr uint64_t MAX_HBM_SIZE = 1024ULL * 1024ULL * 1024ULL * 1024ULL;  // 1TB
 
+constexpr uint64_t KB_MEM_BYTES = 1024ULL;
+constexpr uint64_t MB_MEM_BYTES = 1024ULL * 1024ULL;
+constexpr uint64_t GB_MEM_BYTES = 1024ULL * 1024ULL * 1024ULL;
+constexpr uint64_t TB_MEM_BYTES = 1024ULL * 1024ULL * 1024ULL * 1024ULL;
+
 constexpr int MB_NUM = 1024 * 1024;
+constexpr uint64_t MEM_2MB_BYTES = 2ULL * 1024ULL * 1024ULL;
+constexpr uint64_t MEM_128MB_BYTES = 128ULL * 1024ULL * 1024ULL;
 
 constexpr unsigned long PATH_MAX_LEN = 1023;
 
