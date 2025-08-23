@@ -4,16 +4,17 @@
 #ifndef MF_HYBRID_HTRACER_DEF_H
 #define MF_HYBRID_HTRACER_DEF_H
 
+#include <string>
+
 namespace ock {
 namespace mf {
+const std::string DEFAULT_DUMP_DIR = "/var/log/mxc/memfabric_hybrid";
+int32_t HTracerInit(const std::string& dumpDir = DEFAULT_DUMP_DIR);
+void HTracerExit();
+}  // namespace mf
+}  // namespace ock
 
 #define TRACE_ID(SERVICE_ID_, INNER_ID_) ((SERVICE_ID_) << 16 | ((INNER_ID_) & 0xFFFF))
-
-enum HResult {
-    RET_OK = 0,
-    RET_ERR = -1,
-    RET_INVALID_PARAM = -2,
-};
 
 enum TRACE_MODULE {
     MF_HYBM = 0,
@@ -45,6 +46,5 @@ enum MF_MMC_MOD {
     MF_MMC_META_GET,
     MF_MMC_META_BATCH_GET,
 };
-}
-}
+
 #endif // MF_HYBRID_HTRACER_DEF_H

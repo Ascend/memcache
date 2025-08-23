@@ -126,8 +126,11 @@ int DistributedObjectStore::put(const std::string &key, mmc_buffer &buffer) {
     mmc_put_options options{};
     options.mediaType = 0; // will set by client proxy
     options.policy = NATIVE_AFFINITY;
+    TP_DELAY_BEGIN(MF_MMC_LOCAL_PUT);
     const auto res = mmcc_put(key.c_str(), &buffer, options, 0);
-    return returnWrapper(res, key);
+    auto ret = returnWrapper(res, key);
+    TP_DELAY_END(MF_MMC_LOCAL_PUT, ret);
+    return ret;
 }
 
 int DistributedObjectStore::put_batch(

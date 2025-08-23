@@ -55,11 +55,6 @@ public:
         ptr->DelayEnd(diff, retCode);
     }
 
-    static __always_inline bool IsEnable()
-    {
-        return mEnable;
-    }
-
 private:
     static __always_inline HtracerInfo **CreateInstance()
     {
@@ -101,9 +96,6 @@ private:
     {
         return (tpId & 0xFFFF);
     }
-
-private:
-    static bool mEnable;
 };
 }
 }

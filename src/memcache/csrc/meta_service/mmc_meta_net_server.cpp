@@ -6,6 +6,7 @@
 #include "mmc_msg_base.h"
 #include "mmc_msg_client_meta.h"
 #include "mmc_meta_service_default.h"
+#include "htracer.h"
 
 namespace ock {
 namespace mmc {
@@ -151,7 +152,9 @@ Result MetaNetServer::HandleAlloc(const NetContextPtr &context)
     AllocResponse resp;
     context->GetRequest<AllocRequest>(req);
     auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
+    TP_DELAY_BEGIN(MF_MMC_META_PUT);
     const auto result = metaMgrProxy->Alloc(req, resp);
+    TP_DELAY_END(MF_MMC_META_PUT, result);
     if (result != MMC_OK) {
         if (result != MMC_DUPLICATED_OBJECT) {
             MMC_LOG_ERROR("HandleAlloc key " << req.key_ << " failed, error code=" << result);

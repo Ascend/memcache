@@ -48,13 +48,13 @@ set(HYBMM_SRC_FILES
 add_library(hybmm_objects OBJECT ${HYBMM_SRC_FILES})
 target_compile_options(hybmm_objects PRIVATE -fPIC)
 
-add_library(hybmm_static STATIC $<TARGET_OBJECTS:hybmm_objects>)
+add_library(hybmm_static STATIC $<TARGET_OBJECTS:hybmm_objects> $<TARGET_OBJECTS:htracer_object>)
 set_target_properties(hybmm_static PROPERTIES OUTPUT_NAME "mf_hybm_core")
 target_link_libraries(hybmm_static PUBLIC pthread dl)
 
-add_library(hybmm_shared SHARED $<TARGET_OBJECTS:hybmm_objects>)
+add_library(hybmm_shared SHARED $<TARGET_OBJECTS:hybmm_objects> $<TARGET_OBJECTS:htracer_object>)
 set_target_properties(hybmm_shared PROPERTIES OUTPUT_NAME "mf_hybm_core")
-target_link_libraries(hybmm_shared PUBLIC pthread dl htracer_static)
+target_link_libraries(hybmm_shared PUBLIC pthread dl)
 
 ## install header files
 file(GLOB HEADER_FILES ${PROJECT_HYBM_SRC_BASE}/include/*.h)

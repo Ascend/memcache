@@ -1,53 +1,57 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
  */
+#ifndef MEMORYFABRIC_TRACER_H
+#define MEMORYFABRIC_TRACER_H
 
-#ifndef HTRACER_H
-#define HTRACER_H
-
+#include <stdint.h>
 #include "htracer_def.h"
-#include "common/htracer_monotonic.h"
-#include "manager/htracer_manager.h"
 
-namespace ock {
-namespace mf {
+#ifdef __cplusplus
+extern "C" {
+#endif
+typedef struct HTRACE_INTF_S {
+    bool (*IsEnable)();
+    void (*DelayBegin)(uint32_t tpId, const char* tpName);
+    void (*DelayEnd)(uint32_t tpId, const uint64_t diff, int32_t retCode);
+    uint64_t (*GetCurrentTimeNs)();
+} HTRACE_INTF;
 
-const std::string DEFAULT_DUMP_DIR = "/var/log/mxc/memfabric_hybrid";
+extern HTRACE_INTF g_traceIntf;
 
-int32_t HTracerInit(const std::string &dumpDir = DEFAULT_DUMP_DIR);
-void HTracerExit();
-
-#define TP_DELAY_BEGIN(TP_ID)                                                   \
-    uint64_t tsBegin##TP_ID = ock::utils::Monotonic::TimeNs();                  \
-    if (ock::mf::HtracerManager::IsEnable()) {                             \
-        ock::mf::HtracerManager::DelayBegin(TP_ID, #TP_ID);                \
+#define TP_DELAY_BEGIN(TP_ID)                             \
+    uint64_t tpBegin##TP_ID = 0;                          \
+    if (g_traceIntf.IsEnable && g_traceIntf.IsEnable()) { \
+        g_traceIntf.DelayBegin(TP_ID, #TP_ID);            \
+        tpBegin##TP_ID = g_traceIntf.GetCurrentTimeNs();  \
     }
 
-#define TP_DELAY_END(TP_ID, RET_CODE)                                           \
-    if (ock::mf::HtracerManager::IsEnable()) {                             \
-        uint64_t tsEnd##TP_ID = ock::utils::Monotonic::TimeNs();                \
-        uint64_t tpDiff##TP_ID = tsEnd##TP_ID - tsBegin##TP_ID;                 \
-        ock::mf::HtracerManager::DelayEnd(TP_ID, tpDiff##TP_ID, RET_CODE); \
+#define TP_DELAY_END(TP_ID, RET_CODE)                                                                   \
+    if (g_traceIntf.IsEnable && g_traceIntf.IsEnable()) {                                               \
+        g_traceIntf.DelayEnd(TP_ID, g_traceIntf.GetCurrentTimeNs() - tpBegin##TP_ID, RET_CODE); \
     }
 
 #define TP_TRACE_DELAY_BEGIN(TP_ID, P_U64_TIME_NS)           \
-    if (ock::mf::HtracerManager::IsEnable()) {    \
-        ock::mf::HtracerManager::DelayBegin(TP_ID, #TP_ID);               \
-        (*(P_U64_TIME_NS)) = ock::utils::Monotonic::TimeNs(); \
+    if (g_traceIntf.IsEnable && g_traceIntf.IsEnable()) {    \
+        g_traceIntf.DelayBegin(TP_ID, #TP_ID);               \
+        (*(P_U64_TIME_NS)) = g_traceIntf.GetCurrentTimeNs(); \
     }
 
 #define TP_TRACE_DELAY_END(TP_ID, U64_TIME_NS, RET_CODE)                                                 \
-    if (ock::mf::HtracerManager::IsEnable()) {                                                \
-        ock::mf::HtracerManager::DelayEnd(TP_ID, (ock::utils::Monotonic::TimeNs() - (U64_TIME_NS)), RET_CODE); \
+    if (g_traceIntf.IsEnable && g_traceIntf.IsEnable()) {                                                \
+        g_traceIntf.DelayEnd(TP_ID, (g_traceIntf.GetCurrentTimeNs() - (U64_TIME_NS)), RET_CODE); \
     }
 
 #define TP_TRACE_DELAY(TP_ID, U64_DIFF_TIME_NS, RET_CODE)                  \
-    if (ock::mf::HtracerManager::IsEnable()) {                  \
-        ock::mf::HtracerManager::DelayBegin(TP_ID, #TP_ID);                             \
-        ock::mf::HtracerManager::DelayEnd(TP_ID, (U64_DIFF_TIME_NS), RET_CODE); \
+    if (g_traceIntf.IsEnable && g_traceIntf.IsEnable()) {                  \
+        g_traceIntf.DelayBegin(TP_ID, #TP_ID);                             \
+        g_traceIntf.DelayEnd(TP_ID, (U64_DIFF_TIME_NS), RET_CODE); \
     }
 
-#define TP_CURRENT_TIME_NS ock::utils::Monotonic::TimeNs()
+#define TP_CURRENT_TIME_NS (g_traceIntf.GetCurrentTimeNs ? g_traceIntf.GetCurrentTimeNs() : 0)
+
+#ifdef __cplusplus
 }
-}
-#endif // HTRACER_H
+#endif
+
+#endif  // MEMORYFABRIC_TRACER_H

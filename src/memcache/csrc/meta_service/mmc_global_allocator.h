@@ -162,40 +162,39 @@ public:
         return ret;
     }
 
-    uint64_t GetUsageRate()
+    void GetUsedInfo(uint64_t (&totalSize)[MEDIA_NONE], uint64_t (&usedSize)[MEDIA_NONE])
     {
-        uint64_t totalSize = 0;
-        uint64_t usedSize = 0;
-        globalAllocLock_.LockRead();
-        for (auto &allocator : allocators_) {
-            auto result = allocator.second->GetUsageInfo();
-            totalSize += result.first;
-            usedSize += result.second;
-        }
-        globalAllocLock_.UnlockRead();
-        return (usedSize * 100 / totalSize);
-    }
-
-    bool NeedEvict(uint64_t level)
-    {
-        uint64_t totalSize[MEDIA_NONE] = {0};
-        uint64_t usedSize[MEDIA_NONE] = {0};
         globalAllocLock_.LockRead();
         for (auto& allocator : allocators_) {
             auto result = allocator.second->GetUsageInfo();
             totalSize[allocator.first.mediaType_] += result.first;
             usedSize[allocator.first.mediaType_] += result.second;
         }
+        globalAllocLock_.UnlockRead();
+    }
 
+    uint64_t GetFreeSpace(MediaType type)
+    {
+        if (type == MEDIA_NONE) {
+            return 0;
+        }
+        uint64_t totalSize[MEDIA_NONE] = {0};
+        uint64_t usedSize[MEDIA_NONE] = {0};
+        GetUsedInfo(totalSize, usedSize);
+        return totalSize[type] - usedSize[type];
+    }
+
+    bool NeedEvict(uint64_t level)
+    {
+        uint64_t totalSize[MEDIA_NONE] = {0};
+        uint64_t usedSize[MEDIA_NONE] = {0};
+        GetUsedInfo(totalSize, usedSize);
         for (uint32_t i = 0; i < MEDIA_NONE; i++) {
             // 只要一个类型的池触发水位，即淘汰
             if (usedSize[i] * 100 > totalSize[i] * level) {
-                globalAllocLock_.UnlockRead();
                 return true;
             }
         }
-
-        globalAllocLock_.UnlockRead();
         return false;
     }
 

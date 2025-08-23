@@ -18,24 +18,22 @@
 
 namespace ock {
 namespace mf {
-constexpr int DUMP_PERIOD = 90;
+constexpr int DUMP_PERIOD = 10;
 constexpr size_t MAX_DUMP_SIZE = 10 * 1024 * 1024;
 
 int32_t HTracerService::StartUp(const std::string &dumpDir)
 {
     auto tracePoints = HtracerManager::GetTracePoints();
     if (tracePoints == nullptr) {
-        return RET_ERR;
+        return -1;
     }
 
-    if (PrepareDumpFile(dumpDir) != RET_OK) {
-        return RET_ERR;
+    if (PrepareDumpFile(dumpDir) != 0) {
+        return -1;
     }
 
-    CreateHeadLine();
     StartDump();
-
-    return RET_OK;
+    return 0;
 }
 
 void HTracerService::ShutDown()
@@ -125,46 +123,49 @@ void HTracerService::WriteTraceInfo(std::stringstream &ss)
     dump.close();
 }
 
-static void getString(HtracerInfo &traceInfo, bool needTotal, std::stringstream &ss, int &traceCount)
+void HTracerService::GetString(HtracerInfo& traceInfo, bool needTotal, std::stringstream& ss, int& traceCount)
 {
-    std::string currentTime = HTracerUtils::CurrentTime();
-    if (traceInfo.NameValid()) {
-        if (needTotal) {
-            ss << currentTime << "\t" << traceInfo.ToTotalString() << std::endl;
-        } else {
-            ss << currentTime << "\t" << traceInfo.ToPeriodString() << std::endl;
-        }
-        traceCount++;
+    if (!traceInfo.Valid()) {
+        return;
     }
+
+    if (headline.size() == 0) {
+        CreateHeadLine();
+        ss << headline << std::endl;
+    }
+
+    std::string currentTime = HTracerUtils::CurrentTime();
+    if (needTotal) {
+        ss << currentTime << traceInfo.ToTotalString() << std::endl;
+    } else {
+        ss << currentTime << traceInfo.ToPeriodString() << std::endl;
+    }
+    traceCount++;
 }
 
-void HTracerService::GenerateTraceStream(std::stringstream &ss, bool needTotal)
+int HTracerService::GenerateTraceStream(std::stringstream& ss, bool needTotal)
 {
     auto tracePoints = HtracerManager::GetTracePoints();
     if (tracePoints == nullptr) {
-        return;
+        return 0;
     }
     int traceCount = 0;
-    if (headline.size() == 0) {
-        CreateHeadLine();
-    }
-    ss << headline << std::endl;
     for (int i = 0; i < MAX_SERVICE_NUM; ++i) {
         for (int j = 0; j < MAX_INNER_ID_NUM; ++j) {
-            auto &traceInfo = tracePoints[i][j];
-            getString(traceInfo, needTotal, ss, traceCount);
+            auto& traceInfo = tracePoints[i][j];
+            GetString(traceInfo, needTotal, ss, traceCount);
         }
     }
-    if (traceCount == 0) {
-        return;
-    }
-    ss << std::endl;
+    return traceCount;
 }
 
 void HTracerService::DumpTraceInfos()
 {
     std::stringstream ss;
-    GenerateTraceStream(ss);
+    int traceCount = GenerateTraceStream(ss);
+    if (traceCount <= 0) {
+        return;
+    }
     WriteTraceInfo(ss);
 }
 
@@ -180,31 +181,30 @@ void HTracerService::DumpTraceInfoPeriod()
 int HTracerService::PrepareDumpFile(const std::string &dumpDir)
 {
     if (dumpDir.empty()) {
-        return RET_ERR;
+        return -1;
     }
     std::string dumpFileDir = dumpDir;
     if (dumpFileDir.back() != '/') {
         dumpFileDir += "/";
     }
     int32_t ret = HTracerUtils::CreateDirectory(dumpFileDir);
-    if (ret != RET_OK) {
-        return RET_ERR;
+    if (ret != 0) {
+        return -1;
     }
     dumpFilePath = dumpFileDir + "htrace_" + std::to_string(getpid()) + ".dat";
 
     int fd = open(dumpFilePath.c_str(), O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP);
     if (fd < 0) {
-        return RET_ERR;
+        return -1;
     }
     close(fd);
-    return RET_OK;
+    return 0;
 }
 
 void HTracerService::CreateHeadLine()
 {
     std::stringstream ss;
-    ss << "TIME"
-       << "\t" << HTracerUtils::HeaderString();
+    ss << HTracerUtils::HeaderString();
     headline = ss.str();
 }
 
@@ -216,6 +216,7 @@ void HTracerService::StartDump()
     }
     mIsRunning = true;
     mDumpThread = std::thread(&HTracerService::DumpTraceInfoPeriod, this);
+    pthread_setname_np(mDumpThread.native_handle(), "htracerDump");
 }
 
 std::string HTracerService::GetTraceInfo()
@@ -234,7 +235,7 @@ void HTracerService::ClearTraceInfo()
     for (int i = 0; i < MAX_SERVICE_NUM; ++i) {
         for (int j = 0; j < MAX_INNER_ID_NUM; ++j) {
             auto &traceInfo = tracePoints[i][j];
-            if (traceInfo.NameValid()) {
+            if (traceInfo.Valid()) {
                 traceInfo.Reset();
             }
         }

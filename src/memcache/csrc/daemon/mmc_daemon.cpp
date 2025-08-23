@@ -17,6 +17,7 @@
 #include "mmc_logger.h"
 #include "mmc_leader_election.h"
 #include "mmc_meta_service_default.h"
+#include "htracer.h"
 
 using namespace ock::mmc;
 
@@ -154,6 +155,12 @@ int main(int argc, char* argv[])
         return -1;
     }
     RegisterSignal();
+
+    auto result = ock::mf::HTracerInit();
+    if (result != MMC_OK) {
+        std::cerr << "init htracer module failed, result: " << result << std::endl;
+        return -1;
+    }
 
     mmc_meta_service_config_t config;
     g_config->GetMetaServiceConfig(config);

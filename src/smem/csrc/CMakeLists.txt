@@ -46,7 +46,7 @@ target_link_libraries(smem_static PUBLIC pthread libacc_tcp_net.a hybmm_static)
 add_library(smem_shared SHARED $<TARGET_OBJECTS:smem_objects>)
 set_target_properties(smem_shared PROPERTIES OUTPUT_NAME "mf_smem")
 target_link_directories(smem_shared PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/lib)
-target_link_libraries(smem_shared PUBLIC pthread libacc_tcp_net.a htracer_static hybmm_shared)
+target_link_libraries(smem_shared PUBLIC pthread libacc_tcp_net.a hybmm_shared)
 
 if(BUILD_PYTHON STREQUAL "ON")
     add_subdirectory(python_wrapper)

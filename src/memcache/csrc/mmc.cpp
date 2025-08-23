@@ -9,7 +9,7 @@
 #include "mmc_def.h"
 #include "mmc_env.h"
 #include "mmc_service.h"
-
+#include "htracer.h"
 
 using namespace ock::mmc;
 static ClientConfig *g_clientConfig;

@@ -16,11 +16,13 @@
 
 namespace ock {
 namespace mf {
-constexpr int nameWidth = 50;
+constexpr int timeWidth = 23;
+constexpr int nameWidth = 35;
 constexpr int digitWidth = 15;
 constexpr int unitStep = 1000;
 constexpr double iopsDiff = 90.000;
 constexpr int numberPrecision = 3;
+constexpr int widthFour = 4;
 constexpr int widthTwo = 2;
 constexpr mode_t DEFAULT_DIR_MODE = 0750;
 
@@ -35,9 +37,13 @@ public:
             return "";
         }
         std::stringstream ss;
-        ss << std::setfill('0') << std::setw(widthTwo) << std::right << tmInfo->tm_hour << ":" << std::setfill('0') <<
-            std::setw(widthTwo) << std::right << tmInfo->tm_min << ":" << std::setfill('0') << std::setw(widthTwo) <<
-            std::right << tmInfo->tm_sec;
+        ss << std::setfill('0') << std::setw(widthFour) << std::right << (tmInfo->tm_year + 1900) << "-"
+           << std::setfill('0') << std::setw(widthTwo) << std::right << (tmInfo->tm_mon + 1) << "-" << std::setfill('0')
+           << std::setw(widthTwo) << std::right << tmInfo->tm_mday << " ";
+
+        ss << std::setfill('0') << std::setw(widthTwo) << std::right << tmInfo->tm_hour << ":" << std::setfill('0')
+           << std::setw(widthTwo) << std::right << tmInfo->tm_min << ":" << std::setfill('0') << std::setw(widthTwo)
+           << std::right << tmInfo->tm_sec << std::setfill(' ') << std::setw(widthFour) << std::right << " ";
         return ss.str();
     }
 
@@ -67,16 +73,14 @@ public:
         std::ostringstream os(str);
         os.flags(std::ios::fixed);
         os.precision(numberPrecision);
-        os << std::left << std::setw(nameWidth) << name << "\t" << std::left << std::setw(digitWidth) << begin <<
-            "\t" << std::left << std::setw(digitWidth) << goodEnd << "\t" << std::left << std::setw(digitWidth) <<
-            badEnd << "\t" << std::left << std::setw(digitWidth) <<
-            ((begin > goodEnd + badEnd) ? (begin - goodEnd - badEnd) : 0) << "\t" << std::left <<
-            std::setw(digitWidth) << (static_cast<double>(begin) / iopsDiff) << "\t" << std::left <<
-            std::setw(digitWidth) << (min == UINT64_MAX ? 0 : ((double)min / unitStep)) << "\t" << std::left <<
-            std::setw(digitWidth) << static_cast<double>(max) / unitStep << "\t" << std::left <<
-            std::setw(digitWidth) <<
-            (goodEnd == 0 ? 0 : static_cast<double>(total) / static_cast<double>(goodEnd) / unitStep) << "\t" <<
-            std::left << std::setw(digitWidth) << static_cast<double>(total) / unitStep;
+        os << std::left << std::setw(nameWidth) << name << std::left << std::setw(digitWidth) << begin << std::left
+           << std::setw(digitWidth) << goodEnd << std::left << std::setw(digitWidth) << badEnd << std::left
+           << std::setw(digitWidth) << ((begin > goodEnd + badEnd) ? (begin - goodEnd - badEnd) : 0) << std::left
+           << std::setw(digitWidth) << (static_cast<double>(begin) / iopsDiff) << std::left << std::setw(digitWidth)
+           << (min == UINT64_MAX ? 0 : ((double)min / unitStep)) << std::left << std::setw(digitWidth)
+           << static_cast<double>(max) / unitStep << std::left << std::setw(digitWidth)
+           << (goodEnd == 0 ? 0 : static_cast<double>(total) / static_cast<double>(goodEnd) / unitStep) << std::left
+           << std::setw(digitWidth) << static_cast<double>(total) / unitStep;
         return os.str();
     }
 
@@ -105,16 +109,17 @@ public:
     static std::string HeaderString()
     {
         std::stringstream ss;
-        ss << "\t" << std::left << std::setw(nameWidth) << "NAME"
-           << "\t" << std::left << std::setw(digitWidth) << "BEGIN"
-           << "\t" << std::left << std::setw(digitWidth) << "GOOD_END"
-           << "\t" << std::left << std::setw(digitWidth) << "BAD_END"
-           << "\t" << std::left << std::setw(digitWidth) << "ON_FLY"
-           << "\t" << std::left << std::setw(digitWidth) << "IOPS"
-           << "\t" << std::left << std::setw(digitWidth) << "MIN(us)"
-           << "\t" << std::left << std::setw(digitWidth) << "MAX(us)"
-           << "\t" << std::left << std::setw(digitWidth) << "AVG(us)"
-           << "\t" << std::left << std::setw(digitWidth) << "TOTAL(us)";
+        ss << std::left << std::setw(timeWidth) << "TIME"
+           << std::left << std::setw(nameWidth) << "NAME"
+           << std::left << std::setw(digitWidth) << "BEGIN"
+           << std::left << std::setw(digitWidth) << "GOOD_END"
+           << std::left << std::setw(digitWidth) << "BAD_END"
+           << std::left << std::setw(digitWidth) << "ON_FLY"
+           << std::left << std::setw(digitWidth) << "IOPS"
+           << std::left << std::setw(digitWidth) << "MIN(us)"
+           << std::left << std::setw(digitWidth) << "MAX(us)"
+           << std::left << std::setw(digitWidth) << "AVG(us)"
+           << std::left << std::setw(digitWidth) << "TOTAL(us)";
         return ss.str();
     }
 };

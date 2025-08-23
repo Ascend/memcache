@@ -64,6 +64,15 @@ void MmcMetaManager::CheckAndEvict()
         }
         MmcLocation src{UINT32_MAX, srcType};
         MmcLocation dst{UINT32_MAX, type};
+
+        uint64_t freeSize = globalAllocator_->GetFreeSpace(type);
+        if (freeSize < objMeta->Size()) {
+            MMC_LOG_WARN("key: " << key << " move to " << dst << " no space:" << freeSize
+                                 << ", need:" << objMeta->Size());
+            PushRemoveList(key, objMeta);
+            return true;  // 向下淘汰已无可能，直接删除
+        }
+
         auto future = threadPool_->Enqueue([&](const std::string keyL, const MmcLocation srcL,
                                                const MmcLocation dstL) { return MoveBlob(keyL, srcL, dstL); },
                                            key, src, dst);

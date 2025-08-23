@@ -10,7 +10,7 @@
 #include <thread>
 #include <condition_variable>
 #include <mutex>
-#include "htracer.h"
+#include "common/htracer_info.h"
 
 namespace ock {
 namespace mf {
@@ -36,7 +36,7 @@ public:
     void ClearTraceInfo();
 
 private:
-    void GenerateTraceStream(std::stringstream &ss, bool needTotal = false);
+    int GenerateTraceStream(std::stringstream &ss, bool needTotal = false);
     void DumpTraceInfos();
     void DumpTraceInfoPeriod();
     void WriteTraceInfo(std::stringstream &ss);
@@ -44,6 +44,7 @@ private:
     int PrepareDumpFile(const std::string &dumpDir);
     void CreateHeadLine();
     void StartDump();
+    void GetString(HtracerInfo& traceInfo, bool needTotal, std::stringstream& ss, int& traceCount);
 
 private:
     HTracerService() = default;

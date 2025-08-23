@@ -254,6 +254,12 @@ HYBM_API int32_t hybm_init(uint16_t deviceId, uint64_t flags)
         return 0;
     }
 
+    auto result = ock::mf::HTracerInit();
+    if (result != BM_OK) {
+        BM_LOG_ERROR("init htracer module failed, result: " << result);
+        return result;
+    }
+
     auto path = std::getenv("ASCEND_HOME_PATH");
     if (path == nullptr) {
         BM_LOG_ERROR("Environment ASCEND_HOME_PATH not set.");
@@ -284,6 +290,8 @@ HYBM_API void hybm_uninit()
         BM_LOG_WARN("hybm not initialized.");
         return;
     }
+
+    ock::mf::HTracerExit();
 
     if (--initialized > 0L) {
         return;

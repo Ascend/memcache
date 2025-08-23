@@ -93,9 +93,9 @@ public:
         return total.load(std::memory_order_relaxed);
     }
 
-    __always_inline bool NameValid() const
+    __always_inline bool Valid() const
     {
-        return nameValid;
+        return nameValid && begin.load(std::memory_order_relaxed) > previousBegin;
     }
 
     void UpdatePreviousData()
