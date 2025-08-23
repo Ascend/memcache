@@ -126,10 +126,10 @@ int DistributedObjectStore::put(const std::string &key, mmc_buffer &buffer) {
     mmc_put_options options{};
     options.mediaType = 0; // will set by client proxy
     options.policy = NATIVE_AFFINITY;
-    TP_DELAY_BEGIN(MF_MMC_LOCAL_PUT);
+    TP_DELAY_BEGIN(TP_MMC_PY_PUT);
     const auto res = mmcc_put(key.c_str(), &buffer, options, 0);
     auto ret = returnWrapper(res, key);
-    TP_DELAY_END(MF_MMC_LOCAL_PUT, ret);
+    TP_DELAY_END(TP_MMC_PY_PUT, ret);
     return ret;
 }
 
@@ -185,7 +185,10 @@ std::vector<pybind11::bytes> DistributedObjectStore::get_batch(const std::vector
 }
 
 int DistributedObjectStore::remove(const std::string &key) {
-    return mmcc_remove(key.c_str(), 0);  // 0 - success, other - not success
+    TP_DELAY_BEGIN(TP_MMC_PY_REMOVE);
+    auto ret = mmcc_remove(key.c_str(), 0);  // 0 - success, other - not success
+    TP_DELAY_END(TP_MMC_PY_REMOVE, ret);
+    return ret;
 }
 
 std::vector<int> DistributedObjectStore::removeBatch(const std::vector<std::string> &keys) {
@@ -205,8 +208,9 @@ std::vector<int> DistributedObjectStore::removeBatch(const std::vector<std::stri
     for (size_t i = 0 ; i < keys.size(); ++i) {
         c_keys[i] = keys[i].c_str();
     }
-
+    TP_DELAY_BEGIN(TP_MMC_PY_BATCH_REMOVE);
     int32_t res = mmcc_batch_remove(c_keys, keys.size(), results.data(), 0);
+    TP_DELAY_END(TP_MMC_PY_BATCH_REMOVE, res);
     if (res != 0) {
         MMC_LOG_ERROR("remove_batch failed");
         std::fill(results.begin(), results.end(), res);
@@ -223,7 +227,9 @@ long DistributedObjectStore::removeAll() {
 }
 
 int DistributedObjectStore::isExist(const std::string &key) {
+    TP_DELAY_BEGIN(TP_MMC_PY_EXIST);
     int32_t res = mmcc_exist(key.c_str(), 0);
+    TP_DELAY_END(TP_MMC_PY_EXIST, res);
     if (res == MMC_OK) {
         // align with mooncake: 1 represents exist
         return 1;
@@ -251,8 +257,9 @@ std::vector<int> DistributedObjectStore::batchIsExist(const std::vector<std::str
     for (size_t i = 0 ; i < keys.size(); ++i) {
         c_keys[i] = keys[i].c_str();
     }
-
+    TP_DELAY_BEGIN(TP_MMC_PY_BATCH_EXIST);
     int32_t res = mmcc_batch_exist(c_keys, keys.size(), results.data(), 0);
+    TP_DELAY_END(TP_MMC_PY_BATCH_EXIST, res);
     if (res != 0) {
         MMC_LOG_ERROR("batch_exist failed:" << res);
         std::fill(results.begin(), results.end(), res);
@@ -277,7 +284,9 @@ std::vector<int> DistributedObjectStore::batchIsExist(const std::vector<std::str
 KeyInfo DistributedObjectStore::getKeyInfo(const std::string& key)
 {
     mmc_data_info info;
+    TP_DELAY_BEGIN(TP_MMC_PY_QUERY);
     auto res = mmcc_query(key.c_str(), &info, 0);
+    TP_DELAY_END(TP_MMC_PY_QUERY, res);
     if (res != MMC_OK) {
         MMC_LOG_ERROR("Failed to query key " << key << ", error code: " << res);
         return {0, 0};
@@ -319,8 +328,9 @@ std::vector<KeyInfo> DistributedObjectStore::batchGetKeyInfo(const std::vector<s
         MMC_LOG_ERROR("Cannot malloc memory for infos!");
         return {};
     }
-
+    TP_DELAY_BEGIN(TP_MMC_PY_BATCH_QUERY);
     auto ret = mmcc_batch_query(ckeys, size, infoArr, 0);
+    TP_DELAY_END(TP_MMC_PY_BATCH_QUERY, ret);
     if (ret != MMC_OK) {
         delete[] ckeys;
         free(infoArr);
@@ -378,9 +388,9 @@ int DistributedObjectStore::register_buffer(void *buffer, size_t size) {
 }
 
 int DistributedObjectStore::get_into(const std::string &key, mmc_buffer &buffer) {
-    TP_DELAY_BEGIN(MF_MMC_LOCAL_GET);
+    TP_DELAY_BEGIN(TP_MMC_PY_GET);
     auto res = mmcc_get(key.c_str(), &buffer, 0);
-    TP_DELAY_END(MF_MMC_LOCAL_GET, res);
+    TP_DELAY_END(TP_MMC_PY_GET, res);
     if (res != MMC_OK) {
         MMC_LOG_ERROR("Failed to get key " << key << ", error code: " << res);
     }
@@ -427,9 +437,9 @@ std::vector<int> DistributedObjectStore::batch_put_from(const std::vector<std::s
     mmc_put_options options{};
     options.mediaType = 0;
     options.policy = NATIVE_AFFINITY;
-    TP_DELAY_BEGIN(MF_MMC_LOCAL_BATCH_PUT);
+    TP_DELAY_BEGIN(TP_MMC_PY_BATCH_PUT);
     mmcc_batch_put(keyArray, count, bufferArray, options, 0, results.data());
-    TP_DELAY_END(MF_MMC_LOCAL_BATCH_PUT, 0);
+    TP_DELAY_END(TP_MMC_PY_BATCH_PUT, 0);
     for (size_t i = 0; i < count; i++) {
         results[i] = returnWrapper(results[i], keys[i]);
     }
@@ -470,8 +480,9 @@ std::vector<int> DistributedObjectStore::batch_get_into(
             .oneDim={.offset=0, .len=static_cast<uint64_t>(sizes[i])}
         };
     }
-
-    mmcc_batch_get(keyArray, count, bufferArray, 0, results.data());
+    TP_DELAY_BEGIN(TP_MMC_PY_BATCH_GET);
+    auto ret = mmcc_batch_get(keyArray, count, bufferArray, 0, results.data());
+    TP_DELAY_END(TP_MMC_PY_BATCH_GET, ret);
     return results;
 }
 
@@ -519,7 +530,9 @@ int DistributedObjectStore::put_from_layers(const std::string& key, const std::v
                 .layerCount = static_cast<uint16_t>(layerNum)
             }
         };
+        TP_DELAY_BEGIN(TP_MMC_PY_PUT_LAYERS_2D);
         res = mmcc_put(key.c_str(), &buffer, options, 0);
+        TP_DELAY_END(TP_MMC_PY_PUT_LAYERS_2D, res);
     } else {
         MmcBufferArray bufArr;
         for (size_t i = 0; i < layerNum; i += 1) {
@@ -530,7 +543,9 @@ int DistributedObjectStore::put_from_layers(const std::string& key, const std::v
                 .oneDim = {.offset=0, .len=static_cast<uint64_t>(sizes[i])}
             });
         }
+        TP_DELAY_BEGIN(TP_MMC_PY_PUT_LAYERS);
         res = MmcClientDefault::GetInstance()->Put(key, bufArr, options, 0);
+        TP_DELAY_END(TP_MMC_PY_PUT_LAYERS, res);
     }
 
     return returnWrapper(res, key);
@@ -575,13 +590,17 @@ std::vector<int> DistributedObjectStore::batch_put_from_layers(const std::vector
     mmc_put_options options{};
     options.policy = NATIVE_AFFINITY;
     if (all2D) {
+        TP_DELAY_BEGIN(TP_MMC_PY_BATCH_PUT_LAYERS_2D);
         std::vector<mmc_buffer> buffersIn2D;
         getBuffersIn2D(batchSize, type, buffers, sizes, buffersIn2D);
-        MmcClientDefault::GetInstance()->BatchPut(keys, buffersIn2D, options, 0, results);
+        auto ret = MmcClientDefault::GetInstance()->BatchPut(keys, buffersIn2D, options, 0, results);
+        TP_DELAY_END(TP_MMC_PY_BATCH_PUT_LAYERS_2D, ret);
     } else {
+        TP_DELAY_BEGIN(TP_MMC_PY_BATCH_PUT_LAYERS);
         std::vector<MmcBufferArray> bufferArrays;
         getBufferArrays(batchSize, type, buffers, sizes, bufferArrays);
-        MmcClientDefault::GetInstance()->BatchPut(keys, bufferArrays, options, 0, results);
+        auto ret = MmcClientDefault::GetInstance()->BatchPut(keys, bufferArrays, options, 0, results);
+        TP_DELAY_END(TP_MMC_PY_BATCH_PUT_LAYERS, ret);
     }
 
     for (size_t i = 0; i < batchSize; i++) {
@@ -628,7 +647,10 @@ int DistributedObjectStore::get_into_layers(const std::string& key, const std::v
                 .layerCount = static_cast<uint16_t>(layerNum)
             }
         };
-        return mmcc_get(key.c_str(), &buffer, 0);
+        TP_DELAY_BEGIN(TP_MMC_PY_GET_LAYERS_2D);
+        auto ret = mmcc_get(key.c_str(), &buffer, 0);
+        TP_DELAY_END(TP_MMC_PY_GET_LAYERS_2D, ret);
+        return ret;
     } else {
         std::vector<mmc_buffer> mmc_buffers;
         for (size_t i = 0; i < layerNum; i += 1) {
@@ -640,7 +662,10 @@ int DistributedObjectStore::get_into_layers(const std::string& key, const std::v
             });
         }
         MmcBufferArray bufArr(mmc_buffers);
-        return MmcClientDefault::GetInstance()->Get(key, bufArr, 0);
+        TP_DELAY_BEGIN(TP_MMC_PY_GET_LAYERS);
+        auto ret = MmcClientDefault::GetInstance()->Get(key, bufArr, 0);
+        TP_DELAY_END(TP_MMC_PY_GET_LAYERS, ret);
+        return ret;
     }
 }
 
@@ -682,13 +707,17 @@ std::vector<int> DistributedObjectStore::batch_get_into_layers(const std::vector
     }
 
     if (isAll2D) {
+        TP_DELAY_BEGIN(TP_MMC_PY_BATCH_GET_LAYERS_2D);
         std::vector<mmc_buffer> buffersIn2D;
         getBuffersIn2D(batchSize, type, buffers, sizes, buffersIn2D);
-        MmcClientDefault::GetInstance()->BatchGet(keys, buffersIn2D, 0, results);
+        auto ret = MmcClientDefault::GetInstance()->BatchGet(keys, buffersIn2D, 0, results);
+        TP_DELAY_END(TP_MMC_PY_BATCH_GET_LAYERS_2D, ret);
     } else {
+        TP_DELAY_BEGIN(TP_MMC_PY_BATCH_GET_LAYERS);
         std::vector<MmcBufferArray> bufferArrays;
         getBufferArrays(batchSize, type, buffers, sizes, bufferArrays);
-        MmcClientDefault::GetInstance()->BatchGet(keys, bufferArrays, 0, results);
+        auto ret = MmcClientDefault::GetInstance()->BatchGet(keys, bufferArrays, 0, results);
+        TP_DELAY_END(TP_MMC_PY_BATCH_GET_LAYERS, ret);
     }
 
     return results;

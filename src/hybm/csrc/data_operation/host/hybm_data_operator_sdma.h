@@ -28,25 +28,27 @@ public:
     int32_t Wait(int32_t waitId) noexcept override;
 
 private:
-    int CopyHost2Gva(void *gvaAddr, const void *hostAddr, size_t count, void *stream) noexcept;
-    int CopyDevice2Gva(void *gvaAddr, const void *deviceAddr, size_t count, void *stream) noexcept;
-    int CopyGva2Host(void *hostAddr, const void *gvaAddr, size_t count, void *stream) noexcept;
-    int CopyGva2Device(void *deviceAddr, const void *gvaAddr, size_t count, void *stream) noexcept;
-    int CopyGva2HostGva(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept;
-    int CopyHostGva2Gva(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept;
-    int CopyDevice2HostGva(void* destVA, const void* srcVA, uint64_t length, void* stream) noexcept;
-    int CopyHost2HostGva(void* destVA, const void* srcVA, uint64_t length, void* stream) noexcept;
-    int CopyHostGva2Device(void* destVA, const void* srcVA, uint64_t length, void* stream) noexcept;
-    int CopyHostGva2Host(void* destVA, const void* srcVA, uint64_t length, void* stream) noexcept;
+    int CopyLH2GD(void* gvaAddr, const void* hostAddr, size_t count, void* stream) noexcept;
+    int CopyLD2GD(void* gvaAddr, const void* deviceAddr, size_t count, void* stream) noexcept;
+    int CopyGD2LH(void* hostAddr, const void* gvaAddr, size_t count, void* stream) noexcept;
+    int CopyGD2LD(void* deviceAddr, const void* gvaAddr, size_t count, void* stream) noexcept;
+    int CopyGD2GH(void* destVA, const void* srcVA, uint64_t length, void* stream) noexcept;
+    int CopyGD2GD(void* gvaAddr, const void* deviceAddr, size_t count, void* stream) noexcept;
+    int CopyGH2GD(void* destVA, const void* srcVA, uint64_t length, void* stream) noexcept;
+    int CopyLD2GH(void* destVA, const void* srcVA, uint64_t length, void* stream) noexcept;
+    int CopyLH2GH(void* destVA, const void* srcVA, uint64_t length, void* stream) noexcept;
+    int CopyGH2LD(void* destVA, const void* srcVA, uint64_t length, void* stream) noexcept;
+    int CopyGH2LH(void* destVA, const void* srcVA, uint64_t length, void* stream) noexcept;
+    int CopyGH2GH(void* destVA, const void* srcVA, uint64_t length, void* stream) noexcept;
 
-    int CopyHost2Gva2d(void *gvaAddr, uint64_t dpitch, const void *hostAddr, uint64_t spitch,
-                       size_t width, uint64_t height, void *stream) noexcept;
-    int CopyDevice2Gva2d(void *gvaAddr, uint64_t dpitch, const void *hostAddr, uint64_t spitch,
-                       size_t width, uint64_t height, void *stream) noexcept;
-    int CopyGva2Host2d(void *gvaAddr, uint64_t dpitch, const void *hostAddr, uint64_t spitch,
-                     size_t width, uint64_t height, void *stream) noexcept;
-    int CopyGva2Device2d(void *gvaAddr, uint64_t dpitch, const void *hostAddr, uint64_t spitch,
-                       size_t width, uint64_t height, void *stream) noexcept;
+    int CopyLH2GD2d(void* gvaAddr, uint64_t dpitch, const void* hostAddr, uint64_t spitch, size_t width,
+                    uint64_t height, void* stream) noexcept;
+    int CopyLD2GD2d(void* gvaAddr, uint64_t dpitch, const void* hostAddr, uint64_t spitch, size_t width,
+                    uint64_t height, void* stream) noexcept;
+    int CopyGD2LH2d(void* gvaAddr, uint64_t dpitch, const void* hostAddr, uint64_t spitch, size_t width,
+                    uint64_t height, void* stream) noexcept;
+    int CopyGD2LD2d(void* gvaAddr, uint64_t dpitch, const void* hostAddr, uint64_t spitch, size_t width,
+                    uint64_t height, void* stream) noexcept;
 
 private:
     void *stream_;

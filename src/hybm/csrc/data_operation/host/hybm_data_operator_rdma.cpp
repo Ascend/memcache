@@ -55,9 +55,7 @@ int32_t HostDataOpRDMA::DataCopy(const void *srcVA, void *destVA, uint64_t lengt
     int ret;
     switch (direction) {
         case HYBM_LOCAL_HOST_TO_GLOBAL_HOST: {
-            TP_DELAY_BEGIN(MF_HYBM_COPY_DATA_LOCAL_HOST_TO_GLOBAL_HOST)
             ret = CopyHost2Gva(srcVA, destVA, length, options);
-            TP_DELAY_END(MF_HYBM_COPY_DATA_LOCAL_HOST_TO_GLOBAL_HOST, ret)
             break;
         }
         case HYBM_LOCAL_DEVICE_TO_GLOBAL_HOST:

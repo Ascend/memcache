@@ -3,6 +3,7 @@
  */
 #include "hybm_logger.h"
 #include "../../under_api/dl_acl_api.h"
+#include "htracer.h"
 #include "hybm_data_operator_sdma.h"
 
 namespace ock {
@@ -15,39 +16,78 @@ int32_t HostDataOpSDMA::DataCopy(const void *srcVA, void *destVA, uint64_t lengt
 {
     int ret;
     switch (direction) {
-        case HYBM_LOCAL_DEVICE_TO_GLOBAL_DEVICE:
-            ret = CopyDevice2Gva(destVA, srcVA, length, options.stream);
+        case HYBM_LOCAL_DEVICE_TO_GLOBAL_DEVICE: {
+            TP_DELAY_BEGIN(TP_HYBM_SDMA_LD_TO_GD);
+            ret = CopyLD2GD(destVA, srcVA, length, options.stream);
+            TP_DELAY_END(TP_HYBM_SDMA_LD_TO_GD, ret);
             break;
-        case HYBM_GLOBAL_DEVICE_TO_LOCAL_DEVICE:
-            ret = CopyGva2Device(destVA, srcVA, length, options.stream);
+        }
+        case HYBM_GLOBAL_DEVICE_TO_LOCAL_DEVICE: {
+            TP_DELAY_BEGIN(TP_HYBM_SDMA_GD_TO_LD);
+            ret = CopyGD2LD(destVA, srcVA, length, options.stream);
+            TP_DELAY_END(TP_HYBM_SDMA_GD_TO_LD, ret);
             break;
-        case HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE:
-            ret = CopyHost2Gva(destVA, srcVA, length, options.stream);
+        }
+        case HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE: {
+            TP_DELAY_BEGIN(TP_HYBM_SDMA_LH_TO_GD);
+            ret = CopyLH2GD(destVA, srcVA, length, options.stream);
+            TP_DELAY_END(TP_HYBM_SDMA_LH_TO_GD, ret);
             break;
-        case HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST:
-            ret = CopyGva2Host(destVA, srcVA, length, options.stream);
+        }
+        case HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST: {
+            TP_DELAY_BEGIN(TP_HYBM_SDMA_GD_TO_LH);
+            ret = CopyGD2LH(destVA, srcVA, length, options.stream);
+            TP_DELAY_END(TP_HYBM_SDMA_GD_TO_LH, ret);
             break;
-        case HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE:
-            ret = CopyDevice2Gva(destVA, srcVA, length, options.stream);
+        }
+        case HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE: {
+            TP_DELAY_BEGIN(TP_HYBM_SDMA_GD_TO_GD);
+            ret = CopyGD2GD(destVA, srcVA, length, options.stream);
+            TP_DELAY_END(TP_HYBM_SDMA_GD_TO_GD, ret);
             break;
-        case HYBM_GLOBAL_DEVICE_TO_GLOBAL_HOST:
-            ret = CopyGva2HostGva(destVA, srcVA, length, options.stream);
+        }
+        case HYBM_GLOBAL_DEVICE_TO_GLOBAL_HOST: {
+            TP_DELAY_BEGIN(TP_HYBM_SDMA_GD_TO_GH);
+            ret = CopyGD2GH(destVA, srcVA, length, options.stream);
+            TP_DELAY_END(TP_HYBM_SDMA_GD_TO_GH, ret);
             break;
-        case HYBM_GLOBAL_HOST_TO_GLOBAL_DEVICE:
-            ret = CopyHostGva2Gva(destVA, srcVA, length, options.stream);
+        }
+        case HYBM_GLOBAL_HOST_TO_GLOBAL_DEVICE: {
+            TP_DELAY_BEGIN(TP_HYBM_SDMA_GH_TO_GD);
+            ret = CopyGH2GD(destVA, srcVA, length, options.stream);
+            TP_DELAY_END(TP_HYBM_SDMA_GH_TO_GD, ret);
             break;
-        case HYBM_LOCAL_DEVICE_TO_GLOBAL_HOST:
-            ret = CopyDevice2HostGva(destVA, srcVA, length, options.stream);
+        }
+        case HYBM_GLOBAL_HOST_TO_GLOBAL_HOST: {
+            TP_DELAY_BEGIN(TP_HYBM_SDMA_GH_TO_GD);
+            ret = CopyGH2GH(destVA, srcVA, length, options.stream);
+            TP_DELAY_END(TP_HYBM_SDMA_GH_TO_GD, ret);
             break;
-        case HYBM_LOCAL_HOST_TO_GLOBAL_HOST:
-            ret = CopyHost2HostGva(destVA, srcVA, length, options.stream);
+        }
+        case HYBM_LOCAL_DEVICE_TO_GLOBAL_HOST: {
+            TP_DELAY_BEGIN(TP_HYBM_SDMA_LD_TO_GH);
+            ret = CopyLD2GH(destVA, srcVA, length, options.stream);
+            TP_DELAY_END(TP_HYBM_SDMA_LD_TO_GH, ret);
             break;
-        case HYBM_GLOBAL_HOST_TO_LOCAL_HOST:
-            ret = CopyHostGva2Device(destVA, srcVA, length, options.stream);
+        }
+        case HYBM_LOCAL_HOST_TO_GLOBAL_HOST: {
+            TP_DELAY_BEGIN(TP_HYBM_SDMA_LH_TO_GH);
+            ret = CopyLH2GH(destVA, srcVA, length, options.stream);
+            TP_DELAY_END(TP_HYBM_SDMA_LH_TO_GH, ret);
             break;
-        case HYBM_GLOBAL_HOST_TO_LOCAL_DEVICE:
-            ret = CopyHostGva2Host(destVA, srcVA, length, options.stream);
+        }
+        case HYBM_GLOBAL_HOST_TO_LOCAL_HOST: {
+            TP_DELAY_BEGIN(TP_HYBM_SDMA_GH_TO_LH);
+            ret = CopyGH2LH(destVA, srcVA, length, options.stream);
+            TP_DELAY_END(TP_HYBM_SDMA_GH_TO_LH, ret);
             break;
+        }
+        case HYBM_GLOBAL_HOST_TO_LOCAL_DEVICE: {
+            TP_DELAY_BEGIN(TP_HYBM_SDMA_GH_TO_LD);
+            ret = CopyGH2LD(destVA, srcVA, length, options.stream);
+            TP_DELAY_END(TP_HYBM_SDMA_GH_TO_LD, ret);
+            break;
+        }
         default:
             BM_LOG_ERROR("data copy invalid direction: " << direction);
             ret = BM_INVALID_PARAM;
@@ -55,7 +95,7 @@ int32_t HostDataOpSDMA::DataCopy(const void *srcVA, void *destVA, uint64_t lengt
     return ret;
 }
 
-int HostDataOpSDMA::CopyHost2Gva(void *gvaAddr, const void *hostAddr, size_t count, void *stream) noexcept
+int HostDataOpSDMA::CopyLH2GD(void *gvaAddr, const void *hostAddr, size_t count, void *stream) noexcept
 {
     void *copyDevice;
     auto ret = DlAclApi::AclrtMalloc(&copyDevice, count, 0);
@@ -71,7 +111,7 @@ int HostDataOpSDMA::CopyHost2Gva(void *gvaAddr, const void *hostAddr, size_t cou
         return BM_DL_FUNCTION_FAILED;
     }
 
-    auto result = CopyDevice2Gva(gvaAddr, copyDevice, count, stream);
+    auto result = CopyLD2GD(gvaAddr, copyDevice, count, stream);
     if (result != BM_OK) {
         DlAclApi::AclrtFree(copyDevice);
         return result;
@@ -81,7 +121,12 @@ int HostDataOpSDMA::CopyHost2Gva(void *gvaAddr, const void *hostAddr, size_t cou
     return BM_OK;
 }
 
-int HostDataOpSDMA::CopyDevice2Gva(void *gvaAddr, const void *deviceAddr, size_t count, void *stream) noexcept
+int HostDataOpSDMA::CopyGD2GD(void* gvaAddr, const void* deviceAddr, size_t count, void* stream) noexcept
+{
+    return CopyLD2GD(gvaAddr, deviceAddr, count, stream);
+}
+
+int HostDataOpSDMA::CopyLD2GD(void *gvaAddr, const void *deviceAddr, size_t count, void *stream) noexcept
 {
     void *st = stream_;
     if (stream != nullptr) {
@@ -103,7 +148,7 @@ int HostDataOpSDMA::CopyDevice2Gva(void *gvaAddr, const void *deviceAddr, size_t
     return BM_OK;
 }
 
-int HostDataOpSDMA::CopyGva2Device(void *deviceAddr, const void *gvaAddr, size_t count, void *stream) noexcept
+int HostDataOpSDMA::CopyGD2LD(void *deviceAddr, const void *gvaAddr, size_t count, void *stream) noexcept
 {
     void *st = stream_;
     if (stream != nullptr) {
@@ -125,7 +170,7 @@ int HostDataOpSDMA::CopyGva2Device(void *deviceAddr, const void *gvaAddr, size_t
     return BM_OK;
 }
 
-int HostDataOpSDMA::CopyGva2Host(void *hostAddr, const void *gvaAddr, size_t count, void *stream) noexcept
+int HostDataOpSDMA::CopyGD2LH(void *hostAddr, const void *gvaAddr, size_t count, void *stream) noexcept
 {
     void *copyDevice;
     auto ret = DlAclApi::AclrtMalloc(&copyDevice, count, 0);
@@ -134,7 +179,7 @@ int HostDataOpSDMA::CopyGva2Host(void *hostAddr, const void *gvaAddr, size_t cou
         return BM_DL_FUNCTION_FAILED;
     }
 
-    auto result = CopyGva2Device(copyDevice, gvaAddr, count, stream);
+    auto result = CopyGD2LD(copyDevice, gvaAddr, count, stream);
     if (result != BM_OK) {
         DlAclApi::AclrtFree(copyDevice);
         return result;
@@ -151,8 +196,8 @@ int HostDataOpSDMA::CopyGva2Host(void *hostAddr, const void *gvaAddr, size_t cou
     return BM_OK;
 }
 
-int HostDataOpSDMA::CopyHost2Gva2d(void *gvaAddr, uint64_t dpitch, const void *hostAddr, uint64_t spitch,
-                                   size_t width, uint64_t height, void *stream) noexcept
+int HostDataOpSDMA::CopyLH2GD2d(void* gvaAddr, uint64_t dpitch, const void* hostAddr, uint64_t spitch, size_t width,
+                                uint64_t height, void* stream) noexcept
 {
     void *copyDevice;
     auto ret = DlAclApi::AclrtMalloc(&copyDevice, width * height, 0);
@@ -169,7 +214,7 @@ int HostDataOpSDMA::CopyHost2Gva2d(void *gvaAddr, uint64_t dpitch, const void *h
         return BM_DL_FUNCTION_FAILED;
     }
 
-    auto result = CopyDevice2Gva2d(gvaAddr, dpitch, copyDevice, width, width, height, stream);
+    auto result = CopyLD2GD2d(gvaAddr, dpitch, copyDevice, width, width, height, stream);
     if (result != BM_OK) {
         DlAclApi::AclrtFree(copyDevice);
         return result;
@@ -179,7 +224,7 @@ int HostDataOpSDMA::CopyHost2Gva2d(void *gvaAddr, uint64_t dpitch, const void *h
     return BM_OK;
 }
 
-int HostDataOpSDMA::CopyDevice2Gva2d(void *gvaAddr, uint64_t dpitch, const void *deviceAddr, uint64_t spitch,
+int HostDataOpSDMA::CopyLD2GD2d(void *gvaAddr, uint64_t dpitch, const void *deviceAddr, uint64_t spitch,
                    size_t width, uint64_t height, void *stream) noexcept
 {
     void *st = stream_;
@@ -209,7 +254,7 @@ int HostDataOpSDMA::CopyDevice2Gva2d(void *gvaAddr, uint64_t dpitch, const void 
     return ret;
 }
 
-int HostDataOpSDMA::CopyGva2Host2d(void *hostAddr, uint64_t dpitch, const void *gvaAddr, uint64_t spitch,
+int HostDataOpSDMA::CopyGD2LH2d(void *hostAddr, uint64_t dpitch, const void *gvaAddr, uint64_t spitch,
                  size_t width, uint64_t height, void *stream) noexcept
 {
     void *copyDevice;
@@ -219,7 +264,7 @@ int HostDataOpSDMA::CopyGva2Host2d(void *hostAddr, uint64_t dpitch, const void *
         return BM_DL_FUNCTION_FAILED;
     }
 
-    auto result = CopyGva2Device2d(copyDevice, width, gvaAddr, spitch, width, height, stream);
+    auto result = CopyGD2LD2d(copyDevice, width, gvaAddr, spitch, width, height, stream);
     if (result != BM_OK) {
         DlAclApi::AclrtFree(copyDevice);
         return result;
@@ -237,7 +282,7 @@ int HostDataOpSDMA::CopyGva2Host2d(void *hostAddr, uint64_t dpitch, const void *
     return BM_OK;
 }
 
-int HostDataOpSDMA::CopyGva2Device2d(void *deviceAddr, uint64_t dpitch, const void *gvaAddr, uint64_t spitch,
+int HostDataOpSDMA::CopyGD2LD2d(void *deviceAddr, uint64_t dpitch, const void *gvaAddr, uint64_t spitch,
                    size_t width, uint64_t height, void *stream) noexcept
 {
     void *st = stream_;
@@ -274,19 +319,19 @@ int HostDataOpSDMA::DataCopy2d(const void *srcVA, uint64_t spitch, void *destVA,
     int ret;
     switch (direction) {
         case HYBM_LOCAL_DEVICE_TO_GLOBAL_DEVICE:
-            ret = CopyDevice2Gva2d(destVA, dpitch, srcVA, spitch, width, height, options.stream);
+            ret = CopyLD2GD2d(destVA, dpitch, srcVA, spitch, width, height, options.stream);
             break;
         case HYBM_GLOBAL_DEVICE_TO_LOCAL_DEVICE:
-            ret = CopyGva2Device2d(destVA, dpitch, srcVA, spitch, width, height, options.stream);
+            ret = CopyGD2LD2d(destVA, dpitch, srcVA, spitch, width, height, options.stream);
             break;
         case HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE:
-            ret = CopyHost2Gva2d(destVA, dpitch, srcVA, spitch, width, height, options.stream);
+            ret = CopyLH2GD2d(destVA, dpitch, srcVA, spitch, width, height, options.stream);
             break;
         case HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST:
-            ret = CopyGva2Host2d(destVA, dpitch, srcVA, spitch, width, height, options.stream);
+            ret = CopyGD2LH2d(destVA, dpitch, srcVA, spitch, width, height, options.stream);
             break;
         case HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE:
-            ret = CopyDevice2Gva2d(destVA, dpitch, srcVA, spitch, width, height, options.stream);
+            ret = CopyLD2GD2d(destVA, dpitch, srcVA, spitch, width, height, options.stream);
             break;
 
         default:
@@ -319,37 +364,42 @@ void HostDataOpSDMA::UnInitialized() noexcept
 
 }
 
-int HostDataOpSDMA::CopyGva2HostGva(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
+int HostDataOpSDMA::CopyGD2GH(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
 {
     // HBM池拷贝到HOST池
     return 0;
 }
 
-int HostDataOpSDMA::CopyHostGva2Gva(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
+int HostDataOpSDMA::CopyGH2GD(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
 {
     // HOST池到HBM池的拷贝
     return 0;
 }
 
-int HostDataOpSDMA::CopyDevice2HostGva(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
+int HostDataOpSDMA::CopyGH2GH(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
+{
+    return 0;
+}
+
+int HostDataOpSDMA::CopyLD2GH(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
 {
     // local device到dram池的拷贝
     return 0;
 }
 
-int HostDataOpSDMA::CopyHost2HostGva(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
+int HostDataOpSDMA::CopyLH2GH(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
 {
     // local host到dram池的拷贝
     return 0;
 }
 
-int HostDataOpSDMA::CopyHostGva2Device(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
+int HostDataOpSDMA::CopyGH2LD(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
 {
     // dram池的拷贝到local device
     return 0;
 }
 
-int HostDataOpSDMA::CopyHostGva2Host(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
+int HostDataOpSDMA::CopyGH2LH(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
 {
     // dram池的拷贝到local host
     return 0;

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include "mmc_logger.h"
 #include "mmc_smem_bm_helper.h"
+#include "htracer.h"
 
 namespace ock {
 namespace mmc {
@@ -117,7 +118,10 @@ Result MmcBmProxy::Put(uint64_t srcBmAddr, uint64_t dstBmAddr, uint64_t size, sm
         MMC_LOG_ERROR("Failed to put data to smem bm, handle is null");
         return MMC_ERROR;
     }
-    return smem_bm_copy(handle_, (void*)srcBmAddr, (void*)dstBmAddr, size, type, 0);
+    TP_DELAY_BEGIN(TP_SMEM_BM_PUT);
+    auto ret = smem_bm_copy(handle_, (void*)srcBmAddr, (void*)dstBmAddr, size, type, 0);
+    TP_DELAY_END(TP_SMEM_BM_PUT, ret);
+    return ret;
 }
 
 Result MmcBmProxy::Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
@@ -138,8 +142,11 @@ Result MmcBmProxy::Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
                 << " is larger than bm block size : " << size);
             return MMC_ERROR;
         }
-        return smem_bm_copy(handle_, (void *)(buf->addr + buf->oneDim.offset), (void *)bmAddr, buf->oneDim.len,
-                            type, 0);
+        TP_DELAY_BEGIN(TP_SMEM_BM_PUT);
+        auto ret =
+            smem_bm_copy(handle_, (void*)(buf->addr + buf->oneDim.offset), (void*)bmAddr, buf->oneDim.len, type, 0);
+        TP_DELAY_END(TP_SMEM_BM_PUT, ret);
+        return ret;
     } else if (buf->dimType == 1) {
         if (buf->twoDim.width * buf->twoDim.layerNum > size) {
             MMC_LOG_ERROR("Failed to put data to smem bm, buf size : " << buf->twoDim.width * buf->twoDim.layerNum
@@ -147,8 +154,12 @@ Result MmcBmProxy::Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
             return MMC_ERROR;
         }
         if (buf->twoDim.dpitch > buf->twoDim.width) {
-            return smem_bm_copy_2d(handle_, (void *)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
-                                   buf->twoDim.dpitch, (void *)bmAddr, buf->twoDim.width, buf->twoDim.width, buf->twoDim.layerNum, type, 0);
+            TP_DELAY_BEGIN(TP_SMEM_BM_PUT_2D);
+            auto ret = smem_bm_copy_2d(handle_, (void*)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
+                                       buf->twoDim.dpitch, (void*)bmAddr, buf->twoDim.width, buf->twoDim.width,
+                                       buf->twoDim.layerNum, type, 0);
+            TP_DELAY_END(TP_SMEM_BM_PUT_2D, ret);
+            return ret;
         } else {
             MMC_LOG_ERROR("MmcBmProxy Put dpitch should be larger or equal to width");
             return MMC_ERROR;
@@ -177,8 +188,11 @@ Result MmcBmProxy::Get(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
                           << " not equal data length: " << size);
             return MMC_ERROR;
         }
-        return smem_bm_copy(handle_, (void *)bmAddr, (void *)(buf->addr + buf->oneDim.offset), buf->oneDim.len,
-                            type, 0);
+        TP_DELAY_BEGIN(TP_SMEM_BM_GET);
+        auto ret =
+            smem_bm_copy(handle_, (void*)bmAddr, (void*)(buf->addr + buf->oneDim.offset), buf->oneDim.len, type, 0);
+        TP_DELAY_END(TP_SMEM_BM_GET, ret);
+        return ret;
     } else if (buf->dimType == 1) {
         uint64_t length = buf->twoDim.width * buf->twoDim.layerNum;
         if (length != size) {
@@ -187,12 +201,19 @@ Result MmcBmProxy::Get(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
             return MMC_ERROR;
         }
         if (buf->twoDim.dpitch == buf->twoDim.width) {
-            return smem_bm_copy(handle_, (void *)bmAddr, (void *)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
-                                buf->twoDim.width * buf->twoDim.layerNum, type, 0);
+            TP_DELAY_BEGIN(TP_SMEM_BM_GET);
+            auto ret =
+                smem_bm_copy(handle_, (void*)bmAddr, (void*)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
+                             buf->twoDim.width * buf->twoDim.layerNum, type, 0);
+            TP_DELAY_END(TP_SMEM_BM_GET, ret);
+            return ret;
         } else if (buf->twoDim.dpitch > buf->twoDim.width) {
-            return smem_bm_copy_2d(handle_, (void *)bmAddr, buf->twoDim.width,
-                                   (void *)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset), buf->twoDim.dpitch,
-                                   buf->twoDim.width, buf->twoDim.layerNum, type, 0);
+            TP_DELAY_BEGIN(TP_SMEM_BM_GET_2D);
+            auto ret = smem_bm_copy_2d(handle_, (void*)bmAddr, buf->twoDim.width,
+                                       (void*)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
+                                       buf->twoDim.dpitch, buf->twoDim.width, buf->twoDim.layerNum, type, 0);
+            TP_DELAY_END(TP_SMEM_BM_GET_2D, ret);
+            return ret;
         } else {
             MMC_LOG_ERROR("MmcBmProxy Get dpitch should be larger or equal to width");
             return MMC_ERROR;
