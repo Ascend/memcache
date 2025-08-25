@@ -93,7 +93,11 @@ MMC_API int32_t mmcc_batch_query(const char **keys, size_t keys_count, mmc_data_
 
     // remove invalid keys
     for (size_t i = 0; i < keys_count; ++i) {
-        if (keys[i] == nullptr || strlen(keys[i]) == 0 || strlen(keys[i]) > 256) {
+        if (keys[i] == nullptr) {
+            MMC_LOG_ERROR("Get invalid key nullptr on idx [" << i << "]");
+            return MMC_INVALID_PARAM;
+        }
+        if (strlen(keys[i]) == 0 || strlen(keys[i]) > 256) {
             MMC_LOG_WARN("Get invalid key: \"" << keys[i] << "\" on idx [" << i << "]");
             invalids.emplace_back(i);
             continue;
@@ -156,7 +160,11 @@ MMC_API int32_t mmcc_batch_remove(const char **keys, const uint32_t keys_count, 
 
     // remove invalid keys
     for (size_t i = 0; i < keys_count; ++i) {
-        if (keys[i] == nullptr || strlen(keys[i]) == 0 || strlen(keys[i]) > 256) {
+        if (keys[i] == nullptr) {
+            MMC_LOG_ERROR("Get invalid key nullptr on idx [" << i << "]");
+            return MMC_INVALID_PARAM;
+        }
+        if (strlen(keys[i]) == 0 || strlen(keys[i]) > 256) {
             MMC_LOG_WARN("Get invalid key: \"" << keys[i] << "\" on idx [" << i << "]");
             invalids.emplace_back(i);
             continue;
@@ -215,7 +223,11 @@ MMC_API int32_t mmcc_batch_exist(const char **keys, const uint32_t keys_count, i
 
     // remove invalid keys
     for (size_t i = 0; i < keys_count; ++i) {
-        if (keys[i] == nullptr || strlen(keys[i]) == 0 || strlen(keys[i]) > 256) {
+        if (keys[i] == nullptr) {
+            MMC_LOG_ERROR("Get invalid key nullptr on idx [" << i << "]");
+            return MMC_INVALID_PARAM;
+        }
+        if (strlen(keys[i]) == 0 || strlen(keys[i]) > 256) {
             MMC_LOG_WARN("Get invalid key: \"" << keys[i] << "\" on idx [" << i << "]");
             invalids.emplace_back(i);
             continue;
@@ -257,13 +269,13 @@ MMC_API int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffe
     bufs_vector.reserve(keys_count);
 
     for (size_t i = 0; i < keys_count; ++i) {
-        if (keys[i] == nullptr || strlen(keys[i]) == 0 || strlen(keys[i]) > 256) {
+        if (keys[i] == nullptr) {
+            MMC_LOG_ERROR("Get invalid key nullptr on idx [" << i << "]");
+            return MMC_INVALID_PARAM;
+        }
+        if (strlen(keys[i]) == 0 || strlen(keys[i]) > 256) {
             MMC_LOG_ERROR("Remove invalid key: " << keys[i]);
             return MMC_INVALID_PARAM;  // 这个错误属于入参不合法，直接给调用者返回错误
-        }
-        if (bufs == nullptr) {
-            MMC_LOG_ERROR("Remove invalid buf with key: " << keys[i]);
-            return MMC_INVALID_PARAM;
         }
         keys_vector.emplace_back(keys[i]);
         bufs_vector.emplace_back(bufs[i]);
@@ -294,7 +306,11 @@ MMC_API int32_t mmcc_batch_put(const char** keys, uint32_t keys_count, const mmc
 
     // remove invalid keys, bufs
     for (size_t i = 0; i < keys_count; ++i) {
-        if (keys[i] == nullptr || strlen(keys[i]) == 0 || strlen(keys[i]) > 256) {
+        if (keys[i] == nullptr) {
+            MMC_LOG_ERROR("Get invalid key nullptr on idx [" << i << "]");
+            return MMC_INVALID_PARAM;
+        }
+        if (strlen(keys[i]) == 0 || strlen(keys[i]) > 256) {
             MMC_LOG_ERROR("Remove invalid key: " << keys[i]);
             return MMC_INVALID_PARAM;  // 这个错误属于入参不合法，直接给调用者返回错误
         }

@@ -229,7 +229,8 @@ Result MmcClientDefault::Get(const std::string &key, const MmcBufferArray& bufAr
     MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, response, rpcTimeOut_),
                      "client " << name_ << " get " << key << " failed");
     if (response.numBlobs_ == 0 || response.blobs_.empty()) {
-        MMC_LOG_ERROR("client " << name_ << " get " << key << " failed, numblob is:" << response.numBlobs_);
+        MMC_LOG_ERROR("client " << name_ << " get " << key << " failed, numblob is:"
+                      << static_cast<uint64_t>(response.numBlobs_));
         return MMC_ERROR;
     }
     auto& blob = response.blobs_[0];
@@ -539,7 +540,7 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
         for (uint8_t j = 0; j < numBlobs; ++j) {
             Result putResult = bmProxy_->Put(bufArr, blobs[j]);
             if (putResult != MMC_OK) {
-                MMC_LOG_ERROR("client " << name_ << " batch put " << key << " failed");
+                MMC_LOG_ERROR("client " << name_ << " batch put " << key << " failed, get error code " << putResult);
                 batchResult[i] = putResult;
                 break;
             }

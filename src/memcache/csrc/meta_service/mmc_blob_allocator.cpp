@@ -223,6 +223,10 @@ Result MmcBlobAllocator::ValidateAndAddAllocation(uint64_t offset, uint64_t size
 uint64_t MmcBlobAllocator::AllocSizeAlignUp(uint64_t size)
 {
     constexpr uint64_t alignSize = 4096UL;
+    if (size > UINT64_MAX - alignSize + 1UL) {
+        MMC_LOG_ERROR("Invalid size: " << size << " will occur overflow");
+        return UINT64_MAX;
+    }
     constexpr uint64_t alignSizeMask = ~(alignSize - 1UL);
     return (size + alignSize - 1UL) & alignSizeMask;
 }

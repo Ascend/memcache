@@ -153,7 +153,7 @@ Result MmcBmProxy::Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
                 << " is larger than bm block size : " << size);
             return MMC_ERROR;
         }
-        if (buf->twoDim.dpitch > buf->twoDim.width) {
+        if (buf->twoDim.dpitch >= buf->twoDim.width) {
             TP_DELAY_BEGIN(TP_SMEM_BM_PUT_2D);
             auto ret = smem_bm_copy_2d(handle_, (void*)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
                                        buf->twoDim.dpitch, (void*)bmAddr, buf->twoDim.width, buf->twoDim.width,
@@ -161,7 +161,8 @@ Result MmcBmProxy::Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
             TP_DELAY_END(TP_SMEM_BM_PUT_2D, ret);
             return ret;
         } else {
-            MMC_LOG_ERROR("MmcBmProxy Put dpitch should be larger or equal to width");
+            MMC_LOG_ERROR("MmcBmProxy Put dpitch (" << buf->twoDim.dpitch << ") should be larger or equal to width ("
+                          << buf->twoDim.width << ")");
             return MMC_ERROR;
         }
     } else {

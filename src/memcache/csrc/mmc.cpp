@@ -95,6 +95,11 @@ MMC_API void mmc_uninit()
     }
     mmcc_uninit();
     mmcInit = false;
+
+    if (g_clientConfig != nullptr) {
+        delete g_clientConfig;
+        g_clientConfig = nullptr;
+    }
 }
 
 MMC_API const char *mmc_get_last_err_msg()

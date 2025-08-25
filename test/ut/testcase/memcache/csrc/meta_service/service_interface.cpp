@@ -174,7 +174,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     localServiceConfig.logLevel = 0;
     localServiceConfig.tlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
-    mmc_meta_service_t local_service = mmcs_local_service_start(&localServiceConfig);
+    mmc_local_service_t local_service = mmcs_local_service_start(&localServiceConfig);
     ASSERT_TRUE(local_service != nullptr);
 
     mmc_client_config_t clientConfig;

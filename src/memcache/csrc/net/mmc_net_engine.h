@@ -261,6 +261,9 @@ public:
 
             /* deserialize */
             std::string respStr(respData, respLen);
+            if (respData != nullptr) {
+                free(respData);
+            }
             NetMsgUnpacker unpacker(respStr);
             result = resp.Deserialize(unpacker);
             MMC_RETURN_ERROR(result, "deserialize failed");

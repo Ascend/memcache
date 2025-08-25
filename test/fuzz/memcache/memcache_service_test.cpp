@@ -5,217 +5,187 @@
 #include <mockcpp/mockcpp.hpp>
 #include <secodefuzz/secodeFuzz.h>
 #include "dt_fuzz.h"
+#include "mmc_client.h"
 #include "mmc_service.h"
 #include "mmc_def.h"
 #include "mmc_bm_proxy.h"
-#include "mmc_local_service_default.h"
 #include "mmc_msg_base.h"
 #include "acc_tcp_server.h"
 #include "memcache_stubs.h"
 #include "mmc_config_const.h"
+#include "memcache_fuzz_common.h"
 
 using namespace ock::mmc;
 using namespace ock::acc;
 
 namespace {
-class TestMmcService : public testing::Test {
+class TestMmcFuzzServiceMeta : public TestMmcFuzzBase {
 public:
     static void SetUpTestSuite();
     static void TearDownTestSuite();
-
-protected:
-    static mmc_meta_service_config_t confTemplate;
+    void SetUp() override;
+    void TearDown() override;
 };
 
-mmc_meta_service_config_t TestMmcService::confTemplate =  {
-    .discoveryURL = "tcp://127.0.0.1:5559",
-    .logLevel = 0,
-    .logRotationFileSize = 2 * 1024 * 1024,
-    .logRotationFileCount = 50,
-    .evictThresholdHigh = 50,
-    .evictThresholdLow = 40,
-    .tlsConfig = mmc_tls_config {
-        .tlsEnable = false,
-    }
-};
-
-void TestMmcService::SetUpTestSuite()
+void TestMmcFuzzServiceMeta::SetUpTestSuite()
 {
     DT_Enable_Leak_Check(0, 0);
     DT_Set_Running_Time_Second(DT_RUNNING_TIME);
 }
 
-void TestMmcService::TearDownTestSuite()
+void TestMmcFuzzServiceMeta::TearDownTestSuite()
 {
     GlobalMockObject::verify();
 }
 
-class TestMmcServiceMeta : public TestMmcService {
-public:
-    void SetUp();
-    void TearDown();
-};
-
-void TestMmcServiceMeta::SetUp()
+void TestMmcFuzzServiceMeta::SetUp()
 {
-    MockSmemBm();
-    MockAccTcpServer *mockTcpServer = new MockAccTcpServer;  // AccRef 自己在析构时会自动调用对这个的 delete
-    AccRef<AccTcpServer> refMockTcpServer;
-    refMockTcpServer.Set(mockTcpServer);
-    MOCKER(&AccTcpServer::Create).stubs().will(returnValue(refMockTcpServer));
+    MockSmemAll();
 }
 
-void TestMmcServiceMeta::TearDown()
+void TestMmcFuzzServiceMeta::TearDown()
 {
 }
 
-class TestMmcServiceLocal : public TestMmcService {
-public:
-    void SetUp();
-    void TearDown();
-
-protected:
-    NetEnginePtr mServer;
-};
-
-void TestMmcServiceLocal::SetUp()
-{
-    MockSmemBm();
-
-    NetEngineOptions mServerOptions;
-    mServerOptions.name = "test_engine";
-    mServerOptions.ip = "127.0.0.1";
-    mServerOptions.port = 5560;
-    mServerOptions.threadCount = 2;
-    mServerOptions.rankId = 0;
-    mServerOptions.tlsOption.tlsEnable = false;
-    mServerOptions.startListener = true;
-
-    mServer = NetEngine::Create();
-    RegisterMockHandles(mServer);
-    ASSERT_EQ(mServer->Start(mServerOptions), 0);
-}
-
-void TestMmcServiceLocal::TearDown()
-{
-}
-
-TEST_F(TestMmcServiceMeta, TestMmcMetaServiceStart)
+TEST_F(TestMmcFuzzServiceMeta, TestMmcMetaServiceStart)
 {
     char fuzzName[] = "TestMmcMetaServiceStart";
     int logLevelEnum[] = {0, 1, 2, 3, 4};
+
     DT_FUZZ_START(0, CAPI_FUZZ_COUNT, fuzzName, 0)
     {
-        std::string discoveryURL = "tcp://127.0.0.1:";
-        uint32_t port = *(u32 *)DT_SetGetNumberRangeV3(0, 5559, 0, 65545);
-        discoveryURL += std::to_string(port);
-        int32_t logLevel = *(s32 *)DT_SetGetNumberEnumV3(1, 0, logLevelEnum, 5);
-        uint16_t evictThresholdHigh = *(u16 *)DT_SetGetNumberRangeV3(2, 50, MIN_EVICT_THRESHOLD, MAX_EVICT_THRESHOLD);
-        uint16_t evictThresholdLow = *(u16 *)DT_SetGetNumberRangeV3(3, 40, MIN_EVICT_THRESHOLD, MAX_EVICT_THRESHOLD);
-        bool tlsEnable = bool(*(u8 *)DT_SetGetNumberRangeV3(4, 0, 0, 1));
-        bool isRetNullptr = logLevel < 0 || logLevel > 3;
-        isRetNullptr |= evictThresholdHigh <= evictThresholdLow;
-        isRetNullptr |= port <= 1024 || port >= 65535;
+        mmc_meta_service_config_t metaServiceConfig(this->metaServiceConfig);
+        metaServiceConfig.logLevel = *(s32 *)DT_SetGetNumberEnum(&g_Element[0], 0, logLevelEnum, 5);
+        metaServiceConfig.evictThresholdHigh = *(u16 *)DT_SetGetNumberRange(&g_Element[1], 50, 0, MAX_EVICT_THRESHOLD);
+        metaServiceConfig.evictThresholdLow = *(u16 *)DT_SetGetNumberRange(&g_Element[2], 40, 0, MAX_EVICT_THRESHOLD);
 
-        mmc_meta_service_config_t conf {
-            .logLevel = logLevel,
-            .logRotationFileSize = 2 * 1024 * 1024,
-            .logRotationFileCount = 50,
-            .evictThresholdHigh = evictThresholdHigh,
-            .evictThresholdLow = evictThresholdLow,
-            .tlsConfig = mmc_tls_config {
-                .tlsEnable = tlsEnable,
-            }
-        };
-        std::copy_n(discoveryURL.c_str(), discoveryURL.length() + 1, conf.discoveryURL);
-        conf.discoveryURL[discoveryURL.length()] = '\0';
-        auto ret = mmcs_meta_service_start(&conf);
+        bool isRetNullptr = metaServiceConfig.logLevel < 0 || metaServiceConfig.logLevel > 3;
+        isRetNullptr |= metaServiceConfig.evictThresholdHigh <= metaServiceConfig.evictThresholdLow;
+        isRetNullptr |= metaServiceConfig.evictThresholdLow < MIN_EVICT_THRESHOLD;
+        isRetNullptr |= metaServiceConfig.evictThresholdHigh > MAX_EVICT_THRESHOLD;
+
+        auto ret = mmcs_meta_service_start(&metaServiceConfig);
         ASSERT_EQ(isRetNullptr, ret == nullptr);
         mmcs_meta_service_stop(ret);
     }
     DT_FUZZ_END()
 }
 
-TEST_F(TestMmcServiceMeta, TestMmcMetaServiceStop)
+TEST_F(TestMmcFuzzServiceMeta, TestMmcMetaServiceStop)
 {
     char fuzzName[] = "TestMmcMetaServiceStop";
     DT_FUZZ_START(0, CAPI_FUZZ_COUNT, fuzzName, 0)
     {
-        auto ret = mmcs_meta_service_start(&confTemplate);
+        auto ret = mmcs_meta_service_start(&metaServiceConfig);
         ASSERT_NE(nullptr, ret);
         mmcs_meta_service_stop(ret);
     }
     DT_FUZZ_END()
 }
 
-TEST_F(TestMmcServiceLocal, TestMmcLocalServiceStart)
+
+class TestMmcFuzzServiceLocal : public TestMmcFuzzBase {
+public:
+    static void SetUpTestSuite();
+    static void TearDownTestSuite();
+    void SetUp() override;
+    void TearDown() override;
+};
+
+void TestMmcFuzzServiceLocal::SetUpTestSuite()
+{
+    DT_Enable_Leak_Check(0, 0);
+    DT_Set_Running_Time_Second(DT_RUNNING_TIME);
+}
+
+void TestMmcFuzzServiceLocal::TearDownTestSuite()
+{
+    GlobalMockObject::verify();
+}
+
+void TestMmcFuzzServiceLocal::SetUp()
+{
+    MockSmemAll();
+}
+
+void TestMmcFuzzServiceLocal::TearDown()
+{
+}
+
+TEST_F(TestMmcFuzzServiceLocal, TestMmcLocalServiceStart)
 {
     char fuzzName[] = "TestMmcLocalServiceStart";
     char *dataOpTypes[] = {(char *)"sdma\0", (char *)"roce\0", (char *)"tcp\0", (char *)"notExist\0"};
     int logLevelEnum[] = {0, 1, 2, 3, 4};
+    const char *urls[] = {
+        localServiceConfig.discoveryURL,
+        "",
+        "tcp:",
+        "tcp://127.0.0.1:",
+        "tcp://299.99.99.99:1234",
+        "tcp://299.99.99.99:123456"
+    };
     DT_FUZZ_START(0, CAPI_FUZZ_COUNT, fuzzName, 0)
     {
-        uint32_t deviceId = *(u32 *)DT_SetGetNumberRangeV3(0, 40, MIN_DEVICE_ID, MAX_DEVICE_ID);
-        uint32_t rankId = *(u32 *)DT_SetGetNumberRangeV3(1, 40, MIN_BM_RANK_ID, MAX_BM_RANK_ID);
-        uint32_t worldSize = *(u32 *)DT_SetGetNumberRangeV3(2, 40, MIN_WORLD_SIZE, MAX_WORLD_SIZE);
-        const char *dataOpType = DT_SetGetStringEnumV3(3, 5, 10, dataOpTypes[0], dataOpTypes, 4);
-        uint64_t localDRAMSizeHigh = *(u8 *)DT_SetGetU8V3(4, 0);
-        uint64_t localDRAMSizeLow = *(u32 *)DT_SetGetU32V3(5, 1024);
-        uint64_t localDRAMSize = (localDRAMSizeHigh << 32) + localDRAMSizeLow; // max 1024 ^ 4
-        uint64_t localHBMSizeHigh = *(u8 *)DT_SetGetU8V3(6, 0);
-        uint64_t localHBMSizeLow = *(u32 *)DT_SetGetU32V3(7, 0);
-        uint64_t localHBMSize = (localHBMSizeHigh << 32) + localHBMSizeLow; // max 1024 ^ 4
-        int32_t logLevel = *(s32 *)DT_SetGetNumberEnumV3(8, 0, logLevelEnum, 5);
-        int32_t autoRanking = *(s32 *)DT_SetGetS32V3(9, 0);
-        uint32_t createId = *(u32 *)DT_SetGetU32V3(10, 0);
-        bool isRetNullptr = logLevel < 0 || logLevel > 3;
-        isRetNullptr |= !(bool(localDRAMSize) ^ bool(localHBMSize));
-        isRetNullptr |= strcmp(dataOpType, dataOpTypes[3]) == 0;
-        std::cout << "logLevel: " << logLevel << ", localDRAMSize: " << localDRAMSize << ", localHBMSize: " << localHBMSize << ", dataOpType: " << dataOpType << std::endl;
+        mmc_local_service_config_t localServiceConfig(this->localServiceConfig);
+        localServiceConfig.deviceId = *(u32 *)DT_SetGetNumberRange(&g_Element[0], 40, MIN_DEVICE_ID, MAX_DEVICE_ID);
+        localServiceConfig.worldSize = *(u32 *)DT_SetGetNumberRange(&g_Element[1], 40, MIN_WORLD_SIZE, MAX_WORLD_SIZE);
+        localServiceConfig.dataOpType = DT_SetGetStringEnum(&g_Element[2], 5, 10, dataOpTypes[0], dataOpTypes, 4);
+        localServiceConfig.logLevel = *(s32 *)DT_SetGetNumberEnum(&g_Element[3], 0, logLevelEnum, 5);
+        localServiceConfig.createId = *(u32 *)DT_SetGetU32(&g_Element[4], 0);
+        localServiceConfig.localDRAMSize = *(u64 *)DT_SetGetU64(&g_Element[5], 0);
+        localServiceConfig.localHBMSize = *(u64 *)DT_SetGetU64(&g_Element[6], 0);
+        int urlIdx = *(u32 *)DT_SetGetNumberRange(&g_Element[7], 0, 0, 5);
+        std::copy_n(urls[urlIdx], std::strlen(urls[urlIdx]), localServiceConfig.discoveryURL);
+        localServiceConfig.discoveryURL[std::strlen(urls[urlIdx])] = '\0';
 
-        mmc_local_service_config_t conf {
-            .discoveryURL = "tcp://127.0.0.1:5560",
-            .deviceId = deviceId,
-            .rankId = rankId,
-            .worldSize = worldSize,
-            .bmIpPort = "",
-            .bmHcomUrl = "",
-            .autoRanking = autoRanking,
-            .createId = createId,
-            .dataOpType = dataOpType,
-            .localDRAMSize = localDRAMSize,
-            .localHBMSize = localHBMSize,
-            .flags = 0,
-            .tlsConfig = {
-                .tlsEnable = false
-            },
-            .logLevel = logLevel,
-            .logFunc = nullptr
-        };
-        auto ret = mmcs_local_service_start(&conf);
-        ASSERT_EQ(isRetNullptr, ret == nullptr);
-        mmcs_local_service_stop(ret);
+        bool isRetNullptr = localServiceConfig.logLevel < 0 || localServiceConfig.logLevel > 3;
+        isRetNullptr |= strcmp(localServiceConfig.dataOpType.c_str(), dataOpTypes[3]) == 0;
+        isRetNullptr |= urlIdx != 0;
+
+        ASSERT_NE(metaService = mmcs_meta_service_start(&metaServiceConfig), nullptr);
+        localService = mmcs_local_service_start(&localServiceConfig);
+        ASSERT_EQ(localService == nullptr, isRetNullptr);
+
+        if (!isRetNullptr) {  // skip time wait
+            mmcc_init(&clientConfig);
+        }
+        mmc_data_info infoQuery{.valid = false};
+        mmc_buffer buf{.addr = 1, .type = 0, .dimType = 0, .oneDim = {.offset = 0, .len = 0}};
+        mmc_put_options opt{0, NATIVE_AFFINITY};
+        ASSERT_EQ(mmcc_put("test", &buf, opt, 0) != 0, isRetNullptr);
+        ASSERT_EQ(mmcc_get("test", &buf, 0) != 0, isRetNullptr);
+        ASSERT_EQ(mmcc_exist("test", 0) != 0, isRetNullptr);
+        ASSERT_EQ(mmcc_query("test", &infoQuery, 0) != 0, isRetNullptr);
+        ASSERT_EQ(mmcc_remove("test", 0) != 0, isRetNullptr);
+
+        mmcs_local_service_stop(localService);
+        mmcc_uninit();
+        mmcs_meta_service_stop(metaService);
     }
     DT_FUZZ_END()
 }
 
-TEST_F(TestMmcServiceLocal, TestMmcLocalServiceStop)
+TEST_F(TestMmcFuzzServiceLocal, TestMmcLocalServiceStop)
 {
     char fuzzName[] = "TestMmcLocalServiceStop";
     DT_FUZZ_START(0, CAPI_FUZZ_COUNT, fuzzName, 0)
     {
-        mmc_local_service_config_t conf {
-            .discoveryURL = "tcp://127.0.0.1:5560",
-            .deviceId = 0,
-            .rankId = 0,
-            .worldSize = 1,
-            .dataOpType = "tcp",
-            .localDRAMSize = 0,
-            .localHBMSize = 1,
-            .logLevel = 0
-        };
-        auto ret = mmcs_local_service_start(&conf);
-        mmcs_local_service_stop(ret);
+        ASSERT_NE(metaService = mmcs_meta_service_start(&metaServiceConfig), nullptr);
+        ASSERT_NE(localService = mmcs_local_service_start(&localServiceConfig), nullptr);
+        mmcs_local_service_stop(localService);
+        mmcs_meta_service_stop(metaService);
+    }
+    DT_FUZZ_END()
+}
+
+TEST_F(TestMmcFuzzServiceLocal, TestMmcLocalServiceTimeout)
+{
+    char fuzzName[] = "TestMmcLocalServiceTimeout";
+    DT_FUZZ_START(0, CAPI_FUZZ_COUNT, fuzzName, 0)
+    {
+        ASSERT_EQ(localService = mmcs_local_service_start(&localServiceConfig), nullptr);
+        mmcs_local_service_stop(localService);
     }
     DT_FUZZ_END()
 }

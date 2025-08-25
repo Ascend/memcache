@@ -10,8 +10,8 @@ TARGET_MOCKCPP_HEADER(test_mmc_fuzz)
 set_target_properties(test_mmc_fuzz PROPERTIES OUTPUT_NAME "test_mmc_fuzz")
 set_target_properties(test_mmc_fuzz PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 set_target_properties(test_mmc_fuzz PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_OUTPUT_PATH}/bin)
-add_link_options(-lgcov --coverage)
-target_compile_options(test_mmc_fuzz PUBLIC -D_GNU_SOURCE -g -fprofile-arcs -ftest-coverage)
+target_link_options(test_mmc_fuzz PRIVATE -lgcov --coverage -fsanitize-coverage=trace-pc -fsanitize=address -fno-omit-frame-pointer)
+target_compile_options(test_mmc_fuzz PRIVATE -D_GNU_SOURCE -g -O0 -lgcov --coverage -fsanitize-coverage=trace-pc -fsanitize=address -fno-omit-frame-pointer)
 target_link_directories(test_mmc_fuzz PRIVATE
         ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/lib
         ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib
