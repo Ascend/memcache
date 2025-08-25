@@ -1,16 +1,15 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
+#include "hybm_device_mem_segment.h"
+
 #include <cstring>
-#include <iomanip>
-#include "dl_api.h"
-#include "dl_hal_api.h"
-#include "dl_acl_api.h"
+
 #include "devmm_svm_gva.h"
+#include "dl_acl_api.h"
+#include "hybm_ex_info_transfer.h"
 #include "hybm_logger.h"
 #include "hybm_networks_common.h"
-#include "hybm_ex_info_transfer.h"
-#include "hybm_devide_mem_segment.h"
 
 namespace ock {
 namespace mf {
@@ -102,7 +101,7 @@ Result MemSegmentDevice::Export(const std::shared_ptr<MemSlice> &slice, std::str
     }
 
     auto exp = exportMap_.find(slice->index_);
-    if (exp != exportMap_.end()) {  // RtIpcSetMemoryName不支持重复调用
+    if (exp != exportMap_.end()) { // RtIpcSetMemoryName不支持重复调用
         exInfo = exp->second;
         return BM_OK;
     }
@@ -180,9 +179,9 @@ Result MemSegmentDevice::Import(const std::vector<std::string> &allExInfo) noexc
         if (deserializedInfos[i].logicDeviceId != logicDeviceId_) {
             auto ret = DlAclApi::RtEnableP2P(deviceId_, deserializedInfos[i].logicDeviceId, 0);
             if (ret != 0) {
-                BM_LOG_ERROR("enable device access failed:" << ret << " local_device:" << deviceId_
-                             << " remote_device:" << (int)deserializedInfos[i].deviceId
-                             << " logic_device:" << logicDeviceId_
+                BM_LOG_ERROR("enable device access failed:"
+                             << ret << " local_device:" << deviceId_ << " remote_device:"
+                             << (int)deserializedInfos[i].deviceId << " logic_device:" << logicDeviceId_
                              << " remote_logic_device:" << deserializedInfos[i].logicDeviceId);
                 return BM_DL_FUNCTION_FAILED;
             }
@@ -302,7 +301,9 @@ bool MemSegmentDevice::MemoryInRange(const void *begin, uint64_t size) const noe
     return true;
 }
 
-void MemSegmentDevice::FreeMemory() noexcept {}
+void MemSegmentDevice::FreeMemory() noexcept
+{
+}
 
 int MemSegmentDevice::GetDeviceId(int deviceId) noexcept
 {
@@ -340,6 +341,18 @@ int MemSegmentDevice::GetDeviceId(int deviceId) noexcept
         return ret;
     }
 
+    return BM_OK;
+}
+
+Result MemSegmentDevice::GetDeviceInfo() noexcept
+{
+    if (options_.segId < 0) {
+        return BM_INVALID_PARAM;
+    }
+
+    if (InitDeviceInfo() != BM_OK) {
+        return BM_ERROR;
+    }
     return BM_OK;
 }
 

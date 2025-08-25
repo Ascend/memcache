@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <vector>
+
 #include "hybm_common_include.h"
 #include "hybm_mem_common.h"
 #include "hybm_mem_slice.h"
@@ -60,7 +61,7 @@ public:
      * delete imported memory area according to rankid
      * @return 0 if successful
      */
-    virtual Result RemoveImported(const std::vector<uint32_t>& ranks) noexcept = 0;
+    virtual Result RemoveImported(const std::vector<uint32_t> &ranks) noexcept = 0;
 
     /*
      * @brief after Import exchange info, should call this func to make it work
@@ -85,7 +86,7 @@ public:
     /*
      * check memery area in this segment
      * @return true if in range
-    */
+     */
     virtual uint32_t GetRankIdByAddr(const void *addr, uint64_t size) const noexcept = 0;
 
     /*
@@ -96,8 +97,16 @@ public:
     virtual bool CheckSmdaReaches(uint32_t rankId) const noexcept;
 
 protected:
+    static Result InitDeviceInfo();
+
+protected:
     const MemSegmentOptions options_;
     const int entityId_;
+
+    static bool deviceInfoReady_;
+    static int deviceId_;
+    static uint32_t pid_;
+    static uint32_t sdid_;
 };
 }
 }

@@ -12,10 +12,13 @@ include_directories(
         ${PROJECT_HYBM_SRC_BASE}/csrc/transport/device
         ${PROJECT_HYBM_SRC_BASE}/csrc/transport/host
         ${PROJECT_HYBM_SRC_BASE}/csrc/transport/utils
+        ${PROJECT_HYBM_SRC_BASE}/csrc/ts_engine
         ${PROJECT_HYBM_SRC_BASE}/csrc/under_api
         ${PROJECT_DRIVER_BASE}/userspace/include
         ${PROJECT_UTIL_SRC_BASE}/htracer
 )
+
+set(HYBM_PUBLIC_INCLUDE_DIR "${PROJECT_HYBM_SRC_BASE}/include")
 
 ## add files into src variables
 aux_source_directory(common SRC_FILES_COMMON)
@@ -29,6 +32,7 @@ aux_source_directory(transport/compose SRC_FILES_TRANSPORT)
 aux_source_directory(transport/device SRC_FILES_TRANSPORT)
 aux_source_directory(transport/host SRC_FILES_TRANSPORT)
 aux_source_directory(transport/utils SRC_FILES_TRANSPORT)
+aux_source_directory(ts_engine SRC_FILES_TS_ENGINE)
 aux_source_directory(under_api SRC_FILES_CANN)
 
 # set whole source for hybmm src files
@@ -40,6 +44,7 @@ set(HYBMM_SRC_FILES
         ${SRC_FILES_CANN}
         ${SRC_FILES_MEM_MANAGER}
         ${SRC_FILES_TRANSPORT}
+        ${SRC_FILES_TS_ENGINE}
         hybm_entry.cpp
         hybm_big_mem_entry.cpp
         hybm_data_op_entry.cpp
@@ -51,11 +56,13 @@ target_compile_options(hybmm_objects PRIVATE -fPIC)
 
 add_library(hybmm_static STATIC $<TARGET_OBJECTS:hybmm_objects> $<TARGET_OBJECTS:htracer_object>)
 set_target_properties(hybmm_static PROPERTIES OUTPUT_NAME "mf_hybm_core")
-target_link_libraries(hybmm_static PUBLIC pthread dl)
+target_link_libraries(hybmm_static PUBLIC pthread dl hybm_gvm_static)
+target_include_directories(hybmm_static INTERFACE ${HYBM_PUBLIC_INCLUDE_DIR})
 
 add_library(hybmm_shared SHARED $<TARGET_OBJECTS:hybmm_objects> $<TARGET_OBJECTS:htracer_object>)
 set_target_properties(hybmm_shared PROPERTIES OUTPUT_NAME "mf_hybm_core")
-target_link_libraries(hybmm_shared PUBLIC pthread dl)
+target_link_libraries(hybmm_shared PUBLIC pthread dl hybm_gvm_shared)
+target_include_directories(hybmm_shared INTERFACE ${HYBM_PUBLIC_INCLUDE_DIR})
 
 ## install header files
 file(GLOB HEADER_FILES ${PROJECT_HYBM_SRC_BASE}/include/*.h)

@@ -1,9 +1,13 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
  */
+#include "dl_hal_api.h"
+
 #include <dlfcn.h>
 #include <mutex>
-#include "dl_hal_api.h"
+
+#include "hybm_define.h"
+#include "hybm_logger.h"
 
 namespace ock {
 namespace mf {
@@ -62,6 +66,18 @@ Result DlHalApi::LoadLibrary()
                 "devmm_virt_normal_heap_update_info");
     DL_LOAD_SYM(pDevmmVaToHeap, halDevmmVaToHeapFunc, halHandle, "devmm_va_to_heap");
 
+    DL_LOAD_SYM(pHalSqTaskSend, halSqTaskSendFunc, halHandle, "halSqTaskSend");
+    DL_LOAD_SYM(pHalCqReportRecv, halCqReportRecvFunc, halHandle, "halCqReportRecv");
+    DL_LOAD_SYM(pHalSqCqAllocate, halSqCqAllocateFunc, halHandle, "halSqCqAllocate");
+    DL_LOAD_SYM(pHalSqCqFree, halSqCqFreeFunc, halHandle, "halSqCqFree");
+    DL_LOAD_SYM(pHalResourceIdAlloc, halResourceIdAllocFunc, halHandle, "halResourceIdAlloc");
+    DL_LOAD_SYM(pHalResourceIdFree, halResourceIdFreeFunc, halHandle, "halResourceIdFree");
+    DL_LOAD_SYM(pHalGetSsid, halGetSsidFunc, halHandle, "drvMemSmmuQuery");
+    DL_LOAD_SYM(pHalResourceConfig, halResourceConfigFunc, halHandle, "halResourceConfig");
+    DL_LOAD_SYM(pHalSqCqQuery, halSqCqQueryFunc, halHandle, "halSqCqQuery");
+    DL_LOAD_SYM(pHalHostRegister, halHostRegisterFunc, halHandle, "halHostRegister");
+    DL_LOAD_SYM(pHalHostUnregister, halHostUnregisterFunc, halHandle, "halHostUnregister");
+
     gLoaded = true;
     return BM_OK;
 }
@@ -86,6 +102,17 @@ void DlHalApi::CleanupLibrary()
     pDevmmVirtGetHeapFromQueue = nullptr;
     pDevmmVirtNormalHeapUpdateInfo = nullptr;
     pDevmmVaToHeap = nullptr;
+
+    pHalSqTaskSend = nullptr;
+    pHalCqReportRecv = nullptr;
+    pHalSqCqAllocate = nullptr;
+    pHalSqCqFree = nullptr;
+    pHalResourceIdAlloc = nullptr;
+    pHalResourceIdFree = nullptr;
+    pHalGetSsid = nullptr;
+    pHalSqCqQuery = nullptr;
+    pHalHostRegister = nullptr;
+    pHalHostUnregister = nullptr;
 
     if (halHandle != nullptr) {
         dlclose(halHandle);

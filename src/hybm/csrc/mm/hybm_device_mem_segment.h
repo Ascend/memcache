@@ -1,12 +1,13 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
  */
-#ifndef MEM_FABRIC_HYBRID_HYBM_DEVIDE_MEM_SEGMENT_H
-#define MEM_FABRIC_HYBRID_HYBM_DEVIDE_MEM_SEGMENT_H
+#ifndef MEM_FABRIC_HYBRID_HYBM_DEVICE_MEM_SEGMENT_H
+#define MEM_FABRIC_HYBRID_HYBM_DEVICE_MEM_SEGMENT_H
 
 #include <cstdint>
 #include <map>
 #include <set>
+
 #include "hybm_mem_common.h"
 #include "hybm_mem_segment.h"
 
@@ -35,6 +36,7 @@ struct HbmExportInfo {
 class MemSegmentDevice : public MemSegment {
 public:
     explicit MemSegmentDevice(const MemSegmentOptions &options, int eid) : MemSegment{options, eid} {}
+
     ~MemSegmentDevice()
     {
         FreeMemory();
@@ -46,16 +48,18 @@ public:
     Result Export(std::string &exInfo) noexcept override;
     Result Export(const std::shared_ptr<MemSlice> &slice, std::string &exInfo) noexcept override;
     Result Import(const std::vector<std::string> &allExInfo) noexcept override;
-    Result RemoveImported(const std::vector<uint32_t>& ranks) noexcept override;
+    Result RemoveImported(const std::vector<uint32_t> &ranks) noexcept override;
     Result Mmap() noexcept override;
     Result Unmap() noexcept override;
     std::shared_ptr<MemSlice> GetMemSlice(hybm_mem_slice_t slice) const noexcept override;
     bool MemoryInRange(const void *begin, uint64_t size) const noexcept override;
     uint32_t GetRankIdByAddr(const void *addr, uint64_t size) const noexcept override;
+
     hybm_mem_type GetMemoryType() const noexcept override
     {
         return HYBM_MEM_TYPE_DEVICE;
     }
+
     bool CheckSmdaReaches(uint32_t rankId) const noexcept override;
 
 public:
@@ -63,10 +67,11 @@ public:
     static int FillDeviceSuperPodInfo() noexcept;
     static bool CanMapRemote(const HbmExportInfo &rmi) noexcept;
 
-private:
+protected: // TODO: 暂时暴露内部实现给 MemSegmentHostSDMA 复用，后续需要整改
+    Result GetDeviceInfo() noexcept;
     void FreeMemory() noexcept;
 
-private:
+protected: // TODO: 暂时暴露内部实现给 MemSegmentHostSDMA 复用，后续需要整改
     uint8_t *globalVirtualAddress_{nullptr};
     uint64_t totalVirtualSize_{0UL};
     uint64_t allocatedSize_{0UL};
@@ -77,7 +82,7 @@ private:
     std::vector<HbmExportInfo> imports_;
     std::map<uint16_t, HbmExportInfo> importMap_;
 
-private:
+protected: // TODO: 暂时暴露内部实现给 MemSegmentHostSDMA 复用，后续需要整改
     static int deviceId_;
     static int logicDeviceId_;
     static int pid_;
@@ -88,4 +93,4 @@ private:
 }
 }
 
-#endif  // MEM_FABRIC_HYBRID_HYBM_DEVIDE_MEM_SEGMENT_H
+#endif // MEM_FABRIC_HYBRID_HYBM_DEVICE_MEM_SEGMENT_H

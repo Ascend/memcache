@@ -7,8 +7,6 @@
 
 #include <cstdint>
 
-#include "hybm_stars_dma.h"
-
 namespace ock {
 namespace mf {
 
@@ -136,7 +134,6 @@ struct rtStarsWriteValueSqe_t {
 union rtStarsSqe_t {
     rtStarsMemcpyAsyncSqe_t memcpyAsyncSqe;
     rtStarsWriteValueSqe_t writeValueSqe;
-    rtStarsRdmaSinkSqe1_t rdmaSinkSqe1;
 };
 
 struct StreamTask {

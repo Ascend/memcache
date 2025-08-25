@@ -7,7 +7,7 @@
 
 #include "hybm_logger.h"
 #include "dl_acl_api.h"
-#include "hybm_devide_mem_segment.h"
+#include "hybm_device_mem_segment.h"
 #include "hybm_data_operator_sdma.h"
 #include "hybm_data_operator_rdma.h"
 #include "hybm_ex_info_transfer.h"

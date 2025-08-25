@@ -26,6 +26,7 @@ enum MemType : uint8_t {
 
 enum MemPageTblType : uint8_t {
     MEM_PT_TYPE_SVM = 0,
+    MEM_PT_TYPE_GVM,
     MEM_PT_TYPE_HYM,
 
     MEM_PT_TYPE_BUTT
@@ -59,9 +60,9 @@ struct MemSegmentOptions {
     MemSegInfoExchangeType infoExType = HYBM_INFO_EXG_IN_NODE;
     uint64_t size = 0;
     uint32_t rankId = 0;  // must start from 0 and increase continuously
-    uint32_t rankCnt = 0;  // total rank count
+    uint32_t rankCnt = 0; // total rank count
 };
 }
 }
 
-#endif  // MEM_FABRIC_HYBRID_HYBM_MM_COMMON_H
+#endif // MEM_FABRIC_HYBRID_HYBM_MM_COMMON_H

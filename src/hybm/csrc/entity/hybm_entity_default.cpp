@@ -4,7 +4,7 @@
 #include <algorithm>
 #include "hybm_logger.h"
 #include "dl_acl_api.h"
-#include "hybm_devide_mem_segment.h"
+#include "hybm_device_mem_segment.h"
 #include "hybm_data_operator_sdma.h"
 #include "hybm_default_transport_manager.h"
 #include "hybm_entity_default.h"
@@ -586,7 +586,7 @@ bool MemEntityDefault::SdmaReaches(uint32_t remoteRank) const noexcept
         BM_LOG_ERROR("SdmaReaches() segment is null");
         return false;
     }
-    
+
     return segment_->CheckSmdaReaches(remoteRank);
 }
 
