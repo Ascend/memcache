@@ -9,10 +9,9 @@ import ctypes
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
-lib_dir = os.path.join(current_dir, 'lib')
 lib_list = ['libmf_hybm_core.so', 'libmf_smem.so', 'libmf_memcache.so']
 for lib_source in lib_list:
-    ctypes.CDLL(os.path.join(lib_dir, lib_source))
+    ctypes.CDLL(lib_source)
 
 from _pymmc import SliceBuffer, DistributedObjectStore, KeyInfo
 from .meta_service_leader_election import MetaServiceLeaderElection

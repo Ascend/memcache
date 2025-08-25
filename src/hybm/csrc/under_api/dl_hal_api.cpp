@@ -31,6 +31,18 @@ halDevmmVirtNormalHeapUpdateInfoFunc DlHalApi::pDevmmVirtNormalHeapUpdateInfo = 
 halDevmmVaToHeapFunc DlHalApi::pDevmmVaToHeap = nullptr;
 int *DlHalApi::pHalDevmmFd = nullptr;
 
+halSqTaskSendFunc DlHalApi::pHalSqTaskSend = nullptr;
+halCqReportRecvFunc DlHalApi::pHalCqReportRecv = nullptr;
+halSqCqAllocateFunc DlHalApi::pHalSqCqAllocate = nullptr;
+halSqCqFreeFunc DlHalApi::pHalSqCqFree = nullptr;
+halResourceIdAllocFunc DlHalApi::pHalResourceIdAlloc = nullptr;
+halResourceIdFreeFunc DlHalApi::pHalResourceIdFree = nullptr;
+halGetSsidFunc DlHalApi::pHalGetSsid = nullptr;
+halResourceConfigFunc DlHalApi::pHalResourceConfig = nullptr;
+halSqCqQueryFunc DlHalApi::pHalSqCqQuery = nullptr;
+halHostRegisterFunc DlHalApi::pHalHostRegister = nullptr;
+halHostUnregisterFunc DlHalApi::pHalHostUnregister = nullptr;
+
 Result DlHalApi::LoadLibrary()
 {
     std::lock_guard<std::mutex> guard(gMutex);
