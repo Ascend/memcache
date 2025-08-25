@@ -10,6 +10,8 @@
 extern "C" {
 #endif
 
+#define HYBM_INIT_GVM_FLAG (1ULL << 1ULL) // Init the GVM module, enable to use Host DRAM
+
 /**
  * @brief Initialize hybrid big memory library
  *

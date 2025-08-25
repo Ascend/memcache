@@ -4,7 +4,6 @@
 
 #include <cstdlib>
 #include <string>
-#include <thread>
 #include <mutex>
 #include <fstream>
 #include <limits.h>
@@ -16,18 +15,19 @@
 #include "under_api/dl_hal_api.h"
 #include "devmm_svm_gva.h"
 #include "hybm_cmd.h"
+#include "hybm_gvm_user.h"
 #include "hybm.h"
 #include "htracer.h"
 
 using namespace ock::mf;
 
 namespace {
-constexpr uint16_t HYBM_INIT_MODULE_ID_MAX = 32;
 const std::string LEAST_DRIVER_VER = "V100R001C21B035";
 
 int64_t initialized = 0;
 int32_t initedDeviceId = -1;
 int32_t initedLogicDeviceId = -1;
+bool initedGvm = false;
 std::mutex initMutex;
 }
 
@@ -39,6 +39,11 @@ int32_t HybmGetInitDeviceId()
 bool HybmHasInited()
 {
     return initialized > 0;
+}
+
+bool HybmGvmHasInited()
+{
+    return initedGvm;
 }
 
 static std::string GetDriverVersionPath(const std::string &driverEnvStr, const std::string &keyStr)
@@ -219,8 +224,19 @@ static int32_t hybm_init_hbm_gva(uint16_t deviceId, uint64_t flags)
         return BM_ERROR;
     }
 
+    if (flags & HYBM_INIT_GVM_FLAG) {
+        ret = hybm_gvm_init(deviceId);
+        if (ret != 0) {
+            BM_LOG_ERROR("init hybm gvm failed: " << ret);
+            return BM_ERROR;
+        }
+        initedGvm = true;
+    } else {
+        initedGvm = false;
+    }
+
     void *globalMemoryBase = nullptr;
-    size_t allocSize = HYBM_DEVICE_INFO_SIZE;  // 申请meta空间
+    size_t allocSize = HYBM_DEVICE_INFO_SIZE; // 申请meta空间
     drv::HybmInitialize(initedLogicDeviceId, DlHalApi::GetDevmmFd());
     ret = drv::HalGvaReserveMemory((uint64_t *)&globalMemoryBase, allocSize, initedLogicDeviceId, flags);
     if (ret != 0) {

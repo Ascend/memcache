@@ -6,6 +6,7 @@
 #include "dl_acl_api.h"
 #include "hybm_device_mem_segment.h"
 #include "hybm_host_mem_segment.h"
+#include "hybm_sdma_mem_segment.h"
 #include "hybm_types.h"
 
 namespace ock {
@@ -29,7 +30,11 @@ MemSegmentPtr MemSegment::Create(const MemSegmentOptions &options, int entityId)
             tmpSeg = std::make_shared<MemSegmentDevice>(options, entityId);
             break;
         case HYBM_MST_DRAM:
-            tmpSeg = std::make_shared<MemSegmentHost>(options, entityId);
+            if (HybmGvmHasInited()) {
+                tmpSeg = std::make_shared<MemSegmentHostSDMA>(options, entityId);
+            } else {
+                tmpSeg = std::make_shared<MemSegmentHost>(options, entityId);
+            }
             break;
         default:
             BM_LOG_ERROR("Invalid memory seg type " << int(options.segType));

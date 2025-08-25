@@ -1,15 +1,19 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
+#include "hybm_entity_default.h"
+
 #include <algorithm>
-#include "hybm_logger.h"
+
 #include "dl_acl_api.h"
+#include "hybm_data_operator_rdma.h"
 #include "hybm_device_mem_segment.h"
 #include "hybm_data_operator_sdma.h"
 #include "hybm_default_transport_manager.h"
-#include "hybm_entity_default.h"
-#include "hybm_data_operator_rdma.h"
+#include "hybm_device_mem_segment.h"
 #include "hybm_ex_info_transfer.h"
+#include "hybm_logger.h"
+#include "hybm_op_dram_sdma.h"
 
 namespace ock {
 namespace mf {
@@ -19,7 +23,9 @@ struct TransportExtraInfo {
     transport::TransportMemoryKey memKey;
 };
 
-MemEntityDefault::MemEntityDefault(int id) noexcept : id_(id), initialized(false) {}
+MemEntityDefault::MemEntityDefault(int id) noexcept : id_(id), initialized(false)
+{
+}
 
 MemEntityDefault::~MemEntityDefault() = default;
 
@@ -141,7 +147,9 @@ int32_t MemEntityDefault::AllocLocalMemory(uint64_t size, uint32_t flags, hybm_m
     return UpdateHybmDeviceInfo(0);
 }
 
-void MemEntityDefault::FreeLocalMemory(hybm_mem_slice_t slice, uint32_t flags) noexcept {}
+void MemEntityDefault::FreeLocalMemory(hybm_mem_slice_t slice, uint32_t flags) noexcept
+{
+}
 
 int32_t MemEntityDefault::ExportExchangeInfo(hybm_exchange_info &desc, uint32_t flags) noexcept
 {
@@ -572,7 +580,11 @@ Result MemEntityDefault::InitDataOperator()
             dataOperator_ = std::make_shared<HostDataOpRDMA>(options_.rankId, stream_, transportManager_);
             break;
         case HYBM_DOP_TYPE_SDMA:
-            dataOperator_ = std::make_shared<HostDataOpSDMA>(stream_);
+            if (HybmGvmHasInited()) {
+                dataOperator_ = std::make_shared<HostDramSdma>();
+            } else {
+                dataOperator_ = std::make_shared<HostDataOpSDMA>(stream_);
+            }
             break;
         default:
             return BM_ERROR;
