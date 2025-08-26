@@ -5,6 +5,7 @@
 
 #include <algorithm>
 
+#include "hybm_common_include.h"
 #include "hybm_logger.h"
 #include "dl_acl_api.h"
 #include "hybm_device_mem_segment.h"
@@ -547,7 +548,7 @@ Result HybmEntityCompose::InitDramSegment()
         return BM_ERROR;
     }
 
-    return BM_OK;
+    return MemSegmentDevice::GetDeviceId(HybmGetInitDeviceId());
 }
 
 Result HybmEntityCompose::InitTransManager()

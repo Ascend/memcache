@@ -7,7 +7,9 @@
 
 #include "devmm_svm_gva.h"
 #include "dl_acl_api.h"
+#include "hybm_common_include.h"
 #include "hybm_ex_info_transfer.h"
+#include "hybm_gvm_user.h"
 #include "hybm_logger.h"
 #include "hybm_networks_common.h"
 
@@ -67,6 +69,14 @@ Result MemSegmentDevice::AllocLocalMemory(uint64_t size, std::shared_ptr<MemSlic
     if (ret != BM_OK) {
         BM_LOG_ERROR("HalGvaAlloc memory failed: " << ret);
         return BM_DL_FUNCTION_FAILED;
+    }
+
+    if (HybmGvmHasInited()) {
+        ret = hybm_gvm_mem_fetch((uint64_t)(localVirtualBase + allocatedSize_), size);
+        if (ret != BM_OK) {
+            BM_LOG_ERROR("HalGvaAlloc memory failed: " << ret);
+            return BM_DL_FUNCTION_FAILED;
+        }
     }
 
     auto sliceAddr = localVirtualBase + allocatedSize_;

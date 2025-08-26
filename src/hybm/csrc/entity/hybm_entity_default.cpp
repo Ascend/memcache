@@ -532,7 +532,7 @@ Result MemEntityDefault::InitDramSegment()
         return BM_ERROR;
     }
 
-    return BM_OK;
+    return MemSegmentDevice::GetDeviceId(HybmGetInitDeviceId());
 }
 
 Result MemEntityDefault::InitTransManager()
