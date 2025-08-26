@@ -338,18 +338,28 @@ Result NetEngineAcc::HandleNeqRequest(const TcpReqContext &context)
 {
     /* use result variable for real opcode */
     MMC_LOG_DEBUG("HandleNeqRequest Header " << context.Header().ToString());
-    NetContextPtr contextPtr = MmcMakeRef<NetContextAcc>(context).Get();
-    MMC_ASSERT_RETURN(contextPtr != nullptr, MMC_NEW_OBJECT_FAILED);
-    int16_t opCode = contextPtr->OpCode();
+    int16_t opCode = context->Header().result;
     MMC_ASSERT_RETURN(opCode < gHandlerSize, MMC_NET_REQ_HANDLE_NO_FOUND);
     if (reqReceivedHandlers_[opCode]  == nullptr) {
         /*  client do reply response */
         MMC_ASSERT_RETURN(HandleAllRequests4Response(context) == MMC_OK, MMC_ERROR);
     } else {
         /* server do function */
+        // context buf是link缓冲区，切线程需要将数据copy出来
+        AccDataBufferPtr bufPtr = AccDataBuffer::Create(context.Data(), context.DataLen());
+        if (bufPtr.Get() == nullptr) {
+            MMC_LOG_ERROR("req: " << context.SeqNo() << " alloc failed.");
+            return MMC_ERROR;
+        }
+        ock::acc::AccTcpRequestContext reqContext(context.Header(), bufPtr, context.Link());
+        NetContextPtr asynCtxPtr = MmcMakeRef<NetContextAcc>(reqContext);
+        if (asynCtxPtr.Get() == nullptr) {
+            MMC_LOG_ERROR("req: " << context.SeqNo() << " alloc ctx failed.");
+            return MMC_ERROR;
+        }
         auto future = threadPool_->Enqueue(
-            [&](int16_t opCode, NetContextPtr contextPtr) { return reqReceivedHandlers_[opCode](contextPtr); }, opCode,
-            contextPtr);
+            [&](int16_t opCode, NetContextPtr contextPtrL) { return reqReceivedHandlers_[opCode](contextPtrL); }, opCode,
+            asynCtxPtr);
         if (!future.valid()) {
             MMC_LOG_ERROR("req: " << context.SeqNo() << " add thread pool failed.");
             return MMC_ERROR;
