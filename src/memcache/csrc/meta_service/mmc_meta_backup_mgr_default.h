@@ -105,6 +105,11 @@ public:
         return MMC_OK;
     }
 
+    Result Load(std::map<std::string, MmcMemBlobDesc>& blobMap) override
+    {
+        return MMC_OK;
+    }
+
 private:
     uint32_t PopMetas2Backup(
         std::vector<uint32_t>& ops, std::vector<std::string>& keys, std::vector<MmcMemBlobDesc>& blobs);

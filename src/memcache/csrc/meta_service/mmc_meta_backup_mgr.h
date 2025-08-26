@@ -5,6 +5,7 @@
 #ifndef MF_HYBRID_MMC_META_BACKUP_MGR_H
 #define MF_HYBRID_MMC_META_BACKUP_MGR_H
 
+#include <map>
 #include "mmc_ref.h"
 #include "mmc_types.h"
 #include "mmc_blob_common.h"
@@ -26,6 +27,8 @@ public:
     virtual Result Add(const std::string &key, MmcMemBlobDesc &blobDesc) = 0;
 
     virtual Result Remove(const std::string &key, MmcMemBlobDesc &blobDesc) = 0;
+
+    virtual Result Load(std::map<std::string, MmcMemBlobDesc>& blobMap) = 0;
 };
 using MMCMetaBackUpMgrPtr = MmcRef<MMCMetaBackUpMgr>;
 }
