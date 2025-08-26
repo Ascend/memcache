@@ -338,7 +338,7 @@ Result NetEngineAcc::HandleNeqRequest(const TcpReqContext &context)
 {
     /* use result variable for real opcode */
     MMC_LOG_DEBUG("HandleNeqRequest Header " << context.Header().ToString());
-    int16_t opCode = context->Header().result;
+    int16_t opCode = context.Header().result;
     MMC_ASSERT_RETURN(opCode < gHandlerSize, MMC_NET_REQ_HANDLE_NO_FOUND);
     if (reqReceivedHandlers_[opCode]  == nullptr) {
         /*  client do reply response */
@@ -346,22 +346,22 @@ Result NetEngineAcc::HandleNeqRequest(const TcpReqContext &context)
     } else {
         /* server do function */
         // context buf是link缓冲区，切线程需要将数据copy出来
-        AccDataBufferPtr bufPtr = AccDataBuffer::Create(context.Data(), context.DataLen());
+        ock::acc::AccDataBufferPtr bufPtr = ock::acc::AccDataBuffer::Create(context.DataPtr(), context.DataLen());
         if (bufPtr.Get() == nullptr) {
-            MMC_LOG_ERROR("req: " << context.SeqNo() << " alloc failed.");
+            MMC_LOG_ERROR("req: " << context.SeqNo() << " alloc failed. op:" << opCode);
             return MMC_ERROR;
         }
         ock::acc::AccTcpRequestContext reqContext(context.Header(), bufPtr, context.Link());
-        NetContextPtr asynCtxPtr = MmcMakeRef<NetContextAcc>(reqContext);
+        NetContextPtr asynCtxPtr = MmcMakeRef<NetContextAcc>(reqContext).Get();
         if (asynCtxPtr.Get() == nullptr) {
-            MMC_LOG_ERROR("req: " << context.SeqNo() << " alloc ctx failed.");
+            MMC_LOG_ERROR("req: " << context.SeqNo() << " alloc ctx failed. op:" << opCode);
             return MMC_ERROR;
         }
         auto future = threadPool_->Enqueue(
             [&](int16_t opCode, NetContextPtr contextPtrL) { return reqReceivedHandlers_[opCode](contextPtrL); }, opCode,
             asynCtxPtr);
         if (!future.valid()) {
-            MMC_LOG_ERROR("req: " << context.SeqNo() << " add thread pool failed.");
+            MMC_LOG_ERROR("req: " << context.SeqNo() << " add thread pool failed. op:" << opCode);
             return MMC_ERROR;
         }
     }
