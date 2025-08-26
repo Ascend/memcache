@@ -66,6 +66,7 @@ typedef struct {
 typedef struct {
     char discoveryURL[DISCOVERY_URL_SIZE];
     uint32_t rankId;
+    uint32_t rpcRetryTimeOut;
     uint32_t timeOut;
     int32_t logLevel;
     ExternalLog logFunc;

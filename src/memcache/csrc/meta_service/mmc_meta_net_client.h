@@ -4,12 +4,20 @@
 
 #ifndef SMEM_MMC_META_NET_CLIENT_H
 #define SMEM_MMC_META_NET_CLIENT_H
+
+#include <chrono>
+#include <thread>
+
 #include "mmc_local_common.h"
 #include "mmc_net_engine.h"
 #include "mmc_blob_common.h"
+
 namespace ock {
 namespace mmc {
 #define NET_RETRY_COUNT 180
+#define TIMEOUT_60_SECONDS 60
+#define SYNC_CALL_INTERVAL 200
+
 using ClientRetryHandler = std::function<int32_t(void)>;
 using ClientReplicateHandler = std::function<int32_t(const std::vector<uint32_t> &ops,
                                                      const std::vector<std::string> &keys,
@@ -49,19 +57,47 @@ public:
      * @tparam RESP        [in] response class type
      * @param req          [in] request
      * @param resp         [in/out] response
-     * @param timeoutInSecond [in] timeout in second
+     * @param timeoutInMilliSecond [in] timeout in millisecond
      * @return
      */
     template <typename REQ, typename RESP>
-    Result SyncCall(const REQ &req, RESP &resp, int32_t timeoutInSecond)
+    Result SyncCall(const REQ &req, RESP &resp, int32_t timeoutInMilliSecond)
     {
         Result ret = MMC_ERROR;
-        for (uint32_t count = 0; count < retryCount_; count++) {
-            ret = engine_->Call(rankId_, req.msgId, req, resp, timeoutInSecond);
-            if (ret == MMC_OK) {
-                return MMC_OK;
+
+        auto start = std::chrono::high_resolution_clock::now();
+        // 预计算超时时间点（开始时间 + 超时毫秒数）
+        const auto timeoutTime = start + std::chrono::milliseconds(timeoutInMilliSecond);
+        int retryCount = 0;  // 记录重试次数
+        do {
+            ret = engine_->Call(rankId_, req.msgId, req, resp, TIMEOUT_60_SECONDS);
+            if (ret != MMC_LINK_NOT_FOUND && ret != MMC_TIMEOUT) {
+                break;
             }
-        }
+
+            // 检查是否已超时（避免无效休眠）
+            auto now = std::chrono::high_resolution_clock::now();
+            if (now >= timeoutTime) {
+                break;
+            }
+
+            // 计算剩余时间，避免休眠超过超时时间
+            auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(timeoutTime - now).count();
+            auto sleepTime = std::min(remaining, (int64_t)SYNC_CALL_INTERVAL);
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
+            retryCount++;
+            if (retryCount == 1 || retryCount % 10 == 0) {
+                MMC_LOG_DEBUG("SyncCall retry " << retryCount << ", ret=" << ret);
+            }
+        } while (true);
+
+        auto now = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+        MMC_RETURN_ERROR(ret, "SyncCall failed, retry " << retryCount
+                         << ", and last for " << duration << " milliseconds");
+
+        MMC_LOG_DEBUG("SyncCall successfully, retry " << retryCount
+                      << ", and last for " << duration << " milliseconds");
         return ret;
     }
 

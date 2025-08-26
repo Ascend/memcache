@@ -42,7 +42,7 @@ public:
     template <typename REQ, typename RESP>
     Result SyncCallMeta(const REQ &req, RESP &resp, int32_t timeoutInSecond)
     {
-        return metaNetClient_->SyncCall(req, resp, timeoutInSecond);
+        return metaNetClient_->SyncCall(req, resp, timeoutInSecond * 1000);
     }
 
     inline MetaNetClientPtr GetMetaClient() const;

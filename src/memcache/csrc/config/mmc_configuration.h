@@ -236,6 +236,8 @@ public:
         AddStrConf(OKC_MMC_LOCAL_SERVICE_PROTOCOL, VNoCheck::Create());
         AddStrConf(OKC_MMC_LOCAL_SERVICE_DRAM_SIZE, VNoCheck::Create());
         AddStrConf(OKC_MMC_LOCAL_SERVICE_HBM_SIZE, VNoCheck::Create());
+        AddIntConf(OKC_MMC_CLIENT_RETRY_MILLISECONDS,
+                   VIntRange::Create(OKC_MMC_CLIENT_RETRY_MILLISECONDS.first, 0, 600000));
         AddIntConf(OCK_MMC_CLIENT_TIMEOUT_SECONDS,
             VIntRange::Create(OCK_MMC_CLIENT_TIMEOUT_SECONDS.first, 1, 600));
     }
@@ -265,6 +267,7 @@ public:
         std::copy_n(discoveryURL.c_str(), copy_count, config.discoveryURL);
         config.discoveryURL[copy_count] = '\0';
 
+        config.rpcRetryTimeOut = GetInt(ConfConstant::OKC_MMC_CLIENT_RETRY_MILLISECONDS);
         config.timeOut = GetInt(ConfConstant::OCK_MMC_CLIENT_TIMEOUT_SECONDS);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         StringToLower(logLevelStr);

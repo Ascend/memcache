@@ -108,7 +108,7 @@ private:
     MmcBmProxyPtr bmProxy_;
     std::string name_;
     uint32_t rankId_{UINT32_MAX};
-    uint32_t rpcTimeOut_ = 60;
+    uint32_t rpcRetryTimeOut_ = 0;
     uint64_t defaultTtlMs_ = MMC_DATA_TTL_MS;
 };
 
