@@ -3,21 +3,21 @@
  */
 
 #include <cstdlib>
-#include <string>
-#include <mutex>
 #include <fstream>
 #include <limits.h>
+#include <mutex>
+#include <string>
 
-#include "hybm_version.h"
-#include "hybm_common_include.h"
-#include "under_api/dl_api.h"
-#include "under_api/dl_acl_api.h"
-#include "under_api/dl_hal_api.h"
 #include "devmm_svm_gva.h"
-#include "hybm_cmd.h"
-#include "hybm_gvm_user.h"
-#include "hybm.h"
 #include "htracer.h"
+#include "hybm.h"
+#include "hybm_cmd.h"
+#include "hybm_common_include.h"
+#include "hybm_gvm_user.h"
+#include "hybm_version.h"
+#include "under_api/dl_acl_api.h"
+#include "under_api/dl_api.h"
+#include "under_api/dl_hal_api.h"
 
 using namespace ock::mf;
 
@@ -103,7 +103,7 @@ static std::string LoadDriverVersionInfoFile(const std::string &realName, const 
         auto found = line.find(keyStr);
         // 刚好匹配前缀
         if (found == 0) {
-            uint32_t len = line.length() - keyStr.length(); // 版本字符串长度
+            uint32_t len = line.length() - keyStr.length();    // 版本字符串长度
             driverVersion = line.substr(keyStr.length(), len); // 从keyStr截断
             break;
         }
@@ -261,8 +261,8 @@ HYBM_API int32_t hybm_init(uint16_t deviceId, uint64_t flags)
     std::unique_lock<std::mutex> lockGuard{initMutex};
     if (initialized > 0) {
         if (initedDeviceId != deviceId) {
-            BM_LOG_ERROR("this deviceId(" << deviceId << ") is not equal to the deviceId(" <<
-                initedDeviceId << ") of other module!");
+            BM_LOG_ERROR("this deviceId(" << deviceId << ") is not equal to the deviceId(" << initedDeviceId
+                                          << ") of other module!");
             return BM_ERROR;
         }
 

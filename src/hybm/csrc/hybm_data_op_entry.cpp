@@ -21,23 +21,7 @@ HYBM_API int32_t hybm_data_copy(hybm_entity_t e, const void *src, void *dest, si
         return BM_INVALID_PARAM;
     }
 
-    bool addressValid = true;
     auto entity = (MemEntity *)e;
-    if (direction == HYBM_LOCAL_DEVICE_TO_GLOBAL_DEVICE || direction == HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE ||
-        direction == HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE) {
-        addressValid = entity->CheckAddressInEntity(dest, count);
-    }
-    if (direction == HYBM_GLOBAL_DEVICE_TO_LOCAL_DEVICE || direction == HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST ||
-        direction == HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE) {
-        addressValid = (addressValid && entity->CheckAddressInEntity(src, count));
-    }
-
-    if (!addressValid) {
-        BM_LOG_ERROR("input copy address(size: " << std::oct << count
-            << ") direction: " << direction << ", not in entity range.");
-        return BM_INVALID_PARAM;
-    }
-
     return entity->CopyData(src, dest, count, direction, stream, flags);
 }
 

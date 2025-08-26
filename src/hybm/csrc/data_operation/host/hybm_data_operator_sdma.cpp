@@ -1,15 +1,76 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
  */
-#include "hybm_logger.h"
-#include "../../under_api/dl_acl_api.h"
-#include "htracer.h"
 #include "hybm_data_operator_sdma.h"
+
+#include "hybm_logger.h"
+#include "dl_acl_api.h"
+#include "htracer.h"
+#include "hybm_gvm_user.h"
 
 namespace ock {
 namespace mf {
-
+constexpr uint64_t HBM_SWAP_SPACE_SIZE = 1024 * 1024 * 1024;
 HostDataOpSDMA::HostDataOpSDMA(void *stm) noexcept : stream_{stm} {}
+
+int32_t HostDataOpSDMA::Initialized() noexcept
+{
+    if (inited_) {
+        return BM_OK;
+    }
+
+    uint32_t devId = HybmGetInitDeviceId();
+    hybmStream_ = std::make_shared<HybmStream>(devId, 0, 0);
+    BM_ASSERT_RETURN(hybmStream_ != nullptr, BM_MALLOC_FAILED);
+
+    auto ret = hybmStream_->Initialize();
+    if (ret != 0) {
+        BM_LOG_ERROR("create stream failed, dev:" << devId << " ret:" << ret);
+        hybmStream_ = nullptr;
+        return BM_ERROR;
+    }
+
+    sdmaSwapMemAddr_ = nullptr;
+    ret = DlAclApi::AclrtMalloc(&sdmaSwapMemAddr_, HBM_SWAP_SPACE_SIZE, 0);
+    if (ret != 0 || !sdmaSwapMemAddr_) {
+        hybmStream_->Destroy();
+        hybmStream_ = nullptr;
+        BM_LOG_ERROR("allocate temp copy memory on local device failed: " << ret);
+        return BM_DL_FUNCTION_FAILED;
+    }
+    sdmaSwapMemoryAllocator_ = std::make_shared<RbtreeRangePool>((uint8_t *) sdmaSwapMemAddr_, HBM_SWAP_SPACE_SIZE);
+    if (HybmGvmHasInited()) {
+        ret = hybm_gvm_mem_fetch((uint64_t)sdmaSwapMemAddr_, HBM_SWAP_SPACE_SIZE);
+        if (ret != BM_OK) {
+            DlAclApi::AclrtFree(&sdmaSwapMemAddr_);
+            sdmaSwapMemAddr_ = nullptr;
+            hybmStream_->Destroy();
+            hybmStream_ = nullptr;
+            BM_LOG_ERROR("hybm_gvm_mem_fetch failed: " << ret << " addr:" << sdmaSwapMemAddr_);
+            return BM_DL_FUNCTION_FAILED;
+        }
+    }
+    inited_ = true;
+    return BM_OK;
+}
+
+void HostDataOpSDMA::UnInitialized() noexcept
+{
+    if (!inited_) {
+        return;
+    }
+
+    if (sdmaSwapMemoryAllocator_) {
+        DlAclApi::AclrtFree(&sdmaSwapMemAddr_);
+        sdmaSwapMemAddr_ = nullptr;
+    }
+
+    if (hybmStream_ != nullptr) {
+        hybmStream_->Destroy();
+        hybmStream_ = nullptr;
+    }
+    inited_ = false;
+}
 
 int32_t HostDataOpSDMA::DataCopy(const void *srcVA, void *destVA, uint64_t length, hybm_data_copy_direction direction,
                                  const ExtOptions &options) noexcept
@@ -354,56 +415,193 @@ int32_t HostDataOpSDMA::Wait(int32_t waitId) noexcept
     return BM_ERROR;
 }
 
-int32_t HostDataOpSDMA::Initialized() noexcept
-{
-    return 0;
-}
-
-void HostDataOpSDMA::UnInitialized() noexcept
-{
-
-}
-
 int HostDataOpSDMA::CopyGD2GH(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
 {
     // HBM池拷贝到HOST池
-    return 0;
+    BM_LOG_INFO("Copy global device to global host, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
+    return CopyG2G(destVA, srcVA, length);
 }
 
 int HostDataOpSDMA::CopyGH2GD(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
 {
     // HOST池到HBM池的拷贝
-    return 0;
+    BM_LOG_INFO("Copy global host to global device, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
+    return CopyG2G(destVA, srcVA, length);
 }
 
 int HostDataOpSDMA::CopyGH2GH(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
 {
-    return 0;
+    // HOST池到HOST池的拷贝
+    BM_LOG_INFO("Copy global host to global host, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
+    return CopyG2G(destVA, srcVA, length);
 }
 
 int HostDataOpSDMA::CopyLD2GH(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
 {
     // local device到dram池的拷贝
-    return 0;
+    BM_LOG_INFO("Copy local device to global host, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
+    // LD2GD
+    auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(length);
+    auto tmpHbm = tmpSdmaMemory.Address();
+    if (tmpHbm == nullptr) {
+        BM_LOG_ERROR("Failed to malloc swap srcVa: " << srcVA << " destVa: "
+                                                     << destVA << " length: " << length);
+        return BM_MALLOC_FAILED;
+    }
+    auto ret = CopyLD2GD(tmpHbm, srcVA, length, stream);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("Failed to CopyLD2GD ret: " << ret);
+        sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
+        return ret;
+    }
+    // GD2GH
+    ret = CopyG2G(destVA, tmpHbm, length);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("Failed to CopyG2G ret: " << ret);
+    }
+    sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
+    return ret;
 }
 
 int HostDataOpSDMA::CopyLH2GH(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
 {
     // local host到dram池的拷贝
+    BM_LOG_INFO("Copy local host to global host, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
+    // LH2GD
+    auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(length);
+    auto tmpHbm = tmpSdmaMemory.Address();
+    if (tmpHbm == nullptr) {
+        BM_LOG_ERROR("Failed to malloc swap srcVa: " << srcVA << " destVa: "
+                                                     << destVA << " length: " << length);
+        return BM_MALLOC_FAILED;
+    }
+    auto ret = CopyLH2GD(tmpHbm, srcVA, length, stream);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("Failed to CopyLD2GD ret: " << ret);
+        sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
+        return ret;
+    }
+    // GD2GH
+    ret = CopyG2G(destVA, tmpHbm, length);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("Failed to CopyG2G ret: " << ret);
+    }
+    sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
     return 0;
 }
 
 int HostDataOpSDMA::CopyGH2LD(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
 {
     // dram池的拷贝到local device
-    return 0;
+    BM_LOG_INFO("Copy global host to local device, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
+    // GH2GD
+    auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(length);
+    auto tmpHbm = tmpSdmaMemory.Address();
+    if (tmpHbm == nullptr) {
+        BM_LOG_ERROR("Failed to malloc swap srcVa: " << srcVA << " destVa: "
+                                                     << destVA << " length: " << length);
+        return BM_MALLOC_FAILED;
+    }
+    auto ret = CopyG2G(tmpHbm, srcVA, length);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("Failed to CopyG2G ret: " << ret);
+        sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
+        return ret;
+    }
+    // GD2LD
+    ret = CopyGD2LD(destVA, tmpHbm, length, stream);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("Failed to CopyLD2GD ret: " << ret);
+    }
+    sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
+    return ret;
 }
 
 int HostDataOpSDMA::CopyGH2LH(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept
 {
     // dram池的拷贝到local host
-    return 0;
+    BM_LOG_INFO("Copy global host to local host, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
+    // GH2GD
+    auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(length);
+    auto tmpHbm = tmpSdmaMemory.Address();
+    if (tmpHbm == nullptr) {
+        BM_LOG_ERROR("Failed to malloc swap srcVa: " << srcVA << " destVa: "
+                                                     << destVA << " length: " << length);
+        return BM_MALLOC_FAILED;
+    }
+    auto ret = CopyG2G(tmpHbm, srcVA, length);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("Failed to CopyG2G ret: " << ret);
+        sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
+        return ret;
+    }
+    // GD2LH
+    ret = CopyGD2LH(destVA, tmpHbm, length, stream);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("Failed to CopyLD2GD ret: " << ret);
+    }
+    sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
+    return ret;
 }
 
+int HostDataOpSDMA::CopyG2G(void *destVA, const void *srcVA, size_t count) noexcept
+{
+    StreamTask task;
+    task.type = STREAM_TASK_TYPE_SDMA;
+    rtStarsMemcpyAsyncSqe_t *const sqe = &(task.sqe.memcpyAsyncSqe);
+    sqe->header.type = RT_STARS_SQE_TYPE_SDMA;
+    sqe->header.ie = RT_STARS_SQE_INT_DIR_NO;
+    sqe->header.pre_p = RT_STARS_SQE_INT_DIR_NO;
+    sqe->header.wr_cqe = 0U;
+    sqe->header.rt_stream_id = hybmStream_->GetId();
+    sqe->header.task_id = 0;
+
+    sqe->kernelCredit = RT_STARS_DEFAULT_KERNEL_CREDIT;
+    sqe->ptrMode = 0;
+    sqe->opcode = 0U;
+
+    sqe->src_streamid = 0U; // get sid and ssid from sq, leave 0 here
+    sqe->dst_streamid = 0U;
+    sqe->src_sub_streamid = 0U;
+    sqe->dstSubStreamId = 0U;
+    sqe->ie2 = 0U;
+    sqe->sssv = 1U;
+    sqe->dssv = 1U;
+    sqe->sns = 1U;
+    sqe->dns = 1U;
+    sqe->qos = 6U;
+    sqe->sro = 0U;
+    sqe->dro = 0U;
+    sqe->partid = 0U;
+    sqe->mpam = 0U;
+
+    sqe->res3 = 0U;
+    sqe->res4 = 0U;
+    sqe->res5 = 0U;
+    sqe->res6 = 0U;
+
+    sqe->d2dOffsetFlag = 0U;
+    sqe->srcOffsetLow = 0U;
+    sqe->dstOffsetLow = 0U;
+    sqe->srcOffsetHigh = 0U;
+    sqe->dstOffsetHigh = 0U;
+
+    sqe->length = count;
+    sqe->src_addr_low =
+            static_cast<uint32_t>(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(srcVA)) & 0x00000000FFFFFFFFU);
+    sqe->src_addr_high = static_cast<uint32_t>(
+            (static_cast<uint64_t>(reinterpret_cast<uintptr_t>(srcVA)) & 0xFFFFFFFF00000000U) >> UINT32_BIT_NUM);
+    sqe->dst_addr_low =
+            static_cast<uint32_t>(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(destVA)) & 0x00000000FFFFFFFFU);
+    sqe->dst_addr_high = static_cast<uint32_t>(
+            (static_cast<uint64_t>(reinterpret_cast<uintptr_t>(destVA)) & 0xFFFFFFFF00000000U) >> UINT32_BIT_NUM);
+
+    auto ret = hybmStream_->SubmitTasks(task);
+    BM_ASSERT_RETURN(ret == 0, BM_ERROR);
+
+    ret = hybmStream_->Synchronize();
+    BM_ASSERT_RETURN(ret == 0, BM_ERROR);
+    return BM_OK;
+}
 }
 }

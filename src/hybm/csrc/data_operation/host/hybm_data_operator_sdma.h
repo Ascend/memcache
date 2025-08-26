@@ -5,6 +5,8 @@
 #define MEM_FABRIC_HYBRID_HYBM_DATA_OPERATOR_SDMA_H
 
 #include "hybm_data_operator.h"
+#include "hybm_stream.h"
+#include "rbtree_range_pool.h"
 
 namespace ock {
 namespace mf {
@@ -40,6 +42,7 @@ private:
     int CopyGH2LD(void* destVA, const void* srcVA, uint64_t length, void* stream) noexcept;
     int CopyGH2LH(void* destVA, const void* srcVA, uint64_t length, void* stream) noexcept;
     int CopyGH2GH(void* destVA, const void* srcVA, uint64_t length, void* stream) noexcept;
+    int CopyG2G(void *destVA, const void *srcVA, size_t count) noexcept;
 
     int CopyLH2GD2d(void* gvaAddr, uint64_t dpitch, const void* hostAddr, uint64_t spitch, size_t width,
                     uint64_t height, void* stream) noexcept;
@@ -52,6 +55,10 @@ private:
 
 private:
     void *stream_;
+    bool inited_ = false;
+    HybmStreamPtr hybmStream_ = nullptr;
+    void *sdmaSwapMemAddr_ = nullptr;
+    std::shared_ptr<RbtreeRangePool> sdmaSwapMemoryAllocator_;
 };
 }
 }

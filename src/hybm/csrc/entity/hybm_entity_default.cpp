@@ -13,7 +13,6 @@
 #include "hybm_device_mem_segment.h"
 #include "hybm_ex_info_transfer.h"
 #include "hybm_logger.h"
-#include "hybm_op_dram_sdma.h"
 
 namespace ock {
 namespace mf {
@@ -580,11 +579,7 @@ Result MemEntityDefault::InitDataOperator()
             dataOperator_ = std::make_shared<HostDataOpRDMA>(options_.rankId, stream_, transportManager_);
             break;
         case HYBM_DOP_TYPE_SDMA:
-            if (HybmGvmHasInited()) {
-                dataOperator_ = std::make_shared<HostDramSdma>();
-            } else {
-                dataOperator_ = std::make_shared<HostDataOpSDMA>(stream_);
-            }
+            dataOperator_ = std::make_shared<HostDataOpSDMA>(stream_);
             break;
         default:
             return BM_ERROR;
