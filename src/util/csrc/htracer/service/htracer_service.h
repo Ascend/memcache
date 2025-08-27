@@ -22,16 +22,21 @@ public:
         return sevice;
     }
 
+    ~HTracerService()
+    {
+        if (mIsRunning) {
+            ShutDown();
+        }
+    }
+
     int32_t StartUp(const std::string &dumpDir);
     void ShutDown();
 
-public:
     HTracerService(const HTracerService &) = delete;
     HTracerService& operator=(const HTracerService&) = delete;
     HTracerService(HTracerService &&) = delete;
     HTracerService& operator=(HTracerService &&) = delete;
 
-public:
     std::string GetTraceInfo();
     void ClearTraceInfo();
 
@@ -46,11 +51,8 @@ private:
     void StartDump();
     void GetString(HtracerInfo& traceInfo, bool needTotal, std::stringstream& ss, int& traceCount);
 
-private:
     HTracerService() = default;
-    ~HTracerService() = default;
 
-private:
     off_t writePos {0};
     std::string dumpFilePath;
     std::string headline;

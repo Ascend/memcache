@@ -38,12 +38,14 @@ int32_t HTracerService::StartUp(const std::string &dumpDir)
 
 void HTracerService::ShutDown()
 {
-    {
-        std::unique_lock<std::mutex> lock(mDumpLock);
-        mIsRunning = false;
-        mDumpCond.notify_all();
+    if (mDumpThread.joinable()) {
+        {
+            std::unique_lock<std::mutex> lock(mDumpLock);
+            mIsRunning = false;
+            mDumpCond.notify_all();
+        }
+        mDumpThread.join();
     }
-    mDumpThread.join();
 }
 
 void HTracerService::OverrideWrite(std::stringstream &ss)

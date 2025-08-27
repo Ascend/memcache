@@ -198,6 +198,8 @@ int main(int argc, char* argv[])
         leaderElection->Stop();
     }
 
+    ock::mf::HTracerExit();
+
     MMC_AUDIT_LOG("Meta Service stopped");
     return 0;
 }
