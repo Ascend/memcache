@@ -20,7 +20,7 @@ int32_t HostDataOpSDMA::Initialized() noexcept
     }
 
     if (HybmGvmHasInited()) {
-        uint32_t devId = HybmGetInitDeviceId();
+        uint32_t devId = HybmGetInitedLogicDeviceId();
         hybmStream_ = std::make_shared<HybmStream>(devId, 0, 0);
         BM_ASSERT_RETURN(hybmStream_ != nullptr, BM_MALLOC_FAILED);
 

@@ -36,6 +36,11 @@ int32_t HybmGetInitDeviceId()
     return initedDeviceId;
 }
 
+int32_t HybmGetInitedLogicDeviceId()
+{
+    return initedLogicDeviceId;
+}
+
 bool HybmHasInited()
 {
     return initialized > 0;
@@ -225,7 +230,7 @@ static int32_t hybm_init_hbm_gva(uint16_t deviceId, uint64_t flags)
     }
 
     if (flags & HYBM_INIT_GVM_FLAG) {
-        ret = hybm_gvm_init(deviceId);
+        ret = hybm_gvm_init(initedLogicDeviceId);
         if (ret != 0) {
             BM_LOG_ERROR("init hybm gvm failed: " << ret);
             return BM_ERROR;

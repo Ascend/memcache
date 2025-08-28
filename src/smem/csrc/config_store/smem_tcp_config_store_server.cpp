@@ -168,7 +168,11 @@ Result AccStoreServer::SetHandler(const ock::acc::AccTcpRequestContext &context,
     if (pos == kvStore_.end()) {
         auto wPos = keyWaiters_.find(key);
         if (wPos != keyWaiters_.end()) {
-            wakeupWaiters = GetOutWaitersInLock(wPos->second);
+            std::unordered_set<uint64_t> ids;
+            for (auto id : wPos->second) {
+                ids.emplace(id);
+            }
+            wakeupWaiters = GetOutWaitersInLock(ids);
             reqVal = value;
             keyWaiters_.erase(wPos);
         }
@@ -330,7 +334,11 @@ Result AccStoreServer::AddHandler(const ock::acc::AccTcpRequestContext &context,
     if (pos == kvStore_.end()) {
         auto wPos = keyWaiters_.find(key);
         if (wPos != keyWaiters_.end()) {
-            wakeupWaiters = GetOutWaitersInLock(wPos->second);
+            std::unordered_set<uint64_t> ids;
+            for (auto id : wPos->second) {
+                ids.emplace(id);
+            }
+            wakeupWaiters = GetOutWaitersInLock(ids);
             reqVal = value;
             keyWaiters_.erase(wPos);
         }
@@ -409,7 +417,11 @@ Result AccStoreServer::AppendHandler(const ock::acc::AccTcpRequestContext &conte
         newSize = value.size();
         auto wPos = keyWaiters_.find(key);
         if (wPos != keyWaiters_.end()) {
-            wakeupWaiters = GetOutWaitersInLock(wPos->second);
+            std::unordered_set<uint64_t> ids;
+            for (auto id : wPos->second) {
+                ids.emplace(id);
+            }
+            wakeupWaiters = GetOutWaitersInLock(ids);
             reqVal = value;
             keyWaiters_.erase(wPos);
         }
@@ -461,7 +473,11 @@ Result AccStoreServer::CasHandler(const ock::acc::AccTcpRequestContext &context,
             kvStore_.emplace(key, std::move(exchange));
             auto wPos = keyWaiters_.find(key);
             if (wPos != keyWaiters_.end()) {
-                wakeupWaiters = GetOutWaitersInLock(wPos->second);
+                std::unordered_set<uint64_t> ids;
+                for (auto id : wPos->second) {
+                    ids.emplace(id);
+                }
+                wakeupWaiters = GetOutWaitersInLock(ids);
                 keyWaiters_.erase(wPos);
             }
         }
@@ -483,18 +499,18 @@ std::list<ock::acc::AccTcpRequestContext> AccStoreServer::GetOutWaitersInLock(
 {
     std::list<ock::acc::AccTcpRequestContext> reqCtx;
     for (auto id : ids) {
+        SM_LOG_DEBUG("GetOutWaitersInLock id:" << id);
         auto it = waitCtx_.find(id);
         if (it != waitCtx_.end()) {
             reqCtx.emplace_back(std::move(it->second.ReqCtx()));
-            waitCtx_.erase(it);
-        }
-
-        auto wit = timedWaiters_.find(it->second.TimeoutMs());
-        if (wit != timedWaiters_.end()) {
-            wit->second.erase(it->second.Id());
-            if (wit->second.empty()) {
-                timedWaiters_.erase(wit);
+            auto wit = timedWaiters_.find(it->second.TimeoutMs());
+            if (wit != timedWaiters_.end()) {
+                wit->second.erase(it->second.Id());
+                if (wit->second.empty()) {
+                    timedWaiters_.erase(wit);
+                }
             }
+            waitCtx_.erase(it);
         }
     }
     return std::move(reqCtx);

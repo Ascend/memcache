@@ -15,6 +15,8 @@
 
 int32_t HybmGetInitDeviceId();
 
+int32_t HybmGetInitedLogicDeviceId();
+
 bool HybmHasInited();
 
 bool HybmGvmHasInited();
