@@ -179,11 +179,14 @@ def result_handler(func):
 
     return wrapper
 
-def tensor_sum(tensor):
+def tensor_sum(tensor, sizes: List[int] = None):
     if tensor is None:
         return 0
-    ret = torch.sum(tensor, dtype=torch.uint8)
-    return ret.item()
+    if sizes is None:
+        return tensor.sum().item()
+
+    return sum(layer[:size].sum().item() for layer, size in zip(tensor, sizes))
+
 
 class MmcTest(TestServer):
     def __init__(self, ip, port, device_id=0):
@@ -367,7 +370,7 @@ class MmcTest(TestServer):
                                           [layer.data_ptr() for layer in tensor],
                                           sizes,
                                           direct)
-        value = tensor_sum(tensor)
+        value = tensor_sum(tensor, sizes)
         self.cli_return(str([res, value]))
 
     @result_handler
@@ -385,7 +388,7 @@ class MmcTest(TestServer):
                                           [layer.data_ptr() for layer in tensor],
                                           sizes,
                                           direct)
-        value = tensor_sum(tensor)
+        value = tensor_sum(tensor, sizes)
         self.cli_return(str([res, value]))
 
     @result_handler
@@ -406,7 +409,7 @@ class MmcTest(TestServer):
             sizes,
             direct
         )
-        tensor_sums = [tensor_sum(tensor) for tensor in blocks]
+        tensor_sums = [tensor_sum(block, sizes_) for block, sizes_ in zip(blocks, sizes)]
         self.cli_return(str([results, tensor_sums]))
 
     @result_handler
@@ -427,7 +430,7 @@ class MmcTest(TestServer):
             sizes,
             direct
         )
-        tensor_sums = [tensor_sum(tensor) for tensor in blocks]
+        tensor_sums = [tensor_sum(block, sizes_) for block, sizes_ in zip(blocks, sizes)]
         self.cli_return(str([results, tensor_sums]))
 
     def set_device(self):
@@ -437,7 +440,7 @@ class MmcTest(TestServer):
         if ret != 0:
             raise RuntimeError("acl set device failed")
 
-    def malloc_tensor(self, layer_num: int = 1, block_num: int = 1, mini_block_size: int = 1024, device='cpu'):
+    def malloc_tensor(self, layer_num: int = 1, mini_block_size: int = 1024, device='cpu'):
         if device not in ('cpu', 'npu'):
             raise RuntimeError(f"invalid device: {device}")
         if mini_block_size <= 0:
@@ -448,7 +451,7 @@ class MmcTest(TestServer):
             self.set_device()
         raw_blocks = torch.randint(
             low=0, high=256,
-            size=(layer_num, block_num, mini_block_size),
+            size=(layer_num, mini_block_size),
             dtype=torch.uint8,
             device=torch.device(device)
         )
