@@ -112,7 +112,7 @@ private:
     std::mutex mutex_;
     const uint32_t worldSize_;
     uint32_t rankIndex_{0};
-    std::unordered_set<uint32_t> aliveRankSet;
+    std::unordered_set<uint32_t> aliveRankSet_;
 };
 using AccStoreServerPtr = SmRef<AccStoreServer>;
 }  // namespace smem

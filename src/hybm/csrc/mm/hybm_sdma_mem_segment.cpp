@@ -179,7 +179,6 @@ Result MemSegmentHostSDMA::Import(const std::vector<std::string> &allExInfo) noe
             return BM_INVALID_PARAM;
         }
 
-        BM_LOG_INFO("[CX_TEST] import info, rk:" << deserializedInfos[i].rankId << " local_rk:" << options_.rankId);
         if (deserializedInfos[i].rankId == options_.rankId) {
             localIdx = i;
         }
@@ -187,7 +186,6 @@ Result MemSegmentHostSDMA::Import(const std::vector<std::string> &allExInfo) noe
     BM_ASSERT_RETURN(localIdx < deserializedInfos.size(), BM_INVALID_PARAM);
     for (auto i = 0U; i < deserializedInfos.size(); i++) {
         if (deserializedInfos[i].rankId == options_.rankId) {
-            BM_LOG_INFO("[CX_TEST] import skip, rk:" << deserializedInfos[i].rankId << " local_rk:" << options_.rankId);
             continue;
         }
         auto ret = hybm_gvm_set_whitelist(deserializedInfos[localIdx].shmKey, deserializedInfos[i].sdid);

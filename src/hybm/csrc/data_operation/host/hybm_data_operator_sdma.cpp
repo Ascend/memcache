@@ -49,6 +49,8 @@ int32_t HostDataOpSDMA::Initialized() noexcept
             BM_LOG_ERROR("hybm_gvm_mem_fetch failed: " << ret << " addr:" << sdmaSwapMemAddr_);
             return BM_DL_FUNCTION_FAILED;
         }
+        BM_LOG_INFO("Success to register sdma swap memory add: " << sdmaSwapMemAddr_
+            << " length:" << HBM_SWAP_SPACE_SIZE);
     }
 
     inited_ = true;
@@ -447,7 +449,7 @@ int HostDataOpSDMA::CopyLD2GH(void *destVA, const void *srcVA, uint64_t length, 
     BM_LOG_INFO("Copy local device to global host, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
     // LD2GD
     auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(length);
-    auto tmpHbm = tmpSdmaMemory.Address();
+    void *tmpHbm = tmpSdmaMemory.Address();
     if (tmpHbm == nullptr) {
         BM_LOG_ERROR("Failed to malloc swap srcVa: " << srcVA << " destVa: "
                                                      << destVA << " length: " << length);
@@ -462,7 +464,8 @@ int HostDataOpSDMA::CopyLD2GH(void *destVA, const void *srcVA, uint64_t length, 
     // GD2GH
     ret = CopyG2G(destVA, tmpHbm, length);
     if (ret != BM_OK) {
-        BM_LOG_ERROR("Failed to CopyG2G ret: " << ret);
+        BM_LOG_ERROR("Failed to CopyG2G ret: " << ret << " dest:"<< tmpHbm << " srcVa:" << srcVA
+            << " length:" << length);
     }
     sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
     return ret;
@@ -475,7 +478,7 @@ int HostDataOpSDMA::CopyLH2GH(void *destVA, const void *srcVA, uint64_t length, 
     BM_LOG_INFO("Copy local host to global host, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
     // LH2GD
     auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(length);
-    auto tmpHbm = tmpSdmaMemory.Address();
+    void *tmpHbm = tmpSdmaMemory.Address();
     if (tmpHbm == nullptr) {
         BM_LOG_ERROR("Failed to malloc swap srcVa: " << srcVA << " destVa: "
                                                      << destVA << " length: " << length);
@@ -490,7 +493,8 @@ int HostDataOpSDMA::CopyLH2GH(void *destVA, const void *srcVA, uint64_t length, 
     // GD2GH
     ret = CopyG2G(destVA, tmpHbm, length);
     if (ret != BM_OK) {
-        BM_LOG_ERROR("Failed to CopyG2G ret: " << ret);
+        BM_LOG_ERROR("Failed to CopyG2G ret: " << ret << " dest:"<< tmpHbm << " srcVa:" << srcVA
+            << " length:" << length);
     }
     sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
     return 0;
@@ -503,7 +507,7 @@ int HostDataOpSDMA::CopyGH2LD(void *destVA, const void *srcVA, uint64_t length, 
     BM_LOG_INFO("Copy global host to local device, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
     // GH2GD
     auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(length);
-    auto tmpHbm = tmpSdmaMemory.Address();
+    void *tmpHbm = tmpSdmaMemory.Address();
     if (tmpHbm == nullptr) {
         BM_LOG_ERROR("Failed to malloc swap srcVa: " << srcVA << " destVa: "
                                                      << destVA << " length: " << length);
@@ -511,14 +515,16 @@ int HostDataOpSDMA::CopyGH2LD(void *destVA, const void *srcVA, uint64_t length, 
     }
     auto ret = CopyG2G(tmpHbm, srcVA, length);
     if (ret != BM_OK) {
-        BM_LOG_ERROR("Failed to CopyG2G ret: " << ret);
+        BM_LOG_ERROR("Failed to CopyG2G ret: " << ret << " dest:"<< tmpHbm << " srcVa:" << srcVA
+            << " length:" << length);
         sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
         return ret;
     }
     // GD2LD
     ret = CopyGD2LD(destVA, tmpHbm, length, stream);
     if (ret != BM_OK) {
-        BM_LOG_ERROR("Failed to CopyLD2GD ret: " << ret);
+        BM_LOG_ERROR("Failed to CopyLD2GD ret: " << ret << " dest:"<< destVA << " srcVa:" << tmpHbm
+            << " length:" << length);
     }
     sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
     return ret;
@@ -531,7 +537,7 @@ int HostDataOpSDMA::CopyGH2LH(void *destVA, const void *srcVA, uint64_t length, 
     BM_LOG_INFO("Copy global host to local host, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
     // GH2GD
     auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(length);
-    auto tmpHbm = tmpSdmaMemory.Address();
+    void *tmpHbm = tmpSdmaMemory.Address();
     if (tmpHbm == nullptr) {
         BM_LOG_ERROR("Failed to malloc swap srcVa: " << srcVA << " destVa: "
                                                      << destVA << " length: " << length);
@@ -539,14 +545,16 @@ int HostDataOpSDMA::CopyGH2LH(void *destVA, const void *srcVA, uint64_t length, 
     }
     auto ret = CopyG2G(tmpHbm, srcVA, length);
     if (ret != BM_OK) {
-        BM_LOG_ERROR("Failed to CopyG2G ret: " << ret);
+        BM_LOG_ERROR("Failed to CopyG2G ret: " << ret << " dest:"<< tmpHbm << " srcVa:" << srcVA
+            << " length:" << length);
         sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
         return ret;
     }
     // GD2LH
     ret = CopyGD2LH(destVA, tmpHbm, length, stream);
     if (ret != BM_OK) {
-        BM_LOG_ERROR("Failed to CopyLD2GD ret: " << ret);
+        BM_LOG_ERROR("Failed to CopyLD2GD ret: " << ret << " dest:"<< destVA << " srcVa:" << tmpHbm
+            << " length:" << length);
     }
     sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
     return ret;

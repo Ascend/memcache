@@ -138,7 +138,7 @@ Result AccStoreServer::LinkBrokenHandler(const ock::acc::AccTcpLinkComplexPtr &l
         } trans{};
         std::copy(pos->second.begin(), pos->second.end(), trans.date);
         uint32_t rankId = trans.rankId;
-        aliveRankSet.erase(rankId);
+        aliveRankSet_.erase(rankId);
         kvStore_.erase(pos);
         SM_LOG_INFO("link broken, linkId: " << link->Id() << " remove rankId: " << rankId);
     }
@@ -195,27 +195,28 @@ Result AccStoreServer::FindOrInsertRank(const ock::acc::AccTcpRequestContext &co
     auto &key = request.keys[0];
     auto linkId = context.Link()->Id();
     auto rankingKey = key + std::to_string(linkId);
-    SM_LOG_DEBUG("GET rankingKey(" << rankingKey << ") success.");
+    SM_LOG_INFO("GET rankingKey(" << rankingKey << ") success.");
     SmemMessage responseMessage{request.mt};
     std::unique_lock<std::mutex> lockGuard{storeMutex_};
     auto pos = kvStore_.find(rankingKey);
     if (pos != kvStore_.end()) {
         responseMessage.values.emplace_back(pos->second);
         lockGuard.unlock();
-        SM_LOG_DEBUG("GET REQUEST(" << context.SeqNo() << ") for key(" << rankingKey << ") success.");
+        SM_LOG_INFO("GET REQUEST(" << context.SeqNo() << ") for key(" << rankingKey << ") success.");
         auto response = SmemMessagePacker::Pack(responseMessage);
         ReplyWithMessage(context, StoreErrorCode::SUCCESS, response);
         return SM_OK;
     }
-    if (aliveRankSet.size() >= worldSize_) {
-        SM_LOG_ERROR("Failed to insert rank, rank count:" << aliveRankSet.size() << " equal worldSize: " << worldSize_);
+    if (aliveRankSet_.size() >= worldSize_) {
+        SM_LOG_ERROR("Failed to insert rank, rank count:" << aliveRankSet_.size()
+            << " equal worldSize: " << worldSize_);
         ReplyWithMessage(context, StoreErrorCode::ERROR, "error: worldSize rankSize bigger than worldSize.");
         return SM_ERROR;
     }
     while (true) {
         rankIndex_ %= worldSize_;
-        if (aliveRankSet.find(rankIndex_) == aliveRankSet.end()) {
-            aliveRankSet.insert(rankIndex_);
+        if (aliveRankSet_.find(rankIndex_) == aliveRankSet_.end()) {
+            aliveRankSet_.insert(rankIndex_);
             break;
         }
         rankIndex_++;
@@ -230,7 +231,8 @@ Result AccStoreServer::FindOrInsertRank(const ock::acc::AccTcpRequestContext &co
     lockGuard.unlock();
 
     responseMessage.values.emplace_back(trans.date, trans.date + sizeof(trans.date));
-    SM_LOG_DEBUG("GET REQUEST(" << context.SeqNo() << ") for key(" << rankingKey << ") success.");
+    SM_LOG_INFO("GET REQUEST(" << context.SeqNo() << ") for key(" << rankingKey << ") rankId:" << trans.rankId
+        << " rankId_:" << rankIndex_);
     auto response = SmemMessagePacker::Pack(responseMessage);
     ReplyWithMessage(context, StoreErrorCode::SUCCESS, response);
     return 0;
