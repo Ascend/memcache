@@ -7,11 +7,13 @@
 #include <linux/atomic.h>
 #include <linux/list.h>
 #include <linux/rbtree.h>
-#include <linux/rwsem.h>
+#include <linux/mutex.h>
+#include <linux/kref.h>
 
 #define HYBM_GVM_PAGE_SIZE   (1024UL * 1024UL * 1024UL)                 // 1G
 #define HYBM_HPAGE_SIZE      (2UL * 1024UL * 1024UL)                    // 2M
 #define HYBM_GVM_PAGE_NUM    (HYBM_GVM_PAGE_SIZE / HYBM_HPAGE_SIZE)     // 512
+#define HYBM_GVM_ALLOC_MAX_SIZE   (512UL * 1024UL * 1024UL * 1024UL)    // 512G
 #define HYBM_MAX_DEVICE_NUM  64
 
 #define HYBM_SVM_START  0x100000000000ULL
@@ -44,10 +46,14 @@ struct gvm_private_data {
     atomic_t init_flag;
 };
 
-struct mem_node {
+struct gvm_pa_node {
     u64 pa;
     u64 *dma_list;
-    void *head_node;
+};
+
+struct gvm_rbtree {
+    struct rb_root tree;
+    struct mutex lock;
 };
 
 struct hybm_gvm_process {
@@ -61,10 +67,14 @@ struct hybm_gvm_process {
     u64 va_start;
     u64 va_end;
     u64 va_page_num;
-    struct mem_node *mem_array;
-    struct rb_root key_tree;
+
+    struct gvm_rbtree va_tree;
+    struct gvm_rbtree key_tree;
+
     struct list_head fetch_head;         // TODO: 使用树记录,可以支持提前删除
-    struct rw_semaphore ioctl_rwsem;     // proc所有ioctl都有加锁,避免并发
+    struct mutex fetch_lock;
+
+    struct kref ref;
 
     struct vm_area_struct *vma;
     struct mm_struct *mm;
@@ -80,9 +90,15 @@ struct gvm_node {
     u64 va;
     u64 size;
     u64 shm_key;
+    u32 pa_num;
+    u32 pad;
     u64 flag;
+    struct kref ref;
+    struct mutex lock;
     struct list_head wlist_head;
-    struct rb_node tree_node;
+    struct rb_node key_node;
+    struct rb_node va_node;
+    struct gvm_pa_node pmem[0];
 };
 
 struct gvm_dev_mem_node {

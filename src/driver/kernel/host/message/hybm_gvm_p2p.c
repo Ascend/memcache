@@ -180,7 +180,7 @@ static int hybm_gvm_p2p_msg_recv(u32 devid, u32 sdid, struct data_input_info *da
     }
 
     msg = data->data;
-    hybm_gvm_debug("gvm_p2p_msg_recv, type:%u src_dev:%u dst_sdid:%u", msg->cmdtype, devid, sdid);
+    hybm_gvm_debug("gvm_p2p_msg_recv, type:%u src_dev:%u dst_sdid:0x%x", msg->cmdtype, devid, sdid);
     if (rcv_ops[msg->cmdtype] != NULL) {
         ret = rcv_ops[msg->cmdtype](sdid, msg, data->in_len);
         data->out_len = data->in_len;
@@ -198,6 +198,11 @@ static int hybm_gvm_p2p_msg_sync_send(u32 src_devid, u32 dst_sdid, struct hybm_g
     struct data_input_info data = {
         .data = (void *)msg, .data_len = size, .in_len = size, .out_len = 0, .msg_mode = DEVDRV_S2S_SYNC_MODE};
     int ret;
+
+    if (msg->src_sdid == dst_sdid) {
+        hybm_gvm_err("dst is local, can't send self. sdid:0x%x", dst_sdid);
+        return -EBUSY;
+    }
 
     if (hybm_gvm_is_local_pod(msg->src_sdid, dst_sdid)) { // local msg
         return hybm_gvm_p2p_msg_recv(src_devid, dst_sdid, &data);

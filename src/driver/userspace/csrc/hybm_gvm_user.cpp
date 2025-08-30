@@ -261,18 +261,18 @@ int32_t hybm_gvm_set_whitelist(uint64_t key, uint32_t sdid)
         return HYBM_GVM_FAILURE;
     }
     if (sdid == 0 || key == 0) {
-        BM_USER_LOG_ERROR("Invalid param sdid:" << sdid << " key:" << key);
+        BM_USER_LOG_ERROR("Invalid param sdid:" << std::hex << sdid << " key:" << key);
         return HYBM_GVM_FAILURE;
     }
     arg.data.set_wl_para.key = key;
     arg.data.set_wl_para.sdid = sdid;
     ret = ioctl(g_hybm_fd, HYBM_GVM_CMD_SET_WL, &arg);
     if (ret < 0) {
-        BM_USER_LOG_ERROR("ioctl HYBM_GVM_CMD_SET_WL failed, ret:" << ret << " sdid:" << sdid << " key:" << std::hex
+        BM_USER_LOG_ERROR("ioctl HYBM_GVM_CMD_SET_WL failed, ret:" << ret << " sdid:" << std::hex << sdid << " key:"
                                                                    << key);
         return HYBM_GVM_FAILURE;
     }
-    BM_USER_LOG_INFO("ioctl HYBM_GVM_CMD_SET_WL success, sdid:" << sdid << " key:" << std::hex << key);
+    BM_USER_LOG_INFO("ioctl HYBM_GVM_CMD_SET_WL success, sdid:" << std::hex << sdid << " key:" << key);
     return HYBM_GVM_SUCCESS;
 }
 

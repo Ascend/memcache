@@ -14,8 +14,6 @@
 #define HYBM_GVM_RLOCK 2
 
 int hybm_gvm_dispatch_ioctl(struct file *file, u32 cmd, struct hybm_gvm_ioctl_arg *buffer);
-void hybm_gvm_ioctl_lock(struct hybm_gvm_process *gvm_proc, u32 lock_flag);
-void hybm_gvm_ioctl_unlock(struct hybm_gvm_process *gvm_proc, u32 lock_flag);
 
 struct gvm_ioctl_handlers_st {
     int (*ioctl_handler)(struct file *file, struct hybm_gvm_process *gvm_proc, struct hybm_gvm_ioctl_arg *);

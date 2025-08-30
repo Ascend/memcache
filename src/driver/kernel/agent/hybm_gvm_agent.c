@@ -843,7 +843,7 @@ static void __exit gvm_agent_exit(void)
     struct gvm_dev_mem_node *node;
 
     hybm_gvm_info("gvm agent exit.");
-    if (!list_empty(&g_gvm_agent_info.roce_head)) {
+    if (!list_empty_careful(&g_gvm_agent_info.roce_head)) {
         hybm_gvm_err("gvm roce list is not empty!");
 
         list_for_each_safe(pos, n, &g_gvm_agent_info.roce_head)

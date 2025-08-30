@@ -40,7 +40,6 @@ static int hybm_gvm_release(struct inode *inode, struct file *file)
     if (((struct gvm_private_data *)file->private_data)->process == NULL) {
         hybm_gvm_info("Process is NULL.");
     } else {
-        // TODO: 正在使用proc时发生destroy怎么处理
         hybm_gvm_proc_destroy(file->private_data);
     }
 

@@ -10,6 +10,7 @@
 #include "hybm_gvm_proc_info.h"
 
 void hybm_gvm_proc_destroy(struct gvm_private_data *priv);
+void hybm_proc_ref_release(struct kref *kref);
 
 int hybm_gvm_proc_get_pa(u32 sdid, u64 va, u64 size, u64 *arr, u64 max_num);
 int hybm_gvm_insert_remote(u32 sdid, u64 key, u64 va, u64 size, struct hybm_gvm_process **rp);
