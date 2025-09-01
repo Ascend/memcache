@@ -20,6 +20,7 @@ using namespace ock::mf;
 
 constexpr int MAX_LAYER_NUM = 255;
 constexpr int MAX_BATCH_SIZE = 512;
+constexpr int MAX_KEY_LEN = 256;
 
 // ResourceTracker implementation using singleton pattern
 ResourceTracker &ResourceTracker::getInstance() {
@@ -493,13 +494,14 @@ int DistributedObjectStore::put_from(const std::string &key, mmc_buffer &buffer)
 int DistributedObjectStore::put_from_layers(const std::string& key, const std::vector<uint8_t*>& buffers,
                                             const std::vector<size_t>& sizes, const int32_t& direct)
 {
-    uint32_t type;
-    if (direct == SMEMB_COPY_L2G) {
-        type = 1;
-    } else if (direct == SMEMB_COPY_H2G) {
-        type = 0;
-    } else {
+    if (direct != SMEMB_COPY_L2G && direct != SMEMB_COPY_H2G) {
         MMC_LOG_ERROR("Invalid direct(" << direct << "), only 0 (SMEMB_COPY_L2G) and 3 (SMEMB_COPY_H2G) is supported");
+        return MMC_INVALID_PARAM;
+    }
+    uint32_t type = (direct == SMEMB_COPY_L2G ? 1 : 0);
+
+    if (key.length() == 0 || key.length() > MAX_KEY_LEN) {
+        MMC_LOG_ERROR("Invalid param, key's len (" << key.length() << ") is not between 1 and " << MAX_KEY_LEN);
         return MMC_INVALID_PARAM;
     }
 
@@ -559,15 +561,11 @@ std::vector<int> DistributedObjectStore::batch_put_from_layers(const std::vector
     const size_t batchSize = keys.size();
     std::vector<int> results(batchSize, MMC_INVALID_PARAM);
 
-    uint32_t type;
-    if (direct == SMEMB_COPY_L2G) {
-        type = 1;
-    } else if (direct == SMEMB_COPY_H2G) {
-        type = 0;
-    } else {
+    if (direct != SMEMB_COPY_L2G && direct != SMEMB_COPY_H2G) {
         MMC_LOG_ERROR("Invalid direct(" << direct << "), only 0 (SMEMB_COPY_L2G) and 3 (SMEMB_COPY_H2G) is supported");
         return results;
     }
+    uint32_t type = (direct == SMEMB_COPY_L2G ? 1 : 0);
 
     if (batchSize != buffers.size() || batchSize != sizes.size()) {
         MMC_LOG_ERROR("Input vector sizes mismatch: keys=" << keys.size()
@@ -578,6 +576,13 @@ std::vector<int> DistributedObjectStore::batch_put_from_layers(const std::vector
     if (batchSize == 0 || batchSize > MAX_BATCH_SIZE) {
         MMC_LOG_ERROR("Batch size is 0 or exceeds the limit of " << MAX_BATCH_SIZE);
         return results;
+    }
+
+    for (const std::string& key : keys) {
+        if (key.length() == 0 || key.length() > MAX_KEY_LEN) {
+            MMC_LOG_ERROR("Invalid param, key's len (" << key.length() << ") is not between 1 and " << MAX_KEY_LEN);
+            return results;
+        }
     }
 
     bool all2D;
@@ -613,13 +618,14 @@ std::vector<int> DistributedObjectStore::batch_put_from_layers(const std::vector
 int DistributedObjectStore::get_into_layers(const std::string& key, const std::vector<uint8_t*>& buffers,
                                             const std::vector<size_t>& sizes, const int32_t& direct)
 {
-    uint32_t type;
-    if (direct == SMEMB_COPY_G2L) {
-        type = 1;
-    } else if (direct == SMEMB_COPY_G2H) {
-        type = 0;
-    } else {
+    if (direct != SMEMB_COPY_G2L && direct != SMEMB_COPY_G2H) {
         MMC_LOG_ERROR("Invalid direct(" << direct << "), only 1 (SMEMB_COPY_G2L) and 2 (SMEMB_COPY_G2H) is supported");
+        return MMC_INVALID_PARAM;
+    }
+    uint32_t type = (direct == SMEMB_COPY_G2L ? 1 : 0);
+
+    if (key.length() == 0 || key.length() > MAX_KEY_LEN) {
+        MMC_LOG_ERROR("Invalid param, key's len (" << key.length() << ") is not between 1 and " << MAX_KEY_LEN);
         return MMC_INVALID_PARAM;
     }
 
@@ -677,15 +683,11 @@ std::vector<int> DistributedObjectStore::batch_get_into_layers(const std::vector
     const size_t batchSize = keys.size();
     std::vector<int> results(batchSize, MMC_INVALID_PARAM);
 
-    uint32_t type;
-    if (direct == SMEMB_COPY_G2L) {
-        type = 1;
-    } else if (direct == SMEMB_COPY_G2H) {
-        type = 0;
-    } else {
+    if (direct != SMEMB_COPY_G2L && direct != SMEMB_COPY_G2H) {
         MMC_LOG_ERROR("Invalid direct(" << direct << "), only 1 (SMEMB_COPY_G2L) and 2 (SMEMB_COPY_G2H) is supported");
         return results;
     }
+    uint32_t type = (direct == SMEMB_COPY_G2L ? 1 : 0);
 
     if (batchSize != buffers.size() || batchSize != sizes.size()) {
         MMC_LOG_ERROR("Input vector sizes mismatch: keys=" << keys.size()
@@ -697,6 +699,13 @@ std::vector<int> DistributedObjectStore::batch_get_into_layers(const std::vector
     if (batchSize == 0 || batchSize > MAX_BATCH_SIZE) {
         MMC_LOG_ERROR("Batch size (" << batchSize << ") is 0 or exceeds the limit of " << MAX_BATCH_SIZE);
         return results;
+    }
+
+    for (const std::string& key : keys) {
+        if (key.length() == 0 || key.length() > MAX_KEY_LEN) {
+            MMC_LOG_ERROR("Invalid param, key's len (" << key.length() << ") is not between 1 and " << MAX_KEY_LEN);
+            return results;
+        }
     }
 
     bool isAll2D;
