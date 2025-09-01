@@ -10,9 +10,6 @@
 #include "hybm_gvm_cmd.h"
 #include "hybm_gvm_proc_info.h"
 
-#define HYBM_GVM_WLOCK 1
-#define HYBM_GVM_RLOCK 2
-
 int hybm_gvm_dispatch_ioctl(struct file *file, u32 cmd, struct hybm_gvm_ioctl_arg *buffer);
 
 struct gvm_ioctl_handlers_st {

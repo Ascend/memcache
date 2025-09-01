@@ -24,7 +24,11 @@
 #define GVM_KEY_SDID_OFFSET    32
 #define GVM_SDID_SERVER_OFFSET 22
 #define GVM_GLOBAL_SERVER_NUM  48
-#define GVM_GLOBAL_PA_MASK     (0xffffffffffffULL) // 256T (2^48)
+#define GVM_SINGLE_NODE_CPU_NUM  4
+
+#define GVM_GLOBAL_DRAM_PA_START    (0x800000000000ULL)
+#define GVM_GLOBAL_DRAM_PA_PSIZE    (0x00aa80000000ULL) // 682G
+#define GVM_GLOBAL_PA_MASK          (0xffffffffffffULL) // 256T (2^48)
 
 static DEFINE_RWLOCK(proc_rwlock);
 static struct hybm_gvm_process *g_proc_list[HYBM_MAX_DEVICE_NUM] = {NULL};
@@ -64,98 +68,43 @@ static inline u32 gvm_get_server_id_by_sdid(u32 sdid)
     return (sdid >> GVM_SDID_SERVER_OFFSET);
 }
 
-static u64 g_global_pa_offset[48] = {
-    [3] = 0xb94000000000ULL,
-    [18] = 0xb84000000000ULL,
+static u64 g_local_pa_start[GVM_SINGLE_NODE_CPU_NUM] = {
+    0x029580000000ULL,
+    0x0a9580000000ULL,
+    0x129580000000ULL,
+    0x1a9580000000ULL
 };
 
 static u64 gvm_get_local_pa_from_global(u64 pa, u32 sdid)
 {
-    u32 server_id = gvm_get_server_id_by_sdid(sdid);
-    u64 offset;
-    if (server_id >= GVM_GLOBAL_SERVER_NUM) {
-        hybm_gvm_err("translate failed, server id is invalid(%u)", server_id);
-        return 0ULL;
+    u32 cpu_id = 0;
+    if (pa < GVM_GLOBAL_DRAM_PA_START) {
+        hybm_gvm_err("translate failed, pa is invalid(0x%llx)", pa);
+        return 0;
     }
 
-    offset = g_global_pa_offset[server_id];
-    if (offset == 0ULL) {
-        hybm_gvm_err("translate failed, server id is not support(%u)", server_id);
-        return 0ULL;
-    }
-
-    return (pa + offset) & GVM_GLOBAL_PA_MASK;
+    cpu_id = (pa - GVM_GLOBAL_DRAM_PA_START) / GVM_GLOBAL_DRAM_PA_PSIZE % GVM_SINGLE_NODE_CPU_NUM;
+    return g_local_pa_start[cpu_id] + (pa % GVM_GLOBAL_DRAM_PA_PSIZE);
 }
 
 static u64 gvm_get_global_pa_from_local(u64 pa, u32 sdid)
 {
+    u32 i;
     u32 server_id = gvm_get_server_id_by_sdid(sdid);
-    u64 offset;
     if (server_id >= GVM_GLOBAL_SERVER_NUM) {
         hybm_gvm_err("translate failed, server id is invalid(%u)", server_id);
         return 0ULL;
     }
 
-    offset = g_global_pa_offset[server_id];
-    if (offset == 0ULL) {
-        hybm_gvm_err("translate failed, server id is not support(%u)", server_id);
-        return 0ULL;
-    }
-
-    return (pa - offset) & GVM_GLOBAL_PA_MASK;
-}
-
-static bool gvm_key_tree_insert(struct gvm_rbtree *rtree, struct gvm_node *data)
-{
-    struct rb_node **new = NULL;
-    struct rb_node *parent = NULL;
-    mutex_lock(&rtree->lock);
-    new = &(rtree->tree.rb_node);
-    while (*new) {
-        struct gvm_node *tmp = container_of(*new, struct gvm_node, key_node);
-        parent = *new;
-        if (data->shm_key < tmp->shm_key) {
-            new = &((*new)->rb_left);
-        } else if (data->shm_key > tmp->shm_key) {
-            new = &((*new)->rb_right);
-        } else {
-            mutex_unlock(&rtree->lock);
-            return false;
+    for (i = 0; i < GVM_SINGLE_NODE_CPU_NUM; i++) {
+        if (g_local_pa_start[i] <= pa && pa < (g_local_pa_start[i] + GVM_GLOBAL_DRAM_PA_PSIZE)) {
+            return GVM_GLOBAL_DRAM_PA_START + GVM_GLOBAL_DRAM_PA_PSIZE * (server_id * GVM_SINGLE_NODE_CPU_NUM + i) +
+                   (pa - g_local_pa_start[i]);
         }
     }
-    /* Add new node and rebalance tree. */
-    rb_link_node(&data->key_node, parent, new);
-    rb_insert_color(&data->key_node, &rtree->tree);
-    mutex_unlock(&rtree->lock);
-    return true;
-}
 
-static void gvm_key_tree_remove(struct gvm_rbtree *rtree, struct gvm_node *data)
-{
-    mutex_lock(&rtree->lock);
-    rb_erase(&data->key_node, &rtree->tree);
-    mutex_unlock(&rtree->lock);
-}
-
-static struct gvm_node *gvm_key_tree_search_and_inc(struct gvm_rbtree *rtree, u64 key)
-{
-    struct rb_node *node = NULL;
-    mutex_lock(&rtree->lock);
-    node = rtree->tree.rb_node;
-    while (node) {
-        struct gvm_node *tmp = container_of(node, struct gvm_node, key_node);
-        if (key < tmp->shm_key) {
-            node = node->rb_left;
-        } else if (key > tmp->shm_key) {
-            node = node->rb_right;
-        } else {
-            kref_get(&tmp->ref);
-            mutex_unlock(&rtree->lock);
-            return tmp;
-        }
-    }
-    mutex_unlock(&rtree->lock);
-    return NULL;
+    hybm_gvm_err("translate failed, pa is invalid(0x%llx)", pa);
+    return 0;
 }
 
 static struct gvm_node *hybm_gvm_node_alloc(u64 va, u64 size)
@@ -181,6 +130,8 @@ static struct gvm_node *hybm_gvm_node_alloc(u64 va, u64 size)
     node->va = va;
     node->size = size;
     node->pa_num = pa_num;
+    RB_CLEAR_NODE(&node->key_node);
+    RB_CLEAR_NODE(&node->va_node);
     kref_init(&node->ref);
     mutex_init(&node->lock);
     INIT_LIST_HEAD(&node->wlist_head);
@@ -190,7 +141,66 @@ static struct gvm_node *hybm_gvm_node_alloc(u64 va, u64 size)
 static void hybm_gvm_node_ref_release(struct kref *kref)
 {
     struct gvm_node *node = container_of(kref, struct gvm_node, ref);
+    hybm_gvm_debug("release gvm node:%p, va:0x%llx", node, node->va);
     kfree(node);
+}
+
+static bool gvm_key_tree_insert(struct gvm_rbtree *rtree, struct gvm_node *data)
+{
+    struct rb_node **new = NULL;
+    struct rb_node *parent = NULL;
+    mutex_lock(&rtree->lock);
+    new = &(rtree->tree.rb_node);
+    while (*new) {
+        struct gvm_node *tmp = container_of(*new, struct gvm_node, key_node);
+        parent = *new;
+        if (data->shm_key < tmp->shm_key) {
+            new = &((*new)->rb_left);
+        } else if (data->shm_key > tmp->shm_key) {
+            new = &((*new)->rb_right);
+        } else {
+            mutex_unlock(&rtree->lock);
+            return false;
+        }
+    }
+    /* Add new node and rebalance tree. */
+    rb_link_node(&data->key_node, parent, new);
+    rb_insert_color(&data->key_node, &rtree->tree);
+    kref_get(&data->ref); // 插入后加引用计数,remove时减去
+    mutex_unlock(&rtree->lock);
+    return true;
+}
+
+static void gvm_key_tree_remove(struct gvm_rbtree *rtree, struct gvm_node *data)
+{
+    mutex_lock(&rtree->lock);
+    if (!RB_EMPTY_NODE(&data->key_node)) {
+        rb_erase(&data->key_node, &rtree->tree);
+        RB_CLEAR_NODE(&data->key_node);
+        kref_put(&data->ref, hybm_gvm_node_ref_release);
+    }
+    mutex_unlock(&rtree->lock);
+}
+
+static struct gvm_node *gvm_key_tree_search_and_inc(struct gvm_rbtree *rtree, u64 key)
+{
+    struct rb_node *node = NULL;
+    mutex_lock(&rtree->lock);
+    node = rtree->tree.rb_node;
+    while (node) {
+        struct gvm_node *tmp = container_of(node, struct gvm_node, key_node);
+        if (key < tmp->shm_key) {
+            node = node->rb_left;
+        } else if (key > tmp->shm_key) {
+            node = node->rb_right;
+        } else {
+            kref_get(&tmp->ref);
+            mutex_unlock(&rtree->lock);
+            return tmp;
+        }
+    }
+    mutex_unlock(&rtree->lock);
+    return NULL;
 }
 
 static bool gvm_va_tree_cross(struct gvm_rbtree *rtree, u64 va, u64 size)
@@ -278,6 +288,7 @@ static bool gvm_va_tree_insert(struct gvm_rbtree *rtree, struct gvm_node *data)
     /* Add new node and rebalance tree. */
     rb_link_node(&data->va_node, parent, new);
     rb_insert_color(&data->va_node, &rtree->tree);
+    kref_get(&data->ref); // 插入后加引用计数,remove时减去
     mutex_unlock(&rtree->lock);
     return true;
 }
@@ -286,9 +297,13 @@ static bool gvm_va_tree_insert(struct gvm_rbtree *rtree, struct gvm_node *data)
 static void gvm_va_tree_remove_and_dec(struct gvm_rbtree *rtree, struct gvm_node *data)
 {
     mutex_lock(&rtree->lock);
-    rb_erase(&data->va_node, &rtree->tree);
+    if (!RB_EMPTY_NODE(&data->va_node)) {
+        rb_erase(&data->va_node, &rtree->tree);
+        RB_CLEAR_NODE(&data->va_node);
+        kref_put(&data->ref, hybm_gvm_node_ref_release); // 减去insert时加的计数
+    }
     mutex_unlock(&rtree->lock);
-    kref_put(&data->ref, hybm_gvm_node_ref_release);
+    kref_put(&data->ref, hybm_gvm_node_ref_release); // 减去init时的计数,表示可以free了
 }
 
 // @return true if `init_flag` has already been set.
@@ -357,7 +372,7 @@ void hybm_proc_ref_release(struct kref *kref)
 {
     struct hybm_gvm_process *proc = container_of(kref, struct hybm_gvm_process, ref);
 
-    hybm_gvm_info("release gvm proc:%p", proc);
+    hybm_gvm_debug("release gvm proc:%p", proc);
     hybm_free_gvm_proc(&proc);
 }
 
@@ -647,6 +662,7 @@ static int hybm_gvm_mem_alloc_inner(struct hybm_gvm_process *proc, struct gvm_no
             hybm_gvm_unmap_phys(proc->mm, va + i * HYBM_GVM_PAGE_SIZE, HYBM_GVM_PAGE_SIZE);
             goto failed_return;
         }
+        hybm_gvm_debug("alloc mem and map. va(0x%llx)pa(0x%llx)", va + i * HYBM_GVM_PAGE_SIZE, node->pmem[i].pa);
     }
 
     gvm_set_flag(&node->flag, GVM_NODE_FLAG_ALLOCATED);
@@ -934,6 +950,7 @@ static int hybm_gvm_mem_fetch(struct file *file, struct hybm_gvm_process *proc, 
         kfree(node);
         return ret;
     }
+    hybm_gvm_debug("fetch mem and map. va(0x%llx)pa_0(0x%llx)", va, node->pa[0]);
 
     node->va = va;
     node->size = size;
@@ -1083,6 +1100,7 @@ int hybm_gvm_proc_set_pa(struct hybm_gvm_process *proc, u32 sdid, struct gvm_nod
             mutex_unlock(&node->lock);
             return ret;
         }
+        hybm_gvm_debug("open mem and map. va(0x%llx)pa_0(0x%llx)", node->va + i * HYBM_GVM_PAGE_SIZE, lpa);
     }
 
     gvm_set_flag(&node->flag, GVM_NODE_FLAG_ALLOCATED);
