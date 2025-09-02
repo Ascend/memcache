@@ -675,7 +675,7 @@ int HostDataOpSDMA::CopyLD2GH2d(void *gvaAddr, uint64_t dpitch, const void *devi
 
     auto ret = CopyLD2GD2d(tmpHbm, dpitch, deviceAddr, spitch, width, height, stream);
     if (ret != BM_OK) {
-        BM_LOG_ERROR("Failed to CopyGD2LD2d ret: " << ret << " dest:"<< deviceAddr << " srcVa:" << tmpHbm
+        BM_LOG_ERROR("Failed to CopyLD2GD2d ret: " << ret << " dest:"<< deviceAddr << " srcVa:" << tmpHbm
                      << " spitch: " << spitch << " dpitch: " << dpitch << " width: " << width
                      << " height:" << height << " stream:" << stream);
         sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);

@@ -44,7 +44,19 @@ Result MmcMetaManager::Get(const std::string& key, uint64_t operateId, MmcBlobFi
 Result MmcMetaManager::ExistKey(const std::string& key)
 {
     MmcMemObjMetaPtr memObj;
-    return metaContainer_->Get(key, memObj);
+    auto ret = metaContainer_->Get(key, memObj);
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("Failed to get key:" << key << " ret:" << ret);
+        return ret;
+    }
+    std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(memObj)]);
+    MmcBlobFilterPtr filterPtr = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, READABLE);
+    std::vector<MmcMemBlobPtr> blobs = memObj->GetBlobs(filterPtr);
+    if (blobs.empty()) {
+        MMC_LOG_ERROR("Key is exist but do not have readable blob key:" << key);
+        return MMC_OBJECT_NOT_EXISTS;
+    }
+    return MMC_OK;
 }
 
 void MmcMetaManager::CheckAndEvict()
