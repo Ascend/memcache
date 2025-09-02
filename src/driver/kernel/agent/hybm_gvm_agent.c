@@ -250,10 +250,10 @@ int gvm_agent_map_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
 
     if ((va >= HYBM_SVM_START && va < HYBM_SVM_END) || (va >= HYBM_SVSP_START && va < HYBM_SVSP_END)) {
         ret = gvm_agent_map_svsp(va, size, map_body->pa_list, num, pasid);
-        hybm_gvm_debug("gvm_agent_map_svsp, va:0x%llx,size:0x%llx,ret:%d", va, size, ret);
+        hybm_gvm_debug("map svsp, va:0x%llx,pa_0:0x%llx,size:0x%llx,ret:%d", va, map_body->pa_list[0], size, ret);
     } else {
         ret = gvm_agent_add_roce_node(va, size, map_body->pa_list, num);
-        hybm_gvm_debug("gvm_agent_map_roce, va:0x%llx,size:0x%llx,ret:%d", va, size, ret);
+        hybm_gvm_debug("map roce, va:0x%llx,pa_0:0x%llx,size:0x%llx,ret:%d", va, map_body->pa_list[0], size, ret);
     }
 
     return ret;

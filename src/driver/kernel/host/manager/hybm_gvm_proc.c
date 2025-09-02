@@ -84,7 +84,7 @@ static u64 gvm_get_local_pa_from_global(u64 pa, u32 sdid)
     }
 
     cpu_id = (pa - GVM_GLOBAL_DRAM_PA_START) / GVM_GLOBAL_DRAM_PA_PSIZE % GVM_SINGLE_NODE_CPU_NUM;
-    return g_local_pa_start[cpu_id] + (pa % GVM_GLOBAL_DRAM_PA_PSIZE);
+    return g_local_pa_start[cpu_id] + ((pa - GVM_GLOBAL_DRAM_PA_START) % GVM_GLOBAL_DRAM_PA_PSIZE);
 }
 
 static u64 gvm_get_global_pa_from_local(u64 pa, u32 sdid)
