@@ -27,9 +27,14 @@ public:
     {
     }
 
-    ~SmemBmEntry() override = default;
+    ~SmemBmEntry() override
+    {
+        UnInitalize();
+    };
 
     int32_t Initialize(const hybm_options &options);
+
+    void UnInitalize();
 
     Result Join(uint32_t flags, void **localGvaAddress);
 

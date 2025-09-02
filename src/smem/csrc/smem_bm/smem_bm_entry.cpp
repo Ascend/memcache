@@ -87,6 +87,18 @@ int32_t SmemBmEntry::Initialize(const hybm_options &options)
     return 0;
 }
 
+void SmemBmEntry::UnInitalize()
+{
+    if (!inited_) {
+        return;
+    }
+    uint32_t flags = 0;
+    if (entity_ != nullptr) {
+        hybm_destroy_entity(entity_, flags);
+    }
+    inited_ = false;
+}
+
 Result SmemBmEntry::JoinHandle(uint32_t rk)
 {
     SM_LOG_INFO("do join func, receive_rk: " << rk);

@@ -85,6 +85,7 @@ void MemEntityDefault::UnInitialize() noexcept
 
     segment_.reset();
     dataOperator_.reset();
+    transportManager_->CloseDevice();
     transportManager_.reset();
     DlAclApi::AclrtDestroyStream(stream_);
     stream_ = nullptr;

@@ -230,6 +230,8 @@ Result SmemBmEntryManager::RemoveEntryByPtr(uintptr_t ptr)
 
 void SmemBmEntryManager::Destroy()
 {
+    std::lock_guard<std::mutex> guard(entryMutex_);
+    inited_ = false;
     confStore_ = nullptr;
     StoreFactory::DestroyStore(storeUrlExtraction_.ip, storeUrlExtraction_.port);
 }

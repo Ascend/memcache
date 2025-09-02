@@ -46,6 +46,7 @@ MMC_API int32_t mmc_init(const mmc_init_config &config)
     }
 
     mmc_local_service_config_t localServiceConfig{};
+    localServiceConfig.flags = 0;
     localServiceConfig.deviceId = config.deviceId;
     g_clientConfig->GetLocalServiceConfig(localServiceConfig);
     MMC_VALIDATE_RETURN(g_clientConfig->ValidateLocalServiceConfig(localServiceConfig) == MMC_OK,
