@@ -10,10 +10,6 @@
 
 using namespace ock::mf;
 
-namespace {
-constexpr uint64_t HYBM_HOST_GVA_START_ADDR = 0x0000200000000000UL;
-}
-
 Result MemSegmentHost::ValidateOptions() noexcept
 {
     if (options_.segType != HYBM_MST_DRAM || options_.size == 0 || (options_.size % DEVICE_LARGE_PAGE_SIZE) != 0) {
@@ -72,7 +68,7 @@ Result MemSegmentHost::AllocLocalMemory(uint64_t size, std::shared_ptr<MemSlice>
     void *mapped = mmap(sliceAddr, size, PROT_READ | PROT_WRITE,
                         MAP_FIXED | MAP_ANONYMOUS | MAP_HUGETLB | MAP_PRIVATE, -1, 0);
     if (mapped == MAP_FAILED) {
-        BM_LOG_ERROR("Failed to alloc size:" << size << " error:" << errno);
+        BM_LOG_ERROR("Failed to alloc size:" << size << " error:" << errno << ", " << strerror(errno));
         return BM_ERROR;
     }
     LvaShmReservePhysicalMemory(sliceAddr, size);
@@ -114,9 +110,7 @@ Result MemSegmentHost::Export(const std::shared_ptr<MemSlice> &slice, std::strin
         return BM_OK;
     }
 
-    HostExportInfo info{};
-    info.magic = EXPORT_INFO_MAGIC;
-    info.version = EXPORT_INFO_VERSION;
+    HostExportInfo info;
     info.mappingOffset = slice->vAddress_ - (uint64_t)(localVirtualBase_);
     info.sliceIndex = static_cast<uint32_t>(slice->index_);
     info.rankId = options_.rankId;
@@ -148,7 +142,7 @@ Result MemSegmentHost::Import(const std::vector<std::string> &allExInfo) noexcep
 
     uint32_t localIdx = UINT32_MAX;
     for (auto i = 0U; i < deserializedInfos.size(); i++) {
-        if (deserializedInfos[i].magic != EXPORT_INFO_MAGIC) {
+        if (deserializedInfos[i].magic != DRAM_SLICE_EXPORT_INFO_MAGIC) {
             BM_LOG_ERROR("import info(" << i << ") magic(" << deserializedInfos[i].magic << ") invalid.");
             return BM_INVALID_PARAM;
         }
@@ -197,7 +191,7 @@ bool MemSegmentHost::MemoryInRange(const void *begin, uint64_t size) const noexc
         return false;
     }
 
-    if ((const uint8_t *)begin + size >= globalVirtualAddress_ + totalVirtualSize_) {
+    if ((const uint8_t *)begin + size > globalVirtualAddress_ + totalVirtualSize_) {
         return false;
     }
 

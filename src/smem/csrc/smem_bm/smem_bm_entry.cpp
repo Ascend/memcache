@@ -9,15 +9,15 @@
 namespace ock {
 namespace smem {
 
-static void ReleaseAfterFailed(hybm_entity_t entity, hybm_mem_slice_t slice, void *reservedMem)
+static void ReleaseAfterFailed(hybm_entity_t entity, hybm_mem_slice_t slice)
 {
     uint32_t flags = 0;
     if (entity != nullptr && slice != 0) {
         hybm_free_local_memory(entity, slice, 1, flags);
     }
 
-    if (entity != nullptr && reservedMem != nullptr) {
-        hybm_unreserve_mem_space(entity, flags, reservedMem);
+    if (entity != nullptr) {
+        hybm_unreserve_mem_space(entity, flags);
     }
 
     if (entity != nullptr) {
@@ -29,7 +29,6 @@ int32_t SmemBmEntry::Initialize(const hybm_options &options)
 {
     uint32_t flags = 0;
     hybm_entity_t entity = nullptr;
-    void *reservedMem = nullptr;
     hybm_mem_slice_t slice = nullptr;
     Result ret = SM_ERROR;
 
@@ -43,25 +42,43 @@ int32_t SmemBmEntry::Initialize(const hybm_options &options)
             break;
         }
 
-        ret = hybm_reserve_mem_space(entity, flags, &reservedMem);
-        if (ret != 0 || reservedMem == nullptr) {
+        ret = hybm_reserve_mem_space(entity, flags);
+        if (ret != 0) {
             SM_LOG_ERROR("reserve mem failed, result: " << ret);
             ret = SM_ERROR;
             break;
         }
 
-        slice = hybm_alloc_local_memory(entity, HYBM_MEM_TYPE_DEVICE, options.singleRankVASpace, flags);
-        if (slice == nullptr) {
-            SM_LOG_ERROR("alloc local mem failed, size: " << options.singleRankVASpace);
-            ret = SM_ERROR;
-            break;
+        bzero(&hbmSliceInfo_, sizeof(hybm_exchange_info));
+        if (options.deviceVASpace > 0) {
+            slice = hybm_alloc_local_memory(entity, HYBM_MEM_TYPE_DEVICE, options.deviceVASpace, flags);
+            if (slice == nullptr) {
+                SM_LOG_ERROR("alloc local device mem failed, size: " << options.deviceVASpace);
+                ret = SM_ERROR;
+                break;
+            }
+
+            ret = hybm_export(entity, slice, flags, &hbmSliceInfo_);
+            if (ret != 0) {
+                SM_LOG_ERROR("hybm export device slice failed, result: " << ret);
+                break;
+            }
         }
 
-        bzero(&exInfo_, sizeof(hybm_exchange_info));
-        ret = hybm_export(entity, slice, flags, &exInfo_);
-        if (ret != 0) {
-            SM_LOG_ERROR("hybm export failed, result: " << ret);
-            break;
+        bzero(&dramSliceInfo_, sizeof(hybm_exchange_info));
+        if (options.hostVASpace > 0) {
+            slice = hybm_alloc_local_memory(entity, HYBM_MEM_TYPE_HOST, options.hostVASpace, flags);
+            if (slice == nullptr) {
+                SM_LOG_ERROR("alloc local host mem failed, size: " << options.hostVASpace);
+                ret = SM_ERROR;
+                break;
+            }
+
+            ret = hybm_export(entity, slice, flags, &hbmSliceInfo_);
+            if (ret != 0) {
+                SM_LOG_ERROR("hybm export host slice failed, result: " << ret);
+                break;
+            }
         }
 
         bzero(&entityInfo_, sizeof(hybm_exchange_info));
@@ -73,14 +90,13 @@ int32_t SmemBmEntry::Initialize(const hybm_options &options)
     } while (0);
 
     if (ret != 0) {
-        ReleaseAfterFailed(entity, slice, reservedMem);
+        ReleaseAfterFailed(entity, slice);
         globalGroup_ = nullptr;
         return ret;
     }
 
     coreOptions_ = options;
     entity_ = entity;
-    gva_ = reservedMem;
     hostGva_ = hybm_get_memory_ptr(entity, HYBM_MEM_TYPE_HOST);
     deviceGva_ = hybm_get_memory_ptr(entity, HYBM_MEM_TYPE_DEVICE);
     inited_ = true;
@@ -105,33 +121,55 @@ Result SmemBmEntry::JoinHandle(uint32_t rk)
     SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
 
     hybm_exchange_info allExInfo[coreOptions_.rankCount];
-    auto ret = globalGroup_->GroupAllGather((char *)&exInfo_, sizeof(hybm_exchange_info), (char *)allExInfo,
-                                       sizeof(hybm_exchange_info) * globalGroup_->GetRankSize());
-    if (ret != 0) {
-        SM_LOG_ERROR("hybm gather export failed, result: " << ret);
-        return SM_ERROR;
+    if (hbmSliceInfo_.descLen > 0) {
+        auto ret = globalGroup_->GroupAllGather((char *)&hbmSliceInfo_, sizeof(hybm_exchange_info), (char *)allExInfo,
+                                                sizeof(hybm_exchange_info) * globalGroup_->GetRankSize());
+        if (ret != 0) {
+            SM_LOG_ERROR("hybm gather export failed, result: " << ret);
+            return SM_ERROR;
+        }
+
+        ret = hybm_import(entity_, allExInfo, globalGroup_->GetRankSize(), 0);
+        if (ret != 0) {
+            SM_LOG_ERROR("hybm import failed, result: " << ret);
+            return SM_ERROR;
+        }
+
+        ret = globalGroup_->GroupBarrier();
+        if (ret != 0) {
+            SM_LOG_ERROR("hybm barrier failed, result: " << ret);
+            return SM_ERROR;
+        }
+    }
+    if (dramSliceInfo_.descLen > 0) {
+        auto ret = globalGroup_->GroupAllGather((char *)&dramSliceInfo_, sizeof(hybm_exchange_info), (char *)allExInfo,
+                                                sizeof(hybm_exchange_info) * globalGroup_->GetRankSize());
+        if (ret != 0) {
+            SM_LOG_ERROR("hybm gather export failed, result: " << ret);
+            return SM_ERROR;
+        }
+
+        ret = hybm_import(entity_, allExInfo, globalGroup_->GetRankSize(), 0);
+        if (ret != 0) {
+            SM_LOG_ERROR("hybm import failed, result: " << ret);
+            return SM_ERROR;
+        }
+
+        ret = globalGroup_->GroupBarrier();
+        if (ret != 0) {
+            SM_LOG_ERROR("hybm barrier failed, result: " << ret);
+            return SM_ERROR;
+        }
     }
 
-    ret = hybm_import(entity_, allExInfo, globalGroup_->GetRankSize(), 0);
-    if (ret != 0) {
-        SM_LOG_ERROR("hybm import failed, result: " << ret);
-        return SM_ERROR;
-    }
-
-    ret = globalGroup_->GroupBarrier();
-    if (ret != 0) {
-        SM_LOG_ERROR("hybm barrier failed, result: " << ret);
-        return SM_ERROR;
-    }
-
-    ret = hybm_mmap(entity_, 0);
+    auto ret = hybm_mmap(entity_, 0);
     if (ret != 0) {
         SM_LOG_ERROR("hybm mmap failed, result: " << ret);
         return SM_ERROR;
     }
 
     ret = globalGroup_->GroupAllGather((char *)&entityInfo_, sizeof(hybm_exchange_info), (char *)allExInfo,
-                                            sizeof(hybm_exchange_info) * globalGroup_->GetRankSize());
+                                       sizeof(hybm_exchange_info) * globalGroup_->GetRankSize());
     if (ret != 0) {
         SM_LOG_ERROR("hybm gather export failed, result: " << ret);
         return SM_ERROR;
@@ -176,7 +214,8 @@ Result SmemBmEntry::Join(uint32_t flags, void **localGvaAddress)
         return SM_INVALID_PARAM;
     }
 
-    *localGvaAddress = (void *)(reinterpret_cast<uint64_t>(gva_) + coreOptions_.singleRankVASpace * options_.rank);
+    *localGvaAddress =
+        (void *)(reinterpret_cast<uint64_t>(deviceGva_) + coreOptions_.singleRankVASpace * options_.rank);
     return SM_OK;
 }
 
@@ -219,21 +258,12 @@ hybm_data_copy_direction SmemBmEntry::TransToHybmDirection(const smem_bm_copy_ty
     smem_bm_mem_type srcMemType = GetHybmMemTypeFromGva(src, srcSize);
     smem_bm_mem_type destMemType = GetHybmMemTypeFromGva(dest, destSize);
     switch (smemDirect) {
-        case SMEMB_COPY_L2G:
-            srcMemType = SMEM_MEM_TYPE_LOCAL_DEVICE;
-            break;
-        case SMEMB_COPY_G2L:
-            destMemType = SMEM_MEM_TYPE_LOCAL_DEVICE;
-            break;
-        case SMEMB_COPY_G2H:
-            destMemType = SMEM_MEM_TYPE_LOCAL_HOST;
-            break;
-        case SMEMB_COPY_H2G:
-            srcMemType = SMEM_MEM_TYPE_LOCAL_HOST;
-            break;
+        case SMEMB_COPY_L2G: srcMemType = SMEM_MEM_TYPE_LOCAL_DEVICE; break;
+        case SMEMB_COPY_G2L: destMemType = SMEM_MEM_TYPE_LOCAL_DEVICE; break;
+        case SMEMB_COPY_G2H: destMemType = SMEM_MEM_TYPE_LOCAL_HOST; break;
+        case SMEMB_COPY_H2G: srcMemType = SMEM_MEM_TYPE_LOCAL_HOST; break;
         case SMEMB_COPY_G2G:
-        default:
-            break;
+        default: break;
     }
 
     return directMap[srcMemType][destMemType];
@@ -255,8 +285,8 @@ Result SmemBmEntry::DataCopy(const void *src, void *dest, uint64_t size, smem_bm
     return hybm_data_copy(entity_, src, dest, size, direct, nullptr, flags);
 }
 
-Result SmemBmEntry::DataCopy2d(const void *src, uint64_t spitch, void *dest, uint64_t dpitch,
-                               uint64_t width, uint64_t height, smem_bm_copy_type t, uint32_t flags)
+Result SmemBmEntry::DataCopy2d(const void *src, uint64_t spitch, void *dest, uint64_t dpitch, uint64_t width,
+                               uint64_t height, smem_bm_copy_type t, uint32_t flags)
 {
     SM_PARAM_VALIDATE(src == nullptr, "invalid param, src is NULL", SM_INVALID_PARAM);
     SM_PARAM_VALIDATE(dest == nullptr, "invalid param, dest is NULL", SM_INVALID_PARAM);
@@ -278,8 +308,8 @@ Result SmemBmEntry::CreateGlobalTeam(uint32_t rankSize, uint32_t rankId)
 {
     SmemGroupChangeCallback joinFunc = std::bind(&SmemBmEntry::JoinHandle, this, std::placeholders::_1);
     SmemGroupChangeCallback leaveFunc = std::bind(&SmemBmEntry::LeaveHandle, this, std::placeholders::_1);
-    SmemGroupOption opt = {rankSize, rankId,  options_.controlOperationTimeout * SECOND_TO_MILLSEC,
-                           true, joinFunc, leaveFunc};
+    SmemGroupOption opt = {rankSize, rankId,   options_.controlOperationTimeout * SECOND_TO_MILLSEC,
+                           true,     joinFunc, leaveFunc};
     SmemGroupEnginePtr group = SmemNetGroupEngine::Create(_configStore, opt);
     SM_ASSERT_RETURN(group != nullptr, SM_ERROR);
 
@@ -294,11 +324,11 @@ bool SmemBmEntry::AddrInHostGva(const void *address, uint64_t size)
     }
 
     auto totalSize = coreOptions_.hostVASpace * coreOptions_.rankCount;
-    if ((const uint8_t*)address + size > (const uint8_t*)hostGva_ + totalSize) {
+    if ((const uint8_t *)address + size > (const uint8_t *)hostGva_ + totalSize) {
         return false;
     }
 
-    if ((const uint8_t*)address < (const uint8_t*)hostGva_) {
+    if ((const uint8_t *)address < (const uint8_t *)hostGva_) {
         return false;
     }
 
@@ -312,11 +342,11 @@ bool SmemBmEntry::AddrInDeviceGva(const void *address, uint64_t size)
     }
 
     auto totalSize = coreOptions_.deviceVASpace * coreOptions_.rankCount;
-    if ((const uint8_t*)address + size > (const uint8_t*)deviceGva_ + totalSize) {
+    if ((const uint8_t *)address + size > (const uint8_t *)deviceGva_ + totalSize) {
         return false;
     }
 
-    if ((const uint8_t*)address < (const uint8_t*)deviceGva_) {
+    if ((const uint8_t *)address < (const uint8_t *)deviceGva_) {
         return false;
     }
 

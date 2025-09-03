@@ -19,8 +19,8 @@ public:
 
     ~HostDataOpRDMA() override;
 
-    int32_t Initialized() noexcept override;
-    void UnInitialized() noexcept override;
+    int32_t Initialize() noexcept override;
+    void UnInitialize() noexcept override;
 
     int32_t DataCopy(const void *srcVA, void *destVA, uint64_t length, hybm_data_copy_direction direction,
                      const ExtOptions &options) noexcept override;

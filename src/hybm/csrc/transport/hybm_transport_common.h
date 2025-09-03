@@ -11,6 +11,7 @@
 #include <vector>
 #include <ostream>
 #include <unordered_map>
+#include "hybm_def.h"
 
 namespace ock {
 namespace mf {
@@ -34,6 +35,8 @@ struct TransportOptions {
     uint32_t rankId;
     uint32_t rankCount;
     uint32_t protocol;
+    hybm_type initialType;
+    hybm_role_type role;
     std::string nic;
 };
 
@@ -73,6 +76,7 @@ static inline std::ostream &operator<<(std::ostream &output, const TransportMemo
 
 struct TransportRankPrepareInfo {
     std::string nic;
+    hybm_role_type role{HYBM_ROLE_PEER};
     std::vector<TransportMemoryKey> memKeys;
     TransportRankPrepareInfo() {}
     TransportRankPrepareInfo(std::string n, TransportMemoryKey k) : nic{std::move(n)}, memKeys{k} {}

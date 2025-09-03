@@ -134,7 +134,7 @@ Result MemSegmentHostSDMA::Export(const std::shared_ptr<MemSlice> &slice, std::s
         return BM_OK;
     }
 
-    HostSdmaExportInfo info{};
+    HostSdmaExportInfo info;
     auto ret = hybm_gvm_get_key((uint64_t)slice->vAddress_, &info.shmKey);
     if (ret != 0) {
         BM_LOG_ERROR("create shm memory key failed: " << ret);
@@ -142,7 +142,6 @@ Result MemSegmentHostSDMA::Export(const std::shared_ptr<MemSlice> &slice, std::s
     }
 
     BM_LOG_ERROR_RETURN_IT_IF_NOT_OK(GetDeviceInfo(), "get device info failed.");
-    info.magic = EXPORT_INFO_MAGIC;
     info.version = EXPORT_INFO_VERSION;
     info.mappingOffset =
         slice->vAddress_ - (uint64_t)(ptrdiff_t)(globalVirtualAddress_ + options_.size * options_.rankId);
@@ -174,7 +173,7 @@ Result MemSegmentHostSDMA::Import(const std::vector<std::string> &allExInfo) noe
     }
     uint32_t localIdx = UINT32_MAX;
     for (auto i = 0U; i < deserializedInfos.size(); i++) {
-        if (deserializedInfos[i].magic != EXPORT_INFO_MAGIC) {
+        if (deserializedInfos[i].magic != SDMA_SLICE_EXPORT_INFO_MAGIC) {
             BM_LOG_ERROR("import info(" << i << ") magic(" << deserializedInfos[i].magic << ") invalid.");
             return BM_INVALID_PARAM;
         }
@@ -286,7 +285,7 @@ bool MemSegmentHostSDMA::MemoryInRange(const void *begin, uint64_t size) const n
         return false;
     }
 
-    if (reinterpret_cast<const uint8_t *>(begin) + size >= globalVirtualAddress_ + totalVirtualSize_) {
+    if (reinterpret_cast<const uint8_t *>(begin) + size > globalVirtualAddress_ + totalVirtualSize_) {
         return false;
     }
 

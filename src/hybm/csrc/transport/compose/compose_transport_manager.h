@@ -38,6 +38,8 @@ public:
 
     Result QueryMemoryKey(uint64_t addr, TransportMemoryKey &key) override;
 
+    Result ParseMemoryKey(const TransportMemoryKey &key, uint64_t &addr, uint64_t &size) override;
+
     Result Prepare(const HybmTransPrepareOptions &options) override;
 
     Result Connect() override;

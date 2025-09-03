@@ -18,7 +18,7 @@ typedef void *smem_shm_t;
 typedef enum {
     SMEMS_DATA_OP_MTE  = 1U << 0,
     SMEMS_DATA_OP_SDMA = 1U << 1,
-    SMEMS_DATA_OP_ROCE = 1U << 2,
+    SMEMS_DATA_OP_RDMA = 1U << 2,
 } smem_shm_data_op_type;
 
 /**

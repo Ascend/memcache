@@ -40,6 +40,8 @@ public:
 
     virtual Result QueryMemoryKey(uint64_t addr, TransportMemoryKey &key) = 0;
 
+    virtual Result ParseMemoryKey(const TransportMemoryKey &key, uint64_t &addr, uint64_t &size) = 0;
+
     /*
      * 3、建链前的准备工作
      * @return 0 if successful

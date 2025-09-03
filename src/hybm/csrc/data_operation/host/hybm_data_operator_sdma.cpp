@@ -13,7 +13,7 @@ namespace mf {
 constexpr uint64_t HBM_SWAP_SPACE_SIZE = 1024 * 1024 * 1024;
 HostDataOpSDMA::HostDataOpSDMA(void *stm) noexcept : stream_{stm} {}
 
-int32_t HostDataOpSDMA::Initialized() noexcept
+int32_t HostDataOpSDMA::Initialize() noexcept
 {
     if (inited_) {
         return BM_OK;
@@ -57,7 +57,7 @@ int32_t HostDataOpSDMA::Initialized() noexcept
     return BM_OK;
 }
 
-void HostDataOpSDMA::UnInitialized() noexcept
+void HostDataOpSDMA::UnInitialize() noexcept
 {
     if (!inited_) {
         return;

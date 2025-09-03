@@ -11,14 +11,14 @@ namespace ock {
 namespace mf {
 
 struct HostSdmaExportInfo {
-    uint64_t magic;
-    uint64_t version;
+    uint64_t magic{SDMA_SLICE_EXPORT_INFO_MAGIC};
+    uint64_t version{EXPORT_INFO_VERSION};
     uint64_t mappingOffset{0};
     uint32_t sliceIndex{0};
     uint32_t sdid{0};
     uint32_t rankId{0};
     uint64_t size{0};
-    uint64_t shmKey;
+    uint64_t shmKey{0};
 };
 
 class MemSegmentHostSDMA : public MemSegmentDevice {

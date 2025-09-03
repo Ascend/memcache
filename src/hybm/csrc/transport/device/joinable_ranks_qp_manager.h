@@ -1,0 +1,64 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
+ */
+
+#ifndef MF_HYBRID_JOINABLE_RANKS_QP_MANAGER_H
+#define MF_HYBRID_JOINABLE_RANKS_QP_MANAGER_H
+
+#include <set>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
+#include <thread>
+#include <vector>
+#include "device_qp_manager.h"
+
+namespace ock {
+namespace mf {
+namespace transport {
+namespace device {
+class JoinableRanksQpManager : public DeviceQpManager {
+public:
+    JoinableRanksQpManager(uint32_t deviceId, uint32_t rankId, uint32_t rankCount, sockaddr_in devNet) noexcept;
+    ~JoinableRanksQpManager() noexcept override;
+
+    int SetRemoteRankInfo(const std::unordered_map<uint32_t, ConnectRankInfo> &ranks) noexcept override;
+    int SetLocalMemories(const MemoryRegionMap &mrs) noexcept override;
+    int Startup(void *rdma) noexcept override;
+    void Shutdown() noexcept override;
+    void *GetQpHandleWithRankId(uint32_t rankId) const noexcept override;
+
+private:
+    void CloseServices() noexcept;
+    int StartServerSide() noexcept;
+    int StartClientSide() noexcept;
+    void ServerSideRunLoop() noexcept;
+    void ClientSideRunLoop() noexcept;
+    int WaitSocketConnections(const std::set<uint32_t> &newRanks) noexcept;
+    void MakeQpConnections(const std::set<uint32_t> &newRanks) noexcept;
+    void WaitQpConnections(const std::set<uint32_t> &newRanks) noexcept;
+    int GenerateWhiteList(const std::set<uint32_t> &newClients) noexcept;
+    int CreateConnectionToServers(const std::set<uint32_t> &newServers) noexcept;
+    int RegisterLocalMrToQpHandle(void *qpHandle) noexcept;
+
+private:
+    std::atomic<bool> started_{false};
+    std::atomic<bool> running_{true};
+    std::shared_ptr<std::thread> clientConnectThread_;
+    std::shared_ptr<std::thread> serverConnectThread_;
+    void *rdmaHandle_{nullptr};
+    std::unordered_map<uint32_t, ConnectRankInfo> currentRanksInfo_;
+    MemoryRegionMap currentLocalMrs_;
+    std::vector<ConnectionChannel> connections_;
+    std::mutex mutex_;
+    std::condition_variable cond_;
+    std::set<uint32_t> newClients_;
+    std::set<uint32_t> newServers_;
+
+};
+
+}  // namespace device
+}  // namespace transport
+}  // namespace mf
+}  // namespace ock
+#endif  // MF_HYBRID_JOINABLE_RANKS_QP_MANAGER_H

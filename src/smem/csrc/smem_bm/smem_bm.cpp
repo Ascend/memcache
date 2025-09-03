@@ -99,10 +99,10 @@ SMEM_API smem_bm_t smem_bm_create(uint32_t id, uint32_t memberSize, smem_bm_data
     }
 
     hybm_options options;
-    options.bmType = SmemHybmHelper::TransHybmType(localDRAMSize, localHBMSize);
+    options.bmType = HYBM_TYPE_HOST_INITIATE;
+    options.memType = SmemHybmHelper::TransHybmMemType(localDRAMSize, localHBMSize);
     options.bmDataOpType = SmemHybmHelper::TransHybmDataOpType(dataOpType);
     options.bmScope = HYBM_SCOPE_CROSS_NODE;
-    options.bmRankType = HYBM_RANK_TYPE_STATIC;
     options.rankCount = manager.GetWorldSize();
     options.rankId = manager.GetRankId();
     options.devId = manager.GetDeviceId();

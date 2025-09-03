@@ -12,7 +12,7 @@ HYBM_API hybm_entity_t hybm_create_entity(uint16_t id, const hybm_options *optio
     BM_ASSERT_RETURN(HybmHasInited(), nullptr);
 
     auto &factory = MemEntityFactory::Instance();
-    auto entity = factory.GetOrCreateEngine(id, options, flags);
+    auto entity = factory.GetOrCreateEngine(id, flags);
     if (entity == nullptr) {
         BM_LOG_ERROR("create entity failed.");
         return nullptr;
@@ -36,15 +36,14 @@ HYBM_API void hybm_destroy_entity(hybm_entity_t e, uint32_t flags)
     MemEntityFactory::Instance().RemoveEngine(e);
 }
 
-HYBM_API int32_t hybm_reserve_mem_space(hybm_entity_t e, uint32_t flags, void **reservedMem)
+HYBM_API int32_t hybm_reserve_mem_space(hybm_entity_t e, uint32_t flags)
 {
     auto entity = (MemEntity *)e;
     BM_ASSERT_RETURN(entity != nullptr, BM_INVALID_PARAM);
-    BM_ASSERT_RETURN(reservedMem != nullptr, BM_INVALID_PARAM);
-    return entity->ReserveMemorySpace(reservedMem);
+    return entity->ReserveMemorySpace();
 }
 
-HYBM_API int32_t hybm_unreserve_mem_space(hybm_entity_t e, uint32_t flags, void *reservedMem)
+HYBM_API int32_t hybm_unreserve_mem_space(hybm_entity_t e, uint32_t flags)
 {
     auto entity = (MemEntity *)e;
     BM_ASSERT_RETURN(entity != nullptr, BM_INVALID_PARAM);
@@ -63,9 +62,9 @@ HYBM_API hybm_mem_slice_t hybm_alloc_local_memory(hybm_entity_t e, hybm_mem_type
     auto entity = (MemEntity *)e;
     hybm_mem_slice_t slice;
     BM_ASSERT_RETURN(entity != nullptr, nullptr);
-    auto ret = entity->AllocLocalMemory(size, flags, slice);
+    auto ret = entity->AllocLocalMemory(size, mType, flags, slice);
     if (ret != 0) {
-        BM_LOG_ERROR("allocate slice with size: " << size << " failed: " << ret);
+        BM_LOG_ERROR("allocate slice with size: " << size << ", mType: " << mType << " failed: " << ret);
         return nullptr;
     }
 
@@ -86,7 +85,10 @@ HYBM_API int32_t hybm_export(hybm_entity_t e, hybm_mem_slice_t slice, uint32_t f
     auto entity = (MemEntity *)e;
     BM_ASSERT_RETURN(entity != nullptr, BM_INVALID_PARAM);
     BM_ASSERT_RETURN(slice != nullptr, BM_INVALID_PARAM);
-    auto ret = entity->ExportExchangeInfo(slice, *exInfo, flags);
+    BM_ASSERT_RETURN(exInfo != nullptr, BM_INVALID_PARAM);
+
+    ExchangeInfoWriter writer(exInfo);
+    auto ret = entity->ExportExchangeInfo(slice, writer, flags);
     if (ret != 0) {
         BM_LOG_ERROR("export slices: " << slice << " failed: " << ret);
         return ret;
@@ -101,14 +103,23 @@ HYBM_API int32_t hybm_import(hybm_entity_t e, const hybm_exchange_info allExInfo
     BM_ASSERT_RETURN(entity != nullptr, BM_INVALID_PARAM);
     BM_ASSERT_RETURN(allExInfo != nullptr, BM_INVALID_PARAM);
     BM_ASSERT_RETURN(count > 0, BM_INVALID_PARAM);
-    return entity->ImportExchangeInfo(allExInfo, count, flags);
+
+    std::vector<ExchangeInfoReader> readers(count);
+    for (auto i = 0U; i < count; i++) {
+        readers[i].Reset(allExInfo + i);
+    }
+
+    return entity->ImportExchangeInfo(readers.data(), count, flags);
 }
 
 HYBM_API int32_t hybm_entity_export(hybm_entity_t e, uint32_t flags, hybm_exchange_info *exInfo)
 {
     auto entity = (MemEntity *)e;
     BM_ASSERT_RETURN(entity != nullptr, BM_INVALID_PARAM);
-    auto ret = entity->ExportExchangeInfo(*exInfo, flags);
+    BM_ASSERT_RETURN(exInfo != nullptr, BM_INVALID_PARAM);
+
+    ExchangeInfoWriter writer(exInfo);
+    auto ret = entity->ExportExchangeInfo(writer, 0);
     if (ret != 0) {
         BM_LOG_ERROR("export entity data failed: " << ret);
         return ret;
@@ -124,7 +135,13 @@ HYBM_API int32_t hybm_entity_import(hybm_entity_t e, const hybm_exchange_info al
     BM_ASSERT_RETURN(entity != nullptr, BM_INVALID_PARAM);
     BM_ASSERT_RETURN(allExInfo != nullptr, BM_INVALID_PARAM);
     BM_ASSERT_RETURN(count > 0, BM_INVALID_PARAM);
-    return entity->ImportEntityExchangeInfo(allExInfo, count, flags);
+
+    std::vector<ExchangeInfoReader> readers(count);
+    for (auto i = 0U; i < count; i++) {
+        readers[i].Reset(allExInfo + i);
+    }
+
+    return entity->ImportEntityExchangeInfo(readers.data(), count, flags);
 }
 
 HYBM_API int32_t hybm_mmap(hybm_entity_t e, uint32_t flags)
@@ -134,16 +151,12 @@ HYBM_API int32_t hybm_mmap(hybm_entity_t e, uint32_t flags)
     return entity->Mmap();
 }
 
-HYBM_API int32_t hybm_entity_reach_types(hybm_entity_t e, uint32_t rank, int32_t reaches[HYBM_DOP_TYPE_BUTT],
-                                         uint32_t flags)
+HYBM_API int32_t hybm_entity_reach_types(hybm_entity_t e, uint32_t rank, hybm_data_op_type &reachTypes, uint32_t flags)
 {
     auto entity = (MemEntity *)e;
     BM_ASSERT_RETURN(entity != nullptr, BM_INVALID_PARAM);
-    BM_ASSERT_RETURN(reaches != nullptr, BM_INVALID_PARAM);
 
-    reaches[HYBM_DOP_TYPE_ROCE] = 1;
-    reaches[HYBM_DOP_TYPE_MTE] = reaches[HYBM_DOP_TYPE_SDMA] = entity->SdmaReaches(rank) ? 1 : 0;
-
+    reachTypes = entity->CanReachDataOperators(rank);
     return BM_OK;
 }
 

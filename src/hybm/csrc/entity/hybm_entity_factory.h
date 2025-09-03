@@ -20,7 +20,7 @@ public:
     MemEntityFactory() = default;
     ~MemEntityFactory() = default;
 
-    MemEntityPtr GetOrCreateEngine(uint16_t id, const hybm_options *options, uint32_t flags);
+    MemEntityPtr GetOrCreateEngine(uint16_t id, uint32_t flags);
     bool RemoveEngine(hybm_entity_t entity);
 
 public:

@@ -44,29 +44,13 @@ SmemShmEntry::~SmemShmEntry()
     }
 
     if (entity_ != nullptr && gva_ != nullptr) {
-        hybm_unreserve_mem_space(entity_, 0, gva_);
+        hybm_unreserve_mem_space(entity_, 0);
         gva_ = nullptr;
     }
 
     if (entity_ != nullptr) {
         hybm_destroy_entity(entity_, 0);
         entity_ = nullptr;
-    }
-}
-
-static void ReleaseAfterFailed(hybm_entity_t entity, hybm_mem_slice_t slice, void *reservedMem)
-{
-    uint32_t flags = 0;
-    if (entity != nullptr && slice != 0) {
-        hybm_free_local_memory(entity, slice, 1, flags);
-    }
-
-    if (entity != nullptr && reservedMem != nullptr) {
-        hybm_unreserve_mem_space(entity, flags, reservedMem);
-    }
-
-    if (entity != nullptr) {
-        hybm_destroy_entity(entity, flags);
     }
 }
 
@@ -153,21 +137,20 @@ void SmemShmEntry::InitStepDestroyEntity()
 
 int32_t SmemShmEntry::InitStepReserveMemory()
 {
-    void *reservedMem = nullptr;
-    auto ret = hybm_reserve_mem_space(entity_, 0, &reservedMem);
-    if (ret != 0 || reservedMem == nullptr) {
+    auto ret = hybm_reserve_mem_space(entity_, 0);
+    if (ret != 0) {
         SM_LOG_ERROR("reserve mem failed, result: " << ret);
         return SM_ERROR;
     }
 
-    gva_ = reservedMem;
+
+    gva_ = hybm_get_memory_ptr(entity_, HYBM_MEM_TYPE_DEVICE);
     return SM_OK;
 }
 
 void SmemShmEntry::InitStepUnreserveMemory()
 {
-    auto reservedMem = gva_;
-    auto ret = hybm_unreserve_mem_space(entity_, 0, reservedMem);
+    auto ret = hybm_unreserve_mem_space(entity_, 0);
     if (ret != 0) {
         SM_LOG_WARN("unreserve mem space failed: " << ret);
     }
@@ -279,7 +262,7 @@ Result SmemShmEntry::GetReachInfo(uint32_t remoteRank, uint32_t &reachInfo) cons
         return SM_NOT_STARTED;
     }
 
-    int32_t reachesTypes[HYBM_DOP_TYPE_BUTT];
+    hybm_data_op_type reachesTypes;
     auto ret = hybm_entity_reach_types(entity_, remoteRank, reachesTypes, 0);
     if (ret != 0) {
         SM_LOG_ERROR("hybm_entity_reach_types() failed: " << ret);
@@ -287,15 +270,15 @@ Result SmemShmEntry::GetReachInfo(uint32_t remoteRank, uint32_t &reachInfo) cons
     }
 
     reachInfo = 0U;
-    if (reachesTypes[HYBM_DOP_TYPE_MTE] != 0) {
+    if (reachesTypes & HYBM_DOP_TYPE_MTE) {
         reachInfo |= SMEMS_DATA_OP_MTE;
     }
 
-    if (reachesTypes[HYBM_DOP_TYPE_ROCE] != 0) {
-        reachInfo |= SMEMS_DATA_OP_ROCE;
+    if (reachesTypes & HYBM_DOP_TYPE_SDMA) {
+        reachInfo |= SMEMS_DATA_OP_RDMA;
     }
 
-    if (reachesTypes[HYBM_DOP_TYPE_SDMA] != 0) {
+    if (reachesTypes & HYBM_DOP_TYPE_DEVICE_RDMA) {
         reachInfo |= SMEMS_DATA_OP_SDMA;
     }
 

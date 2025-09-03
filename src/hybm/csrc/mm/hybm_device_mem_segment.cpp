@@ -116,7 +116,7 @@ Result MemSegmentDevice::Export(const std::shared_ptr<MemSlice> &slice, std::str
         return BM_OK;
     }
 
-    HbmExportInfo info{};
+    HbmExportInfo info;
     auto ret = DlAclApi::RtIpcSetMemoryName((void *)(ptrdiff_t)slice->vAddress_, slice->size_, info.shmName,
                                             sizeof(info.shmName));
     if (ret != 0) {
@@ -124,8 +124,6 @@ Result MemSegmentDevice::Export(const std::shared_ptr<MemSlice> &slice, std::str
         return BM_DL_FUNCTION_FAILED;
     }
 
-    info.magic = EXPORT_INFO_MAGIC;
-    info.version = EXPORT_INFO_VERSION;
     info.mappingOffset =
         slice->vAddress_ - (uint64_t)(ptrdiff_t)(globalVirtualAddress_ + options_.size * options_.rankId);
     info.sliceIndex = static_cast<uint32_t>(slice->index_);
@@ -170,7 +168,7 @@ Result MemSegmentDevice::Import(const std::vector<std::string> &allExInfo) noexc
 
     uint32_t localIdx = UINT32_MAX;
     for (auto i = 0U; i < deserializedInfos.size(); i++) {
-        if (deserializedInfos[i].magic != EXPORT_INFO_MAGIC) {
+        if (deserializedInfos[i].magic != HBM_SLICE_EXPORT_INFO_MAGIC) {
             BM_LOG_ERROR("import info(" << i << ") magic(" << deserializedInfos[i].magic << ") invalid.");
             return BM_INVALID_PARAM;
         }
@@ -311,7 +309,7 @@ bool MemSegmentDevice::MemoryInRange(const void *begin, uint64_t size) const noe
         return false;
     }
 
-    if ((const uint8_t *)begin + size >= globalVirtualAddress_ + totalVirtualSize_) {
+    if ((const uint8_t *)begin + size > globalVirtualAddress_ + totalVirtualSize_) {
         return false;
     }
 

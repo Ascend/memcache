@@ -9,6 +9,7 @@
 #include <type_traits>
 #include "hybm_big_mem.h"
 #include "hybm_common_include.h"
+#include "hybm_ex_info_transfer.h"
 #include "hybm_mem_slice.h"
 
 namespace ock {
@@ -18,32 +19,34 @@ public:
     virtual int32_t Initialize(const hybm_options *options) noexcept = 0;
     virtual void UnInitialize() noexcept = 0;
 
-    virtual int32_t ReserveMemorySpace(void **reservedMem) noexcept = 0;
+    virtual int32_t ReserveMemorySpace() noexcept = 0;
     virtual int32_t UnReserveMemorySpace() noexcept = 0;
     virtual void *GetReservedMemoryPtr(hybm_mem_type memType) noexcept = 0;
 
-    virtual int32_t AllocLocalMemory(uint64_t size, uint32_t flags, hybm_mem_slice_t &slice) noexcept = 0;
+    virtual int32_t AllocLocalMemory(uint64_t size, hybm_mem_type mType, uint32_t flags,
+                                     hybm_mem_slice_t &slice) noexcept = 0;
     virtual void FreeLocalMemory(hybm_mem_slice_t slice, uint32_t flags) noexcept = 0;
 
-    virtual int32_t ExportExchangeInfo(hybm_exchange_info &desc, uint32_t flags) noexcept = 0;
-    virtual int32_t ExportExchangeInfo(hybm_mem_slice_t slice, hybm_exchange_info &desc, uint32_t flags) noexcept = 0;
-    virtual int32_t ImportExchangeInfo(const hybm_exchange_info desc[], uint32_t count, uint32_t flags) noexcept = 0;
-    virtual int32_t ImportEntityExchangeInfo(const hybm_exchange_info desc[],
-                                             uint32_t count, uint32_t flags) noexcept = 0;
-    virtual int32_t RemoveImported(const std::vector<uint32_t>& ranks) noexcept = 0;
+    virtual int32_t ExportExchangeInfo(ExchangeInfoWriter &desc, uint32_t flags) noexcept = 0;
+    virtual int32_t ExportExchangeInfo(hybm_mem_slice_t slice, ExchangeInfoWriter &desc, uint32_t flags) noexcept = 0;
+    virtual int32_t ImportExchangeInfo(const ExchangeInfoReader desc[], uint32_t count, uint32_t flags) noexcept = 0;
+    virtual int32_t ImportEntityExchangeInfo(const ExchangeInfoReader desc[], uint32_t count,
+                                             uint32_t flags) noexcept = 0;
+    virtual int32_t RemoveImported(const std::vector<uint32_t> &ranks) noexcept = 0;
 
     virtual int32_t SetExtraContext(const void *context, uint32_t size) noexcept = 0;
 
     virtual void Unmap() noexcept = 0;
     virtual int32_t Mmap() noexcept = 0;
     virtual bool SdmaReaches(uint32_t remoteRank) const noexcept = 0;
+    virtual hybm_data_op_type CanReachDataOperators(uint32_t remoteRank) const noexcept = 0;
 
     virtual bool CheckAddressInEntity(const void *ptr, uint64_t length) const noexcept = 0;
     virtual int32_t CopyData(const void *src, void *dest, uint64_t length, hybm_data_copy_direction direction,
                              void *stream, uint32_t flags) noexcept = 0;
-    virtual int32_t CopyData2d(const void *src, uint64_t spitch, void *dest, uint64_t dpitch,  uint64_t width,
-                               uint64_t height, hybm_data_copy_direction direction,
-                               void *stream, uint32_t flags) noexcept = 0;
+    virtual int32_t CopyData2d(const void *src, uint64_t spitch, void *dest, uint64_t dpitch, uint64_t width,
+                               uint64_t height, hybm_data_copy_direction direction, void *stream,
+                               uint32_t flags) noexcept = 0;
 
     virtual ~MemEntity() noexcept = default;
 };

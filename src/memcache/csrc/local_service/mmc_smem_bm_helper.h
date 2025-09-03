@@ -17,10 +17,10 @@ public:
             return SMEMB_DATA_OP_SDMA;
         }
         if (type == "roce") {
-            return SMEMB_DATA_OP_ROCE;
+            return SMEMB_DATA_OP_DEVICE_RDMA;
         }
         if (type == "tcp") {
-            return SMEMB_DATA_OP_TCP;
+            return SMEMB_DATA_OP_HOST_TCP;
         }
         return SMEMB_DATA_OP_BUTT;
     }

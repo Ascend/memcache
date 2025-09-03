@@ -168,6 +168,21 @@ Result HcomTransportManager::QueryMemoryKey(uint64_t addr, TransportMemoryKey &k
     return BM_OK;
 }
 
+Result HcomTransportManager::ParseMemoryKey(const TransportMemoryKey &key, uint64_t &addr, uint64_t &size)
+{
+    RegMemoryKeyUnion keyUnion{};
+    keyUnion.commonKey = key;
+    if (keyUnion.hostKey.type != TT_HCOM) {
+        BM_LOG_ERROR("parse key type invalid: " << keyUnion.hostKey.type);
+        return BM_ERROR;
+    }
+
+    addr = keyUnion.hostKey.hcomInfo.lAddress;
+    size = keyUnion.hostKey.hcomInfo.size;
+    return BM_OK;
+
+}
+
 Result HcomTransportManager::Prepare(const HybmTransPrepareOptions &param)
 {
     auto options = param.options;

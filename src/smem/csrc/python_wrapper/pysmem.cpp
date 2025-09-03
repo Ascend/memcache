@@ -114,14 +114,14 @@ public:
         }
     }
 
-    uint64_t LocalMemSize()
+    uint64_t LocalMemSize(smem_bm_mem_type memType)
     {
-        return smem_bm_get_local_mem_size(handle_);
+        return smem_bm_get_local_mem_size_by_mem_type(handle_, memType);
     }
 
-    uint64_t GetPtrByRank(uint32_t rankId)
+    uint64_t GetPtrByRank(uint32_t rankId, smem_bm_mem_type memType)
     {
-        auto ptr = smem_bm_ptr(handle_, rankId);
+        auto ptr = smem_bm_ptr_by_mem_type(handle_, memType, rankId);
         if (ptr == nullptr) {
             throw std::runtime_error(std::string("get remote ptr failed:"));
         }
@@ -217,6 +217,10 @@ whether to start config store, default true)")
 
 void DefineBmConfig(py::module_ &m)
 {
+    py::enum_<smem_bm_mem_type>(m, "BmMemType")
+        .value("DEVICE", SMEM_MEM_TYPE_DEVICE, "memory type is DEVICE side.")
+        .value("HOST", SMEM_MEM_TYPE_HOST, "memory type is HOST side.");
+
     py::enum_<smem_bm_copy_type>(m, "BmCopyType")
         .value("L2G", SMEMB_COPY_L2G, "copy data from local space to global space")
         .value("G2L", SMEMB_COPY_G2L, "copy data from global space to local space")
@@ -244,7 +248,13 @@ whether to start config store, default true)")
         .def_readwrite("auto_ranking", &smem_bm_config_t::autoRanking, R"(
 automatically allocate rank IDs, default is false)")
         .def_readwrite("rank_id", &smem_bm_config_t::rankId, "user specified rank ID, valid for autoRanking is False")
-        .def_readwrite("flags", &smem_bm_config_t::flags, "other flags, default 0");
+        .def_readwrite("flags", &smem_bm_config_t::flags, "other flags, default 0")
+        .def(
+            "set_nic",
+            [](smem_bm_config_t &config, const std::string &nic) {
+                strncpy(config.hcomUrl, nic.c_str(), sizeof(config.hcomUrl));
+            },
+            py::call_guard<py::gil_scoped_release>(), py::arg("nic"));
 }
 
 void DefineShmClass(py::module_ &m)
@@ -252,7 +262,7 @@ void DefineShmClass(py::module_ &m)
     py::enum_<smem_shm_data_op_type>(m, "ShmDataOpType")
         .value("MTE", SMEMS_DATA_OP_MTE)
         .value("SDMA", SMEMS_DATA_OP_SDMA)
-        .value("ROCE", SMEMS_DATA_OP_ROCE);
+        .value("ROCE", SMEMS_DATA_OP_RDMA);
 
     m.def("initialize", &ShareMemory::Initialize, py::call_guard<py::gil_scoped_release>(), py::arg("store_url"),
           py::arg("world_size"), py::arg("rank_id"), py::arg("device_id"), py::arg("config"));
@@ -308,7 +318,9 @@ void DefineBmClass(py::module_ &m)
 {
     py::enum_<smem_bm_data_op_type>(m, "BmDataOpType")
         .value("SDMA", SMEMB_DATA_OP_SDMA)
-        .value("ROCE", SMEMB_DATA_OP_ROCE);
+        .value("HOST_RDMA", SMEMB_DATA_OP_HOST_RDMA)
+        .value("HOST_TCP", SMEMB_DATA_OP_HOST_TCP)
+        .value("DEVICE_RDMA", SMEMB_DATA_OP_DEVICE_RDMA);
 
     // module method
     m.def("initialize", &BigMemory::Initialize, py::call_guard<py::gil_scoped_release>(), py::arg("store_url"),
@@ -335,8 +347,8 @@ Returns:
     rank id if successful, UINT32_MAX is returned if failed.)");
 
     m.def("create", &BigMemory::Create, py::call_guard<py::gil_scoped_release>(), py::arg("id"),
-          py::arg("local_dram_size"), py::arg("local_hbm_size"),
-          py::arg("data_op_type") = SMEMB_DATA_OP_SDMA, py::arg("flags") = 0, R"(
+          py::arg("local_dram_size"), py::arg("local_hbm_size"), py::arg("data_op_type") = SMEMB_DATA_OP_SDMA,
+          py::arg("flags") = 0, R"(
 Create a big memory object locally after initialized.
 
 Arguments:
@@ -358,17 +370,22 @@ Leave the global Big Memory space actively, after this, we cannot operate on the
 
 Arguments:
     flags(int): optional flags)")
-        .def("local_mem_size", &BigMemory::LocalMemSize, py::call_guard<py::gil_scoped_release>(), R"(
+        .def("local_mem_size", &BigMemory::LocalMemSize, py::call_guard<py::gil_scoped_release>(),
+             py::arg("mem_type") = SMEM_MEM_TYPE_DEVICE, R"(
 Get size of local memory that contributed to global space.
 
+Arguments:
+    mem_type(BmMemType): memory type, DEVICE or HOST, default is DEVICE
 Returns:
     local memory size in bytes)")
         .def("peer_rank_ptr", &BigMemory::GetPtrByRank, py::call_guard<py::gil_scoped_release>(), py::arg("peer_rank"),
+             py::arg("mem_type") = SMEM_MEM_TYPE_DEVICE,
              R"(
 Get peer gva by rank id.
 
 Arguments:
     peer_rank(int): rank id of peer
+    mem_type(BmMemType): memory type, DEVICE or HOST, default is DEVICE
 Returns:
     ptr of peer gva)")
         .def("copy_data", &BigMemory::CopyData, py::call_guard<py::gil_scoped_release>(), py::arg("src_ptr"),
@@ -384,7 +401,7 @@ Arguments:
 Returns:
     0 if successful)");
 }
-}
+}  // namespace
 
 PYBIND11_MODULE(_pymf_smem, m)
 {

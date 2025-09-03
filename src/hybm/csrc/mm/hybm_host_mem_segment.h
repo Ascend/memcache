@@ -12,8 +12,8 @@ namespace ock {
 namespace mf {
 
 struct HostExportInfo {
-    uint64_t magic{0};
-    uint64_t version{0};
+    uint64_t magic{DRAM_SLICE_EXPORT_INFO_MAGIC};
+    uint64_t version{EXPORT_INFO_VERSION};
     uint64_t mappingOffset{0};
     uint32_t sliceIndex{0};
     uint32_t rankId{0};

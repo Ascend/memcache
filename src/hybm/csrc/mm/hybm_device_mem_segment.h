@@ -14,8 +14,8 @@
 namespace ock {
 namespace mf {
 struct HbmExportInfo {
-    uint64_t magic;
-    uint64_t version;
+    uint64_t magic{HBM_SLICE_EXPORT_INFO_MAGIC};
+    uint64_t version{EXPORT_INFO_VERSION};
     uint64_t mappingOffset{0};
     uint32_t sliceIndex{0};
     uint32_t sdid{0};
@@ -26,9 +26,9 @@ struct HbmExportInfo {
     uint32_t rankId{0};
     uint64_t size{0};
     int entityId{0};
-    MemPageTblType pageTblType;
-    MemSegType memSegType;
-    MemSegInfoExchangeType exchangeType;
+    MemPageTblType pageTblType{};
+    MemSegType memSegType{};
+    MemSegInfoExchangeType exchangeType{};
     uint8_t deviceId{0};
     char shmName[DEVICE_SHM_NAME_SIZE + 1U]{};
 };

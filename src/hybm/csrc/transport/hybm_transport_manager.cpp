@@ -8,6 +8,7 @@
 #include "device_rdma_transport_manager.h"
 #include "compose_transport_manager.h"
 
+using namespace ock::mf;
 using namespace ock::mf::transport;
 
 std::shared_ptr<TransportManager> TransportManager::Create(TransportType type)
@@ -27,6 +28,6 @@ std::shared_ptr<TransportManager> TransportManager::Create(TransportType type)
 
 const void *TransportManager::GetQpInfo() const
 {
-    BM_LOG_ERROR("Not Implement GetQpInfo()");
+    BM_LOG_DEBUG("Not Implement GetQpInfo()");
     return nullptr;
 }

@@ -72,7 +72,6 @@ private:
     std::mutex mutex_;
     SmemGroupEnginePtr globalGroup_ = nullptr;
     hybm_entity_t entity_ = nullptr;
-    void *gva_ = nullptr;
     void *hostGva_ = nullptr;
     void *deviceGva_ = nullptr;
 
@@ -80,7 +79,8 @@ private:
     SmemBmEntryOptions options_;
     hybm_options coreOptions_;
     StorePtr _configStore;
-    hybm_exchange_info exInfo_;
+    hybm_exchange_info hbmSliceInfo_;
+    hybm_exchange_info dramSliceInfo_;
     hybm_exchange_info entityInfo_;
 };
 using SmemBmEntryPtr = SmRef<SmemBmEntry>;
@@ -97,7 +97,7 @@ inline const hybm_options &SmemBmEntry::GetCoreOptions() const
 
 inline void *SmemBmEntry::GetGvaAddress() const
 {
-    return gva_;
+    return deviceGva_;
 }
 
 inline void *SmemBmEntry::GetHostGvaAddress() const

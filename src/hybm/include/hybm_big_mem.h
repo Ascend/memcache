@@ -34,20 +34,18 @@ void hybm_destroy_entity(hybm_entity_t e, uint32_t flags);
  *
  * @param e                [in] entity created by hybm_create_entity
  * @param flags            [in] optional flags, default value 0
- * @param reservedMem      [out] pointer of reserved virtual space
  * @return 0 if reserved successful
  */
-int32_t hybm_reserve_mem_space(hybm_entity_t e, uint32_t flags, void **reservedMem);
+int32_t hybm_reserve_mem_space(hybm_entity_t e, uint32_t flags);
 
 /**
  * @brief Un-reserve virtual memory space at local side
  *
  * @param e                [in] entity created by hybm_create_entity
  * @param flags            [in] optional flags, default value 0
- * @param reservedMem      [int] pointer of reserved virtual space to be un-reserved
  * @return 0 if reserved successful
  */
-int32_t hybm_unreserve_mem_space(hybm_entity_t e, uint32_t flags, void *reservedMem);
+int32_t hybm_unreserve_mem_space(hybm_entity_t e, uint32_t flags);
 
 /**
  *
@@ -135,12 +133,11 @@ int32_t hybm_mmap(hybm_entity_t e, uint32_t flags);
  * @brief Determine whether various channels from local rank to the remote is reachable.
  * @param e                [in] entity created by hybm_create_entity
  * @param rank             [in] remote rank
- * @param reaches          [out] array of size HYBM_DOP_TYPE_BUTT, for storing reachable results of various channels.
- *                               0 means unreachable, otherwise means reachable.
+ * @param reachTypes       [out] Which data operators can be represented in bits.
  * @param flags            [in] optional flags, default value 0
  * @return 0 if successful, error code if failed
  */
-int32_t hybm_entity_reach_types(hybm_entity_t e, uint32_t rank, int32_t reaches[HYBM_DOP_TYPE_BUTT], uint32_t flags);
+int32_t hybm_entity_reach_types(hybm_entity_t e, uint32_t rank, hybm_data_op_type &reachTypes, uint32_t flags);
 
 /**
  * @brief remove one rank after imported

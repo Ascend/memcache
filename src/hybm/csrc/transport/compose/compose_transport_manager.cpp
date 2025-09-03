@@ -144,6 +144,21 @@ Result ComposeTransportManager::QueryMemoryKey(uint64_t addr, TransportMemoryKey
     return transport->QueryMemoryKey(addr, key);
 }
 
+Result ComposeTransportManager::ParseMemoryKey(const TransportMemoryKey &key, uint64_t &addr, uint64_t &size)
+{
+    int ret = BM_ERROR;
+    if (key.keys[0] == TT_HCCP && deviceTransportManager_ != nullptr) {
+        return deviceTransportManager_->ParseMemoryKey(key, addr, size);
+    }
+
+    if (key.keys[0] == TT_HCOM && hostTransportManager_ != nullptr) {
+        return hostTransportManager_->ParseMemoryKey(key, addr, size);
+    }
+
+    BM_LOG_ERROR("ParseMemoryKey with type: " << key.keys[0] << " failed!");
+    return ret;
+}
+
 void ComposeTransportManager::GetHostPrepareOptions(const HybmTransPrepareOptions &param,
                                                     HybmTransPrepareOptions &hostOptions)
 {

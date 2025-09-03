@@ -12,7 +12,7 @@ namespace {
 constexpr uint64_t RDMA_SWAP_SPACE_SIZE = 1024 * 1024 * 128;
 }
 
-int32_t HostDataOpRDMA::Initialized() noexcept
+int32_t HostDataOpRDMA::Initialize() noexcept
 {
     rdmaSwapBaseAddr_ = malloc(RDMA_SWAP_SPACE_SIZE);
     if (rdmaSwapBaseAddr_ == nullptr) {
@@ -35,7 +35,7 @@ int32_t HostDataOpRDMA::Initialized() noexcept
     return BM_OK;
 }
 
-void HostDataOpRDMA::UnInitialized() noexcept
+void HostDataOpRDMA::UnInitialize() noexcept
 {
     if (rdmaSwapBaseAddr_ != nullptr) {
         free(rdmaSwapBaseAddr_);
@@ -45,7 +45,10 @@ void HostDataOpRDMA::UnInitialized() noexcept
 
 HostDataOpRDMA::~HostDataOpRDMA()
 {
-    UnInitialized();
+    if (rdmaSwapBaseAddr_ != nullptr) {
+        free(rdmaSwapBaseAddr_);
+        rdmaSwapBaseAddr_ = nullptr;
+    }
 }
 
 int32_t HostDataOpRDMA::DataCopy(const void *srcVA, void *destVA, uint64_t length, hybm_data_copy_direction direction,
