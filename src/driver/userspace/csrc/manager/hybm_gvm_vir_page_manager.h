@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <mutex>
+#include <set>
 
 namespace ock {
 namespace mf {
@@ -22,11 +23,16 @@ public:
     int32_t Initialize(uint64_t startAddr, uint64_t size, int fd);
     int32_t ReserveMemory(uint64_t *addr, uint64_t size, bool shared);
 
+    bool UpdateRegisterMap(uint64_t va, uint64_t size);
+    bool QeuryInRegisterMap(uint64_t va, uint64_t size);
+
 private:
     HybmGvmVirPageManager() = default;
     ~HybmGvmVirPageManager();
 
 private:
+    std::set<uint64_t> registerSet_; // va << 1 | is_left
+
     HGM_MemInfo local_{};
     HGM_MemInfo global_{};
     std::mutex mutex_;

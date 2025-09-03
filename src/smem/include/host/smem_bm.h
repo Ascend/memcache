@@ -145,6 +145,7 @@ int32_t smem_bm_copy(smem_bm_t handle, const void *src, void *dest, uint64_t siz
 
 /**
  * @brief Data copy on Big Memory object, several copy types supported:
+ * The size of the dest address must be continuous heigth * width
  * L2G: local memory to global space
  * G2L: global space to local memory
  * G2H: global space to host memory
@@ -164,6 +165,14 @@ int32_t smem_bm_copy(smem_bm_t handle, const void *src, void *dest, uint64_t siz
 int32_t smem_bm_copy_2d(smem_bm_t handle, const void *src, uint64_t spitch,
                         void *dest, uint64_t dpitch, uint64_t width, uint64_t heigth,
                         smem_bm_copy_type t, uint32_t flags);
+
+/**
+ * @brief register into svsp, support sdma
+ *
+ * @param addr              [in] register addr
+ * @param size              [in] register size
+ */
+int32_t smem_bm_register_into_svsp(uint64_t addr, uint64_t size);
 
 #ifdef __cplusplus
 }

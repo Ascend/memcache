@@ -31,6 +31,7 @@ struct hybm_gvm_mem_fetch_para {
     uint64_t addr; // in
     uint64_t size; // in
     uint32_t sdid; // in
+    uint32_t no_record; // in
 };
 
 struct hybm_gvm_mem_free_para {

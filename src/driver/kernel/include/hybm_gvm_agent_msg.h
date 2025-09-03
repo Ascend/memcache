@@ -43,8 +43,10 @@ struct hybm_gvm_agent_unmap_msg {
 struct hybm_gvm_agent_fetch_msg {
     u64 va;
     u64 size;
+    u32 page_size;
     int hostpid;
     u32 pasid;
+    u32 pa_num;
     u64 pa_list[];
 };
 

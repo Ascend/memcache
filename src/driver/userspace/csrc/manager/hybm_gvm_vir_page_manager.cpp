@@ -14,6 +14,9 @@ using namespace ock::mf;
 
 namespace {
 constexpr uint64_t HYBM_VIR_PAGE_SIZE = 1024ULL * 1024ULL * 1024ULL;
+constexpr uint32_t REGISTER_SET_MARK_BIT = 1U;
+constexpr uint32_t REGISTER_SET_LEFT_MARK = 1U;
+constexpr uint64_t REGISTER_SET_VA_MAX = UINT64_MAX >> REGISTER_SET_MARK_BIT;
 }
 
 HybmGvmVirPageManager *HybmGvmVirPageManager::Instance()
@@ -75,4 +78,30 @@ int32_t HybmGvmVirPageManager::ReserveMemory(uint64_t *addr, uint64_t size, bool
     *addr = info->start + info->used;
     info->used += size;
     return 0;
+}
+
+bool HybmGvmVirPageManager::UpdateRegisterMap(uint64_t va, uint64_t size)
+{
+    if (va > REGISTER_SET_VA_MAX || va + size > REGISTER_SET_VA_MAX) {
+        BM_USER_LOG_ERROR("register va is too large, va:" << std::hex << va << " size:" << size);
+        return false;
+    }
+
+    std::unique_lock<std::mutex> lockGuard{mutex_};
+    auto it = registerSet_.lower_bound(va << REGISTER_SET_MARK_BIT | REGISTER_SET_LEFT_MARK);
+    if (it != registerSet_.end() && ((*it) >> REGISTER_SET_MARK_BIT) < (va + size)) {
+        BM_USER_LOG_ERROR("va has registered, va:" << std::hex << va << " size:" << size);
+        return false;
+    }
+
+    registerSet_.insert(va << REGISTER_SET_MARK_BIT | REGISTER_SET_LEFT_MARK);
+    registerSet_.insert((va + size) << REGISTER_SET_MARK_BIT);
+    return true;
+}
+
+bool HybmGvmVirPageManager::QeuryInRegisterMap(uint64_t va, uint64_t size)
+{
+    std::unique_lock<std::mutex> lockGuard{mutex_};
+    auto it = registerSet_.lower_bound(va << REGISTER_SET_MARK_BIT | REGISTER_SET_LEFT_MARK);
+    return (it != registerSet_.end() && ((*it) >> REGISTER_SET_MARK_BIT) < (va + size));
 }

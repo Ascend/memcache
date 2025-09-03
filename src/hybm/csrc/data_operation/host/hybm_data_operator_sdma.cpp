@@ -40,7 +40,7 @@ int32_t HostDataOpSDMA::Initialize() noexcept
         }
 
         sdmaSwapMemoryAllocator_ = std::make_shared<RbtreeRangePool>((uint8_t *) sdmaSwapMemAddr_, HBM_SWAP_SPACE_SIZE);
-        ret = hybm_gvm_mem_fetch((uint64_t)sdmaSwapMemAddr_, HBM_SWAP_SPACE_SIZE, 0);
+        ret = hybm_gvm_mem_register((uint64_t)sdmaSwapMemAddr_, HBM_SWAP_SPACE_SIZE);
         if (ret != BM_OK) {
             DlAclApi::AclrtFree(&sdmaSwapMemAddr_);
             sdmaSwapMemAddr_ = nullptr;
@@ -454,6 +454,10 @@ int HostDataOpSDMA::CopyLD2GH(void *destVA, const void *srcVA, uint64_t length, 
     // local device到dram池的拷贝
     BM_LOG_INFO("Copy local device to global host, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
     // LD2GD
+    if (hybm_gvm_mem_has_registered((uint64_t)srcVA, length)) {
+        return CopyG2G(destVA, srcVA, length);
+    }
+
     auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(length);
     void *tmpHbm = tmpSdmaMemory.Address();
     if (tmpHbm == nullptr) {
@@ -482,6 +486,10 @@ int HostDataOpSDMA::CopyLH2GH(void *destVA, const void *srcVA, uint64_t length, 
     BM_ASSERT_LOG_AND_RETURN(HybmGvmHasInited(), "Failed to CopyLH2GH hybm gvm not init", BM_NOT_SUPPORT_FUNC);
     // local host到dram池的拷贝
     BM_LOG_INFO("Copy local host to global host, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
+    if (hybm_gvm_mem_has_registered((uint64_t)srcVA, length)) {
+        return CopyG2G(destVA, srcVA, length);
+    }
+
     // LH2GD
     auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(length);
     void *tmpHbm = tmpSdmaMemory.Address();
@@ -511,6 +519,10 @@ int HostDataOpSDMA::CopyGH2LD(void *destVA, const void *srcVA, uint64_t length, 
     BM_ASSERT_LOG_AND_RETURN(HybmGvmHasInited(), "Failed to CopyGH2LD hybm gvm not init", BM_NOT_SUPPORT_FUNC);
     // dram池的拷贝到local device
     BM_LOG_INFO("Copy global host to local device, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
+    if (hybm_gvm_mem_has_registered((uint64_t)destVA, length)) {
+        return CopyG2G(destVA, srcVA, length);
+    }
+
     // GH2GD
     auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(length);
     void *tmpHbm = tmpSdmaMemory.Address();
@@ -541,6 +553,10 @@ int HostDataOpSDMA::CopyGH2LH(void *destVA, const void *srcVA, uint64_t length, 
     BM_ASSERT_LOG_AND_RETURN(HybmGvmHasInited(), "Failed to CopyGH2LH hybm gvm not init", BM_NOT_SUPPORT_FUNC);
     // dram池的拷贝到local host
     BM_LOG_INFO("Copy global host to local host, destVa:" << destVA << " srcVa:" << srcVA << " length:" << length);
+    if (hybm_gvm_mem_has_registered((uint64_t)destVA, length)) {
+        return CopyG2G(destVA, srcVA, length);
+    }
+
     // GH2GD
     auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(length);
     void *tmpHbm = tmpSdmaMemory.Address();

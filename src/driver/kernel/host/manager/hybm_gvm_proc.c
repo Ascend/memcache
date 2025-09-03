@@ -14,6 +14,7 @@
 #include "hybm_gvm_p2p.h"
 #include "hybm_gvm_phy_page.h"
 #include "hybm_gvm_s2a.h"
+#include "hybm_gvm_tree.h"
 #include "hybm_gvm_symbol_get.h"
 
 #define GVM_NODE_FLAG_ALLOCATED 1ULL
@@ -145,165 +146,27 @@ static void hybm_gvm_node_ref_release(struct kref *kref)
     kfree(node);
 }
 
-static bool gvm_key_tree_insert(struct gvm_rbtree *rtree, struct gvm_node *data)
+static struct gvm_dev_mem_node *hybm_gvm_dev_node_alloc(u64 va, u64 size)
 {
-    struct rb_node **new = NULL;
-    struct rb_node *parent = NULL;
-    mutex_lock(&rtree->lock);
-    new = &(rtree->tree.rb_node);
-    while (*new) {
-        struct gvm_node *tmp = container_of(*new, struct gvm_node, key_node);
-        parent = *new;
-        if (data->shm_key < tmp->shm_key) {
-            new = &((*new)->rb_left);
-        } else if (data->shm_key > tmp->shm_key) {
-            new = &((*new)->rb_right);
-        } else {
-            mutex_unlock(&rtree->lock);
-            return false;
-        }
+    struct gvm_dev_mem_node *node = NULL;
+    node = kzalloc(sizeof(struct gvm_dev_mem_node), GFP_KERNEL | __GFP_ACCOUNT);
+    if (node == NULL) {
+        hybm_gvm_err("kzalloc gvm dev node fail.");
+        return NULL;
     }
-    /* Add new node and rebalance tree. */
-    rb_link_node(&data->key_node, parent, new);
-    rb_insert_color(&data->key_node, &rtree->tree);
-    kref_get(&data->ref); // 插入后加引用计数,remove时减去
-    mutex_unlock(&rtree->lock);
-    return true;
+
+    node->va = va;
+    node->size = size;
+    RB_CLEAR_NODE(&node->va_node);
+    kref_init(&node->ref);
+    return node;
 }
 
-static void gvm_key_tree_remove(struct gvm_rbtree *rtree, struct gvm_node *data)
+static void hybm_gvm_dev_node_ref_release(struct kref *kref)
 {
-    mutex_lock(&rtree->lock);
-    if (!RB_EMPTY_NODE(&data->key_node)) {
-        rb_erase(&data->key_node, &rtree->tree);
-        RB_CLEAR_NODE(&data->key_node);
-        kref_put(&data->ref, hybm_gvm_node_ref_release);
-    }
-    mutex_unlock(&rtree->lock);
-}
-
-static struct gvm_node *gvm_key_tree_search_and_inc(struct gvm_rbtree *rtree, u64 key)
-{
-    struct rb_node *node = NULL;
-    mutex_lock(&rtree->lock);
-    node = rtree->tree.rb_node;
-    while (node) {
-        struct gvm_node *tmp = container_of(node, struct gvm_node, key_node);
-        if (key < tmp->shm_key) {
-            node = node->rb_left;
-        } else if (key > tmp->shm_key) {
-            node = node->rb_right;
-        } else {
-            kref_get(&tmp->ref);
-            mutex_unlock(&rtree->lock);
-            return tmp;
-        }
-    }
-    mutex_unlock(&rtree->lock);
-    return NULL;
-}
-
-static bool gvm_va_tree_cross(struct gvm_rbtree *rtree, u64 va, u64 size)
-{
-    struct rb_node *node = NULL;
-    bool ret = false;
-    mutex_lock(&rtree->lock);
-    node = rtree->tree.rb_node;
-    while (node) {
-        struct gvm_node *tmp = container_of(node, struct gvm_node, va_node);
-        if ((va <= tmp->va && tmp->va < (va + size)) || (tmp->va <= va && va < (tmp->va + tmp->size))) {
-            ret = true;
-            break;
-        }
-        if (va < tmp->va) {
-            node = node->rb_left;
-        } else if (va > tmp->va) {
-            node = node->rb_right;
-        }
-    }
-    mutex_unlock(&rtree->lock);
-    return ret;
-}
-
-// search and add ref
-static struct gvm_node *gvm_va_tree_get_first_and_inc(struct gvm_rbtree *rtree)
-{
-    struct rb_node *node = NULL;
-    struct gvm_node *tmp = NULL;
-    mutex_lock(&rtree->lock);
-    node = rb_first(&rtree->tree);
-    if (node != NULL) {
-        tmp = container_of(node, struct gvm_node, va_node);
-        kref_get(&tmp->ref);
-    }
-    mutex_unlock(&rtree->lock);
-    return tmp;
-}
-
-// search and add ref
-static struct gvm_node *gvm_va_tree_search_and_inc(struct gvm_rbtree *rtree, u64 va)
-{
-    struct rb_node *node = NULL;
-    mutex_lock(&rtree->lock);
-    node = rtree->tree.rb_node;
-    while (node) {
-        struct gvm_node *tmp = container_of(node, struct gvm_node, va_node);
-        if (va < tmp->va) {
-            node = node->rb_left;
-        } else if (va > tmp->va) {
-            node = node->rb_right;
-        } else {
-            kref_get(&tmp->ref);
-            mutex_unlock(&rtree->lock);
-            return tmp;
-        }
-    }
-    mutex_unlock(&rtree->lock);
-    return NULL;
-}
-
-static bool gvm_va_tree_insert(struct gvm_rbtree *rtree, struct gvm_node *data)
-{
-    struct rb_node **new = NULL;
-    struct rb_node *parent = NULL;
-    mutex_lock(&rtree->lock);
-    new = &(rtree->tree.rb_node);
-    while (*new) {
-        struct gvm_node *tmp = container_of(*new, struct gvm_node, va_node);
-        if ((data->va <= tmp->va && tmp->va < (data->va + data->size)) ||
-            (tmp->va <= data->va && data->va < (tmp->va + tmp->size))) {
-            hybm_gvm_err("has cross node, st1:0x%llx sz1:0x%llx st2:0x%llx sz2:0x%llx",
-                         data->va, data->size, tmp->va, tmp->size);
-            mutex_unlock(&rtree->lock);
-            return false;
-        }
-
-        parent = *new;
-        if (data->va < tmp->va) {
-            new = &((*new)->rb_left);
-        } else if (data->va > tmp->va) {
-            new = &((*new)->rb_right);
-        }
-    }
-    /* Add new node and rebalance tree. */
-    rb_link_node(&data->va_node, parent, new);
-    rb_insert_color(&data->va_node, &rtree->tree);
-    kref_get(&data->ref); // 插入后加引用计数,remove时减去
-    mutex_unlock(&rtree->lock);
-    return true;
-}
-
-// remove node and dec ref
-static void gvm_va_tree_remove_and_dec(struct gvm_rbtree *rtree, struct gvm_node *data)
-{
-    mutex_lock(&rtree->lock);
-    if (!RB_EMPTY_NODE(&data->va_node)) {
-        rb_erase(&data->va_node, &rtree->tree);
-        RB_CLEAR_NODE(&data->va_node);
-        kref_put(&data->ref, hybm_gvm_node_ref_release); // 减去insert时加的计数
-    }
-    mutex_unlock(&rtree->lock);
-    kref_put(&data->ref, hybm_gvm_node_ref_release); // 减去init时的计数,表示可以free了
+    struct gvm_dev_mem_node *node = container_of(kref, struct gvm_dev_mem_node, ref);
+    hybm_gvm_debug("release gvm dev node:%p, va:0x%llx", node, node->va);
+    kfree(node);
 }
 
 // @return true if `init_flag` has already been set.
@@ -347,8 +210,8 @@ static int hybm_init_gvm_proc(struct hybm_gvm_process *gvm_proc, u64 start, u64 
     gvm_proc->va_tree.tree = RB_ROOT;
     mutex_init(&gvm_proc->va_tree.lock);
 
-    INIT_LIST_HEAD(&gvm_proc->fetch_head);
-    mutex_init(&gvm_proc->fetch_lock);
+    gvm_proc->fetch_tree.tree = RB_ROOT;
+    mutex_init(&gvm_proc->fetch_tree.lock);
 
     kref_init(&gvm_proc->ref);
     return 0;
@@ -362,7 +225,7 @@ static void hybm_free_gvm_proc(struct hybm_gvm_process **gvm_proc)
 
     mutex_destroy(&(*gvm_proc)->key_tree.lock);
     mutex_destroy(&(*gvm_proc)->va_tree.lock);
-    mutex_destroy(&(*gvm_proc)->fetch_lock);
+    mutex_destroy(&(*gvm_proc)->fetch_tree.lock);
 
     kfree((*gvm_proc));
     (*gvm_proc) = NULL;
@@ -617,8 +480,8 @@ static void hybm_gvm_node_free(struct hybm_gvm_process *proc, struct gvm_node *n
     }
     mutex_unlock(&node->lock);
 
-    gvm_key_tree_remove(&proc->key_tree, node);
-    gvm_va_tree_remove_and_dec(&proc->va_tree, node); // 减去init时加的计数
+    gvm_key_tree_remove(&proc->key_tree, node, hybm_gvm_node_ref_release);
+    gvm_va_tree_remove_and_dec(&proc->va_tree, (void *)node, hybm_gvm_node_ref_release); // 减去init时加的计数
     kref_put(&node->ref, hybm_gvm_node_ref_release); // 减去search时加的计数
 }
 
@@ -703,7 +566,7 @@ static int hybm_gvm_mem_alloc(struct file *file, struct hybm_gvm_process *proc, 
     }
 
     mutex_lock(&node->lock); // 先加锁然后插入va_tree,占位
-    if (!gvm_va_tree_insert(&proc->va_tree, node)) {
+    if (!gvm_va_tree_insert(&proc->va_tree, (void *)node)) {
         mutex_unlock(&node->lock);
         kref_put(&node->ref, hybm_gvm_node_ref_release);
         return -EBUSY;
@@ -717,7 +580,7 @@ static int hybm_gvm_mem_alloc(struct file *file, struct hybm_gvm_process *proc, 
     mutex_unlock(&node->lock);
     if (ret != 0) {
         hybm_gvm_err("alloc mem failed, ret:%d. input:va(0x%llx),size(0x%llx)", ret, va, size);
-        gvm_va_tree_remove_and_dec(&proc->va_tree, node);
+        gvm_va_tree_remove_and_dec(&proc->va_tree, (void *)node, hybm_gvm_node_ref_release);
         return -EBUSY;
     }
     hybm_gvm_debug("alloc mem success. input:va(0x%llx)size(0x%llx)dma(%u)", va, size, arg->dma_flag);
@@ -730,7 +593,7 @@ static int hybm_gvm_mem_free(struct file *file, struct hybm_gvm_process *proc, s
     struct gvm_node *node = NULL;
     u64 va = arg->addr;
 
-    node = gvm_va_tree_search_and_inc(&proc->va_tree, va);
+    node = (struct gvm_node *)gvm_va_tree_search_and_inc(&proc->va_tree, va);
     if (node == NULL) {
         hybm_gvm_err("not found this va. va(0x%llx)", va);
         return -EINVAL;
@@ -751,10 +614,10 @@ static void hybm_gvm_free_all_mem(struct hybm_gvm_process *proc)
 {
     struct gvm_node *node = NULL;
 
-    node = gvm_va_tree_get_first_and_inc(&proc->va_tree);
+    node = (struct gvm_node *)gvm_va_tree_get_first_and_inc(&proc->va_tree);
     while (node != NULL) {
         hybm_gvm_node_free(proc, node);
-        node = gvm_va_tree_get_first_and_inc(&proc->va_tree);
+        node = (struct gvm_node *)gvm_va_tree_get_first_and_inc(&proc->va_tree);
     }
 }
 
@@ -765,7 +628,7 @@ static int hybm_gvm_get_key(struct file *file, struct hybm_gvm_process *proc, st
     u64 va = arg->addr;
     int ret = 0;
 
-    node = gvm_va_tree_search_and_inc(&proc->va_tree, va);
+    node = (struct gvm_node *)gvm_va_tree_search_and_inc(&proc->va_tree, va);
     if (node == NULL) {
         hybm_gvm_err("not found this va. va(0x%llx)", va);
         return -EINVAL;
@@ -899,7 +762,7 @@ static int hybm_gvm_mem_close(struct file *file, struct hybm_gvm_process *proc, 
     struct gvm_node *node = NULL;
     u64 va = arg->addr;
 
-    node = gvm_va_tree_search_and_inc(&proc->va_tree, va);
+    node = (struct gvm_node *)gvm_va_tree_search_and_inc(&proc->va_tree, va);
     if (node == NULL) {
         hybm_gvm_err("mem is not open! va(0x%llx)", va);
         return -EINVAL;
@@ -926,20 +789,25 @@ static int hybm_gvm_mem_fetch(struct file *file, struct hybm_gvm_process *proc, 
     u64 size = arg->size;
     int ret;
 
-    if (va % HYBM_GVM_PAGE_SIZE != 0 || size != HYBM_GVM_PAGE_SIZE) {
-        hybm_gvm_err("input invalid! va(0x%llx),size(0x%llx)", va, size);
+    if (!va || !size || (!arg->no_record && (va % HYBM_GVM_PAGE_SIZE || size != HYBM_GVM_PAGE_SIZE))) {
+        hybm_gvm_err("input invalid! va(0x%llx),size(0x%llx)no_record(%u)", va, size, arg->no_record);
         return -EBUSY;
     }
 
-    node = kzalloc(sizeof(struct gvm_dev_mem_node), GFP_KERNEL | __GFP_ACCOUNT);
+    node = hybm_gvm_dev_node_alloc(va, size);
     if (node == NULL) {
-        hybm_gvm_err("kzalloc gvm node fail.");
         return -ENOMEM;
     }
 
-    if (proc->sdid == arg->sdid) {
-        ret = hybm_gvm_to_agent_fetch(proc->devid, proc->pasid, va, size, node->pa, HYBM_GVM_PAGE_NUM);
+    if (arg->no_record) {
+        node->pa_num = 0;
+        ret = hybm_gvm_to_agent_fetch(proc->devid, proc->pasid, va, size, &node->page_size, NULL, 0);
+    } else if (proc->sdid == arg->sdid) {
+        node->pa_num = HYBM_GVM_PAGE_NUM;
+        ret = hybm_gvm_to_agent_fetch(proc->devid, proc->pasid, va, size, &node->page_size, node->pa, HYBM_GVM_PAGE_NUM);
     } else {
+        node->pa_num = HYBM_GVM_PAGE_NUM;
+        node->page_size = HYBM_HPAGE_SIZE;
         ret = hybm_gvm_p2p_fetch(proc->sdid, proc->devid, arg->sdid, va, node->pa);
         if (ret == 0) {
             ret = hybm_gvm_to_agent_mmap(proc->devid, proc->pasid, va, size, node->pa, HYBM_GVM_PAGE_NUM);
@@ -947,19 +815,17 @@ static int hybm_gvm_mem_fetch(struct file *file, struct hybm_gvm_process *proc, 
     }
     if (ret != 0) {
         hybm_gvm_err("fetch mem failed! va(0x%llx),size(0x%llx)", va, size);
-        kfree(node);
+        kref_put(&node->ref, hybm_gvm_dev_node_ref_release);
         return ret;
     }
-    hybm_gvm_debug("fetch mem and map. va(0x%llx)pa_0(0x%llx)", va, node->pa[0]);
 
-    node->va = va;
-    node->size = size;
-    INIT_LIST_HEAD(&node->node);
+    if (!gvm_va_tree_insert(&proc->fetch_tree, (void *)node)) {
+        hybm_gvm_to_agent_unmap(proc->devid, proc->pasid, node->va, node->size, node->page_size);
+        kref_put(&node->ref, hybm_gvm_dev_node_ref_release);
+        return -EBUSY;
+    }
 
-    mutex_lock(&proc->fetch_lock);
-    list_add_tail(&node->node, &proc->fetch_head);
-    mutex_unlock(&proc->fetch_lock);
-    hybm_gvm_debug("hybm_gvm_mem_fetch success. va(0x%llx),size(0x%llx)", va, size);
+    hybm_gvm_debug("hybm_gvm_mem_fetch success. va(0x%llx),size(0x%llx)no_record(%u)", va, size, arg->no_record);
     return 0;
 }
 
@@ -977,22 +843,20 @@ struct gvm_ioctl_handlers_st gvm_ioctl_handlers[HYBM_GVM_CMD_MAX_CMD] = {
 void hybm_gvm_proc_destroy(struct gvm_private_data *priv)
 {
     struct hybm_gvm_process *proc = priv->process;
-    struct list_head *pos = NULL, *n = NULL;
     struct gvm_dev_mem_node *node = NULL;
     int ret;
 
-    mutex_lock(&proc->fetch_lock);
-    list_for_each_safe(pos, n, &proc->fetch_head)
-    {
-        node = list_entry(pos, struct gvm_dev_mem_node, node);
-        ret = hybm_gvm_to_agent_unmap(proc->devid, proc->pasid, node->va, node->size, HYBM_HPAGE_SIZE);
+    node = (struct gvm_dev_mem_node *)gvm_va_tree_get_first_and_inc(&proc->fetch_tree);
+    while (node != NULL) {
+        ret = hybm_gvm_to_agent_unmap(proc->devid, proc->pasid, node->va, node->size, node->page_size);
         if (ret != 0) {
             hybm_gvm_err("unmap fetch mem failed! va(0x%llx),size(0x%llx),ret:%d", node->va, node->size, ret);
         }
-        list_del_init(&node->node);
-        kfree(node);
+        gvm_va_tree_remove_and_dec(&proc->fetch_tree, (void *)node, hybm_gvm_dev_node_ref_release); // 减去init时加的计数
+        kref_put(&node->ref, hybm_gvm_dev_node_ref_release); // 减去search时加的计数
+
+        node = (struct gvm_dev_mem_node *)gvm_va_tree_get_first_and_inc(&proc->fetch_tree);
     }
-    mutex_unlock(&proc->fetch_lock);
 
     hybm_gvm_free_all_mem(proc);
 
@@ -1008,7 +872,7 @@ static int hybm_gvm_proc_get_pa_inner(struct hybm_gvm_process *proc, u64 va, u64
     struct gvm_node *node = NULL;
     u64 i;
 
-    node = gvm_va_tree_search_and_inc(&proc->va_tree, va);
+    node = (struct gvm_node *)gvm_va_tree_search_and_inc(&proc->va_tree, va);
     if (node == NULL || node->va != va || node->size != size || node->pa_num != num) {
         hybm_gvm_err("input addr is error. input:va(0x%llx),size(0x%llx) range:va(0x%llx),size(0x%llx)", va, size,
                      node->va, node->size);
@@ -1135,16 +999,16 @@ static int hybm_gvm_insert_remote_inner(struct hybm_gvm_process *proc, u64 key, 
     node->shm_key = key;
     gvm_set_flag(&node->flag, GVM_NODE_FLAG_REMOTE);
     mutex_lock(&node->lock); // 先加锁然后插入va_tree,占位
-    if (!gvm_va_tree_insert(&proc->va_tree, node)) {
+    if (!gvm_va_tree_insert(&proc->va_tree, (void *)node)) {
         mutex_unlock(&node->lock);
         kref_put(&node->ref, hybm_gvm_node_ref_release);
         return -EBUSY;
     }
 
-    if (gvm_key_tree_insert(&proc->key_tree, node) == false) {
+    if (!gvm_key_tree_insert(&proc->key_tree, node)) {
         hybm_gvm_err("set key failed, unknown error. key(0x%llx)", node->shm_key);
         mutex_unlock(&node->lock);
-        gvm_va_tree_remove_and_dec(&proc->va_tree, node);
+        gvm_va_tree_remove_and_dec(&proc->va_tree, (void *)node, hybm_gvm_node_ref_release);
         ret = -EBUSY;
     }
 
@@ -1182,8 +1046,8 @@ static int hybm_gvm_remove_remote_inner(struct hybm_gvm_process *proc, u64 key)
         mutex_unlock(&node->lock);
     }
 
-    gvm_key_tree_remove(&proc->key_tree, node);
-    gvm_va_tree_remove_and_dec(&proc->va_tree, node); // 减去init时加的计数
+    gvm_key_tree_remove(&proc->key_tree, node, hybm_gvm_node_ref_release);
+    gvm_va_tree_remove_and_dec(&proc->va_tree, (void *)node, hybm_gvm_node_ref_release); // 减去init时加的计数
     kref_put(&node->ref, hybm_gvm_node_ref_release); // 减去本次计数
     return 0;
 }
@@ -1214,29 +1078,31 @@ int hybm_gvm_unset_remote(u32 sdid, u64 key, struct hybm_gvm_process *rp)
 int hybm_gvm_fetch_remote(u32 sdid, u64 va, u64 *pa_list)
 {
     struct hybm_gvm_process *proc = hybm_gvm_get_proc_by_sdid(sdid);
-    struct list_head *pos = NULL, *n = NULL;
     struct gvm_dev_mem_node *node = NULL;
     u32 i;
+    int ret = 0;
+
     if (proc == NULL) {
         return -EINVAL;
     }
 
-    mutex_lock(&proc->fetch_lock);
-    list_for_each_safe(pos, n, &proc->fetch_head)
-    {
-        node = list_entry(pos, struct gvm_dev_mem_node, node);
-        if (node->va == va) {
-            for (i = 0; i < HYBM_GVM_PAGE_NUM; i++) {
-                pa_list[i] = node->pa[i];
-            }
-            mutex_unlock(&proc->fetch_lock);
-            kref_put(&proc->ref, hybm_proc_ref_release);
-            return 0;
+    node = (struct gvm_dev_mem_node *)gvm_va_tree_search_and_inc(&proc->fetch_tree, va);
+    if (node == NULL) {
+        hybm_gvm_err("not found this va, maybe not fetch. va(0x%llx)", va);
+        kref_put(&proc->ref, hybm_proc_ref_release);
+        return -EINVAL;
+    }
+
+    if (node->pa_num != HYBM_GVM_PAGE_NUM) {
+        hybm_gvm_err("va not shared. va(0x%llx)num(%u)", va, node->pa_num);
+        ret = -EINVAL;
+    } else {
+        for (i = 0; i < HYBM_GVM_PAGE_NUM; i++) {
+            pa_list[i] = node->pa[i];
         }
     }
-    mutex_unlock(&proc->fetch_lock);
 
+    kref_put(&node->ref, hybm_gvm_dev_node_ref_release);
     kref_put(&proc->ref, hybm_proc_ref_release);
-    hybm_gvm_err("not found va, maybe not fetch, va(0x%llx)", va);
-    return -EINVAL;
+    return ret;
 }

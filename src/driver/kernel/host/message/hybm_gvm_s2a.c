@@ -128,7 +128,7 @@ int hybm_gvm_to_agent_unmap(u32 devid, u32 pasid, u64 va, u64 size, u64 page_siz
     return 0;
 }
 
-int hybm_gvm_to_agent_fetch(u32 devid, u32 pasid, u64 va, u64 size, u64 *pa_list, u32 num)
+int hybm_gvm_to_agent_fetch(u32 devid, u32 pasid, u64 va, u64 size, u32 *pg_size, u64 *pa_list, u32 num)
 {
     struct hybm_gvm_agent_msg *msg;
     struct hybm_gvm_agent_fetch_msg *fetch_body;
@@ -151,6 +151,7 @@ int hybm_gvm_to_agent_fetch(u32 devid, u32 pasid, u64 va, u64 size, u64 *pa_list
     fetch_body->size = size;
     fetch_body->hostpid = (current->tgid);
     fetch_body->pasid = pasid;
+    fetch_body->pa_num = num;
 
     ret = hybm_gvm_agent_msg_send(devid, msg, in_len, in_len, &out_len);
     if (ret != 0 || out_len != in_len || msg->valid != HYBM_GVM_S2A_MSG_RCV_MAGIC || msg->result != 0) {
@@ -160,6 +161,7 @@ int hybm_gvm_to_agent_fetch(u32 devid, u32 pasid, u64 va, u64 size, u64 *pa_list
         return -EBUSY;
     }
 
+    *pg_size = fetch_body->page_size;
     for (i = 0; i < num; i++) {
         pa_list[i] = fetch_body->pa_list[i];
     }

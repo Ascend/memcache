@@ -5,6 +5,7 @@
 #define MF_HYBRID_GVM_LOG_H
 
 #include <linux/kernel.h>
+#include <linux/sched.h>
 
 #define hybm_gvm_printk(level, fmt, ...) \
     (void)printk(level "[GVM][%s:%d][%d] " fmt "\n", __func__, __LINE__, current->tgid, ##__VA_ARGS__)

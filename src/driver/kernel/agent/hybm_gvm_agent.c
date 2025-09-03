@@ -13,10 +13,7 @@
 #include "hybm_gvm_log.h"
 #include "hybm_gvm_proc_info.h"
 
-#define DEVMM_P2P_PAGE_MAX_NUM_QUERY_MSG 32
-#define DEVMM_CHAN_PAGE_FAULT_P2P_ID     7
-
-#define HYBM_ROCE_MEM_NUM (32)
+#define HYBM_GVM_QUERY_SVM_PA_MAX_NUM   (2U << 20)  // 2M
 
 /* common msg */
 enum agentdrv_common_msg_type {
@@ -90,6 +87,7 @@ struct gvm_agent_info {
     int (*agentdrv_msg_register_func)(struct agentdrv_common_msg_client *msg_client);
     int (*agentdrv_msg_unregister_func)(const struct agentdrv_common_msg_client *msg_client);
 
+    u32 (*get_mem_page_size_func)(struct devmm_svm_process_id *process_id, u64 addr, u64 size);
     int (*get_mem_pa_func)(struct devmm_svm_process_id *process_id, u64 addr, u64 size, u64 *pa_list, u32 pa_num);
     void (*put_mem_pa_func)(struct devmm_svm_process_id *process_id, u64 addr, u64 size, u64 *pa_list, u32 pa_num);
 
@@ -106,27 +104,22 @@ struct gvm_agent_info {
 
     struct list_head roce_head;
     void *ib_priv;
+    u32 devid;
     int devpid;
 };
 struct gvm_agent_info g_gvm_agent_info = {0};
 
 bool gvm_agent_check_task(void)
 {
-    struct task_struct *task;
+    int svspid = -1;
     if (g_gvm_agent_info.devpid <= 0) {
         return false;
     }
 
-    task = find_get_task_by_vpid(g_gvm_agent_info.devpid);
-    if (task) {
-        if (task->exit_state != 0) {
-            g_gvm_agent_info.devpid = -1;
-        }
-        put_task_struct(task);
-    } else {
+    svspid = g_gvm_agent_info.get_svsp_pasid_func(g_gvm_agent_info.devpid, g_gvm_agent_info.devid);
+    if (svspid < 0) {
         g_gvm_agent_info.devpid = -1;
     }
-
     return (g_gvm_agent_info.devpid > 0);
 }
 
@@ -161,6 +154,7 @@ int gvm_agent_init_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
     init_body->pasid = pasid;
     init_body->svspid = svspid;
     g_gvm_agent_info.devpid = devpid;
+    g_gvm_agent_info.devid = devid;
     hybm_gvm_debug("gvm_agent_init_recv, hostpid:%d,devpid:%d,pasid:%d,svspid:%d", init_body->hostpid, devpid, pasid,
                    svspid);
     return 0;
@@ -216,7 +210,7 @@ static int gvm_agent_add_roce_node(u64 va, u64 size, u64 *pa_list, u32 num)
 
     node->va = va;
     node->size = size;
-    node->num = num;
+    node->pa_num = num;
     node->page_size = size / num;
     for (i = 0; i < num; i++) {
         node->pa[i] = pa_list[i];
@@ -307,36 +301,59 @@ int gvm_agent_unmap_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
     return 0;
 }
 
-static int gvm_agent_map_svm_pa(int hostpid, u32 devid, u64 va, u64 size, u64 *pa_list, u64 *out, u32 num, u32 pasid)
+static int gvm_agent_map_svm_pa(u32 devid, struct hybm_gvm_agent_fetch_msg *fetch)
 {
     struct devmm_svm_process_id id = {0};
+    u64 *pa_list = NULL;
     int ret = 0;
-    u32 i;
-    id.hostpid = hostpid;
+    u32 pg_size, i, num;
+    id.hostpid = fetch->hostpid;
     id.devid = devid;
 
-    // TODO: 先get page_size check一下
-    ret = g_gvm_agent_info.get_mem_pa_func(&id, va, size, pa_list, num);
+    pg_size = g_gvm_agent_info.get_mem_page_size_func(&id, fetch->va, fetch->size);
+    if (pg_size == 0) {
+        hybm_gvm_err("query va page_size failed. va:0x%llx,size:0x%llx", fetch->va, fetch->size);
+        return -EINVAL;
+    }
+
+    if (fetch->pa_num > 0 && pg_size != HYBM_HPAGE_SIZE) {
+        hybm_gvm_err("record mem pg_size must be 2M, real is 0x%x", pg_size);
+        return -EBUSY;
+    }
+
+    num = fetch->size / pg_size;
+    if (fetch->size % pg_size || num > HYBM_GVM_QUERY_SVM_PA_MAX_NUM) {
+        hybm_gvm_err("query mem size is too large, size:0x%llx pg_size:0x%x", fetch->size, pg_size);
+        return -EBUSY;
+    }
+
+    pa_list = kzalloc(sizeof(u64) * num, GFP_KERNEL | __GFP_ACCOUNT);
+    if (pa_list == NULL) {
+        hybm_gvm_err("Kzalloc pa_list is NULL. num:%u", num);
+        return -EINVAL;
+    }
+
+    ret = g_gvm_agent_info.get_mem_pa_func(&id, fetch->va, fetch->size, pa_list, num);
     if (ret != 0) {
         hybm_gvm_err("get svm pa failed. ret:%d", ret);
         return -EINVAL;
     }
 
-    for (i = 0; i < num; i++) {
-        out[i] = pa_list[i];
+    fetch->page_size = pg_size;
+    for (i = 0; i < fetch->pa_num; i++) {
+        fetch->pa_list[i] = pa_list[i];
     }
 
-    ret = gvm_agent_map_svsp(va, size, pa_list, num, pasid);
-    g_gvm_agent_info.put_mem_pa_func(&id, va, size, pa_list, num);
-    hybm_gvm_debug("gvm_agent_fetch_map, va:0x%llx,size:0x%llx,num:%x,ret:%d", va, size, num, ret);
+    ret = gvm_agent_map_svsp(fetch->va, fetch->size, pa_list, num, fetch->pasid);
+    g_gvm_agent_info.put_mem_pa_func(&id, fetch->va, fetch->size, pa_list, num);
+    kfree(pa_list);
+    hybm_gvm_debug("gvm_agent_fetch_map, va:0x%llx,size:0x%llx,num:%x,ret:%d", fetch->va, fetch->size, num, ret);
     return ret;
 }
 
 int gvm_agent_fetch_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
 {
     u64 va;
-    u64 *pa_list = NULL;
-    u32 pasid, num;
     struct hybm_gvm_agent_fetch_msg *fetch_body;
     int ret = 0;
 
@@ -346,27 +363,21 @@ int gvm_agent_fetch_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
     }
     
     fetch_body = (struct hybm_gvm_agent_fetch_msg *)msg->body;
-    if (fetch_body->va % HYBM_GVM_PAGE_SIZE || fetch_body->size != HYBM_GVM_PAGE_SIZE) {
-        hybm_gvm_err("input addr error.va:0x%llx,size:0x%llx", fetch_body->va, fetch_body->size);
-        return -EINVAL;
-    }
-
     va = fetch_body->va;
-    pasid = fetch_body->pasid;
-    num = HYBM_GVM_PAGE_NUM; // = fetch_body->size / HYBM_GVM_PAGE_SIZE;
-    pa_list = kzalloc(sizeof(u64) * HYBM_GVM_PAGE_NUM, GFP_KERNEL | __GFP_ACCOUNT);
-    if (pa_list == NULL) {
-        hybm_gvm_err("Kzalloc pa_list is NULL.");
+    if (va < HYBM_SVM_START || va + fetch_body->size > HYBM_SVM_END) {
+        hybm_gvm_err("input addr is out of range.va:0x%llx,size:0x%llx", va, fetch_body->size);
+        return -EINVAL;
+    }
+    if (fetch_body->pa_num > 0 && (va % HYBM_GVM_PAGE_SIZE || fetch_body->size != HYBM_GVM_PAGE_SIZE)) {
+        hybm_gvm_err("input addr error.va:0x%llx,size:0x%llx", va, fetch_body->size);
         return -EINVAL;
     }
 
-    ret = gvm_agent_map_svm_pa(fetch_body->hostpid, devid, va, HYBM_GVM_PAGE_SIZE, pa_list, fetch_body->pa_list,
-                               HYBM_GVM_PAGE_NUM, pasid);
+    ret = gvm_agent_map_svm_pa(devid, fetch_body);
     if (ret != 0) {
         hybm_gvm_err("map svm mem failed. va:0x%llx,ret:%d", va, ret);
     }
 
-    kfree(pa_list);
     hybm_gvm_debug("gvm_agent_fetch, va:0x%llx,size:0x%llx", va, fetch_body->size);
     return ret;
 }
@@ -687,6 +698,12 @@ static int agent_symbol_get(void)
         return -EBUSY;
     }
 
+    g_gvm_agent_info.get_mem_page_size_func = __symbol_get("devmm_get_mem_page_size");
+    if (g_gvm_agent_info.get_mem_page_size_func == NULL) {
+        hybm_gvm_err("get symbol devmm_get_mem_page_size fail.");
+        return -EBUSY;
+    }
+
     g_gvm_agent_info.get_mem_pa_func = __symbol_get("devmm_get_mem_pa_list");
     if (g_gvm_agent_info.get_mem_pa_func == NULL) {
         hybm_gvm_err("get symbol devmm_get_mem_pa_list fail.");
@@ -759,6 +776,10 @@ static void agent_symbol_put(void)
     if (g_gvm_agent_info.agentdrv_msg_unregister_func != NULL) {
         __symbol_put("agentdrv_unregister_common_msg_client");
         g_gvm_agent_info.agentdrv_msg_unregister_func = NULL;
+    }
+    if (g_gvm_agent_info.get_mem_page_size_func != NULL) {
+        __symbol_put("devmm_get_mem_page_size");
+        g_gvm_agent_info.get_mem_page_size_func = NULL;
     }
     if (g_gvm_agent_info.get_mem_pa_func != NULL) {
         __symbol_put("devmm_get_mem_pa_list");

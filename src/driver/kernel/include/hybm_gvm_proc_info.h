@@ -70,10 +70,7 @@ struct hybm_gvm_process {
 
     struct gvm_rbtree va_tree;
     struct gvm_rbtree key_tree;
-
-    struct list_head fetch_head;         // TODO: 使用树记录,可以支持提前删除
-    struct mutex fetch_lock;
-
+    struct gvm_rbtree fetch_tree;
     struct kref ref;
 
     struct vm_area_struct *vma;
@@ -86,26 +83,39 @@ struct gvm_wlist_node {
     struct list_head node;
 };
 
+struct gvm_va_node_head {
+    u64 va;
+    u64 size;
+    struct kref ref;
+    struct rb_node va_node;
+};
+
+// head is same with struct gvm_va_node_head
 struct gvm_node {
     u64 va;
     u64 size;
+    struct kref ref;
+    struct rb_node va_node;
+
     u64 shm_key;
     u32 pa_num;
     u32 pad;
     u64 flag;
-    struct kref ref;
     struct mutex lock;
     struct list_head wlist_head;
     struct rb_node key_node;
-    struct rb_node va_node;
     struct gvm_pa_node pmem[0];
 };
 
+// head is same with struct gvm_va_node_head
 struct gvm_dev_mem_node {
     u64 va;
     u64 size;
+    struct kref ref;
+    struct rb_node va_node;
+
     u32 page_size;
-    u32 num;
+    u32 pa_num;
     struct list_head node;
     u64 pa[HYBM_GVM_PAGE_NUM];
 };

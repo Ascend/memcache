@@ -277,3 +277,8 @@ SMEM_API int32_t smem_bm_copy_2d(smem_bm_t handle, const void *src, uint64_t spi
 
     return entry->DataCopy2d(src, spitch, dest, dpitch, width, heigth, t, flags);
 }
+
+SMEM_API int32_t smem_bm_register_into_svsp(uint64_t addr, uint64_t size)
+{
+    return hybm_mem_register_into_svsp(addr, size);
+}

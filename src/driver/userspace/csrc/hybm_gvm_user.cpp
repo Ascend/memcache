@@ -170,6 +170,7 @@ int32_t hybm_gvm_mem_fetch(uint64_t addr, uint64_t size, uint32_t sdid)
         arg.data.mem_fetch_para.addr = addr + i;
         arg.data.mem_fetch_para.size = SIZE_1G;
         arg.data.mem_fetch_para.sdid = sdid;
+        arg.data.mem_fetch_para.no_record = false;
         ret = ioctl(g_hybm_fd, HYBM_GVM_CMD_MEM_FETCH, &arg);
         if (ret < 0) {
             BM_USER_LOG_ERROR("ioctl HYBM_GVM_CMD_MEM_FETCH failed, ret:" << ret << " addr:" << std::hex << addr
@@ -179,6 +180,46 @@ int32_t hybm_gvm_mem_fetch(uint64_t addr, uint64_t size, uint32_t sdid)
     }
     BM_USER_LOG_INFO("ioctl HYBM_GVM_CMD_MEM_FETCH success, addr:" << std::hex << addr << " size:" << size);
     return HYBM_GVM_SUCCESS;
+}
+
+int32_t hybm_gvm_mem_register(uint64_t addr, uint64_t size)
+{
+    int ret;
+    struct hybm_gvm_ioctl_arg arg = {};
+    if (g_hybm_fd < 0) {
+        BM_USER_LOG_ERROR("hybm gvm module has not been initialized");
+        return HYBM_GVM_FAILURE;
+    }
+    if (addr == 0 || HybmGvmVirPageManager::Instance()->QeuryInRegisterMap(addr, size)) {
+        BM_USER_LOG_ERROR("Invalid param addr:" << std::hex << addr << " size:" << size);
+        return HYBM_GVM_FAILURE;
+    }
+
+    arg.data.mem_fetch_para.addr = addr;
+    arg.data.mem_fetch_para.size = size;
+    arg.data.mem_fetch_para.sdid = g_sdid;
+    arg.data.mem_fetch_para.no_record = true;
+    ret = ioctl(g_hybm_fd, HYBM_GVM_CMD_MEM_FETCH, &arg);
+    if (ret < 0) {
+        BM_USER_LOG_ERROR("ioctl HYBM_GVM_CMD_MEM_FETCH failed, ret:" << ret << " addr:" << std::hex << addr
+                                                                      << " size:" << size);
+        return HYBM_GVM_FAILURE;
+    }
+
+    if (!HybmGvmVirPageManager::Instance()->UpdateRegisterMap(addr, size)) {
+        BM_USER_LOG_INFO(
+            "insert register set failed, addr:" << std::hex << addr << " size:" << size);
+        return HYBM_GVM_FAILURE;
+    } else {
+        BM_USER_LOG_INFO(
+            "ioctl HYBM_GVM_CMD_MEM_FETCH(register) success, addr:" << std::hex << addr << " size:" << size);
+        return HYBM_GVM_SUCCESS;
+    }
+}
+
+bool hybm_gvm_mem_has_registered(uint64_t addr, uint64_t size)
+{
+    return HybmGvmVirPageManager::Instance()->QeuryInRegisterMap(addr, size);
 }
 
 int32_t hybm_gvm_mem_alloc(uint64_t addr, uint64_t size)

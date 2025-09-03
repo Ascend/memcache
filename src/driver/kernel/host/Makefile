@@ -8,7 +8,7 @@ obj-m := hybm_gvm_host.o
 
 hybm_gvm_host-objs += init/hybm_gvm_init.o init/hybm_gvm_symbol_get.o
 hybm_gvm_host-objs += message/hybm_gvm_p2p.o message/hybm_gvm_s2a.o
-hybm_gvm_host-objs += manager/hybm_gvm_proc.o manager/hybm_gvm_phy_page.o manager/hybm_gvm_ioctl.o
+hybm_gvm_host-objs += manager/hybm_gvm_proc.o manager/hybm_gvm_phy_page.o manager/hybm_gvm_ioctl.o manager/hybm_gvm_tree.o
 
 ccflags-y :=$(INCLUDE_PATH) -DTARGET_LINUX -Wall -Wno-unused-function -O2
 
