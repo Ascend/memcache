@@ -17,7 +17,7 @@ public:
             return SMEMB_DATA_OP_SDMA;
         }
         if (type == "roce") {
-            return SMEMB_DATA_OP_DEVICE_RDMA;
+            return static_cast<smem_bm_data_op_type>(SMEMB_DATA_OP_DEVICE_RDMA | SMEMB_DATA_OP_HOST_RDMA);
         }
         if (type == "tcp") {
             return SMEMB_DATA_OP_HOST_TCP;

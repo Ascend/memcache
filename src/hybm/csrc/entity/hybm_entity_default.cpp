@@ -83,8 +83,10 @@ void MemEntityDefault::UnInitialize() noexcept
     sdmaDataOperator_.reset();
     devRdmaDataOperator_.reset();
     hostRdmaDataOperator_.reset();
-    transportManager_->CloseDevice();
-    transportManager_.reset();
+    if (transportManager_ != nullptr) {
+        transportManager_->CloseDevice();
+        transportManager_.reset();
+    }
     DlAclApi::AclrtDestroyStream(stream_);
     stream_ = nullptr;
     initialized = false;
@@ -154,10 +156,12 @@ int32_t MemEntityDefault::AllocLocalMemory(uint64_t size, hybm_mem_type mType, u
     info.access = transport::REG_MR_ACCESS_FLAG_BOTH_READ_WRITE;
     info.flags =
         segment->GetMemoryType() == HYBM_MEM_TYPE_DEVICE ? transport::REG_MR_FLAG_HBM : transport::REG_MR_FLAG_DRAM;
-    ret = transportManager_->RegisterMemoryRegion(info);
-    if (ret != 0) {
-        BM_LOG_ERROR("register memory region allocate failed: " << ret << ", info: " << info);
-        return ret;
+    if (transportManager_ != nullptr) {
+        ret = transportManager_->RegisterMemoryRegion(info);
+        if (ret != 0) {
+            BM_LOG_ERROR("register memory region allocate failed: " << ret << ", info: " << info);
+            return ret;
+        }
     }
 
     return UpdateHybmDeviceInfo(0);
@@ -183,14 +187,15 @@ int32_t MemEntityDefault::ExportExchangeInfo(ExchangeInfoWriter &desc, uint32_t 
         }
         size_t copyLen = std::min(nic.size(), sizeof(exportInfo.nic));
         std::copy_n(nic.c_str(), copyLen, exportInfo.nic);
-        auto ret = LiteralExInfoTranslater<EntityExportInfo>{}.Serialize(exportInfo, info);
-        if (ret != BM_OK) {
-            BM_LOG_ERROR("export info failed: " << ret);
-            return BM_ERROR;
-        }
     }
 
-    auto ret = desc.Append(info.data(), info.size());
+    auto ret = LiteralExInfoTranslater<EntityExportInfo>{}.Serialize(exportInfo, info);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("export info failed: " << ret);
+        return BM_ERROR;
+    }
+
+    ret = desc.Append(info.data(), info.size());
     if (ret != 0) {
         BM_LOG_ERROR("export to string wrong size: " << info.size());
         return BM_ERROR;
@@ -231,18 +236,19 @@ int32_t MemEntityDefault::ExportExchangeInfo(hybm_mem_slice_t slice, ExchangeInf
         return ret;
     }
 
+    SliceExportTransportKey transportKey{exportMagic, options_.rankId, realSlice->vAddress_};
     if (transportManager_ != nullptr) {
-        SliceExportTransportKey transportKey{exportMagic, options_.rankId, realSlice->vAddress_};
         ret = transportManager_->QueryMemoryKey(realSlice->vAddress_, transportKey.key);
         if (ret != 0) {
             BM_LOG_ERROR("query memory key when export slice failed: " << ret);
             return ret;
         }
-        ret = desc.Append(transportKey);
-        if (ret != 0) {
-            BM_LOG_ERROR("append transport key failed: " << ret);
-            return ret;
-        }
+    }
+
+    ret = desc.Append(transportKey);
+    if (ret != 0) {
+        BM_LOG_ERROR("append transport key failed: " << ret);
+        return ret;
     }
 
     ret = desc.Append(info.data(), info.size());
@@ -305,7 +311,12 @@ int32_t MemEntityDefault::ImportEntityExchangeInfo(const ExchangeInfoReader desc
     BM_ASSERT_RETURN(initialized, BM_NOT_INITIALIZED);
     BM_ASSERT_RETURN(desc != nullptr, BM_INVALID_PARAM);
 
-    LiteralExInfoTranslater<EntityExportInfo> translator;
+    if (transportManager_ == nullptr) {
+        BM_LOG_INFO("no transport, no need import.");
+        return BM_OK;
+    }
+
+    BM_LOG_INFO("=========== transport manager is not null =======================");
     std::vector<EntityExportInfo> deserializedInfos(count);
     for (auto i = 0U; i < count; i++) {
         auto ret = desc[i].Read(deserializedInfos[i]);
@@ -486,7 +497,9 @@ int32_t MemEntityDefault::CopyData(const void *src, void *dest, uint64_t length,
         }
         BM_LOG_ERROR("Host RDMA data copy direction: " << direction << ", failed : " << ret);
     }
-    return ret;
+
+    BM_LOG_ERROR("copy data failed.");
+    return BM_ERROR;
 }
 
 int32_t MemEntityDefault::CopyData2d(const void *src, uint64_t spitch, void *dest, uint64_t dpitch, uint64_t width,
@@ -531,7 +544,8 @@ int32_t MemEntityDefault::CopyData2d(const void *src, uint64_t spitch, void *des
         }
         BM_LOG_ERROR("Host RDMA data copy direction: " << direction << ", failed : " << ret);
     }
-    return ret;
+    BM_LOG_ERROR("copy data failed.");
+    return BM_ERROR;
 }
 
 bool MemEntityDefault::CheckAddressInEntity(const void *ptr, uint64_t length) const noexcept
@@ -609,10 +623,6 @@ void MemEntityDefault::SetHybmDeviceInfo(HybmDeviceMeta &info)
 
 int MemEntityDefault::ImportForTransport(const ExchangeInfoReader desc[], uint32_t count) noexcept
 {
-    if (transportManager_ == nullptr) {
-        return BM_OK;
-    }
-
     SliceExportTransportKey transportKey;
     for (auto i = 0U; i < count; i++) {
         auto ret = desc[i].Read(transportKey);
@@ -631,34 +641,35 @@ int MemEntityDefault::GenCopyExtOption(const void *src, void *dest, uint64_t len
 {
     if ((uint64_t)(ptrdiff_t)src >= HYBM_HOST_GVA_START_ADDR) {
         if (dramSegment_ == nullptr) {
-            BM_LOG_ERROR("src address is host DRAM, but no dram segment.");
-            return BM_INVALID_PARAM;
+            options.srcRankId = options_.rankId;
+        } else {
+            options.srcRankId = dramSegment_->GetRankIdByAddr(src, length);
         }
-
-        options.srcRankId = dramSegment_->GetRankIdByAddr(src, length);
     } else {
         if (hbmSegment_ == nullptr) {
-            BM_LOG_ERROR("src address is device HBM, but no hbm segment.");
-            return BM_INVALID_PARAM;
+            options.srcRankId = options_.rankId;
         }
-
         options.srcRankId = hbmSegment_->GetRankIdByAddr(src, length);
+    }
+    if (options.srcRankId == UINT32_MAX) {
+        options.srcRankId = options_.rankId;
     }
 
     if ((uint64_t)(ptrdiff_t)dest >= HYBM_HOST_GVA_START_ADDR) {
         if (dramSegment_ == nullptr) {
-            BM_LOG_ERROR("src address is host DRAM, but no dram segment.");
-            return BM_INVALID_PARAM;
+            options.destRankId = options_.rankId;
+        } else {
+            options.destRankId = dramSegment_->GetRankIdByAddr(dest, length);
         }
-
-        options.destRankId = dramSegment_->GetRankIdByAddr(dest, length);
     } else {
         if (hbmSegment_ == nullptr) {
-            BM_LOG_ERROR("src address is device HBM, but no hbm segment.");
-            return BM_INVALID_PARAM;
+            options.destRankId = options_.rankId;
+        } else {
+            options.destRankId = hbmSegment_->GetRankIdByAddr(dest, length);
         }
-
-        options.destRankId = hbmSegment_->GetRankIdByAddr(dest, length);
+    }
+    if (options.destRankId == UINT32_MAX) {
+        options.destRankId = options_.rankId;
     }
 
     return BM_OK;
@@ -732,6 +743,11 @@ Result MemEntityDefault::InitDramSegment()
 
 Result MemEntityDefault::InitTransManager()
 {
+    if (options_.rankCount <= 1) {
+        BM_LOG_INFO("rank total count : " << options_.rankCount << ", no transport.");
+        return BM_OK;
+    }
+
     auto hostTransFlags = HYBM_DOP_TYPE_HOST_RDMA | HYBM_DOP_TYPE_HOST_TCP;
     auto composeTransFlags = HYBM_DOP_TYPE_DEVICE_RDMA | hostTransFlags;
     if ((options_.bmDataOpType & composeTransFlags) == 0) {
@@ -778,12 +794,14 @@ Result MemEntityDefault::InitDataOperator()
         }
     }
 
-    if (options_.bmDataOpType & HYBM_DOP_TYPE_DEVICE_RDMA) {
-        devRdmaDataOperator_ = std::make_shared<DataOpDeviceRDMA>(options_.rankId, transportManager_);
-        auto ret = devRdmaDataOperator_->Initialize();
-        if (ret != BM_OK) {
-            BM_LOG_ERROR("Device RDMA data operator init failed, ret:" << ret);
-            return ret;
+    if (options_.rankCount > 1) {
+        if (options_.bmDataOpType & HYBM_DOP_TYPE_DEVICE_RDMA) {
+            devRdmaDataOperator_ = std::make_shared<DataOpDeviceRDMA>(options_.rankId, transportManager_);
+            auto ret = devRdmaDataOperator_->Initialize();
+            if (ret != BM_OK) {
+                BM_LOG_ERROR("Device RDMA data operator init failed, ret:" << ret);
+                return ret;
+            }
         }
     }
     if (options_.bmDataOpType & (HYBM_DOP_TYPE_HOST_RDMA | HYBM_DOP_TYPE_HOST_TCP)) {
