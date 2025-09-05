@@ -263,7 +263,7 @@ public:
         }
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         StringToLower(logLevelStr);
-        config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
+        config.logLevel = MmcOutLogger::Instance().GetLogLevel(logLevelStr);
         GetTlsConfig(config.tlsConfig);
     }
 
@@ -277,7 +277,7 @@ public:
         config.timeOut = GetInt(ConfConstant::OCK_MMC_CLIENT_TIMEOUT_SECONDS);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         StringToLower(logLevelStr);
-        config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
+        config.logLevel = MmcOutLogger::Instance().GetLogLevel(logLevelStr);
         GetTlsConfig(config.tlsConfig);
     }
 

@@ -45,12 +45,10 @@ SMEM_API int32_t smem_set_extern_logger(void (*fun)(int, const char *))
     }
 
     /* set dependent hybm core log function */
-    if (g_smemInited) {
-        result = hybm_set_extern_logger(fun);
-        if (result != SM_OK) {
-            SM_LOG_AND_SET_LAST_ERROR("set hybm core log function failed, result: " << result);
-            return result;
-        }
+    result = hybm_set_extern_logger(fun);
+    if (result != SM_OK) {
+        SM_LOG_AND_SET_LAST_ERROR("set hybm core log function failed, result: " << result);
+        return result;
     }
 
     return SM_OK;
@@ -74,12 +72,10 @@ SMEM_API int32_t smem_set_log_level(int level)
     }
 
     /* set hybm core log level */
-    if (g_smemInited) {
-        result = hybm_set_log_level(level);
-        if (result != SM_OK) {
-            SM_LOG_AND_SET_LAST_ERROR("set hybm core log level failed, result: " << result);
-            return result;
-        }
+    result = hybm_set_log_level(level);
+    if (result != SM_OK) {
+        SM_LOG_AND_SET_LAST_ERROR("set hybm core log level failed, result: " << result);
+        return result;
     }
 
     return SM_OK;
