@@ -386,7 +386,7 @@ std::shared_ptr<SliceBuffer> DistributedObjectStore::get_buffer(const std::strin
 }
 
 int DistributedObjectStore::register_buffer(void *buffer, size_t size) {
-    return 0;
+    return mmcc_register_buffer(reinterpret_cast<uint64_t>(buffer), size);
 }
 
 int DistributedObjectStore::get_into(const std::string &key, mmc_buffer &buffer) {

@@ -471,8 +471,7 @@ int32_t MemEntityDefault::CopyData(const void *src, void *dest, uint64_t length,
         return ret;
     }
 
-    auto remoteRankId = options.srcRankId == options_.rankId ? options.destRankId : options.srcRankId;
-    if (SdmaReaches(remoteRankId) && sdmaDataOperator_ != nullptr) {
+    if ((options_.bmDataOpType & HYBM_DOP_TYPE_SDMA) != 0 && sdmaDataOperator_ != nullptr) {
         ret = sdmaDataOperator_->DataCopy(src, dest, length, direction, options);
         if (ret == BM_OK) {
             return BM_OK;
@@ -518,8 +517,7 @@ int32_t MemEntityDefault::CopyData2d(const void *src, uint64_t spitch, void *des
         return ret;
     }
 
-    auto remoteRankId = options.srcRankId == options_.rankId ? options.destRankId : options.srcRankId;
-    if (SdmaReaches(remoteRankId) && sdmaDataOperator_ != nullptr) {
+    if ((options_.bmDataOpType & HYBM_DOP_TYPE_SDMA) != 0 && sdmaDataOperator_ != nullptr) {
         ret = sdmaDataOperator_->DataCopy2d(src, spitch, dest,  dpitch, width, height, direction, options);
         if (ret == BM_OK) {
             return BM_OK;
@@ -647,8 +645,9 @@ int MemEntityDefault::GenCopyExtOption(const void *src, void *dest, uint64_t len
     } else {
         if (hbmSegment_ == nullptr) {
             options.srcRankId = options_.rankId;
+        } else {
+            options.srcRankId = hbmSegment_->GetRankIdByAddr(src, length);
         }
-        options.srcRankId = hbmSegment_->GetRankIdByAddr(src, length);
     }
     if (options.srcRankId == UINT32_MAX) {
         options.srcRankId = options_.rankId;

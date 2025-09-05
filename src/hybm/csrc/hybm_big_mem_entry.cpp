@@ -192,5 +192,6 @@ HYBM_API int32_t hybm_mem_register_into_svsp(uint64_t addr, uint64_t size)
         return BM_ERROR;
     }
 
+    size = (size + DEVICE_LARGE_PAGE_SIZE - 1) / DEVICE_LARGE_PAGE_SIZE * DEVICE_LARGE_PAGE_SIZE;
     return hybm_gvm_mem_register(addr, size);
 }

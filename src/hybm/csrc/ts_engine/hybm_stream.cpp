@@ -8,6 +8,7 @@
 #include "dl_hal_api_def.h"
 #include "hybm_gvm_user.h"
 #include "hybm_logger.h"
+#include "hybm_common_include.h"
 
 namespace ock {
 namespace mf {
@@ -21,13 +22,15 @@ HybmStream::HybmStream(uint32_t deviceId, uint32_t prio, uint32_t flags) noexcep
 int HybmStream::Initialize() noexcept
 {
     uint32_t ssid = 0;
-    // auto ret = hybm_gvm_get_device_info(&ssid);
-    // auto ret = DlHalApi::HalGetSsid(deviceId_, &ssid);
-    // BM_ASSERT_LOG_AND_RETURN(ret == 0, "get ssid failed, ret:" << ret, BM_ERROR);
+    int32_t ret = 0;
+    if (HybmGvmHasInited()) {
+        ret = hybm_gvm_get_device_info(&ssid);
+        BM_ASSERT_LOG_AND_RETURN(ret == 0, "get ssid failed, ret:" << ret, BM_ERROR);
+    }
     BM_LOG_WARN("[TEST] get_ssid:" << ssid);
 
     tsId_ = 0; // 当前仅支持0
-    auto ret = AllocStreamId();
+    ret = AllocStreamId();
     BM_ASSERT_RETURN(ret == 0, ret);
 
     ret = AllocSqcq(ssid);

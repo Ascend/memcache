@@ -24,6 +24,14 @@ int32_t mmcc_init(mmc_client_config_t *config);
 void mmcc_uninit();
 
 /**
+ * @brief register into bm, support sdma
+ *
+ * @param addr              [in] register addr
+ * @param size              [in] register size
+ */
+int32_t mmcc_register_buffer(uint64_t addr, uint64_t size);
+
+/**
  * @brief Put data of object with key into Distributed Memory Cache
  * This data operation supports both sync and async
  *

@@ -173,7 +173,7 @@ Result MemSegmentHostSDMA::Import(const std::vector<std::string> &allExInfo) noe
     }
     uint32_t localIdx = UINT32_MAX;
     for (auto i = 0U; i < deserializedInfos.size(); i++) {
-        if (deserializedInfos[i].magic != SDMA_SLICE_EXPORT_INFO_MAGIC) {
+        if (deserializedInfos[i].magic != DRAM_SLICE_EXPORT_INFO_MAGIC) {
             BM_LOG_ERROR("import info(" << i << ") magic(" << deserializedInfos[i].magic << ") invalid.");
             return BM_INVALID_PARAM;
         }

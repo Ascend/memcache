@@ -74,7 +74,7 @@ int32_t SmemBmEntry::Initialize(const hybm_options &options)
                 break;
             }
 
-            ret = hybm_export(entity, slice, flags, &hbmSliceInfo_);
+            ret = hybm_export(entity, slice, flags, &dramSliceInfo_);
             if (ret != 0) {
                 SM_LOG_ERROR("hybm export host slice failed, result: " << ret);
                 break;

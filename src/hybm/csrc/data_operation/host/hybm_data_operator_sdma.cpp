@@ -10,7 +10,7 @@
 
 namespace ock {
 namespace mf {
-constexpr uint64_t HBM_SWAP_SPACE_SIZE = 1024 * 1024 * 1024;
+constexpr uint64_t HBM_SWAP_SPACE_SIZE = 128 * 1024 * 1024;
 HostDataOpSDMA::HostDataOpSDMA(void *stm) noexcept : stream_{stm} {}
 
 int32_t HostDataOpSDMA::Initialize() noexcept
@@ -582,9 +582,8 @@ int HostDataOpSDMA::CopyGH2LH(void *destVA, const void *srcVA, uint64_t length, 
     return ret;
 }
 
-int HostDataOpSDMA::CopyG2G(void *destVA, const void *srcVA, size_t count) noexcept
+void HostDataOpSDMA::InitG2GStreamTask(StreamTask &task) noexcept
 {
-    StreamTask task;
     task.type = STREAM_TASK_TYPE_SDMA;
     rtStarsMemcpyAsyncSqe_t *const sqe = &(task.sqe.memcpyAsyncSqe);
     sqe->header.type = RT_STARS_SQE_TYPE_SDMA;
@@ -623,7 +622,13 @@ int HostDataOpSDMA::CopyG2G(void *destVA, const void *srcVA, size_t count) noexc
     sqe->dstOffsetLow = 0U;
     sqe->srcOffsetHigh = 0U;
     sqe->dstOffsetHigh = 0U;
+}
 
+int HostDataOpSDMA::CopyG2G(void *destVA, const void *srcVA, size_t count) noexcept
+{
+    StreamTask task{};
+    InitG2GStreamTask(task);
+    rtStarsMemcpyAsyncSqe_t *const sqe = &(task.sqe.memcpyAsyncSqe);
     sqe->length = count;
     sqe->src_addr_low =
             static_cast<uint32_t>(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(srcVA)) & 0x00000000FFFFFFFFU);
@@ -642,12 +647,43 @@ int HostDataOpSDMA::CopyG2G(void *destVA, const void *srcVA, size_t count) noexc
     return BM_OK;
 }
 
+
+int HostDataOpSDMA::CopyG2G2d(void* destVA, uint64_t dpitch, const void* srcVA, uint64_t spitch,
+                              size_t width, uint64_t height) noexcept
+{
+    StreamTask task{};
+    InitG2GStreamTask(task);
+    rtStarsMemcpyAsyncSqe_t *const sqe = &(task.sqe.memcpyAsyncSqe);
+    for (size_t i = 0; i < height; ++i) {
+        void *dst = reinterpret_cast<void *>((uint64_t) destVA + i * dpitch);
+        void *src = reinterpret_cast<void *>((uint64_t) srcVA + i * spitch);
+        sqe->length = width;
+        sqe->src_addr_low =
+                static_cast<uint32_t>(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(src)) & 0x00000000FFFFFFFFU);
+        sqe->src_addr_high = static_cast<uint32_t>(
+                (static_cast<uint64_t>(reinterpret_cast<uintptr_t>(src)) & 0xFFFFFFFF00000000U) >> UINT32_BIT_NUM);
+        sqe->dst_addr_low =
+                static_cast<uint32_t>(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(dst)) & 0x00000000FFFFFFFFU);
+        sqe->dst_addr_high = static_cast<uint32_t>(
+                (static_cast<uint64_t>(reinterpret_cast<uintptr_t>(dst)) & 0xFFFFFFFF00000000U) >> UINT32_BIT_NUM);
+        auto ret = hybmStream_->SubmitTasks(task);
+        BM_ASSERT_LOG_AND_RETURN(ret == 0, "Failed to submit g2g task ret:" << ret, BM_ERROR);
+    }
+
+    auto ret = hybmStream_->Synchronize();
+    BM_ASSERT_LOG_AND_RETURN(ret == 0, "Failed to wait g2g task ret:" << ret, BM_ERROR);
+    return BM_OK;
+}
+
 int HostDataOpSDMA::CopyGH2LD2d(void *deviceAddr, uint64_t dpitch, const void *gvaAddr, uint64_t spitch, size_t width,
                                 uint64_t height, void *stream) noexcept
 {
     if (spitch != width) {
         BM_LOG_ERROR("Invalid param spitch: " << spitch << " width: " << width);
         return BM_INVALID_PARAM;
+    }
+    if (hybm_gvm_mem_has_registered((uint64_t)deviceAddr, width)) {
+        return CopyG2G2d(deviceAddr, dpitch, gvaAddr, spitch, width, height);
     }
     uint64_t length = height * width;
     auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(length);
@@ -680,6 +716,9 @@ int HostDataOpSDMA::CopyLD2GH2d(void *gvaAddr, uint64_t dpitch, const void *devi
     if (dpitch != width) {
         BM_LOG_ERROR("Invalid param dpitch: " << dpitch << " width: " << width);
         return BM_INVALID_PARAM;
+    }
+    if (hybm_gvm_mem_has_registered((uint64_t)deviceAddr, width)) {
+        return CopyG2G2d(gvaAddr, dpitch, deviceAddr, spitch, width, height);
     }
     uint64_t length = height * width;
     auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(length);
