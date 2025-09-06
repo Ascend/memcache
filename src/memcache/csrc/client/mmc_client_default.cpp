@@ -7,6 +7,7 @@
 #include "mmc_mem_obj_meta.h"
 #include "mmc_bm_proxy.h"
 #include "mmc_montotonic.h"
+#include "mmc_ptracer.h"
 
 namespace ock {
 namespace mmc {
@@ -328,6 +329,9 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
         }
 
         auto ret = bmProxy_->Get(bufArrs[i], blobs[0]);
+//        TP_TRACE_BEGIN(TP_MMC_CLIENT_BATCH_GET);
+//        auto ret = bmProxy_->BatchGet(bufArrs[i], blobs[0]);
+//        TP_TRACE_END(TP_MMC_CLIENT_BATCH_GET, ret);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("client " << name_ << " batch get failed:" << ret << " for key " << keys[i]);
             batchResult[i] = MMC_ERROR;
@@ -555,6 +559,9 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
         batchResult[i] = MMC_OK;
         for (uint8_t j = 0; j < numBlobs; ++j) {
             Result putResult = bmProxy_->Put(bufArr, blobs[j]);
+//            TP_TRACE_BEGIN(TP_MMC_CLIENT_BATCH_PUT);
+//            Result putResult = bmProxy_->BatchPut(bufArr, blobs[j]);
+//            TP_TRACE_END(TP_MMC_CLIENT_BATCH_PUT, putResult);
             if (putResult != MMC_OK) {
                 MMC_LOG_ERROR("client " << name_ << " batch put " << key << " failed, get error code " << putResult);
                 batchResult[i] = putResult;

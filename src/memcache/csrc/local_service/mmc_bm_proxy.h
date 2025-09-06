@@ -50,6 +50,8 @@ public:
     Result Get(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size);
     Result Put(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
     Result Get(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
+    Result BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
+    Result BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
 
     uint64_t GetGva(MediaType type) const
     {

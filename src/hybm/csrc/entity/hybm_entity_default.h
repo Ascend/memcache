@@ -63,6 +63,9 @@ public:
                      uint32_t flags) noexcept override;
     int32_t CopyData2d(const void *src, uint64_t spitch, void *dest, uint64_t dpitch, uint64_t width, uint64_t height,
                        hybm_data_copy_direction direction, void *stream, uint32_t flags) noexcept override;
+    int32_t BatchCopyData(hybm_batch_copy_params &params,
+                          hybm_data_copy_direction direction, void *stream, uint32_t flags) noexcept override;
+    int32_t Wait() noexcept override;
     bool SdmaReaches(uint32_t remoteRank) const noexcept override;
     hybm_data_op_type CanReachDataOperators(uint32_t remoteRank) const noexcept override;
 

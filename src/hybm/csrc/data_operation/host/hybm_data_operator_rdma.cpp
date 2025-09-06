@@ -422,3 +422,10 @@ int32_t HostDataOpRDMA::RtMemoryCopy2dAsync(const void *srcVA, uint64_t spitch, 
     }
     return BM_OK;
 }
+
+int32_t HostDataOpRDMA::BatchDataCopy(hybm_batch_copy_params &params, hybm_data_copy_direction direction,
+                                      const ExtOptions &options) noexcept
+{
+    BM_LOG_ERROR("BatchDataCopy not support");
+    return BM_ERROR;
+}

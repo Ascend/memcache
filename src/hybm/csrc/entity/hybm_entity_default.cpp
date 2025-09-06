@@ -545,6 +545,57 @@ int32_t MemEntityDefault::CopyData2d(const void *src, uint64_t spitch, void *des
     return BM_ERROR;
 }
 
+int32_t MemEntityDefault::BatchCopyData(hybm_batch_copy_params &params, hybm_data_copy_direction direction,
+                                        void *stream, uint32_t flags) noexcept
+{
+    if (!initialized) {
+        BM_LOG_ERROR("the object is not initialized, please check whether Initialize is called.");
+        return BM_NOT_INITIALIZED;
+    }
+    int32_t ret = BM_OK;
+    ExtOptions options{};
+    options.flags = flags;
+    options.stream = stream;
+
+    if ((options_.bmDataOpType & HYBM_DOP_TYPE_SDMA) != 0 && sdmaDataOperator_ != nullptr) {
+        ret = sdmaDataOperator_->BatchDataCopy(params, direction, options);
+        if (ret == BM_OK) {
+            return BM_OK;
+        }
+
+        BM_LOG_ERROR("SDMA data copy direction: " << direction << ", failed : " << ret);
+    }
+
+    if (devRdmaDataOperator_ != nullptr) {
+        ret = devRdmaDataOperator_->BatchDataCopy(params, direction, options);
+        if (ret == BM_OK) {
+            return BM_OK;
+        }
+        BM_LOG_ERROR("Device RDMA data copy direction: " << direction << ", failed : " << ret);
+    }
+
+    if (hostRdmaDataOperator_ != nullptr) {
+        ret = hostRdmaDataOperator_->BatchDataCopy(params, direction, options);
+        if (ret == BM_OK) {
+            return BM_OK;
+        }
+        BM_LOG_ERROR("Host RDMA data copy direction: " << direction << ", failed : " << ret);
+    }
+    return ret;
+}
+
+int32_t MemEntityDefault::Wait() noexcept
+{
+    if (!initialized) {
+        BM_LOG_ERROR("the object is not initialized, please check whether Initialize is called.");
+        return BM_NOT_INITIALIZED;
+    }
+    if ((options_.bmDataOpType & HYBM_DOP_TYPE_SDMA) != 0 && sdmaDataOperator_ != nullptr) {
+        return sdmaDataOperator_->Wait(0);
+    }
+    return BM_OK;
+}
+
 bool MemEntityDefault::CheckAddressInEntity(const void *ptr, uint64_t length) const noexcept
 {
     if (!initialized) {

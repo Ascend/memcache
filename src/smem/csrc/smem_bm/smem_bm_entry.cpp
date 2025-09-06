@@ -304,6 +304,31 @@ Result SmemBmEntry::DataCopy2d(const void *src, uint64_t spitch, void *dest, uin
     return hybm_data_copy_2d(entity_, src, spitch, dest, dpitch, width, height, direct, nullptr, flags);
 }
 
+Result SmemBmEntry::Wait()
+{
+    SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
+    return hybm_wait(entity_);
+}
+
+Result SmemBmEntry::DataCopyBatch(const void **src, void **dest, const uint32_t *size, uint32_t count,
+                                  smem_bm_copy_type t, uint32_t flags)
+{
+    SM_PARAM_VALIDATE(src == nullptr, "invalid param, src is NULL", SM_INVALID_PARAM);
+    SM_PARAM_VALIDATE(dest == nullptr, "invalid param, dest is NULL", SM_INVALID_PARAM);
+    SM_PARAM_VALIDATE(count == 0, "invalid param, size is 0", SM_INVALID_PARAM);
+    SM_PARAM_VALIDATE(t >= SMEMB_COPY_BUTT, "invalid param, type invalid: " << t, SM_INVALID_PARAM);
+    SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
+
+    auto direct = TransToHybmDirection(t, src[0], size[0], dest[0], size[0]);
+    if (direct == HYBM_DATA_COPY_DIRECTION_BUTT) {
+        SM_LOG_ERROR("Failed to trans to hybm direct, smem direct: " << t << " src: " << src[0]
+            << " dest: " << dest[0]);
+        return SM_INVALID_PARAM;
+    }
+    hybm_batch_copy_params copyParams = {src, dest, size, count};
+    return hybm_data_batch_copy(entity_, &copyParams, direct, nullptr, flags);
+}
+
 Result SmemBmEntry::CreateGlobalTeam(uint32_t rankSize, uint32_t rankId)
 {
     SmemGroupChangeCallback joinFunc = std::bind(&SmemBmEntry::JoinHandle, this, std::placeholders::_1);

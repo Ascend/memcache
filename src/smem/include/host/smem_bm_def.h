@@ -13,6 +13,7 @@ extern "C" {
 
 typedef void *smem_bm_t;
 
+#define ASYNC_COPY_FLAG (1UL << (0))
 /**
 * @brief Smem memory type
 */
@@ -63,6 +64,13 @@ typedef struct {
     uint32_t flags;                   /* other flag, default 0 */
     char hcomUrl[64];
 } smem_bm_config_t;
+
+typedef struct {
+    const void** sources;
+    void** destinations;
+    const uint32_t *dataSizes;
+    uint32_t batchSize;
+} smem_batch_copy_params;
 
 #ifdef __cplusplus
 }

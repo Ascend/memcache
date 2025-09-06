@@ -278,6 +278,38 @@ SMEM_API int32_t smem_bm_copy_2d(smem_bm_t handle, const void *src, uint64_t spi
     return entry->DataCopy2d(src, spitch, dest, dpitch, width, heigth, t, flags);
 }
 
+SMEM_API int32_t smem_bm_copy_batch(smem_bm_t handle, smem_batch_copy_params *params, smem_bm_copy_type t,
+                                    uint32_t flags)
+{
+    SM_PARAM_VALIDATE(handle == nullptr, "invalid param, handle is NULL", SM_INVALID_PARAM);
+    SM_PARAM_VALIDATE(params == nullptr, "params is null", SM_INVALID_PARAM);
+    SM_PARAM_VALIDATE(!g_smemBmInited, "smem bm not initialized yet", SM_NOT_INITIALIZED);
+
+    SmemBmEntryPtr entry = nullptr;
+    auto ret = SmemBmEntryManager::Instance().GetEntryByPtr(reinterpret_cast<uintptr_t>(handle), entry);
+    if (ret != SM_OK || entry == nullptr) {
+        SM_LOG_AND_SET_LAST_ERROR("input handle is invalid, result: " << ret);
+        return SM_INVALID_PARAM;
+    }
+
+    return entry->DataCopyBatch(params->sources, params->destinations, params->dataSizes, params->batchSize, t, flags);
+}
+
+SMEM_API int32_t smem_bm_wait(smem_bm_t handle)
+{
+    SM_PARAM_VALIDATE(handle == nullptr, "invalid param, handle is NULL", SM_INVALID_PARAM);
+    SM_PARAM_VALIDATE(!g_smemBmInited, "smem bm not initialized yet", SM_NOT_INITIALIZED);
+
+    SmemBmEntryPtr entry = nullptr;
+    auto ret = SmemBmEntryManager::Instance().GetEntryByPtr(reinterpret_cast<uintptr_t>(handle), entry);
+    if (ret != SM_OK || entry == nullptr) {
+        SM_LOG_AND_SET_LAST_ERROR("input handle is invalid, result: " << ret);
+        return SM_INVALID_PARAM;
+    }
+
+    return entry->Wait();
+}
+
 SMEM_API int32_t smem_bm_register_into_svsp(uint64_t addr, uint64_t size)
 {
     return hybm_mem_register_into_svsp(addr, size);

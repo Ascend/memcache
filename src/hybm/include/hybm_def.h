@@ -93,6 +93,13 @@ typedef enum {
     HYBM_DATA_COPY_DIRECTION_BUTT
 } hybm_data_copy_direction;
 
+typedef struct {
+    const void** sources;
+    void** destinations;
+    const uint32_t *dataSizes;
+    uint32_t batchSize;
+} hybm_batch_copy_params;
+
 #ifndef __cplusplus
 }
 #endif

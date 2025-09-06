@@ -96,3 +96,13 @@ int32_t smem_bm_register_into_svsp(uint64_t addr, uint64_t size)
 {
     return 0;
 }
+
+int32_t smem_bm_copy_batch(smem_bm_t handle, smem_batch_copy_params *params, smem_bm_copy_type t, uint32_t flags)
+{
+    return 0;
+}
+
+int32_t smem_bm_wait(smem_bm_t handle)
+{
+    return 0;
+}

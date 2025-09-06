@@ -102,6 +102,8 @@ bool HybmGvmVirPageManager::UpdateRegisterMap(uint64_t va, uint64_t size)
 bool HybmGvmVirPageManager::QeuryInRegisterMap(uint64_t va, uint64_t size)
 {
     std::unique_lock<std::mutex> lockGuard{mutex_};
-    auto it = registerSet_.lower_bound(va << REGISTER_SET_MARK_BIT | REGISTER_SET_LEFT_MARK);
-    return (it != registerSet_.end() && ((*it) >> REGISTER_SET_MARK_BIT) < (va + size));
+    // 必须查询到一个右端点,且待查询区间<=右端点
+    auto it = registerSet_.upper_bound(va << REGISTER_SET_MARK_BIT | REGISTER_SET_LEFT_MARK);
+    return (it != registerSet_.end() && !((*it) & REGISTER_SET_LEFT_MARK) &&
+            (va + size) <= ((*it) >> REGISTER_SET_MARK_BIT));
 }

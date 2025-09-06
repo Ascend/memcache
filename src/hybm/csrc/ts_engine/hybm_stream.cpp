@@ -9,6 +9,8 @@
 #include "hybm_gvm_user.h"
 #include "hybm_logger.h"
 #include "hybm_common_include.h"
+#include "ptracer.h"
+#include "hybm_ptracer.h"
 
 namespace ock {
 namespace mf {
@@ -223,7 +225,9 @@ bool HybmStream::GetCqeStatus()
     queryInfoIn.cqId = 0U;
     queryInfoIn.prop = DRV_SQCQ_PROP_SQ_CQE_STATUS;
 
+    TP_TRACE_BEGIN(TP_HYBM_SDMA_G2G_HAL_QUERY_SQ_STATUS);
     auto ret = DlHalApi::HalSqCqQuery(deviceId_, &queryInfoIn);
+    TP_TRACE_END(TP_HYBM_SDMA_G2G_HAL_QUERY_SQ_STATUS, ret);
     BM_ASSERT_LOG_AND_RETURN(ret == 0, "HalSqCqQuery failed! ret:" << ret, false);
     return (queryInfoIn.value[0] != 0U);
 }
@@ -237,7 +241,9 @@ int32_t HybmStream::GetSqHead(uint32_t &head)
     queryInfoIn.cqId = 0U;
     queryInfoIn.prop = DRV_SQCQ_PROP_SQ_HEAD;
 
+    TP_TRACE_BEGIN(TP_HYBM_SDMA_G2G_HAL_QUERY_SQ_HEAD);
     auto ret = DlHalApi::HalSqCqQuery(deviceId_, &queryInfoIn);
+    TP_TRACE_END(TP_HYBM_SDMA_G2G_HAL_QUERY_SQ_HEAD, ret);
     BM_ASSERT_LOG_AND_RETURN(ret == 0, "HalSqCqQuery failed! ret:" << ret, BM_ERROR);
     head = static_cast<uint16_t>(queryInfoIn.value[0] & 0xFFFFU);
     return (head != 0xffff ? BM_OK : BM_ERROR);
@@ -323,7 +329,6 @@ int HybmStream::Synchronize() noexcept
 {
     BM_ASSERT_LOG_AND_RETURN(inited_, "stream not init!", BM_NOT_INITIALIZED);
     int ret = BM_OK;
-
     while (sqHead_ != sqTail_) {
         uint32_t head = UINT16_MAX;
         ret = GetSqHead(head);
@@ -343,7 +348,7 @@ int HybmStream::Synchronize() noexcept
             }
             BM_ASSERT_LOG_AND_RETURN(ret == 0, "ReceiveCqe failed! ret:" << ret, ret);
         }
-        usleep(1000U); // 1ms
+        usleep(1);
     }
 
     return ret;

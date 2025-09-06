@@ -58,5 +58,12 @@ int32_t DataOpDeviceRDMA::Wait(int32_t waitId) noexcept
     BM_LOG_ERROR("DataOpDeviceRDMA::Wait Not Supported!");
     return BM_ERROR;
 }
+
+int32_t DataOpDeviceRDMA::BatchDataCopy(hybm_batch_copy_params &params, hybm_data_copy_direction direction,
+                                        const ExtOptions &options) noexcept
+{
+    BM_LOG_ERROR("DataOpDeviceRDMA::Wait Not Supported!");
+    return BM_ERROR;
+}
 }  // namespace mf
 }  // namespace ock
