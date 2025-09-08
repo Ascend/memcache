@@ -3,12 +3,11 @@
  */
 
 #include "hybm_stream.h"
-
+#include "hybm_common_include.h"
 #include "dl_hal_api.h"
 #include "dl_hal_api_def.h"
 #include "hybm_gvm_user.h"
 #include "hybm_logger.h"
-#include "hybm_common_include.h"
 #include "ptracer.h"
 #include "hybm_ptracer.h"
 
@@ -29,7 +28,6 @@ int HybmStream::Initialize() noexcept
         ret = hybm_gvm_get_device_info(&ssid);
         BM_ASSERT_LOG_AND_RETURN(ret == 0, "get ssid failed, ret:" << ret, BM_ERROR);
     }
-    BM_LOG_WARN("[TEST] get_ssid:" << ssid);
 
     tsId_ = 0; // 当前仅支持0
     ret = AllocStreamId();
@@ -41,8 +39,8 @@ int HybmStream::Initialize() noexcept
     ret = AllocLogicCq();
     BM_ASSERT_RETURN(ret == 0, ret);
 
-    BM_LOG_INFO("[TEST] init stream ok, stream:" << streamId_ << " sq:" << sqId_ << " cq:" << cqId_
-                                                 << " logic:" << logicCq_);
+    BM_LOG_INFO("init stream ok, stream:" << streamId_ << " sq:" << sqId_ << " cq:" << cqId_
+        << " logic:" << logicCq_ << " ssid:" << ssid);
     runningTaskCount_.store(0L);
     taskList_.resize(HYBM_SQCQ_DEPTH);
     inited_ = true;
@@ -356,7 +354,7 @@ int HybmStream::Synchronize() noexcept
             }
             BM_ASSERT_LOG_AND_RETURN(ret == 0, "ReceiveCqe failed! ret:" << ret, ret);
         }
-        usleep(1);
+        usleep(1U);
     }
 
     return ret;

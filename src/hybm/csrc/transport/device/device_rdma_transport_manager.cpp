@@ -13,6 +13,8 @@
 #include "device_rdma_transport_manager.h"
 #include "joinable_ranks_qp_manager.h"
 
+const uint32_t RDMA_POLL_TIMES_MAX = 1000;
+
 namespace ock {
 namespace mf {
 namespace transport {
@@ -311,7 +313,7 @@ Result RdmaTransportManager::WriteRemote(uint32_t rankId, uint64_t lAddr, uint64
         return ret;
     }
 
-    BM_LOG_INFO("WriteRemote() success.");
+    BM_LOG_INFO("WriteRemote() success. size=" << size);
     return BM_OK;
 }
 
@@ -543,6 +545,22 @@ int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAd
         BM_LOG_ERROR("stream_->Synchronize() failed: " << ret);
         return ret;
     }
+
+    struct ibv_wc wcs;
+    uint32_t retryTimes = 0;
+    while (retryTimes++ < RDMA_POLL_TIMES_MAX) {
+        auto count = DlHccpApi::RaPollCq(qpHandle, true, 1, &wcs);
+        if (count < 0) {
+            BM_LOG_ERROR("DlHccpApi::RaPollCq failed!");
+            return BM_DL_FUNCTION_FAILED;
+        }
+        if (count == 0) {
+            usleep(1);
+            continue;
+        }
+        break;
+    }
+    BM_ASSERT_RETURN(retryTimes < RDMA_POLL_TIMES_MAX, BM_TIMEOUT);
     return BM_OK;
 }
 
@@ -578,7 +596,7 @@ int RdmaTransportManager::CorrectHostRegWr(uint32_t rankId, uint64_t lAddr, uint
 int RdmaTransportManager::ConvertHccpMrInfo(const TransportMemoryRegion &mr, HccpMrInfo &info)
 {
     auto addr = mr.addr;
-    if (addr >= HYBM_HOST_GVA_START_ADDR) {
+    if (addr >= HYBM_HOST_GVA_START_ADDR && addr < HYBM_GVM_START_ADDR) {
         auto input = (void *)(ptrdiff_t)addr;
         void *output = nullptr;
         auto ret = DlHalApi::HalHostRegister(input, mr.size, 3, deviceId_, &output);

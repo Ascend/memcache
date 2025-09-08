@@ -451,6 +451,15 @@ struct gvm_peer_mem_context {
     u64 pa_list[0];
 };
 
+#define PROCESS_SIGN_LENGTH 49
+struct peer_memory_data {
+    u32 host_pid;
+    u32 devid;
+    u32 vfid;
+    char pid_sign[PROCESS_SIGN_LENGTH];
+    u32 mem_side; /* 0: device mem, 1: host mem */
+};
+
 int gvm_peer_mem_acquire(unsigned long addr, size_t size, void *peer_mem_data, char *peer_mem_name,
                          void **client_context)
 {
@@ -465,8 +474,8 @@ int gvm_peer_mem_acquire(unsigned long addr, size_t size, void *peer_mem_data, c
         hybm_gvm_err("input err check private_data, client_context.");
         return false;
     }
-    if (size != HYBM_GVM_PAGE_SIZE) {
-        hybm_gvm_err("input size must equals to 1G, va:0x%lx,size:0x%lx", addr, size);
+    if (addr % HYBM_GVM_PAGE_SIZE || size % HYBM_GVM_PAGE_SIZE) {
+        hybm_gvm_err("input size must be a multiple of 1G, va:0x%lx,size:0x%lx", addr, size);
         return false;
     }
 
@@ -503,6 +512,7 @@ int gvm_peer_mem_acquire(unsigned long addr, size_t size, void *peer_mem_data, c
     mutex_init(&mm_context->context_mutex);
     mm_context->inited_flag = GVM_PEER_INITED_FLAG;
     *client_context = (void *)mm_context;
+    memory_data->mem_side = 1U; // DEVMM_MEM_REMOTE_SIDE
     hybm_gvm_debug("gvm_peer_mem_acquire, va:0x%lx,size:0x%lx,pg_size:0x%llx", addr, size, page_size);
     return true;
 }

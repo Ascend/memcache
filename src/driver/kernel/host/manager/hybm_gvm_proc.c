@@ -383,6 +383,7 @@ static int hybm_gvm_dma_map(struct hybm_gvm_process *proc, u64 pa, u64 *pa_list,
     for (i = 0; i < num; i++) {
         pg = pfn_to_page(PFN_DOWN(pa + HYBM_HPAGE_SIZE * i));
         pa_list[i] = devdrv_dma_map_page(dev, pg, 0, HYBM_HPAGE_SIZE, DMA_BIDIRECTIONAL);
+
         ret = dma_mapping_error(dev, pa_list[i]);
         if (ret != 0) {
             hybm_gvm_err("dma map failed, pa:0x%llx,ret:%d", pa + HYBM_HPAGE_SIZE * i, ret);
