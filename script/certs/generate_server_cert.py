@@ -86,4 +86,7 @@ with open(args.server_key_path, "wb") as f:
 with open(args.server_cert_path, "wb") as f:
     f.write(server_cert.public_bytes(Encoding.PEM))
 
-print("Server certificate and private key has been saved. ")
+# 获取并打印证书序列号
+server_cert_loaded = x509.load_pem_x509_certificate(server_cert.public_bytes(Encoding.PEM))
+print(f"Server certificate and private key has been saved.")
+print(f"Server certificate serial number: {server_cert_loaded.serial_number}")

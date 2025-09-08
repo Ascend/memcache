@@ -1,7 +1,5 @@
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.x509.oid import NameOID, CRLEntryExtensionOID
 from datetime import datetime, timedelta
 import argparse
 import os
@@ -16,6 +14,8 @@ parser.add_argument('--crl_path', type=str, help='The path to save the CRL',
                     default='/opt/ock/security/certs/ca.crl.pem')
 parser.add_argument('--days', type=int, help='Number of days the CRL should be valid',
                     default=30)
+parser.add_argument('--revoked_serials', type=str, nargs='*', help='Serial numbers of revoked certificates',
+                    default=[])
 args = parser.parse_args()
 
 # 检查CA证书和私钥文件是否存在
@@ -42,17 +42,17 @@ crl_builder = crl_builder.issuer_name(ca_cert.subject)
 crl_builder = crl_builder.last_update(datetime.utcnow())
 crl_builder = crl_builder.next_update(datetime.utcnow() + timedelta(days=args.days))
 
-# 示例：添加被吊销的证书（这里演示添加一个示例序列号）
-# 在实际使用中，你需要维护一个吊销证书列表
-# revoked_cert_builder = x509.RevokedCertificateBuilder()
-# revoked_cert_builder = revoked_cert_builder.serial_number(123456789)
-# revoked_cert_builder = revoked_cert_builder.revocation_date(datetime.utcnow())
-# revoked_cert_builder = revoked_cert_builder.add_extension(
-#     x509.CRLReason(x509.ReasonFlags.key_compromise),
-#     critical=False
-# )
-# revoked_cert = revoked_cert_builder.build()
-# crl_builder = crl_builder.add_revoked_certificate(revoked_cert)
+# 添加被吊销的证书
+for serial in args.revoked_serials:
+    revoked_cert_builder = x509.RevokedCertificateBuilder()
+    revoked_cert_builder = revoked_cert_builder.serial_number(int(serial))
+    revoked_cert_builder = revoked_cert_builder.revocation_date(datetime.utcnow())
+    revoked_cert_builder = revoked_cert_builder.add_extension(
+        x509.CRLReason(x509.ReasonFlags.key_compromise),
+        critical=False
+    )
+    revoked_cert = revoked_cert_builder.build()
+    crl_builder = crl_builder.add_revoked_certificate(revoked_cert)
 
 # 签名生成CRL
 crl = crl_builder.sign(
@@ -66,3 +66,7 @@ with open(args.crl_path, "wb") as f:
 
 print(f"CRL has been saved to {args.crl_path}")
 print(f"CRL is valid until {datetime.utcnow() + timedelta(days=args.days)}")
+if args.revoked_serials:
+    print(f"Revoked certificate serial numbers: {', '.join(args.revoked_serials)}")
+else:
+    print("No certificates were revoked (empty CRL)")
