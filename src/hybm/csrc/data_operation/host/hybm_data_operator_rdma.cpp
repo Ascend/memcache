@@ -119,8 +119,7 @@ HostDataOpRDMA::DataCopyAsync(const void *srcVA, void *destVA, uint64_t length, 
 
 int32_t HostDataOpRDMA::Wait(int32_t waitId) noexcept
 {
-    BM_LOG_ERROR("not supported wait!");
-    return BM_ERROR;
+    return BM_OK;
 }
 
 int32_t HostDataOpRDMA::CopyHost2Gva(const void *srcVA, void *destVA, uint64_t length, const ExtOptions &options)

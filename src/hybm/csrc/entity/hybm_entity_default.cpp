@@ -594,6 +594,9 @@ int32_t MemEntityDefault::Wait() noexcept
     if ((options_.bmDataOpType & HYBM_DOP_TYPE_SDMA) != 0 && sdmaDataOperator_ != nullptr) {
         return sdmaDataOperator_->Wait(0);
     }
+    if (hostRdmaDataOperator_ != nullptr) {
+        return hostRdmaDataOperator_->Wait(0);
+    }
     BM_LOG_ERROR("Not wait type:" << options_.bmDataOpType);
     return BM_ERROR;
 }

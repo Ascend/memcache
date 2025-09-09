@@ -114,10 +114,13 @@ Result MmcClientDefault::Put(const std::string &key, const MmcBufferArray& bufAr
     for (uint8_t i = 0; i < response.numBlobs_; i++) {
         auto blob = response.blobs_[i];
         MMC_LOG_DEBUG("Attempting to put to blob " << i << " key " << key);
-//        Result ret = bmProxy_->Put(bufArr, blob);
-        TP_TRACE_BEGIN(TP_MMC_CLIENT_BATCH_PUT);
-        auto ret = bmProxy_->BatchPut(bufArr, blob);
-        TP_TRACE_END(TP_MMC_CLIENT_BATCH_PUT, ret);
+        auto ret = bmProxy_->Put(bufArr, blob);
+        if (ret == MMC_OK) {
+            ret = bmProxy_->CopyWait();
+            if (ret != MMC_OK) {
+                MMC_LOG_ERROR("Failed to wait copy task, ret: " << ret);
+            }
+        }
         if (ret != MMC_OK) {
             UpdateRequest updateRequest{MMC_WRITE_FAIL, key, blob.rank_, blob.mediaType_, operateId};
             Response updateResponse;
@@ -240,10 +243,13 @@ Result MmcClientDefault::Get(const std::string &key, const MmcBufferArray& bufAr
         return MMC_ERROR;
     }
     auto& blob = response.blobs_[0];
-//    auto ret = bmProxy_->Get(bufArr, blob);
-    TP_TRACE_BEGIN(TP_MMC_CLIENT_BATCH_GET);
-    auto ret = bmProxy_->BatchGet(bufArr, blob);
-    TP_TRACE_END(TP_MMC_CLIENT_BATCH_GET, ret);
+    auto ret = bmProxy_->Get(bufArr, blob);
+    if (ret == MMC_OK) {
+        ret = bmProxy_->CopyWait();
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("Failed to wait copy task, ret: " << ret);
+        }
+    }
 
     auto future = threadPool_->Enqueue(
         [&](const std::string keyL, uint32_t rankL, uint16_t mediaTypeL, uint64_t operateIdL) {

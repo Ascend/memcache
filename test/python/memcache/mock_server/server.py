@@ -366,7 +366,9 @@ class MmcTest(TestServer):
             direct = MmcDirect.COPY_L2G.value
             device = 'npu'
         tensor = self.malloc_tensor(layer_num=layers_num, mini_block_size=mini_block_size, device=device)
-        self._store.register_buffer(tensor.data_ptr(), mini_block_size * layers_num)
+        # tensor is None in negative cases whose sizes is 0
+        if tensor is not None:
+            self._store.register_buffer(tensor.data_ptr(), mini_block_size * layers_num)
         res = self._store.put_from_layers(key,
                                           [] if tensor is None else [layer.data_ptr() for layer in tensor],
                                           sizes,
@@ -385,7 +387,9 @@ class MmcTest(TestServer):
             direct = MmcDirect.COPY_G2L.value
             device = 'npu'
         tensor = self.malloc_tensor(layer_num=layers_num, mini_block_size=mini_block_size, device=device)
-        self._store.register_buffer(tensor.data_ptr(), mini_block_size * layers_num)
+        # tensor is None in negative cases whose sizes is 0
+        if tensor is not None:
+            self._store.register_buffer(tensor.data_ptr(), mini_block_size * layers_num)
         res = self._store.get_into_layers(key,
                                           [] if tensor is None else [layer.data_ptr() for layer in tensor],
                                           sizes,
@@ -406,7 +410,9 @@ class MmcTest(TestServer):
         blocks = []
         for sizes_ in sizes:
             tensor = self.malloc_tensor(layer_num=len(sizes_), mini_block_size=max(sizes_, default=0), device=device)
-            self._store.register_buffer(tensor.data_ptr(), max(sizes_, default=0) * len(sizes_))
+            # tensor is None in negative cases whose sizes is 0
+            if tensor is not None:
+                self._store.register_buffer(tensor.data_ptr(), max(sizes_, default=0) * len(sizes_))
             blocks.append(tensor)
         results = self._store.batch_put_from_layers(
             keys,
@@ -433,7 +439,9 @@ class MmcTest(TestServer):
         blocks = []
         for sizes_ in sizes:
             tensor = self.malloc_tensor(layer_num=len(sizes_), mini_block_size=max(sizes_, default=0), device=device)
-            self._store.register_buffer(tensor.data_ptr(), max(sizes_, default=0) * len(sizes_))
+            # tensor is None in negative cases whose sizes is 0
+            if tensor is not None:
+                self._store.register_buffer(tensor.data_ptr(), max(sizes_, default=0) * len(sizes_))
             blocks.append(tensor)
         results = self._store.batch_get_into_layers(
             keys,
