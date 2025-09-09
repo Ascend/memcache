@@ -334,10 +334,10 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
             continue;
         }
 
-//        auto ret = bmProxy_->Get(bufArrs[i], blobs[0]);
-        TP_TRACE_BEGIN(TP_MMC_CLIENT_BATCH_GET);
-        auto ret = bmProxy_->BatchGet(bufArrs[i], blobs[0]);
-        TP_TRACE_END(TP_MMC_CLIENT_BATCH_GET, ret);
+        auto ret = bmProxy_->Get(bufArrs[i], blobs[0]);
+//        TP_TRACE_BEGIN(TP_MMC_CLIENT_BATCH_GET);
+//        auto ret = bmProxy_->BatchGet(bufArrs[i], blobs[0]);
+//        TP_TRACE_END(TP_MMC_CLIENT_BATCH_GET, ret);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("client " << name_ << " batch get failed:" << ret << " for key " << keys[i]);
             batchResult[i] = MMC_ERROR;
@@ -347,6 +347,11 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
 
         ranks.push_back(blobs[0].rank_);
         mediaTypes.push_back(blobs[0].mediaType_);
+    }
+
+    auto ret = bmProxy_->CopyWait();
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("Failed to wait copy task ret: " << ret);
     }
 
     auto future = threadPool_->Enqueue(
@@ -371,7 +376,7 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
     if (!future.valid()) {
         MMC_LOG_WARN("get batch update enqueue failed");
     }
-    return MMC_OK;
+    return ret;
 }
 
 mmc_location_t MmcClientDefault::GetLocation(const char *key, uint32_t flags)
@@ -564,10 +569,10 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
 
         batchResult[i] = MMC_OK;
         for (uint8_t j = 0; j < numBlobs; ++j) {
-//            Result putResult = bmProxy_->Put(bufArr, blobs[j]);
-            TP_TRACE_BEGIN(TP_MMC_CLIENT_BATCH_PUT);
-            Result putResult = bmProxy_->BatchPut(bufArr, blobs[j]);
-            TP_TRACE_END(TP_MMC_CLIENT_BATCH_PUT, putResult);
+            Result putResult = bmProxy_->Put(bufArr, blobs[j]);
+//            TP_TRACE_BEGIN(TP_MMC_CLIENT_BATCH_PUT);
+//            Result putResult = bmProxy_->BatchPut(bufArr, blobs[j]);
+//            TP_TRACE_END(TP_MMC_CLIENT_BATCH_PUT, putResult);
             if (putResult != MMC_OK) {
                 MMC_LOG_ERROR("client " << name_ << " batch put " << key << " failed, get error code " << putResult);
                 batchResult[i] = putResult;
@@ -575,8 +580,11 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
             }
         }
     }
-
-    return MMC_OK;
+    auto ret = bmProxy_->CopyWait();
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("Failed to wait copy task ret: " << ret);
+    }
+    return ret;
 }
 
 }

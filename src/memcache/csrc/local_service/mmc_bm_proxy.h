@@ -53,6 +53,8 @@ public:
     Result BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
     Result BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
 
+    Result CopyWait();
+
     uint64_t GetGva(MediaType type) const
     {
         if (type == MEDIA_NONE) {

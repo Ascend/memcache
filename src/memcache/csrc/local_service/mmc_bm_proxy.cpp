@@ -242,17 +242,11 @@ Result MmcBmProxy::Put(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
     }
 
     size_t shift = 0;
-    TP_TRACE_BEGIN(TP_MMC_CLIENT_PUT);
     for (const auto& buffer : bufArr.Buffers()) {
         MMC_RETURN_ERROR(Put(&buffer, blob.gva_ + shift, blob.size_ - shift), "failed put data to smem bm");
         shift += MmcBufSize(buffer);
     }
-    auto ret = smem_bm_wait(handle_);
-    if (ret != MMC_OK) {
-        MMC_LOG_ERROR("Failed to wait put task length: " << bufArr.TotalSize());
-    }
-    TP_TRACE_END(TP_MMC_CLIENT_PUT, ret);
-    return ret;
+    return MMC_OK;
 }
 
 Result MmcBmProxy::Get(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
@@ -269,17 +263,11 @@ Result MmcBmProxy::Get(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
     }
 
     size_t shift = 0;
-    TP_TRACE_BEGIN(TP_MMC_CLIENT_GET);
     for (const auto &buffer : bufArr.Buffers()) {
         MMC_RETURN_ERROR(Get(&buffer, blob.gva_ + shift, blob.size_ - shift), "Failed to get data from smem bm");
         shift += MmcBufSize(buffer);
     }
-    auto ret = smem_bm_wait(handle_);
-    TP_TRACE_END(TP_MMC_CLIENT_GET, ret);
-    if (ret != MMC_OK) {
-        MMC_LOG_ERROR("Failed to wait get task length: " << bufArr.TotalSize());
-    }
-    return ret;
+    return MMC_OK;
 }
 
 Result MmcBmProxy::BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
@@ -350,6 +338,15 @@ Result MmcBmProxy::BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
     }
     smem_batch_copy_params batch_params = {sources, destinations, dataSizes, count};
     return smem_bm_copy_batch(handle_, &batch_params, type, 0);
+}
+
+Result MmcBmProxy::CopyWait()
+{
+    auto ret = smem_bm_wait(handle_);
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("Failed to wait copy task ret:" << ret);
+    }
+    return ret;
 }
 
 }
