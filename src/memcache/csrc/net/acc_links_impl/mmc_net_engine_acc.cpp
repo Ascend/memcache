@@ -120,7 +120,10 @@ Result NetEngineAcc::StartInner()
     tlsOpt.tlsCaPath = "/";
     tlsOpt.tlsCaFile.insert(options_.tlsOption.tlsCaPath);
     tlsOpt.tlsCrlPath = "/";
-    tlsOpt.tlsCrlFile.insert(options_.tlsOption.tlsCrlPath);
+    std::string crlFile = options_.tlsOption.tlsCrlPath;
+    if (!crlFile.empty()) {
+        tlsOpt.tlsCrlFile.insert(crlFile);
+    }
     tlsOpt.tlsCert = options_.tlsOption.tlsCertPath;
     tlsOpt.tlsPk = options_.tlsOption.tlsKeyPath;
     tlsOpt.tlsPkPwd = options_.tlsOption.tlsKeyPassPath;
