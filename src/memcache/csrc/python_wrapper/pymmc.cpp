@@ -1000,13 +1000,16 @@ PYBIND11_MODULE(_pymmc, m) {
                const std::string &key,
                const std::vector<uintptr_t> &buffer_ptrs,
                const std::vector<size_t> &sizes, const int32_t &direct) {
+                TP_TRACE_BEGIN(TP_MMC_PYBIND_GET_LAYERS);
                 std::vector<uint8_t*> buffers;
                 buffers.reserve(buffer_ptrs.size());
                 for (uintptr_t ptr : buffer_ptrs) {
                     buffers.push_back(reinterpret_cast<uint8_t*>(ptr));
                 }
                 py::gil_scoped_release release;
-                return self.get_into_layers(key, buffers, sizes, direct);
+                auto ret = self.get_into_layers(key, buffers, sizes, direct);
+                TP_TRACE_END(TP_MMC_PYBIND_GET_LAYERS, 0);
+                return ret;
             },
             py::arg("key"), py::arg("buffer_ptrs"), py::arg("sizes"), py::arg("direct") = SMEMB_COPY_G2H)
         .def(
@@ -1015,6 +1018,7 @@ PYBIND11_MODULE(_pymmc, m) {
                const std::vector<std::string> &keys,
                const std::vector<std::vector<uintptr_t>> &buffer_ptrs,
                const std::vector<std::vector<size_t>> &sizes, const int32_t &direct) {
+                TP_TRACE_BEGIN(TP_MMC_PYBIND_BATCH_GET_LAYERS);
                 std::vector<std::vector<uint8_t*>> buffers;
                 buffers.reserve(buffer_ptrs.size());
                 for (auto vec : buffer_ptrs) {
@@ -1025,7 +1029,9 @@ PYBIND11_MODULE(_pymmc, m) {
                     buffers.push_back(tmp);
                 }
                 py::gil_scoped_release release;
-                return self.batch_get_into_layers(keys, buffers, sizes, direct);
+                auto ret = self.batch_get_into_layers(keys, buffers, sizes, direct);
+                TP_TRACE_END(TP_MMC_PYBIND_BATCH_GET_LAYERS, 0);
+                return ret;
             },
             py::arg("keys"), py::arg("buffer_ptrs"), py::arg("sizes"), py::arg("direct") = SMEMB_COPY_G2H)
         .def(
@@ -1077,13 +1083,16 @@ PYBIND11_MODULE(_pymmc, m) {
                const std::string &key,
                const std::vector<uintptr_t> &buffer_ptrs,
                const std::vector<size_t> &sizes, const int32_t &direct) {
+                TP_TRACE_BEGIN(TP_MMC_PYBIND_PUT_LAYERS);
                 std::vector<uint8_t*> buffers;
                 buffers.reserve(buffer_ptrs.size());
                 for (uintptr_t ptr : buffer_ptrs) {
                     buffers.push_back(reinterpret_cast<uint8_t*>(ptr));
                 }
                 py::gil_scoped_release release;
-                return self.put_from_layers(key, buffers, sizes, direct);
+                auto ret = self.put_from_layers(key, buffers, sizes, direct);
+                TP_TRACE_END(TP_MMC_PYBIND_PUT_LAYERS, 0);
+                return ret;
             },
             py::arg("key"), py::arg("buffer_ptrs"), py::arg("sizes"), py::arg("direct") = SMEMB_COPY_H2G)
         .def(
@@ -1092,6 +1101,7 @@ PYBIND11_MODULE(_pymmc, m) {
                const std::vector<std::string> &keys,
                const std::vector<std::vector<uintptr_t>> &buffer_ptrs,
                const std::vector<std::vector<size_t>> &sizes, const int32_t &direct) {
+                TP_TRACE_BEGIN(TP_MMC_PYBIND_BATCH_PUT_LAYERS);
                 std::vector<std::vector<uint8_t*>> buffers;
                 buffers.reserve(buffer_ptrs.size());
                 for (auto vec : buffer_ptrs) {
@@ -1102,7 +1112,9 @@ PYBIND11_MODULE(_pymmc, m) {
                     buffers.push_back(tmp);
                 }
                 py::gil_scoped_release release;
-                return self.batch_put_from_layers(keys, buffers, sizes, direct);
+                auto ret = self.batch_put_from_layers(keys, buffers, sizes, direct);
+                TP_TRACE_END(TP_MMC_PYBIND_BATCH_PUT_LAYERS, 0);
+                return ret;
             },
             py::arg("keys"), py::arg("buffer_ptrs"), py::arg("sizes"), py::arg("direct") = SMEMB_COPY_H2G)
         .def("put",
