@@ -190,6 +190,12 @@ void HybmStream::Destroy()
 int32_t HybmStream::SubmitTasks(const StreamTask &tasks) noexcept
 {
     BM_ASSERT_LOG_AND_RETURN(inited_, "stream not init!", BM_NOT_INITIALIZED);
+    int ret = 0;
+    if ((sqTail_ + 1U) % HYBM_SQCQ_DEPTH == sqHead_) {
+        ret = Synchronize(sqHead_);
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "stream synchronize failed!", BM_ERROR);
+    }
+
     BM_ASSERT_LOG_AND_RETURN(((sqTail_ + 1U) % HYBM_SQCQ_DEPTH != sqHead_), "stream if full!", BM_NOT_INITIALIZED);
     uint32_t taskId = sqTail_;
     sqTail_ = (sqTail_ + 1U) % HYBM_SQCQ_DEPTH;
@@ -209,7 +215,7 @@ int32_t HybmStream::SubmitTasks(const StreamTask &tasks) noexcept
                                                 << " dest:" << tasks.sqe.memcpyAsyncSqe.dst_addr_low << "~" << tasks.sqe.memcpyAsyncSqe.dst_addr_high
                                                 << " length:" << tasks.sqe.memcpyAsyncSqe.length);
 
-    auto ret = DlHalApi::HalSqTaskSend(deviceId_, &info);
+    ret = DlHalApi::HalSqTaskSend(deviceId_, &info);
     if (ret != 0) {
         BM_LOG_ERROR("SQ send task failed: " << ret);
         return BM_DL_FUNCTION_FAILED;
@@ -331,11 +337,11 @@ int32_t HybmStream::ReceiveCqe(uint32_t &lastTask)
     return retFlag;
 }
 
-int HybmStream::Synchronize() noexcept
+int HybmStream::Synchronize(uint32_t task) noexcept
 {
     BM_ASSERT_LOG_AND_RETURN(inited_, "stream not init!", BM_NOT_INITIALIZED);
     int ret = BM_OK;
-    while (sqHead_ != sqTail_) {
+    while (sqHead_ != sqTail_ && TaskInRange(task)) {
         uint32_t head = UINT16_MAX;
         ret = GetSqHead(head);
         BM_ASSERT_LOG_AND_RETURN(ret == 0, "GetSqHead failed! ret:" << ret, ret);
@@ -350,7 +356,7 @@ int HybmStream::Synchronize() noexcept
             uint32_t lastTask = UINT16_MAX;
             ret = ReceiveCqe(lastTask);
             if (lastTask != UINT16_MAX) {
-                sqHead_ = lastTask;
+                sqHead_ = (lastTask + 1U) % HYBM_SQCQ_DEPTH;
             }
             BM_ASSERT_LOG_AND_RETURN(ret == 0, "ReceiveCqe failed! ret:" << ret, ret);
         }

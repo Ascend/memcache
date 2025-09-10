@@ -23,7 +23,7 @@ public:
     void Destroy();
 
     int SubmitTasks(const StreamTask &tasks) noexcept;
-    int Synchronize() noexcept;
+    int Synchronize(uint32_t task = UINT32_MAX) noexcept;
 
     uint32_t GetId() const;
 
@@ -34,6 +34,7 @@ private:
     bool GetCqeStatus();
     int32_t GetSqHead(uint32_t &head);
     int32_t ReceiveCqe(uint32_t &lastTask);
+    bool TaskInRange(uint32_t task);
 
 private:
     const uint32_t deviceId_;
@@ -55,6 +56,12 @@ private:
 inline uint32_t HybmStream::GetId() const
 {
     return streamId_;
+}
+
+inline bool HybmStream::TaskInRange(uint32_t task)
+{
+    return task == UINT32_MAX ||
+        ((sqHead_ <= sqTail_) ? (task >= sqHead_ && task < sqTail_) : (task >= sqHead_ || task < sqTail_));
 }
 
 using HybmStreamPtr = std::shared_ptr<HybmStream>;
