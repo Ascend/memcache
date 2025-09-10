@@ -83,6 +83,7 @@ int32_t PreInit(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, std::string
     if (autoRank) {
         config.autoRanking = true;
     } else {
+        config.autoRanking = false;
         config.rankId = rankId;
     }
     ret = smem_bm_init(ipPort.c_str(), rkSize, deviceId, &config);

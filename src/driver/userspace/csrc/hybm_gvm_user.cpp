@@ -231,7 +231,7 @@ int32_t hybm_gvm_mem_alloc(uint64_t addr, uint64_t size)
         return HYBM_GVM_FAILURE;
     }
     if (addr == 0 || size == 0) {
-        BM_USER_LOG_ERROR("Invalid param addr:" << addr << " size:" << size);
+        BM_USER_LOG_ERROR("Invalid param addr:" << std::hex << addr << " size:" << size);
         return HYBM_GVM_FAILURE;
     }
     arg.data.mem_alloc_para.addr = addr;
@@ -341,7 +341,7 @@ int32_t hybm_gvm_mem_open(uint64_t addr, uint64_t key)
         return HYBM_GVM_FAILURE;
     }
     if (addr == 0 || key == 0) {
-        BM_USER_LOG_ERROR("Invalid param addr:" << addr << " key:" << key);
+        BM_USER_LOG_ERROR("Invalid param addr:" << std::hex << addr << " key:" << key);
         return HYBM_GVM_FAILURE;
     }
     arg.data.mem_open_para.addr = addr;
