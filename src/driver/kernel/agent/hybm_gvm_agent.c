@@ -171,6 +171,7 @@ static int gvm_agent_map_svsp(u64 va, u64 size, u64 *pa_list, u32 num, u32 pasid
         ret_va = g_gvm_agent_info.svsp_mmap_func(page_size, pasid, iva, page_size, true);
         if (ret_va != iva) {
             hybm_gvm_err("map mem failed, va:0x%llx,pa:0x%llx,ret_va:0x%llx", iva, pa_list[i], ret_va);
+            ret = -EINVAL;
             break;
         }
 
@@ -305,6 +306,7 @@ static int gvm_agent_map_svm_pa(u32 devid, struct hybm_gvm_agent_fetch_msg *fetc
 {
     struct devmm_svm_process_id id = {0};
     u64 *pa_list = NULL;
+    u64 new_ed;
     int ret = 0;
     u32 pg_size, i, num;
     id.hostpid = fetch->hostpid;
@@ -319,6 +321,12 @@ static int gvm_agent_map_svm_pa(u32 devid, struct hybm_gvm_agent_fetch_msg *fetc
     if (fetch->pa_num > 0 && pg_size != HYBM_HPAGE_SIZE) {
         hybm_gvm_err("record mem pg_size must be 2M, real is 0x%x", pg_size);
         return -EBUSY;
+    }
+
+    if (fetch->pa_num == 0) {
+        new_ed = GVM_ALIGN_UP(fetch->va + fetch->size, pg_size);
+        fetch->va = GVM_ALIGN_DOWN(fetch->va, pg_size);
+        fetch->size = new_ed - fetch->va;
     }
 
     num = fetch->size / pg_size;
