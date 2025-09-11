@@ -81,6 +81,7 @@ private:
     Result RemoveHandler(const ock::acc::AccTcpRequestContext &context, SmemMessage &request) noexcept;
     Result AppendHandler(const ock::acc::AccTcpRequestContext &context, SmemMessage &request) noexcept;
     Result CasHandler(const ock::acc::AccTcpRequestContext &context, SmemMessage &request) noexcept;
+    Result WatchRankStateHandler(const ock::acc::AccTcpRequestContext &context, SmemMessage &request) noexcept;
 
     std::list<ock::acc::AccTcpRequestContext> GetOutWaitersInLock(const std::unordered_set<uint64_t> &ids) noexcept;
     void WakeupWaiters(const std::list<ock::acc::AccTcpRequestContext> &waiters,
@@ -106,6 +107,9 @@ private:
     std::unordered_map<int64_t, std::unordered_set<uint64_t>> timedWaiters_;
     std::thread timerThread_;
     bool running_{false};
+
+    std::mutex rankStateMutex_;
+    std::unordered_map<uint32_t, StoreWaitContext> rankStateWaiters_;
 
     const std::string listenIp_;
     const uint16_t listenPort_;

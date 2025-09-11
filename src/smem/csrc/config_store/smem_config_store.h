@@ -25,6 +25,9 @@ enum StoreErrorCode : int16_t {
     IO_ERROR = -602
 };
 
+enum WatchRankType : uint32_t {
+    WATCH_RANK_LINK_DOWN = 0,
+};
 
 const std::string AutoRankingStr = "AutoRanking#";
 
@@ -154,10 +157,20 @@ public:
      * @param wid          [out] Unique ID of the watch event.
      * @return 0 if successfully done
      */
-    virtual Result Watch(
-        const std::string &key,
-        const std::function<void(int result, const std::string &, const std::vector<uint8_t> &)> &notify,
-        uint32_t &wid) noexcept = 0;
+    virtual Result
+    Watch(const std::string &key,
+          const std::function<void(int result, const std::string &, const std::vector<uint8_t> &)> &notify,
+          uint32_t &wid) noexcept = 0;
+
+    /**
+     * @brief Watch the event for rank state change.
+     * @param type         [in] watch rank event type
+     * @param notify       [in] callback function
+     * @param wid          [out] Unique ID of the watch event.
+     * @return 0 if successfully done
+     */
+    virtual Result Watch(WatchRankType type, const std::function<void(WatchRankType, uint32_t)> &notify,
+                         uint32_t &wid) noexcept = 0;
 
     /**
      * @brief Cancel an existed watcher.
@@ -229,9 +242,10 @@ inline Result ConfigStore::Cas(const std::string &key, const std::string &expect
     return SM_OK;
 }
 
-inline Result ConfigStore::Watch(
-    const std::string &key, const std::function<void(int result, const std::string &, const std::string &)> &notify,
-    uint32_t &wid) noexcept
+inline Result
+ConfigStore::Watch(const std::string &key,
+                   const std::function<void(int result, const std::string &, const std::string &)> &notify,
+                   uint32_t &wid) noexcept
 {
     return Watch(
         key,
@@ -244,22 +258,14 @@ inline Result ConfigStore::Watch(
 inline const char *ConfigStore::ErrStr(int16_t errCode)
 {
     switch (errCode) {
-        case SUCCESS:
-            return "success";
-        case ERROR:
-            return "error";
-        case INVALID_MESSAGE:
-            return "invalid message";
-        case INVALID_KEY:
-            return "invalid key";
-        case NOT_EXIST:
-            return "key not exists";
-        case TIMEOUT:
-            return "timeout";
-        case IO_ERROR:
-            return "socket error";
-        default:
-            return "unknown error";
+        case SUCCESS: return "success";
+        case ERROR: return "error";
+        case INVALID_MESSAGE: return "invalid message";
+        case INVALID_KEY: return "invalid key";
+        case NOT_EXIST: return "key not exists";
+        case TIMEOUT: return "timeout";
+        case IO_ERROR: return "socket error";
+        default: return "unknown error";
     }
 }
 

@@ -6,6 +6,7 @@
 #define MEM_FABRIC_HYBRID_SMEM_TIMEDWAIT_H
 
 #include <mutex>
+#include <functional>
 #include "smem_types.h"
 
 constexpr uint64_t SECOND_TO_MILLSEC = 1000U;
@@ -30,12 +31,19 @@ public:
         return SM_OK;
     }
 
-    int32_t TimedwaitMillsecs(long msecs)
+    int32_t TimedwaitMillsecs(long msecs, const std::function<void()> &wakeupOp = nullptr)
     {
         struct timespec ts {0, 0};
         int32_t ret = 0;
 
         pthread_mutex_lock(&this->timeCheckerMutex_);
+        if (this->signalFlag && wakeupOp != nullptr) {
+            wakeupOp();
+            this->signalFlag = false;
+            pthread_mutex_unlock(&this->timeCheckerMutex_);
+            return SM_OK;
+        }
+
         clock_gettime(CLOCK_MONOTONIC, &ts);
 
         // avoid ts.tv_nsec overflow
@@ -47,14 +55,32 @@ public:
         while (!this->signalFlag) {    // avoid spurious wakeup
             ret = pthread_cond_timedwait(&this->condTimeChecker_, &this->timeCheckerMutex_, &ts);
             if (ret == ETIMEDOUT) {    // avoid infinite loop
-                ret = SM_TIMEOUT;
+                ret = SM_OK;
                 break;
             }
         }
         this->signalFlag = false;
+        if (wakeupOp != nullptr) {
+            wakeupOp();
+        }
         pthread_mutex_unlock(&this->timeCheckerMutex_);
 
         return ret;
+    }
+
+    void OperateInLock(const std::function<void()> &op, bool notify = false)
+    {
+        pthread_mutex_lock(&this->timeCheckerMutex_);
+        if (op != nullptr) {
+            op();
+        }
+        if (notify) {
+            signalFlag = true;
+        }
+        pthread_mutex_unlock(&this->timeCheckerMutex_);
+        if (notify) {
+            pthread_cond_signal(&this->condTimeChecker_);
+        }
     }
 
     // signal will NOT lost when call PthreadSignal before PthreadTimedwaitMillsecs, so we can proactive cleanup

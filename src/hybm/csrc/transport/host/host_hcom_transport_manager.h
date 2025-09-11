@@ -43,6 +43,8 @@ public:
 
     Result Prepare(const HybmTransPrepareOptions &parma) override;
 
+    Result RemoveRanks(const std::vector<uint32_t> &removedRanks) override;
+
     Result Connect() override;
 
     Result AsyncConnect() override;

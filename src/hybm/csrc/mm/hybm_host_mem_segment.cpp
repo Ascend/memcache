@@ -158,6 +158,7 @@ Result MemSegmentHost::Import(const std::vector<std::string> &allExInfo) noexcep
 
 Result MemSegmentHost::Mmap() noexcept
 {
+    imports_.clear();
     return 0;
 }
 

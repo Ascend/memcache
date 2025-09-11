@@ -35,6 +35,7 @@ constexpr auto DAVINCI_INTF_IOCTL_STATUS = _IO(DAVINCI_INTF_IOC_MAGIC, 2);
 #define DEVMM_SVM_ALLOC _IOW(DEVMM_SVM_MAGIC, 3, DevmmCommandMessage)
 #define DEVMM_SVM_ADVISE _IOW(DEVMM_SVM_MAGIC, 13, DevmmCommandMessage)
 #define DEVMM_SVM_FREE_PAGES _IOW(DEVMM_SVM_MAGIC, 4, DevmmCommandMessage)
+#define DEVMM_SVM_IPC_MEM_CLOSE _IOW(DEVMM_SVM_MAGIC, 22, DevmmCommandMessage)
 
 struct OpenCloseArgs {
     char moduleName[DAVINIC_MODULE_NAME_MAX];
@@ -97,7 +98,15 @@ int HybmMapShareMemory(const char *name, void *expectAddr, uint64_t size, uint64
 
 int HybmUnmapShareMemory(void *expectAddr, uint64_t flags) noexcept
 {
-    // TODO
+    DevmmCommandMessage arg{};
+    int32_t ret;
+
+    arg.data.freePagesPara.va = reinterpret_cast<uint64_t>(expectAddr);
+    ret = ioctl(gDeviceFd, DEVMM_SVM_IPC_MEM_CLOSE, &arg);
+    if (ret != 0) {
+        BM_LOG_ERROR("gva close error.\n");
+        return ret;
+    }
     return 0;
 }
 

@@ -58,6 +58,12 @@ public:
             wid);
     }
 
+    Result Watch(WatchRankType type, const std::function<void(WatchRankType, uint32_t)> &notify,
+                 uint32_t &wid) noexcept override
+    {
+        return baseStore_->Watch(type, notify, wid);
+    }
+
     Result Unwatch(uint32_t wid) noexcept override
     {
         return baseStore_->Unwatch(wid);

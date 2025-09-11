@@ -11,15 +11,15 @@ namespace ock {
 namespace smem {
 std::atomic<uint64_t> StoreWaitContext::idGen_{1UL};
 AccStoreServer::AccStoreServer(std::string ip, uint16_t port, uint32_t worldSize) noexcept
-    : listenIp_{std::move(ip)},
-      listenPort_{port},
-      worldSize_{worldSize},
-      requestHandlers_{
-          {MessageType::SET, &AccStoreServer::SetHandler},       {MessageType::GET, &AccStoreServer::GetHandler},
-          {MessageType::ADD, &AccStoreServer::AddHandler},       {MessageType::REMOVE, &AccStoreServer::RemoveHandler},
-          {MessageType::APPEND, &AccStoreServer::AppendHandler}, {MessageType::CAS, &AccStoreServer::CasHandler}}
-{
-}
+    : listenIp_{std::move(ip)}, listenPort_{port}, worldSize_{worldSize},
+      requestHandlers_{{MessageType::SET, &AccStoreServer::SetHandler},
+                       {MessageType::GET, &AccStoreServer::GetHandler},
+                       {MessageType::ADD, &AccStoreServer::AddHandler},
+                       {MessageType::REMOVE, &AccStoreServer::RemoveHandler},
+                       {MessageType::APPEND, &AccStoreServer::AppendHandler},
+                       {MessageType::CAS, &AccStoreServer::CasHandler},
+                       {MessageType::WATCH_RANK_STATE, &AccStoreServer::WatchRankStateHandler}}
+{}
 
 Result AccStoreServer::Startup() noexcept
 {
@@ -65,9 +65,7 @@ Result AccStoreServer::Startup() noexcept
     running_ = true;
     lockGuard.unlock();
 
-    timerThread_ = std::thread{[this]() {
-        TimerThreadTask();
-    }};
+    timerThread_ = std::thread{[this]() { TimerThreadTask(); }};
 
     return SM_OK;
 }
@@ -122,26 +120,64 @@ Result AccStoreServer::LinkConnectedHandler(const ock::acc::AccConnReq &req,
                                             const ock::acc::AccTcpLinkComplexPtr &link) noexcept
 {
     SM_LOG_INFO("new link connected, linkId: " << link->Id() << ", rank: " << req.rankId);
+    if (req.rankId >= std::numeric_limits<uint32_t>::max()) {
+        return SM_OK;
+    }
+
+    std::string autoRankingStr = AutoRankingStr + std::to_string(link->Id());
+    union Transfer {
+        uint32_t rankId;
+        uint8_t data[4];
+    } trans{};
+    trans.rankId = static_cast<uint32_t>(req.rankId);
+
+    std::unique_lock<std::mutex> lockGuard{storeMutex_};
+    kvStore_[autoRankingStr] = std::vector<uint8_t>(trans.data, trans.data + sizeof(trans.data));
+
     return SM_OK;
 }
 
 Result AccStoreServer::LinkBrokenHandler(const ock::acc::AccTcpLinkComplexPtr &link) noexcept
 {
     SM_LOG_INFO("link broken, linkId: " << link->Id());
+    uint32_t rankId = std::numeric_limits<uint32_t>::max();
+    uint32_t linkId = link->Id();
+
+    union Transfer {
+        uint32_t rankId;
+        uint8_t data[sizeof(uint32_t)];
+    } trans{};
     std::string autoRankingStr = AutoRankingStr + std::to_string(link->Id());
     std::unique_lock<std::mutex> lockGuard{storeMutex_};
     auto pos = kvStore_.find(autoRankingStr);
     if (pos != kvStore_.end()) {
-        union Transfer {
-            uint32_t rankId;
-            uint8_t date[4];
-        } trans{};
-        std::copy(pos->second.begin(), pos->second.end(), trans.date);
-        uint32_t rankId = trans.rankId;
+        std::copy(pos->second.begin(), pos->second.end(), trans.data);
+        rankId = trans.rankId;
         aliveRankSet_.erase(rankId);
         kvStore_.erase(pos);
         SM_LOG_INFO("link broken, linkId: " << link->Id() << " remove rankId: " << rankId);
     }
+    lockGuard.unlock();
+
+    if (rankId == std::numeric_limits<uint32_t>::max()) {
+        SM_LOG_ERROR("broken link id: " << link->Id() << ", cannot find rank id.");
+        return SM_ERROR;
+    }
+
+    std::unique_lock<std::mutex> rankStateLock{rankStateMutex_};
+    rankStateWaiters_.erase(linkId);
+    auto copyWaiters = rankStateWaiters_;
+    rankStateLock.unlock();
+
+    SmemMessage responseMessage{MessageType::WATCH_RANK_STATE};
+    std::vector<uint8_t> value(trans.data, trans.data + sizeof(trans.data));
+    responseMessage.values.push_back(value);
+    auto response = SmemMessagePacker::Pack(responseMessage);
+    for (auto it = copyWaiters.begin(); it != copyWaiters.end(); ++it) {
+        SM_LOG_INFO("rankId: " << rankId << " down notify to channel: " << it->first);
+        ReplyWithMessage(it->second.ReqCtx(), StoreErrorCode::SUCCESS, response);
+    }
+
     return SM_OK;
 }
 
@@ -209,7 +245,7 @@ Result AccStoreServer::FindOrInsertRank(const ock::acc::AccTcpRequestContext &co
     }
     if (aliveRankSet_.size() >= worldSize_) {
         SM_LOG_ERROR("Failed to insert rank, rank count:" << aliveRankSet_.size()
-            << " equal worldSize: " << worldSize_);
+                                                          << " equal worldSize: " << worldSize_);
         ReplyWithMessage(context, StoreErrorCode::ERROR, "error: worldSize rankSize bigger than worldSize.");
         return SM_ERROR;
     }
@@ -232,7 +268,7 @@ Result AccStoreServer::FindOrInsertRank(const ock::acc::AccTcpRequestContext &co
 
     responseMessage.values.emplace_back(trans.date, trans.date + sizeof(trans.date));
     SM_LOG_INFO("GET REQUEST(" << context.SeqNo() << ") for key(" << rankingKey << ") rankId:" << trans.rankId
-        << " rankId_:" << rankIndex_);
+                               << " rankId_:" << rankIndex_);
     auto response = SmemMessagePacker::Pack(responseMessage);
     ReplyWithMessage(context, StoreErrorCode::SUCCESS, response);
     return 0;
@@ -496,8 +532,29 @@ Result AccStoreServer::CasHandler(const ock::acc::AccTcpRequestContext &context,
     return SM_OK;
 }
 
-std::list<ock::acc::AccTcpRequestContext> AccStoreServer::GetOutWaitersInLock(
-    const std::unordered_set<uint64_t> &ids) noexcept
+Result AccStoreServer::WatchRankStateHandler(const acc::AccTcpRequestContext &context, SmemMessage &request) noexcept
+{
+    if (request.keys.size() != 1 || request.keys[0] != WATCH_RANK_DOWN_KEY) {
+        SM_LOG_ERROR("request(" << context.SeqNo() << ") handle invalid body");
+        ReplyWithMessage(context, StoreErrorCode::INVALID_MESSAGE, "invalid request: key should be");
+        return SM_INVALID_PARAM;
+    }
+
+    auto linkId = context.Link()->Id();
+    StoreWaitContext waitContext{-1L, WATCH_RANK_DOWN_KEY, context};
+    std::unique_lock<std::mutex> uniqueLock{rankStateMutex_};
+    auto pair = rankStateWaiters_.emplace(linkId, waitContext);
+    if (!pair.second) {
+        uniqueLock.unlock();
+        SM_LOG_ERROR("link id : " << linkId << ", already watched for rank state.");
+        return SM_REPEAT_CALL;
+    }
+
+    return SM_OK;
+}
+
+std::list<ock::acc::AccTcpRequestContext>
+AccStoreServer::GetOutWaitersInLock(const std::unordered_set<uint64_t> &ids) noexcept
 {
     std::list<ock::acc::AccTcpRequestContext> reqCtx;
     for (auto id : ids) {

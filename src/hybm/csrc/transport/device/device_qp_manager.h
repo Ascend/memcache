@@ -7,6 +7,7 @@
 
 #include <netinet/in.h>
 #include <cstdint>
+#include <unordered_set>
 #include <unordered_map>
 #include "hybm_def.h"
 #include "device_rdma_common.h"
@@ -45,6 +46,7 @@ public:
     virtual ~DeviceQpManager() = default;
 
     virtual int SetRemoteRankInfo(const std::unordered_map<uint32_t, ConnectRankInfo> &ranks) noexcept = 0;
+    virtual int RemoveRanks(const std::unordered_set<uint32_t> &ranks) noexcept;
     virtual int SetLocalMemories(const MemoryRegionMap &mrs) noexcept = 0;
     virtual int Startup(void *rdma) noexcept = 0;
     virtual void Shutdown() noexcept = 0;

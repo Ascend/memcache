@@ -437,6 +437,7 @@ int32_t MemEntityDefault::RemoveImported(const std::vector<uint32_t> &ranks) noe
         BM_LOG_ERROR("the object is not initialized, please check whether Initialize is called.");
         return BM_NOT_INITIALIZED;
     }
+
     if (hbmSegment_ != nullptr) {
         auto ret = hbmSegment_->RemoveImported(ranks);
         if (ret != BM_OK) {
@@ -448,6 +449,13 @@ int32_t MemEntityDefault::RemoveImported(const std::vector<uint32_t> &ranks) noe
         auto ret = dramSegment_->RemoveImported(ranks);
         if (ret != BM_OK) {
             return ret;
+        }
+    }
+
+    if (transportManager_ != nullptr) {
+        auto ret = transportManager_->RemoveRanks(ranks);
+        if (ret != BM_OK) {
+            BM_LOG_WARN("transport remove ranks failed: " << ret);
         }
     }
 

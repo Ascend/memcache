@@ -38,7 +38,6 @@ int JoinableRanksQpManager::SetRemoteRankInfo(const std::unordered_map<uint32_t,
             newClients_.emplace(it->first);
         }
     }
-    currentRanksInfo_ = ranks;
     uniqueLock.unlock();
 
     if (started_.load()) {
@@ -52,6 +51,25 @@ int JoinableRanksQpManager::SetLocalMemories(const MemoryRegionMap &mrs) noexcep
 {
     std::unique_lock<std::mutex> uniqueLock{mutex_};
     currentLocalMrs_ = mrs;
+    uniqueLock.unlock();
+
+    if (started_.load()) {
+        cond_.notify_all();
+    }
+
+    return BM_OK;
+}
+
+int JoinableRanksQpManager::RemoveRanks(const std::unordered_set<uint32_t> &ranks) noexcept
+{
+    std::unique_lock<std::mutex> uniqueLock{mutex_};
+    for (auto rank : ranks) {
+        if (rank < rankId_) {
+            removedServerRanks_.emplace(rank);
+        } else {
+            removedClientRanks_.emplace(rank);
+        }
+    }
     uniqueLock.unlock();
 
     if (started_.load()) {
@@ -149,28 +167,35 @@ void JoinableRanksQpManager::ServerSideRunLoop() noexcept
 
     while (running_) {
         std::unique_lock<std::mutex> uniqueLock{mutex_};
-        cond_.wait_for(uniqueLock, std::chrono::seconds(3));
-        if (newClients_.empty()) {
+        cond_.wait_for(uniqueLock, std::chrono::milliseconds(300));
+        if (newClients_.empty() && removedClientRanks_.empty()) {
             cond_.wait_for(uniqueLock, std::chrono::minutes(1));
         }
         if (!running_) {
             break;
         }
         auto newClients = newClients_;
+        auto removedRanks = std::move(removedClientRanks_);
         uniqueLock.unlock();
 
-        auto ret = GenerateWhiteList(newClients);
-        if (ret != 0) {
-            BM_LOG_ERROR("generate white list failed: " << ret);
+        if (!newClients.empty()) {
+            auto ret = GenerateWhiteList(newClients);
+            if (ret != 0) {
+                BM_LOG_ERROR("generate white list failed: " << ret);
+            }
+
+            ret = WaitSocketConnections(newClients);
+            if (ret != 0) {
+                BM_LOG_ERROR("make socket connections for server side failed: " << ret);
+            }
+
+            MakeQpConnections(newClients);
+            WaitQpConnections(newClients);
         }
 
-        ret = WaitSocketConnections(newClients);
-        if (ret != 0) {
-            BM_LOG_ERROR("make socket connections for server side failed: " << ret);
+        if (!removedRanks.empty()) {
+            RemoveRanksProcess(removedRanks);
         }
-
-        MakeQpConnections(newClients);
-        WaitQpConnections(newClients);
     }
 }
 
@@ -179,24 +204,31 @@ void JoinableRanksQpManager::ClientSideRunLoop() noexcept
     DlAclApi::AclrtSetDevice(deviceId_);
     while (running_) {
         std::unique_lock<std::mutex> uniqueLock{mutex_};
-        cond_.wait_for(uniqueLock, std::chrono::seconds(3));
-        if (newServers_.empty()) {
+        cond_.wait_for(uniqueLock, std::chrono::milliseconds(300));
+        if (newServers_.empty() && removedServerRanks_.empty()) {
             cond_.wait_for(uniqueLock, std::chrono::minutes(1));
         }
         if (!running_) {
             break;
         }
         auto newServers = newServers_;
+        auto removedRanks = std::move(removedServerRanks_);
         uniqueLock.unlock();
 
-        auto ret = CreateConnectionToServers(newServers);
-        if (ret != 0) {
-            BM_LOG_ERROR("create connection to server failed: " << ret);
+        if (!newServers.empty()) {
+            auto ret = CreateConnectionToServers(newServers);
+            if (ret != 0) {
+                BM_LOG_ERROR("create connection to server failed: " << ret);
+            }
+
+            WaitSocketConnections(newServers);
+            MakeQpConnections(newServers);
+            WaitQpConnections(newServers);
         }
 
-        WaitSocketConnections(newServers);
-        MakeQpConnections(newServers);
-        WaitQpConnections(newServers);
+        if (!removedRanks.empty()) {
+            RemoveRanksProcess(removedRanks);
+        }
     }
 }
 
@@ -456,6 +488,37 @@ int JoinableRanksQpManager::RegisterLocalMrToQpHandle(void *qpHandle) noexcept
     }
 
     return BM_OK;
+}
+
+void JoinableRanksQpManager::RemoveRanksProcess(const std::set<uint32_t> &ranks) noexcept
+{
+    std::map<uint32_t, ConnectionChannel> removedConnections;
+    for (auto rank : ranks) {
+        if (rank >= connections_.size() || rank == rankId_) {
+            continue;
+        }
+        removedConnections.emplace(rank, connections_[rank]);
+        bzero(&connections_[rank], sizeof(ConnectionChannel));
+    }
+
+    for (auto it = removedConnections.begin(); it != removedConnections.end(); ++it) {
+        BM_LOG_INFO("close connection from " << rankId_ << " to " << it->first);
+        if (it->second.qpHandle != nullptr) {
+            auto ret = DlHccpApi::RaQpDestroy(it->second.qpHandle);
+            if (ret != 0) {
+                BM_LOG_WARN("close qp from " << rankId_ << " to " << it->first << " failed: " << ret);
+            }
+        }
+
+        HccpSocketCloseInfo closeInfo{};
+        closeInfo.handle = it->second.socketHandle;
+        closeInfo.fd = it->second.socketFd;
+        closeInfo.linger = 0;
+        auto ret = DlHccpApi::RaSocketBatchClose(&closeInfo, 1U);
+        if (ret != 0) {
+            BM_LOG_WARN("close socket from " << rankId_ << " to " << it->first << " failed: " << ret);
+        }
+    }
 }
 
 }  // namespace device

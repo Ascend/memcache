@@ -13,12 +13,13 @@
 #include "device_rdma_transport_manager.h"
 #include "joinable_ranks_qp_manager.h"
 
-const uint32_t RDMA_POLL_TIMES_MAX = 1000;
-
 namespace ock {
 namespace mf {
 namespace transport {
 namespace device {
+
+const uint32_t RDMA_POLL_TIMES_MAX = 1000;
+
 RdmaTransportManager::~RdmaTransportManager()
 {
     ClearAllRegisterMRs();
@@ -209,6 +210,32 @@ Result RdmaTransportManager::Prepare(const HybmTransPrepareOptions &options)
     return BM_OK;
 }
 
+Result RdmaTransportManager::RemoveRanks(const std::vector<uint32_t> &removedRanks)
+{
+    std::unordered_set<uint32_t> ranksSet;
+    std::unordered_map<uint32_t, MemoryRegionMap> removedRankRegions;
+    for (auto rank : removedRanks) {
+        auto pos = ranksMRs_.find(rank);
+        if (pos != ranksMRs_.end()) {
+            ranksSet.emplace(rank);
+            removedRankRegions.emplace(pos->first, pos->second);
+            ranksMRs_.erase(pos);
+        }
+    }
+
+    if (ranksSet.empty()) {
+        return BM_OK;
+    }
+
+    auto ret = qpManager_->RemoveRanks(ranksSet);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("qp manager remove ranks failed: " << ret);
+        return ret;
+    }
+
+    return BM_OK;
+}
+
 Result RdmaTransportManager::Connect()
 {
     auto ret = AsyncConnect();
@@ -299,7 +326,7 @@ Result RdmaTransportManager::ReadRemote(uint32_t rankId, uint64_t lAddr, uint64_
         return ret;
     }
 
-    BM_LOG_INFO("ReadRemote() success.");
+    BM_LOG_INFO("ReadRemote() success. size=" << size);
     return BM_OK;
 }
 

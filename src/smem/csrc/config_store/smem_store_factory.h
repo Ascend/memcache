@@ -24,7 +24,7 @@ public:
      * @return Newly created store
      */
     static StorePtr CreateStore(const std::string &ip, uint16_t port, bool isServer,
-                                uint32_t worldSize = 0, int32_t rankId = 0, int32_t connMaxRetry = -1) noexcept;
+                                uint32_t worldSize = 0, int32_t rankId = -1, int32_t connMaxRetry = -1) noexcept;
 
     /**
      * @brief destroy on exist store

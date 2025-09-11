@@ -24,11 +24,15 @@ public:
     virtual void SetFinished(const ock::acc::AccTcpRequestContext &response) noexcept = 0;
     virtual void SetFailedFinish() noexcept = 0;
     virtual bool Blocking() const noexcept = 0;
+    virtual bool OnlyOneTime() const noexcept
+    {
+        return true;
+    }
 };
 
 class TcpConfigStore : public ConfigStore {
 public:
-    TcpConfigStore(std::string ip, uint16_t port, bool isServer, uint32_t worldSize = 0, int32_t rankId = 0) noexcept;
+    TcpConfigStore(std::string ip, uint16_t port, bool isServer, uint32_t worldSize = 0, int32_t rankId = -1) noexcept;
     ~TcpConfigStore() noexcept override;
 
     Result Startup(int reconnectRetryTimes = -1) noexcept;
@@ -42,6 +46,8 @@ public:
                std::vector<uint8_t> &exists) noexcept override;
     Result Watch(const std::string &key,
                  const std::function<void(int result, const std::string &, const std::vector<uint8_t> &)> &notify,
+                 uint32_t &wid) noexcept override;
+    Result Watch(WatchRankType type, const std::function<void(WatchRankType, uint32_t)> &notify,
                  uint32_t &wid) noexcept override;
     Result Unwatch(uint32_t wid) noexcept override;
     std::string GetCompleteKey(const std::string &key) noexcept override
@@ -67,7 +73,8 @@ private:
     Result LinkBrokenHandler(const ock::acc::AccTcpLinkComplexPtr &link) noexcept;
     Result ReceiveResponseHandler(const ock::acc::AccTcpRequestContext &context) noexcept;
     Result SendWatchRequest(const std::vector<uint8_t> &reqBody,
-                            const std::function<void(int result, const std::vector<uint8_t> &)> &notify, uint32_t &id) noexcept;
+                            const std::function<void(int result, const std::vector<uint8_t> &)> &notify,
+                            uint32_t &id) noexcept;
 
 private:
     AccStoreServerPtr accServer_;

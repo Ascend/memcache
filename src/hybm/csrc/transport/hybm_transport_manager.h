@@ -49,6 +49,11 @@ public:
     virtual Result Prepare(const HybmTransPrepareOptions &options) = 0;
 
     /*
+     * 建链完成状态，删除一部分节点
+     */
+    virtual Result RemoveRanks(const std::vector<uint32_t> &removedRanks) = 0;
+
+    /*
      * 4、建链
      * @return 0 if successful
      */

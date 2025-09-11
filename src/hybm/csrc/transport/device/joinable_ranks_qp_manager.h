@@ -24,6 +24,7 @@ public:
 
     int SetRemoteRankInfo(const std::unordered_map<uint32_t, ConnectRankInfo> &ranks) noexcept override;
     int SetLocalMemories(const MemoryRegionMap &mrs) noexcept override;
+    int RemoveRanks(const std::unordered_set<uint32_t> &ranks) noexcept override;
     int Startup(void *rdma) noexcept override;
     void Shutdown() noexcept override;
     void *GetQpHandleWithRankId(uint32_t rankId) const noexcept override;
@@ -40,6 +41,7 @@ private:
     int GenerateWhiteList(const std::set<uint32_t> &newClients) noexcept;
     int CreateConnectionToServers(const std::set<uint32_t> &newServers) noexcept;
     int RegisterLocalMrToQpHandle(void *qpHandle) noexcept;
+    void RemoveRanksProcess(const std::set<uint32_t> &ranks) noexcept;
 
 private:
     std::atomic<bool> started_{false};
@@ -47,13 +49,14 @@ private:
     std::shared_ptr<std::thread> clientConnectThread_;
     std::shared_ptr<std::thread> serverConnectThread_;
     void *rdmaHandle_{nullptr};
-    std::unordered_map<uint32_t, ConnectRankInfo> currentRanksInfo_;
     MemoryRegionMap currentLocalMrs_;
     std::vector<ConnectionChannel> connections_;
     std::mutex mutex_;
     std::condition_variable cond_;
     std::set<uint32_t> newClients_;
     std::set<uint32_t> newServers_;
+    std::set<uint32_t> removedClientRanks_;
+    std::set<uint32_t> removedServerRanks_;
 
 };
 

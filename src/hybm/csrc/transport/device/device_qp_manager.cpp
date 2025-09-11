@@ -92,6 +92,12 @@ void DeviceQpManager::DestroyServerSocket() noexcept
     }
     serverSocketHandle_ = nullptr;
 }
+
+int DeviceQpManager::RemoveRanks(const std::unordered_set<uint32_t> &ranks) noexcept
+{
+    BM_LOG_INFO("Do not support remove ranks.");
+    return BM_OK;
+}
 }
 }
 }

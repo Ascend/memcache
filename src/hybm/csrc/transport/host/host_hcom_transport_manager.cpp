@@ -216,6 +216,12 @@ Result HcomTransportManager::Prepare(const HybmTransPrepareOptions &param)
     return BM_OK;
 }
 
+Result HcomTransportManager::RemoveRanks(const std::vector<uint32_t> &removedRanks)
+{
+    BM_LOG_WARN("HCOM transport manager remove ranks not implements!");
+    return BM_OK;
+}
+
 Result HcomTransportManager::Connect()
 {
     BM_ASSERT_RETURN(rpcService_ != 0, BM_ERROR);

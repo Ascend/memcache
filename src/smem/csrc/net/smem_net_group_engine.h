@@ -6,6 +6,8 @@
 
 #include <functional>
 #include <thread>
+#include <atomic>
+#include <list>
 #include "smem_common_includes.h"
 #include "smem_config_store.h"
 
@@ -35,10 +37,23 @@ struct SmemGroupOption {
     SmemGroupChangeCallback leaveCb;
 };
 
+enum class GroupEventType : int8_t { LUNCH_JOIN_LEAVE_EVENT = 0, REMOTE_DOWN_EVENT = 1 };
+
+struct GroupEvent {
+    GroupEventType eventType;
+    uint32_t remoteRankId;
+    std::string value;
+    explicit GroupEvent(uint32_t id) : eventType{GroupEventType::REMOTE_DOWN_EVENT}, remoteRankId{id} {}
+    explicit GroupEvent(std::string val)
+        : eventType{GroupEventType::LUNCH_JOIN_LEAVE_EVENT}, remoteRankId{std::numeric_limits<uint32_t>::max()},
+          value{std::move(val)}
+    {}
+};
+
 struct GroupListenContext {
     uint32_t watchId = UINT32_MAX;
     int32_t ret = SM_OK;
-    std::string value;
+    std::list<GroupEvent> events;
 };
 
 class SmemNetGroupEngine : public SmReferable {
@@ -70,10 +85,13 @@ public:
     uint32_t GetRankSize() const;
 
 private:
-    bool IsDigit(const std::string& str);
     void GroupListenEvent();
+    void JoinLeaveEventProcess(const std::string &value, std::string &prevEventValue);
+    void RankLinkDownEventProcess(uint32_t rankId, std::string &prevEventValue);
+    void LinkDownUpdateMeta(uint32_t rankId);
     void UpdateGroupVersion(int32_t ver);
     void GroupWatchCb(int result, const std::string &key, const std::string &value);
+    void RemoteRankLinkDownCb(uint32_t remoteRankId);
 
     StorePtr store_ = nullptr;
     SmemGroupOption option_;
@@ -84,7 +102,7 @@ private:
     SmemTimedwait listenSignal_;
     GroupListenContext listenCtx_;
     bool joined_ = false;
-    bool listenThreadStarted_ = false;
+    std::atomic<bool> listenThreadStarted_{false};
     bool groupStoped_ = false;
 };
 
@@ -98,6 +116,6 @@ inline uint32_t SmemNetGroupEngine::GetRankSize() const
     return option_.rankSize;
 }
 
-}
-}
-#endif // SMEM_SMEM_NET_GROUP_ENGINE_H
+}  // namespace smem
+}  // namespace ock
+#endif  // SMEM_SMEM_NET_GROUP_ENGINE_H

@@ -12,7 +12,9 @@
 namespace ock {
 namespace smem {
 
-enum MessageType : int16_t { SET, GET, ADD, REMOVE, APPEND, CAS, INVALID_MSG };
+constexpr const char *WATCH_RANK_DOWN_KEY = "WATCH_RANK_DOWN_KEY";
+
+enum MessageType : int16_t { SET, GET, ADD, REMOVE, APPEND, CAS, WATCH_RANK_STATE, INVALID_MSG };
 
 struct SmemMessage {
     SmemMessage() noexcept : mt{MessageType::INVALID_MSG} {}

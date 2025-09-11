@@ -13,11 +13,8 @@ constexpr auto CONNECT_RETRY_MAX_TIMES = 60;
 class ClientWaitContext : public ClientCommonContext {
 public:
     ClientWaitContext(std::mutex &mtx, std::condition_variable &cond) noexcept
-        : waitMutex_{mtx},
-          waitCond_{cond},
-          finished_{false}
-    {
-    }
+        : waitMutex_{mtx}, waitCond_{cond}, finished_{false}
+    {}
 
     std::shared_ptr<ock::acc::AccTcpRequestContext> WaitFinished() noexcept override
     {
@@ -62,10 +59,9 @@ private:
 
 class ClientWatchContext : public ClientCommonContext {
 public:
-    ClientWatchContext(std::function<void(int result, const std::vector<uint8_t> &)> nfy) noexcept
-        : notify_{std::move(nfy)}
-    {
-    }
+    ClientWatchContext(std::function<void(int, const std::vector<uint8_t> &)> nfy, bool oneTime = true) noexcept
+        : notify_{std::move(nfy)}, onlyOneTime_{oneTime}
+    {}
 
     std::shared_ptr<ock::acc::AccTcpRequestContext> WaitFinished() noexcept override
     {
@@ -105,20 +101,21 @@ public:
         return false;
     }
 
+    bool OnlyOneTime() const noexcept override
+    {
+        return onlyOneTime_;
+    }
+
 private:
-    std::function<void(int result, const std::vector<uint8_t> &)> notify_;
+    const std::function<void(int result, const std::vector<uint8_t> &)> notify_;
+    const bool onlyOneTime_;
 };
 
 std::atomic<uint32_t> TcpConfigStore::reqSeqGen_{0};
-TcpConfigStore::TcpConfigStore(std::string ip, uint16_t port, bool isServer,
-                               uint32_t worldSize, int32_t rankId) noexcept
-    : serverIp_{std::move(ip)},
-      serverPort_{port},
-      isServer_{isServer},
-      worldSize_{worldSize},
-      rankId_{rankId}
-{
-}
+TcpConfigStore::TcpConfigStore(std::string ip, uint16_t port, bool isServer, uint32_t worldSize,
+                               int32_t rankId) noexcept
+    : serverIp_{std::move(ip)}, serverPort_{port}, isServer_{isServer}, worldSize_{worldSize}, rankId_{rankId}
+{}
 
 TcpConfigStore::~TcpConfigStore() noexcept
 {
@@ -169,7 +166,7 @@ Result TcpConfigStore::Startup(int reconnectRetryTimes) noexcept
     }
 
     ock::acc::AccConnReq connReq;
-    connReq.rankId = rankId_;
+    connReq.rankId = rankId_ >= 0 ? static_cast<uint64_t>(rankId_) : std::numeric_limits<uint64_t>::max();
     result = accClient_->ConnectToPeerServer(serverIp_, serverPort_, connReq, retryMaxTimes, accClientLink_);
     if (result != 0) {
         SM_LOG_ERROR("connect to server failed, result: " << result);
@@ -393,10 +390,10 @@ Result TcpConfigStore::Cas(const std::string &key, const std::vector<uint8_t> &e
     return 0;
 }
 
-Result TcpConfigStore::Watch(
-    const std::string &key,
-    const std::function<void(int result, const std::string &, const std::vector<uint8_t> &)> &notify,
-    uint32_t &wid) noexcept
+Result
+TcpConfigStore::Watch(const std::string &key,
+                      const std::function<void(int result, const std::string &, const std::vector<uint8_t> &)> &notify,
+                      uint32_t &wid) noexcept
 {
     if (key.empty() || key.length() > MAX_KEY_LEN_CLIENT) {
         SM_LOG_ERROR("key length is invalid");
@@ -415,6 +412,34 @@ Result TcpConfigStore::Watch(
     }
 
     SM_LOG_DEBUG("watch for key: " << key << ", id: " << wid);
+    return SM_OK;
+}
+
+Result TcpConfigStore::Watch(WatchRankType type, const std::function<void(WatchRankType, uint32_t)> &notify,
+                             uint32_t &wid) noexcept
+{
+    if (type != WATCH_RANK_LINK_DOWN) {
+        SM_LOG_ERROR("invalid watch rank type: " << type);
+        return SM_INVALID_PARAM;
+    }
+
+    SmemMessage request{MessageType::WATCH_RANK_STATE};
+    request.keys.emplace_back(WATCH_RANK_DOWN_KEY);
+    auto packedRequest = SmemMessagePacker::Pack(request);
+    auto ret = SendWatchRequest(
+        packedRequest,
+        [notify](int res, const std::vector<uint8_t> &value) {
+            if (res == SM_OK && value.size() == sizeof(uint32_t)) {
+                notify(WATCH_RANK_LINK_DOWN, *(const uint32_t *)(const void *)value.data());
+            }
+        },
+        wid);
+    if (ret != SM_OK) {
+        SM_LOG_ERROR("send watch for rank down get null response");
+        return ret;
+    }
+
+    SM_LOG_DEBUG("send watch for rank down success, id: " << wid);
     return SM_OK;
 }
 
@@ -439,8 +464,8 @@ Result TcpConfigStore::Unwatch(uint32_t wid) noexcept
     return SM_OK;
 }
 
-std::shared_ptr<ock::acc::AccTcpRequestContext> TcpConfigStore::SendMessageBlocked(
-    const std::vector<uint8_t> &reqBody) noexcept
+std::shared_ptr<ock::acc::AccTcpRequestContext>
+TcpConfigStore::SendMessageBlocked(const std::vector<uint8_t> &reqBody) noexcept
 {
     auto seqNo = reqSeqGen_.fetch_add(1U);
     auto dataBuf = ock::acc::AccDataBuffer::Create(reqBody.data(), reqBody.size());
@@ -485,8 +510,12 @@ Result TcpConfigStore::ReceiveResponseHandler(const ock::acc::AccTcpRequestConte
     std::unique_lock<std::mutex> msgCtxLocker{msgCtxMutex_};
     auto pos = msgClientContext_.find(context.SeqNo());
     if (pos != msgClientContext_.end()) {
-        clientContext = std::move(pos->second);
-        msgClientContext_.erase(pos);
+        if (pos->second->OnlyOneTime()) {
+            clientContext = std::move(pos->second);
+            msgClientContext_.erase(pos);
+        } else {
+            clientContext = pos->second;
+        }
     }
     msgCtxLocker.unlock();
 
@@ -511,7 +540,7 @@ Result TcpConfigStore::SendWatchRequest(const std::vector<uint8_t> &reqBody,
         return ret;
     }
 
-    auto watchContext = std::make_shared<ClientWatchContext>(notify);
+    auto watchContext = std::make_shared<ClientWatchContext>(notify, false);
     std::unique_lock<std::mutex> msgCtxLocker{msgCtxMutex_};
     msgClientContext_.emplace(seqNo, std::move(watchContext));
     msgCtxLocker.unlock();

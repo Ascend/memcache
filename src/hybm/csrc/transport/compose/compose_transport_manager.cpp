@@ -227,6 +227,28 @@ Result ComposeTransportManager::Prepare(const HybmTransPrepareOptions &options)
     return ret;
 }
 
+Result ComposeTransportManager::RemoveRanks(const std::vector<uint32_t> &removedRanks)
+{
+    Result lastResult = BM_OK;
+    if (hostTransportManager_) {
+        auto ret = hostTransportManager_->RemoveRanks(removedRanks);
+        if (ret != BM_OK) {
+            BM_LOG_ERROR("Failed for host transport manager remove ranks ret: " << ret);
+            lastResult = ret;
+        }
+    }
+
+    if (deviceTransportManager_) {
+        auto ret = deviceTransportManager_->RemoveRanks(removedRanks);
+        if (ret != BM_OK) {
+            BM_LOG_ERROR("Failed for device transport manager remove ranks ret: " << ret);
+            lastResult = ret;
+        }
+    }
+
+    return lastResult;
+}
+
 Result ComposeTransportManager::Connect()
 {
     if (hostTransportManager_) {
