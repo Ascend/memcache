@@ -504,8 +504,7 @@ int32_t HostDataOpSDMA::Wait(int32_t waitId) noexcept
     if (hybmStream_ != nullptr) {
         return hybmStream_->Synchronize();
     }
-    BM_LOG_ERROR("Failed to wait hybmStream is null");
-    return BM_ERROR;
+    return BM_OK;
 }
 
 int HostDataOpSDMA::CopyGD2GH(void *destVA, const void *srcVA, uint64_t length, void *stream) noexcept

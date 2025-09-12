@@ -228,6 +228,7 @@ class MmcTest(TestServer):
 
     @result_handler
     def init_mmc(self):
+        self.set_device()
         self._store = DistributedObjectStore()
         res = self._store.init(self._device_id)
         self.cli_return(res)
