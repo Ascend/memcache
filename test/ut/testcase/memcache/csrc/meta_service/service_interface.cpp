@@ -85,6 +85,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
+    UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
     ASSERT_TRUE(meta_service != nullptr);
 
@@ -167,6 +168,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = true;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
+    UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
     ASSERT_TRUE(meta_service != nullptr);
 

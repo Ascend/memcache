@@ -169,6 +169,7 @@ public:
     void LoadDefault() override {
         using namespace ConfConstant;
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
+        AddStrConf(OCK_MMC_META_SERVICE_CONFIG_STORE_URL, VNoCheck::Create(), 0);
         AddBoolConf(OCK_MMC_META_HA_ENABLE, VNoCheck::Create());
         AddStrConf(OCK_MMC_LOG_LEVEL, VNoCheck::Create());
         AddStrConf(OCK_MMC_LOG_PATH, VStrLength::Create(OCK_MMC_LOG_PATH.first, PATH_MAX_LEN));
@@ -196,6 +197,11 @@ public:
         size_t copy_count = std::min(std::strlen(discoveryURL.c_str()), static_cast<size_t>(DISCOVERY_URL_SIZE - 1));
         std::copy_n(discoveryURL.c_str(), copy_count, config.discoveryURL);
         config.discoveryURL[copy_count] = '\0';
+
+        const auto configStoreURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_CONFIG_STORE_URL);
+        copy_count = std::min(std::strlen(configStoreURL.c_str()), static_cast<size_t>(DISCOVERY_URL_SIZE - 1));
+        std::copy_n(configStoreURL.c_str(), copy_count, config.configStoreURL);
+        config.configStoreURL[copy_count] = '\0';
 
         config.haEnable = GetBool(ConfConstant::OCK_MMC_META_HA_ENABLE);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);

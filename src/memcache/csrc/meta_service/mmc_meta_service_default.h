@@ -10,6 +10,7 @@
 #include "mmc_meta_net_server.h"
 #include "mmc_meta_service.h"
 #include "mmc_meta_mgr_proxy_default.h"
+#include "smem_config_store.h"
 
 namespace ock {
 namespace mmc {
@@ -44,6 +45,7 @@ private:
     std::string name_;
     mmc_meta_service_config_t options_;
     std::unordered_map<uint32_t, std::unordered_set<uint16_t>> rankMediaTypeMap_;
+    ock::smem::StorePtr confStore_ = nullptr;
 };
 inline const std::string &MmcMetaServiceDefault::Name() const
 {

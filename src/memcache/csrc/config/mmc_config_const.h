@@ -11,6 +11,8 @@ namespace mmc {
 namespace ConfConstant {
 // add configuration here with default values
 constexpr auto OCK_MMC_META_SERVICE_URL = std::make_pair("ock.mmc.meta_service_url", "tcp://127.0.0.1:5000");
+constexpr auto OCK_MMC_META_SERVICE_CONFIG_STORE_URL = std::make_pair("ock.mmc.meta_service.config_store_url",
+                                                                      "tcp://127.0.0.1:6000");
 constexpr auto OCK_MMC_META_HA_ENABLE = std::make_pair("ock.mmc.meta.ha.enable", false);
 constexpr auto OKC_MMC_EVICT_THRESHOLD_HIGH = std::make_pair("ock.mmc.evict_threshold_high", 70);
 constexpr auto OKC_MMC_EVICT_THRESHOLD_LOW = std::make_pair("ock.mmc.evict_threshold_low", 60);

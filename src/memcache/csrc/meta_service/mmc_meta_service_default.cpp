@@ -7,6 +7,7 @@
 #include "mmc_meta_net_server.h"
 #include "spdlogger4c.h"
 #include "spdlogger.h"
+#include "smem_store_factory.h"
 
 namespace ock {
 namespace mmc {
@@ -46,6 +47,11 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     metaMgrProxy_ = MmcMakeRef<MmcMetaMgrProxyDefault>(metaNetServer_).Get();
     MMC_RETURN_ERROR(metaMgrProxy_->Start(MMC_DATA_TTL_MS, options.evictThresholdHigh, options.evictThresholdLow),
                      "Failed to start meta mgr proxy of meta service " << name_);
+
+    NetEngineOptions configStoreOpt{};
+    NetEngineOptions::ExtractIpPortFromUrl(options_.configStoreURL, configStoreOpt);
+    confStore_ = ock::smem::StoreFactory::CreateStore(configStoreOpt.ip, configStoreOpt.port, true, UN16);
+    MMC_VALIDATE_RETURN(confStore_ != nullptr, "Failed to start config store server", MMC_ERROR);
 
     started_ = true;
     MMC_LOG_INFO("Started MetaService (" << name_ << ") at " << options_.discoveryURL);

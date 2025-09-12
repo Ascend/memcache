@@ -1,6 +1,7 @@
 aux_source_directory(. DAEMON_SRCS)
 
-add_executable(mmc_meta_service ${DAEMON_SRCS} $<TARGET_OBJECTS:ptracer_object>)
+add_executable(mmc_meta_service ${DAEMON_SRCS} $<TARGET_OBJECTS:ptracer_object>
+    ${PROJECT_SMEM_SRC_BASE}/csrc/common/smem_last_error.cpp $<TARGET_OBJECTS:config_store_object>)
 
 target_compile_options(mmc_meta_service PRIVATE -fPIC -Wno-float-equal)
 

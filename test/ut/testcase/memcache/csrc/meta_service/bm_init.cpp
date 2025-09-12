@@ -58,6 +58,7 @@ TEST_F(TestBmInit, Init)
     metaServiceConfig.haEnable = true;
     metaServiceConfig.tlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
+    UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     auto metaServiceDefault = MmcMakeRef<MmcMetaServiceDefault>("testMetaService");
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);

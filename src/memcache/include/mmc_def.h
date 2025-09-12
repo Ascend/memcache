@@ -27,6 +27,7 @@ typedef void (*ExternalLog)(int level, const char* msg);
 
 typedef struct {
     char discoveryURL[DISCOVERY_URL_SIZE]; /* composed by schema and url, e.g. tcp:// or etcd:// or zk:// */
+    char configStoreURL[DISCOVERY_URL_SIZE]; /* composed by schema and url, e.g. tcp:// or etcd:// or zk:// */
     bool haEnable;
     int32_t logLevel;
     char logPath[PATH_MAX_SIZE];

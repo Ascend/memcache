@@ -1,0 +1,7 @@
+include_directories(
+    ${PROJECT_SMEM_SRC_BASE}/csrc/common
+    ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/include/
+)
+aux_source_directory(. CONFIG_STORE_SRCS)
+add_library(config_store_object OBJECT ${CONFIG_STORE_SRCS})
+target_compile_options(config_store_object PRIVATE -fPIC)
