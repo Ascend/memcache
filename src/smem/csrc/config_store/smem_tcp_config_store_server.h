@@ -94,6 +94,8 @@ private:
 
 private:
     static constexpr uint32_t MAX_KEY_LEN_SERVER = 2048U;
+    // prevent access broken global value during global static destructor
+    const std::string autoRankingStr_ = AutoRankingStr;
 
     using MessageHandle = int32_t (AccStoreServer::*)(const ock::acc::AccTcpRequestContext &, SmemMessage &);
     const std::unordered_map<MessageType, MessageHandle> requestHandlers_;

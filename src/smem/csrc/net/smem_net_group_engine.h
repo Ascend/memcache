@@ -56,6 +56,10 @@ struct GroupListenContext {
     std::list<GroupEvent> events;
 };
 
+constexpr uint32_t MAX_RANK_COUNT = 1024U;
+constexpr uint32_t BITS_COUNT_IN_U64 = 64U;
+constexpr uint32_t RANK_BITS_U64_COUNT = MAX_RANK_COUNT / BITS_COUNT_IN_U64;
+
 class SmemNetGroupEngine : public SmReferable {
 public:
     static SmemGroupEnginePtr Create(const StorePtr &store, const SmemGroupOption &option);
@@ -67,6 +71,8 @@ public:
         if (option_.dynamic) {
             option_.rankSize = 1;
         }
+
+        bzero(joinedRanksBitmap_, sizeof(joinedRanksBitmap_));
     }
     ~SmemNetGroupEngine() override;
 
@@ -84,6 +90,8 @@ public:
 
     uint32_t GetRankSize() const;
 
+    void SetBitmapFromRanks(const std::vector<uint32_t> rankIds);
+
 private:
     void GroupListenEvent();
     void JoinLeaveEventProcess(const std::string &value, std::string &prevEventValue);
@@ -92,6 +100,8 @@ private:
     void UpdateGroupVersion(int32_t ver);
     void GroupWatchCb(int result, const std::string &key, const std::string &value);
     void RemoteRankLinkDownCb(uint32_t remoteRankId);
+    void ClearBitmapForRank(uint32_t rankId);
+    bool TestBitmapForRank(uint32_t rankId) const;
 
     StorePtr store_ = nullptr;
     SmemGroupOption option_;
@@ -104,6 +114,8 @@ private:
     bool joined_ = false;
     std::atomic<bool> listenThreadStarted_{false};
     bool groupStoped_ = false;
+    uint64_t joinedRanksBitmap_[RANK_BITS_U64_COUNT]{};
+    mutable std::mutex rankBitmapMutex_;
 };
 
 inline uint32_t SmemNetGroupEngine::GetLocalRank() const

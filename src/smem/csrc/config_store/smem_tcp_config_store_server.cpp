@@ -124,7 +124,7 @@ Result AccStoreServer::LinkConnectedHandler(const ock::acc::AccConnReq &req,
         return SM_OK;
     }
 
-    std::string autoRankingStr = AutoRankingStr + std::to_string(link->Id());
+    std::string autoRankingStr = autoRankingStr_ + std::to_string(link->Id());
     union Transfer {
         uint32_t rankId;
         uint8_t data[4];
@@ -147,7 +147,7 @@ Result AccStoreServer::LinkBrokenHandler(const ock::acc::AccTcpLinkComplexPtr &l
         uint32_t rankId;
         uint8_t data[sizeof(uint32_t)];
     } trans{};
-    std::string autoRankingStr = AutoRankingStr + std::to_string(link->Id());
+    std::string autoRankingStr = autoRankingStr_ + std::to_string(linkId);
     std::unique_lock<std::mutex> lockGuard{storeMutex_};
     auto pos = kvStore_.find(autoRankingStr);
     if (pos != kvStore_.end()) {
@@ -155,12 +155,12 @@ Result AccStoreServer::LinkBrokenHandler(const ock::acc::AccTcpLinkComplexPtr &l
         rankId = trans.rankId;
         aliveRankSet_.erase(rankId);
         kvStore_.erase(pos);
-        SM_LOG_INFO("link broken, linkId: " << link->Id() << " remove rankId: " << rankId);
+        SM_LOG_INFO("link broken, linkId: " << linkId << " remove rankId: " << rankId);
     }
     lockGuard.unlock();
 
     if (rankId == std::numeric_limits<uint32_t>::max()) {
-        SM_LOG_ERROR("broken link id: " << link->Id() << ", cannot find rank id.");
+        SM_LOG_ERROR("broken link id: " << linkId << ", cannot find rank id.");
         return SM_ERROR;
     }
 
@@ -288,7 +288,7 @@ Result AccStoreServer::GetHandler(const ock::acc::AccTcpRequestContext &context,
         return StoreErrorCode::INVALID_KEY;
     }
 
-    if (key.compare(0, AutoRankingStr.size(), AutoRankingStr) == 0) {
+    if (key.compare(0, autoRankingStr_.size(), autoRankingStr_) == 0) {
         return FindOrInsertRank(context, request);
     }
 

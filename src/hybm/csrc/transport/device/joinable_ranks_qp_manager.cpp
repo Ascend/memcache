@@ -168,7 +168,7 @@ void JoinableRanksQpManager::ServerSideRunLoop() noexcept
     while (running_) {
         std::unique_lock<std::mutex> uniqueLock{mutex_};
         cond_.wait_for(uniqueLock, std::chrono::milliseconds(300));
-        if (newClients_.empty() && removedClientRanks_.empty()) {
+        if (newClients_.empty() && removedClientRanks_.empty() && running_) {
             cond_.wait_for(uniqueLock, std::chrono::minutes(1));
         }
         if (!running_) {
@@ -205,7 +205,7 @@ void JoinableRanksQpManager::ClientSideRunLoop() noexcept
     while (running_) {
         std::unique_lock<std::mutex> uniqueLock{mutex_};
         cond_.wait_for(uniqueLock, std::chrono::milliseconds(300));
-        if (newServers_.empty() && removedServerRanks_.empty()) {
+        if (newServers_.empty() && removedServerRanks_.empty() && running_) {
             cond_.wait_for(uniqueLock, std::chrono::minutes(1));
         }
         if (!running_) {

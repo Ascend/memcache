@@ -120,62 +120,64 @@ Result SmemBmEntry::JoinHandle(uint32_t rk)
     SM_LOG_INFO("do join func, receive_rk: " << rk << ", rank size is: " << globalGroup_->GetRankSize());
     SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
 
-    hybm_exchange_info allExInfo[coreOptions_.rankCount];
-    if (hbmSliceInfo_.descLen > 0) {
-        auto ret = globalGroup_->GroupAllGather((char *)&hbmSliceInfo_, sizeof(hybm_exchange_info), (char *)allExInfo,
-                                                sizeof(hybm_exchange_info) * globalGroup_->GetRankSize());
-        if (ret != 0) {
-            SM_LOG_ERROR("hybm gather export failed, result: " << ret);
-            return SM_ERROR;
-        }
-
-        ret = hybm_import(entity_, allExInfo, globalGroup_->GetRankSize(), 0);
-        if (ret != 0) {
-            SM_LOG_ERROR("hybm import failed, result: " << ret);
-            return SM_ERROR;
-        }
-
-        ret = globalGroup_->GroupBarrier();
-        if (ret != 0) {
-            SM_LOG_ERROR("hybm barrier failed, result: " << ret);
-            return SM_ERROR;
-        }
-    }
-    if (dramSliceInfo_.descLen > 0) {
-        auto ret = globalGroup_->GroupAllGather((char *)&dramSliceInfo_, sizeof(hybm_exchange_info), (char *)allExInfo,
-                                                sizeof(hybm_exchange_info) * globalGroup_->GetRankSize());
-        if (ret != 0) {
-            SM_LOG_ERROR("hybm gather export failed, result: " << ret);
-            return SM_ERROR;
-        }
-
-        ret = hybm_import(entity_, allExInfo, globalGroup_->GetRankSize(), 0);
-        if (ret != 0) {
-            SM_LOG_ERROR("hybm import failed, result: " << ret);
-            return SM_ERROR;
-        }
-
-        ret = globalGroup_->GroupBarrier();
-        if (ret != 0) {
-            SM_LOG_ERROR("hybm barrier failed, result: " << ret);
-            return SM_ERROR;
-        }
+    std::vector<uint32_t> allRanks(globalGroup_->GetRankSize());
+    auto ret = globalGroup_->GroupAllGather((const char *)&options_.rank, sizeof(uint32_t), (char *)allRanks.data(),
+                                            sizeof(uint32_t) * globalGroup_->GetRankSize());
+    if (ret != 0) {
+        SM_LOG_ERROR("hybm gather ranks failed, result: " << ret);
+        return SM_ERROR;
     }
 
-    auto ret = hybm_mmap(entity_, 0);
+    if ((ret = ExchangeSliceForJoin(hbmSliceInfo_)) != SM_OK) {
+        return ret;
+    }
+
+    if ((ret = ExchangeSliceForJoin(dramSliceInfo_)) != SM_OK) {
+        return ret;
+    }
+
+    ret = hybm_mmap(entity_, 0);
     if (ret != 0) {
         SM_LOG_ERROR("hybm mmap failed, result: " << ret);
         return SM_ERROR;
     }
 
-    ret = globalGroup_->GroupAllGather((char *)&entityInfo_, sizeof(hybm_exchange_info), (char *)allExInfo,
-                                       sizeof(hybm_exchange_info) * globalGroup_->GetRankSize());
+    if ((ret = ExchangeEntityForJoin()) != SM_OK) {
+        return ret;
+    }
+
+    globalGroup_->SetBitmapFromRanks(allRanks);
+    return SM_OK;
+}
+
+Result SmemBmEntry::LeaveHandle(uint32_t rk)
+{
+    SM_LOG_INFO("do leave func, receive_rk: " << rk);
+    SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
+    auto ret = hybm_remove_imported(entity_, rk, 0);
+    if (ret != 0) {
+        SM_LOG_ERROR("hybm leave failed, result: " << ret);
+        return SM_ERROR;
+    }
+    return SM_OK;
+}
+
+Result SmemBmEntry::ExchangeSliceForJoin(const hybm_exchange_info &sliceInfo)
+{
+    if (dramSliceInfo_.descLen == 0) {
+        return SM_OK;
+    }
+
+    std::vector<hybm_exchange_info> allExInfo(coreOptions_.rankCount);
+    auto totalSize = sizeof(hybm_exchange_info) * globalGroup_->GetRankSize();
+    auto ret = globalGroup_->GroupAllGather((const char *)&sliceInfo, sizeof(hybm_exchange_info),
+                                            (char *)allExInfo.data(), totalSize);
     if (ret != 0) {
         SM_LOG_ERROR("hybm gather export failed, result: " << ret);
         return SM_ERROR;
     }
 
-    ret = hybm_entity_import(entity_, allExInfo, globalGroup_->GetRankSize(), 0);
+    ret = hybm_import(entity_, allExInfo.data(), globalGroup_->GetRankSize(), 0);
     if (ret != 0) {
         SM_LOG_ERROR("hybm import failed, result: " << ret);
         return SM_ERROR;
@@ -187,17 +189,28 @@ Result SmemBmEntry::JoinHandle(uint32_t rk)
         return SM_ERROR;
     }
 
-    // TODO: rollback after join failed
     return SM_OK;
 }
 
-Result SmemBmEntry::LeaveHandle(uint32_t rk)
+Result SmemBmEntry::ExchangeEntityForJoin()
 {
-    SM_LOG_INFO("do leave func, receive_rk: " << rk);
-    SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
-    auto ret = hybm_remove_imported(entity_, rk, 0);
+    std::vector<hybm_exchange_info> allExInfo(coreOptions_.rankCount);
+    auto ret = globalGroup_->GroupAllGather((char *)&entityInfo_, sizeof(hybm_exchange_info), (char *)allExInfo.data(),
+                                            sizeof(hybm_exchange_info) * globalGroup_->GetRankSize());
     if (ret != 0) {
-        SM_LOG_ERROR("hybm leave failed, result: " << ret);
+        SM_LOG_ERROR("hybm gather export failed, result: " << ret);
+        return SM_ERROR;
+    }
+
+    ret = hybm_entity_import(entity_, allExInfo.data(), globalGroup_->GetRankSize(), 0);
+    if (ret != 0) {
+        SM_LOG_ERROR("hybm import failed, result: " << ret);
+        return SM_ERROR;
+    }
+
+    ret = globalGroup_->GroupBarrier();
+    if (ret != 0) {
+        SM_LOG_ERROR("hybm barrier failed, result: " << ret);
         return SM_ERROR;
     }
     return SM_OK;
@@ -322,7 +335,7 @@ Result SmemBmEntry::DataCopyBatch(const void **src, void **dest, const uint32_t 
     auto direct = TransToHybmDirection(t, src[0], size[0], dest[0], size[0]);
     if (direct == HYBM_DATA_COPY_DIRECTION_BUTT) {
         SM_LOG_ERROR("Failed to trans to hybm direct, smem direct: " << t << " src: " << src[0]
-            << " dest: " << dest[0]);
+                                                                     << " dest: " << dest[0]);
         return SM_INVALID_PARAM;
     }
     hybm_batch_copy_params copyParams = {src, dest, size, count};

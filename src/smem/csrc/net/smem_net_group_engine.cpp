@@ -339,6 +339,7 @@ void SmemNetGroupEngine::JoinLeaveEventProcess(const std::string &value, std::st
         if (option_.leaveCb != nullptr) {
             option_.leaveCb(eVal.rankId);
         }
+        ClearBitmapForRank(eVal.rankId);
     }
 }
 
@@ -349,6 +350,11 @@ void SmemNetGroupEngine::RankLinkDownEventProcess(uint32_t rankId, std::string &
     auto ret = store_->Get(SMEM_GROUP_LISTEN_EVENT_KEY, currentEventValue, 0L);
     if (ret != StoreErrorCode::SUCCESS && ret != StoreErrorCode::NOT_EXIST) {
         SM_LOG_ERROR("cannot read event value from store : " << ret);
+        return;
+    }
+
+    if (!TestBitmapForRank(rankId)) {
+        SM_LOG_INFO("link down rank: " << rankId << " not joined.");
         return;
     }
 
@@ -386,6 +392,8 @@ void SmemNetGroupEngine::RankLinkDownEventProcess(uint32_t rankId, std::string &
     } else {
         LinkDownUpdateMeta(rankId);
     }
+
+    ClearBitmapForRank(rankId);
 }
 
 void SmemNetGroupEngine::LinkDownUpdateMeta(uint32_t rankId)
@@ -447,6 +455,33 @@ void SmemNetGroupEngine::RemoteRankLinkDownCb(uint32_t remoteRankId)
 {
     listenSignal_.OperateInLock([this, remoteRankId]() { listenCtx_.events.emplace_back(GroupEvent(remoteRankId)); },
                                 true);
+}
+
+void SmemNetGroupEngine::ClearBitmapForRank(uint32_t rankId)
+{
+    if (rankId >= MAX_RANK_COUNT) {
+        SM_LOG_ERROR("ClearBitmapForRank invalid rank id: " << rankId);
+        return;
+    }
+
+    std::unique_lock<std::mutex> uniqueLock{rankBitmapMutex_};
+    auto index = rankId / BITS_COUNT_IN_U64;
+    auto shift = rankId % BITS_COUNT_IN_U64;
+    joinedRanksBitmap_[index] &= ~(1UL << shift);
+}
+
+bool SmemNetGroupEngine::TestBitmapForRank(uint32_t rankId) const
+{
+    if (rankId >= MAX_RANK_COUNT) {
+        SM_LOG_ERROR("TestBitmapForRank invalid rank id: " << rankId);
+        return false;
+    }
+
+    std::unique_lock<std::mutex> uniqueLock{rankBitmapMutex_};
+    auto index = rankId / BITS_COUNT_IN_U64;
+    auto shift = rankId % BITS_COUNT_IN_U64;
+
+    return ((joinedRanksBitmap_[index] & (1UL << shift)) != 0UL);
 }
 
 Result SmemNetGroupEngine::StartListenEvent()
@@ -520,7 +555,19 @@ Result SmemNetGroupEngine::GroupLeave()
 {
     SM_ASSERT_RETURN(option_.dynamic, SM_INVALID_PARAM);
     SM_ASSERT_RETURN(joined_, SM_NOT_STARTED);
-    Result ret = 0;
+
+    Result ret;
+    uint32_t watchId = 0;
+    listenSignal_.OperateInLock(
+        [&watchId, this]() {
+            watchId = listenCtx_.watchId;
+            groupStoped_ = true;
+        },
+        true);
+    ret = store_->Unwatch(watchId);
+    if (ret != SM_OK) {
+        SM_LOG_ERROR("unwatch id: " << watchId << " failed: " << ret);
+    }
     std::string old;
     std::string val = "L" + std::to_string(option_.rank);
     while (true) {
@@ -561,5 +608,25 @@ void SmemNetGroupEngine::UpdateGroupVersion(int32_t ver)
     groupSn_ = 0;
 }
 
+void SmemNetGroupEngine::SetBitmapFromRanks(const std::vector<uint32_t> rankIds)
+{
+    uint64_t tempBitmap[RANK_BITS_U64_COUNT];
+    bzero(tempBitmap, sizeof(tempBitmap));
+    for (auto rankId : rankIds) {
+        if (rankId >= MAX_RANK_COUNT) {
+            SM_LOG_ERROR("AddRanksToBitmap invalid rank id: " << rankId);
+            continue;
+        }
+
+        auto index = rankId / BITS_COUNT_IN_U64;
+        auto shift = rankId % BITS_COUNT_IN_U64;
+        tempBitmap[index] |= (1UL << shift);
+    }
+
+    std::unique_lock<std::mutex> uniqueLock{rankBitmapMutex_};
+    for (auto i = 0U; i < RANK_BITS_U64_COUNT; i++) {
+        joinedRanksBitmap_[i] = tempBitmap[i];
+    }
+}
 }  // namespace smem
 }  // namespace ock

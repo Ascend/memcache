@@ -70,6 +70,8 @@ private:
 
     Result JoinHandle(uint32_t rk);
     Result LeaveHandle(uint32_t rk);
+    Result ExchangeSliceForJoin(const hybm_exchange_info &sliceInfo);
+    Result ExchangeEntityForJoin();
 
 private:
     /* hot used variables */
