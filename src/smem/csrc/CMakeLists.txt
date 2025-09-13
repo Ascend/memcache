@@ -8,6 +8,7 @@ include_directories(
         ${PROJECT_UTIL_SRC_BASE}/ptracer/include
         ${PROJECT_UTIL_SRC_BASE}
         ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/include/
+        ${PROJECT_SOURCE_DIR}/3rdparty/net/acc_links/src/net/include
 )
 
 ## define src variables

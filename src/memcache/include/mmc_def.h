@@ -35,7 +35,8 @@ typedef struct {
     int32_t logRotationFileCount;
     uint16_t evictThresholdHigh;
     uint16_t evictThresholdLow;
-    ock::mf::tls_config tlsConfig;
+    ock::mf::tls_config accTlsConfig;
+    ock::mf::tls_config configStoreTlsConfig;
 } mmc_meta_service_config_t;
 
 typedef struct {
@@ -54,6 +55,7 @@ typedef struct {
     int32_t logLevel;
     ExternalLog logFunc;
     ock::mf::tls_config hcomTlsConfig;
+    ock::mf::tls_config configStoreTlsConfig;
 } mmc_local_service_config_t;
 
 typedef struct {

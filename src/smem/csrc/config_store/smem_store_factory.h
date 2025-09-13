@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_map>
 #include "smem_config_store.h"
+#include "mf_tls_def.h"
 
 namespace ock {
 namespace smem {
@@ -47,9 +48,12 @@ public:
 
     static void SetLogLevel(int level) noexcept;
 
+    static void SetTlsInfo(const mf::tls_config& tlsOption) noexcept;
+
 private:
     static std::mutex storesMutex_;
     static std::unordered_map<std::string, StorePtr> storesMap_;
+    static mf::tls_config tlsOption_;
 };
 } // namespace smem
 } // namespace ock

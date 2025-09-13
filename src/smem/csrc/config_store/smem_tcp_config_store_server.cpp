@@ -2,9 +2,11 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
  */
 #include <algorithm>
+#include "acc_tcp_server.h"
 #include "config_store_log.h"
 #include "smem_message_packer.h"
 #include "smem_config_store.h"
+#include "smem_tcp_config_store_ssl_helper.h"
 #include "smem_tcp_config_store_server.h"
 
 namespace ock {
@@ -21,7 +23,7 @@ AccStoreServer::AccStoreServer(std::string ip, uint16_t port, uint32_t worldSize
                        {MessageType::WATCH_RANK_STATE, &AccStoreServer::WatchRankStateHandler}}
 {}
 
-Result AccStoreServer::Startup() noexcept
+Result AccStoreServer::Startup(const mf::tls_config& tlsConfig) noexcept
 {
     std::lock_guard<std::mutex> guard(mutex_);
     if (accTcpServer_ != nullptr) {
@@ -29,27 +31,35 @@ Result AccStoreServer::Startup() noexcept
         return SM_OK;
     }
 
-    auto tmpAccTcpServer = ock::acc::AccTcpServer::Create();
-    if (tmpAccTcpServer == nullptr) {
+    accTcpServer_ = acc::AccTcpServer::Create();
+    if (accTcpServer_ == nullptr) {
         STORE_LOG_ERROR("create acc tcp server failed");
         return SM_NEW_OBJECT_FAILED;
     }
 
-    tmpAccTcpServer->RegisterNewRequestHandler(
+    accTcpServer_->RegisterNewRequestHandler(
         0, [this](const ock::acc::AccTcpRequestContext &context) { return ReceiveMessageHandler(context); });
-    tmpAccTcpServer->RegisterNewLinkHandler(
+    accTcpServer_->RegisterNewLinkHandler(
         [this](const ock::acc::AccConnReq &req, const ock::acc::AccTcpLinkComplexPtr &link) {
             return LinkConnectedHandler(req, link);
         });
-    tmpAccTcpServer->RegisterLinkBrokenHandler(
+    accTcpServer_->RegisterLinkBrokenHandler(
         [this](const ock::acc::AccTcpLinkComplexPtr &link) { return LinkBrokenHandler(link); });
 
-    ock::acc::AccTcpServerOptions options;
+    acc::AccTcpServerOptions options{};
     options.listenIp = listenIp_;
     options.listenPort = listenPort_;
     options.enableListener = true;
     options.linkSendQueueSize = ock::acc::UNO_48;
-    auto result = tmpAccTcpServer->Start(options);
+    acc::AccTlsOption tlsOption = GetAccTlsOption(tlsConfig);
+    if (tlsOption.enableTls) {
+        if (PrepareTlsForAccTcpServer(accTcpServer_, tlsConfig) != SM_OK) {
+            STORE_LOG_ERROR("Failed to prepare TLS for AccTcpServer");
+            return SM_ERROR;
+        }
+    }
+
+    auto result = accTcpServer_->Start(options, tlsOption);
     if (result == ock::acc::ACC_LINK_ADDRESS_IN_USE) {
         STORE_LOG_INFO("startup acc tcp server on port: " << listenPort_ << " already in use.");
         return SM_RESOURCE_IN_USE;
@@ -58,8 +68,6 @@ Result AccStoreServer::Startup() noexcept
         STORE_LOG_ERROR("startup acc tcp server on port: " << listenPort_ << " failed: " << result);
         return SM_ERROR;
     }
-
-    accTcpServer_ = tmpAccTcpServer;
 
     std::unique_lock<std::mutex> lockGuard{storeMutex_};
     running_ = true;
@@ -83,8 +91,10 @@ void AccStoreServer::Shutdown() noexcept
     std::unique_lock<std::mutex> lockGuard{storeMutex_};
     running_ = false;
     lockGuard.unlock();
-    storeCond_.notify_one();
-    timerThread_.join();
+    if (timerThread_.joinable()) {
+        storeCond_.notify_one();
+        timerThread_.join();
+    }
     STORE_LOG_INFO("finished shutdown Acc Store Server");
 }
 

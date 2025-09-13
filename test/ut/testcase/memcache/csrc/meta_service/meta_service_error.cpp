@@ -78,7 +78,7 @@ TEST_F(TestMmcServiceError, metaService)
     metaServiceConfig.evictThresholdHigh = 70;
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = true;
-    metaServiceConfig.tlsConfig.tlsEnable = false;
+    metaServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
@@ -206,7 +206,7 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
     metaServiceConfig.evictThresholdHigh = 70;
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = true;
-    metaServiceConfig.tlsConfig.tlsEnable = false;
+    metaServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);

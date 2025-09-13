@@ -32,7 +32,7 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     netOptions.threadCount = 4;
     netOptions.rankId = 0;
     netOptions.startListener = true;
-    netOptions.tlsOption = options_.tlsConfig;
+    netOptions.tlsOption = options_.accTlsConfig;
     netOptions.logFunc = SPDLOG_LogMessage;
     netOptions.logLevel = options_.logLevel;
     MMC_RETURN_ERROR(metaNetServer_->Start(netOptions), "Failed to start net server of meta service " << name_);
@@ -50,9 +50,10 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
 
     NetEngineOptions configStoreOpt{};
     NetEngineOptions::ExtractIpPortFromUrl(options_.configStoreURL, configStoreOpt);
-    ock::smem::StoreFactory::SetLogLevel(options_.logLevel);
-    ock::smem::StoreFactory::SetExternalLogFunction(SPDLOG_LogMessage);
-    confStore_ = ock::smem::StoreFactory::CreateStore(configStoreOpt.ip, configStoreOpt.port, true, UN16);
+    smem::StoreFactory::SetLogLevel(options_.logLevel);
+    smem::StoreFactory::SetExternalLogFunction(SPDLOG_LogMessage);
+    smem::StoreFactory::SetTlsInfo(options_.configStoreTlsConfig);
+    confStore_ = smem::StoreFactory::CreateStore(configStoreOpt.ip, configStoreOpt.port, true, UN16);
     MMC_VALIDATE_RETURN(confStore_ != nullptr, "Failed to start config store server", MMC_ERROR);
 
     started_ = true;

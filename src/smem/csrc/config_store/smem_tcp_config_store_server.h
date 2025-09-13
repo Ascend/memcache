@@ -13,7 +13,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "acc_links/net/acc_tcp_server.h"
+#include "mf_tls_def.h"
+#include "acc_tcp_server.h"
 #include "smem_message_packer.h"
 
 namespace ock {
@@ -66,7 +67,7 @@ public:
     AccStoreServer(std::string ip, uint16_t port, uint32_t worldSize) noexcept;
     ~AccStoreServer() override = default;
 
-    Result Startup() noexcept;
+    Result Startup(const mf::tls_config& tlsConfig) noexcept;
     void Shutdown() noexcept;
 
 private:

@@ -17,6 +17,7 @@
 #include "mmc_def.h"
 #include "mmc_logger.h"
 #include "mmc_types.h"
+#include "mmc_last_error.h"
 #include "smem_bm_def.h"
 
 namespace ock {
@@ -98,6 +99,7 @@ public:
     std::vector<std::string> ValidateConf();
     void GetAccTlsConfig(mf::tls_config &tlsConfig);
     void GetHcomTlsConfig(mf::tls_config &tlsConfig);
+    void GetConfigStoreTlsConfig(mf::tls_config &tlsConfig);
 
     static int ValidateTLSConfig(const mf::tls_config &tlsConfig);
 
@@ -191,6 +193,16 @@ public:
         AddStrConf(OCK_MMC_TLS_KEY_PASS_PATH, VStrLength::Create(OCK_MMC_TLS_KEY_PASS_PATH.first, PATH_MAX_LEN));
         AddStrConf(OCK_MMC_TLS_PACKAGE_PATH, VStrLength::Create(OCK_MMC_TLS_PACKAGE_PATH.first, PATH_MAX_LEN));
         AddStrConf(OCK_MMC_TLS_DECRYPTER_PATH, VStrLength::Create(OCK_MMC_TLS_DECRYPTER_PATH.first, PATH_MAX_LEN));
+
+        AddBoolConf(OCK_MMC_CS_TLS_ENABLE, VNoCheck::Create());
+        AddStrConf(OCK_MMC_CS_TLS_CA_PATH, VStrLength::Create(OCK_MMC_CS_TLS_CA_PATH.first, PATH_MAX_LEN));
+        AddStrConf(OCK_MMC_CS_TLS_CRL_PATH, VStrLength::Create(OCK_MMC_CS_TLS_CRL_PATH.first, PATH_MAX_LEN));
+        AddStrConf(OCK_MMC_CS_TLS_CERT_PATH, VStrLength::Create(OCK_MMC_CS_TLS_CERT_PATH.first, PATH_MAX_LEN));
+        AddStrConf(OCK_MMC_CS_TLS_KEY_PATH, VStrLength::Create(OCK_MMC_CS_TLS_KEY_PATH.first, PATH_MAX_LEN));
+        AddStrConf(OCK_MMC_CS_TLS_KEY_PASS_PATH, VStrLength::Create(OCK_MMC_CS_TLS_KEY_PASS_PATH.first, PATH_MAX_LEN));
+        AddStrConf(OCK_MMC_CS_TLS_PACKAGE_PATH, VStrLength::Create(OCK_MMC_CS_TLS_PACKAGE_PATH.first, PATH_MAX_LEN));
+        AddStrConf(OCK_MMC_CS_TLS_DECRYPTER_PATH,
+            VStrLength::Create(OCK_MMC_CS_TLS_DECRYPTER_PATH.first, PATH_MAX_LEN));
     }
 
     void GetMetaServiceConfig(mmc_meta_service_config_t &config) {
@@ -218,7 +230,8 @@ public:
         config.evictThresholdLow = GetInt(ConfConstant::OKC_MMC_EVICT_THRESHOLD_LOW);
         config.logRotationFileSize = GetInt(ConfConstant::OCK_MMC_LOG_ROTATION_FILE_SIZE) * MB_NUM;
         config.logRotationFileCount = GetInt(ConfConstant::OCK_MMC_LOG_ROTATION_FILE_COUNT);
-        GetAccTlsConfig(config.tlsConfig);
+        GetAccTlsConfig(config.accTlsConfig);
+        GetConfigStoreTlsConfig(config.configStoreTlsConfig);
     }
 };
 
@@ -237,6 +250,16 @@ public:
         AddStrConf(OCK_MMC_TLS_KEY_PASS_PATH, VStrLength::Create(OCK_MMC_TLS_KEY_PASS_PATH.first, PATH_MAX_LEN));
         AddStrConf(OCK_MMC_TLS_PACKAGE_PATH, VStrLength::Create(OCK_MMC_TLS_PACKAGE_PATH.first, PATH_MAX_LEN));
         AddStrConf(OCK_MMC_TLS_DECRYPTER_PATH, VStrLength::Create(OCK_MMC_TLS_DECRYPTER_PATH.first, PATH_MAX_LEN));
+
+        AddBoolConf(OCK_MMC_CS_TLS_ENABLE, VNoCheck::Create());
+        AddStrConf(OCK_MMC_CS_TLS_CA_PATH, VStrLength::Create(OCK_MMC_CS_TLS_CA_PATH.first, PATH_MAX_LEN));
+        AddStrConf(OCK_MMC_CS_TLS_CRL_PATH, VStrLength::Create(OCK_MMC_CS_TLS_CRL_PATH.first, PATH_MAX_LEN));
+        AddStrConf(OCK_MMC_CS_TLS_CERT_PATH, VStrLength::Create(OCK_MMC_CS_TLS_CERT_PATH.first, PATH_MAX_LEN));
+        AddStrConf(OCK_MMC_CS_TLS_KEY_PATH, VStrLength::Create(OCK_MMC_CS_TLS_KEY_PATH.first, PATH_MAX_LEN));
+        AddStrConf(OCK_MMC_CS_TLS_KEY_PASS_PATH, VStrLength::Create(OCK_MMC_CS_TLS_KEY_PASS_PATH.first, PATH_MAX_LEN));
+        AddStrConf(OCK_MMC_CS_TLS_PACKAGE_PATH, VStrLength::Create(OCK_MMC_CS_TLS_PACKAGE_PATH.first, PATH_MAX_LEN));
+        AddStrConf(OCK_MMC_CS_TLS_DECRYPTER_PATH,
+            VStrLength::Create(OCK_MMC_CS_TLS_DECRYPTER_PATH.first, PATH_MAX_LEN));
 
         AddIntConf(OKC_MMC_LOCAL_SERVICE_WORLD_SIZE,
             VIntRange::Create(OKC_MMC_LOCAL_SERVICE_WORLD_SIZE.first, MIN_WORLD_SIZE, MAX_WORLD_SIZE));
@@ -287,6 +310,7 @@ public:
         config.logLevel = MmcOutLogger::Instance().GetLogLevel(logLevelStr);
         GetAccTlsConfig(config.accTlsConfig);
         GetHcomTlsConfig(config.hcomTlsConfig);
+        GetConfigStoreTlsConfig(config.configStoreTlsConfig);
     }
 
     void GetClientConfig(mmc_client_config_t &config) {
@@ -325,6 +349,13 @@ public:
             MMC_LOG_ERROR("After alignment 2MB, DRAM size and HBM size cannot be 0 at the same time");
             return MMC_INVALID_PARAM;
         }
+
+        MMC_VALIDATE_RETURN(ValidateTLSConfig(config.accTlsConfig) == MMC_OK,
+            "Invalid acc_link TLS config", MMC_INVALID_PARAM);
+        MMC_VALIDATE_RETURN(ValidateTLSConfig(config.hcomTlsConfig) == MMC_OK,
+            "Invalid hcom TLS config", MMC_INVALID_PARAM);
+        MMC_VALIDATE_RETURN(ValidateTLSConfig(config.configStoreTlsConfig) == MMC_OK,
+            "Invalid config store TLS config", MMC_INVALID_PARAM);
 
         return MMC_OK;
     }

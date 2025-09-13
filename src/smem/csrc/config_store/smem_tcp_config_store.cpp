@@ -4,6 +4,7 @@
 
 #include "config_store_log.h"
 #include "smem_message_packer.h"
+#include "smem_tcp_config_store_ssl_helper.h"
 #include "smem_tcp_config_store.h"
 
 namespace ock {
@@ -122,7 +123,7 @@ TcpConfigStore::~TcpConfigStore() noexcept
     Shutdown();
 }
 
-Result TcpConfigStore::Startup(int reconnectRetryTimes) noexcept
+Result TcpConfigStore::Startup(const mf::tls_config& tlsConfig, int reconnectRetryTimes) noexcept
 {
     Result result = SM_OK;
     auto retryMaxTimes = reconnectRetryTimes < 0 ? CONNECT_RETRY_MAX_TIMES : reconnectRetryTimes;
@@ -138,6 +139,9 @@ Result TcpConfigStore::Startup(int reconnectRetryTimes) noexcept
         STORE_LOG_ERROR("create acc tcp client failed");
         return SM_ERROR;
     }
+    if (tlsConfig.tlsEnable && PrepareTlsForAccTcpServer(accClient_, tlsConfig) != SM_OK) {
+        STORE_LOG_ERROR("Failed to prepare TLS for acc client");
+    }
 
     if (isServer_) {
         accServer_ = SmMakeRef<AccStoreServer>(serverIp_, serverPort_, worldSize_);
@@ -146,7 +150,7 @@ Result TcpConfigStore::Startup(int reconnectRetryTimes) noexcept
             return SM_NEW_OBJECT_FAILED;
         }
 
-        if ((result = accServer_->Startup()) != SM_OK) {
+        if ((result = accServer_->Startup(tlsConfig)) != SM_OK) {
             Shutdown();
             return result;
         }
@@ -159,7 +163,7 @@ Result TcpConfigStore::Startup(int reconnectRetryTimes) noexcept
 
     ock::acc::AccTcpServerOptions options;
     options.linkSendQueueSize = ock::acc::UNO_48;
-    if ((result = accClient_->Start(options)) != SM_OK) {
+    if ((result = accClient_->Start(options, GetAccTlsOption(tlsConfig))) != SM_OK) {
         STORE_LOG_ERROR("start acc client failed, result: " << result);
         Shutdown();
         return result;

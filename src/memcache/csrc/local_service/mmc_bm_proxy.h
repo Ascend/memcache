@@ -22,6 +22,7 @@ typedef struct {
     ExternalLog logFunc;
     uint32_t flags;
     ock::mf::tls_config hcomTlsOption;
+    ock::mf::tls_config configStoreTlsOpt;
 } mmc_bm_init_config_t;
 
 typedef struct {

@@ -137,7 +137,11 @@ int MmcMetaServiceProcess::LoadConfig()
         return -1;
     }
     configManager.GetMetaServiceConfig(config_);
-    if (MetaServiceConfig::ValidateTLSConfig(config_.tlsConfig) != MMC_OK) {
+    if (MetaServiceConfig::ValidateTLSConfig(config_.accTlsConfig) != MMC_OK) {
+        std::cerr << "Invalid tls config." << std::endl;
+        return -1;
+    }
+    if (MetaServiceConfig::ValidateTLSConfig(config_.configStoreTlsConfig) != MMC_OK) {
         std::cerr << "Invalid tls config." << std::endl;
         return -1;
     }

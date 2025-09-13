@@ -66,6 +66,7 @@ typedef struct {
     uint32_t flags;                   /* other flag, default 0 */
     char hcomUrl[64];
     ock::mf::tls_config hcomTlsOption;
+    ock::mf::tls_config configStoreTlsOpt;
 } smem_bm_config_t;
 
 typedef struct {

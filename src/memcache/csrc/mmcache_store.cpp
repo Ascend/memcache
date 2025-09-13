@@ -154,8 +154,8 @@ int MmcacheStore::PutFrom(const std::string &key, void *buffer, size_t size, con
 {
     uint32_t type = 0;
     switch (direct) {
-        case SMEMB_COPY_G2L: type = 1; break;
-        case SMEMB_COPY_G2H: type = 0; break;
+        case SMEMB_COPY_L2G: type = 1; break;
+        case SMEMB_COPY_H2G: type = 0; break;
         default: MMC_LOG_ERROR("Failed to put by type " << direct << " for key " << key); return -1;
     }
     mmc_buffer mmcBuffer = {

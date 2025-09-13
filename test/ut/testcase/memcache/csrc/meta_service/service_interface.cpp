@@ -80,7 +80,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     metaServiceConfig.logLevel = 0;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
-    metaServiceConfig.tlsConfig.tlsEnable = false;
+    metaServiceConfig.accTlsConfig.tlsEnable = false;
     metaServiceConfig.evictThresholdHigh = 80;
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = false;
@@ -163,7 +163,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     metaServiceConfig.logLevel = 0;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
-    metaServiceConfig.tlsConfig.tlsEnable = false;
+    metaServiceConfig.accTlsConfig.tlsEnable = false;
     metaServiceConfig.evictThresholdHigh = 70;
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = true;

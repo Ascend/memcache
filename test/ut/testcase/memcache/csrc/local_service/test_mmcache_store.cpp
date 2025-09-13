@@ -65,6 +65,14 @@ static int GenerateLocalConf(std::string confPath)
 
     outFile << "ock.mmc.local_service.world_size = 1" << std::endl;
     outFile << "ock.mmc.local_service.config_store_url = tcp://127.0.0.1:5882" << std::endl;
+    outFile << "ock.mmc.config_store.tls.enable = false" << std::endl;
+    outFile << "ock.mmc.config_store.tls.ca.path = /opt/ock/security/certs/ca.cert.pem" << std::endl;
+    outFile << "ock.mmc.config_store.tls.ca.crl.path = /opt/ock/security/certs/ca.crl.pem" << std::endl;
+    outFile << "ock.mmc.config_store.tls.cert.path = /opt/ock/security/certs/client.cert.pem" << std::endl;
+    outFile << "ock.mmc.config_store.tls.key.path = /opt/ock/security/certs/client.private.key.pem" << std::endl;
+    outFile << "ock.mmc.config_store.tls.key.pass.path = /opt/ock/security/certs/client.passphrase" << std::endl;
+    outFile << "ock.mmc.config_store.tls.package.path = /opt/ock/security/libs/" << std::endl;
+    outFile << "ock.mmc.config_store.tls.decrypter.path =" << std::endl;
     outFile << "ock.mmc.local_service.protocol = sdma" << std::endl;
     outFile << "ock.mmc.local_service.dram.size = 32MB" << std::endl;
     outFile << "ock.mmc.local_service.hbm.size = 32MB" << std::endl;
@@ -104,7 +112,7 @@ TEST_F(TestMmcacheStore, Init)
     metaServiceConfig.logLevel = 0;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
-    metaServiceConfig.tlsConfig.tlsEnable = false;
+    metaServiceConfig.accTlsConfig.tlsEnable = false;
     metaServiceConfig.evictThresholdHigh = 80;
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = false;
