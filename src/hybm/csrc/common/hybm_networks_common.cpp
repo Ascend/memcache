@@ -34,7 +34,7 @@ std::vector<uint32_t> NetworkGetIpAddresses() noexcept
             continue;
         }
 
-        if (p->ifa_flags & IFF_LOOPBACK) {
+        if ((p->ifa_flags & IFF_LOOPBACK) != 0) {
             continue;
         }
 

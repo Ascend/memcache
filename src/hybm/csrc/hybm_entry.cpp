@@ -354,7 +354,6 @@ HYBM_API int32_t hybm_set_log_level(int level)
 
 HYBM_API const char *hybm_get_error_string(int32_t errCode)
 {
-    static thread_local std::string info;
-    info = std::string("error(").append(std::to_string(errCode)).append(")");
+    static thread_local std::string info = std::string("error(").append(std::to_string(errCode)).append(")");
     return info.c_str();
 }

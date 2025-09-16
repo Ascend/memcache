@@ -265,8 +265,7 @@ Result MmcMetaManager::RebuildMeta(std::map<std::string, MmcMemBlobDesc> &blobMa
 
 Result MmcMetaManager::Unmount(const MmcLocation &loc)
 {
-    Result ret;
-    ret = globalAllocator_->Stop(loc);
+    Result ret = globalAllocator_->Stop(loc);
     if (ret != MMC_OK) {
         return ret;
     }

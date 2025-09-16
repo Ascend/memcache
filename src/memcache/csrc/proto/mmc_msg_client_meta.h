@@ -398,12 +398,12 @@ struct AllocResponse : MsgBase {
 
 struct UpdateRequest : MsgBase {
     BlobActionResult actionResult_{};
-    std::string key_;
+    std::string key_{};
     uint32_t rank_{UINT32_MAX};
     uint16_t mediaType_{UINT16_MAX};
     uint64_t operateId_;
 
-    UpdateRequest() : MsgBase{0, ML_UPDATE_REQ, 0} {}
+    UpdateRequest() : MsgBase{0, ML_UPDATE_REQ, 0}, operateId_(0) {}
     UpdateRequest(const BlobActionResult& result, const std::string& key, const uint64_t& rank,
                   const uint16_t& mediaType, const uint64_t& operateId)
         : MsgBase{0, ML_UPDATE_REQ, 0}, actionResult_(result), key_(key), rank_(rank), mediaType_(mediaType),

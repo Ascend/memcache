@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
 # Copyright: (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
+
+__all__ = ['bm', 'shm', 'initialize', 'uninitialize', 'set_log_level']
+
 import os
 import sys
 import ctypes
@@ -15,6 +18,3 @@ for lib in ["libmf_smem.so"]:
 
 
 from _pymf_smem import bm, shm, initialize, uninitialize, set_log_level
-
-
-__all__ = ['bm', 'shm', 'initialize', 'uninitialize', 'set_log_level']

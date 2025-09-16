@@ -806,8 +806,8 @@ int HostDataOpSDMA::CopyG2GAsync(void *destVA, const void *srcVA, size_t count) 
     return BM_OK;
 }
 
-int
-HostDataOpSDMA::BatchCopyG2G(void **destVAs, const void **srcVAs, const uint32_t *counts, uint32_t batchSize) noexcept
+int HostDataOpSDMA::BatchCopyG2G(void **destVAs, const void **srcVAs,
+                                 const uint32_t *counts, uint32_t batchSize) noexcept
 {
     auto ret = 0;
     auto asyncRet = 0;

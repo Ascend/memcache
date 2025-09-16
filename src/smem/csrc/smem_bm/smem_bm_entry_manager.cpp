@@ -131,7 +131,7 @@ int32_t SmemBmEntryManager::AutoRanking()
                 uint32_t rankId;
                 uint8_t date[4];
             } trans{};
-            std::copy(rankIdDate.begin(), rankIdDate.end(), trans.date);
+            std::copy_n(rankIdDate.begin(), sizeof(trans.date), trans.date);
             config_.rankId = trans.rankId;
             SM_LOG_INFO("Success to auto ranking rankId: " << trans.rankId << " localIp: "
                                                            << localIp << " deviceId: " << deviceId_);

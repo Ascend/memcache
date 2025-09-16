@@ -57,7 +57,6 @@ private:
     std::set<uint32_t> newServers_;
     std::set<uint32_t> removedClientRanks_;
     std::set<uint32_t> removedServerRanks_;
-
 };
 
 }  // namespace device

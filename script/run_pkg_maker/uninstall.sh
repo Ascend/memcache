@@ -33,7 +33,7 @@ function delete_latest()
         rm -rf latest
     fi
     if [ -f "set_env.sh" ]; then
-        chmod 700 set_env.sh
+        chmod 500 set_env.sh
         rm -rf set_env.sh
     fi
 }

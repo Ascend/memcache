@@ -1,3 +1,7 @@
+"""
+This py is used for testing leader election in k8s cluster
+"""
+
 import time
 import signal
 import random
@@ -6,10 +10,6 @@ import uuid
 import acl
 from enum import Enum
 from memcache import DistributedObjectStore
-
-"""
-This py is used for testing leader election in k8s cluster
-"""
 
 
 class MmcDirect(Enum):

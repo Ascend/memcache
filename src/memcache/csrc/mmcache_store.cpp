@@ -773,7 +773,7 @@ mmc_buffer MmcacheStore::Get(const std::string &key)
         return {};
     }
 
-    const auto dataPtr = new char[info.size];
+    const auto dataPtr = new (std::nothrow) char[info.size];
     if (dataPtr == nullptr) {
         MMC_LOG_ERROR("Failed to allocate dynamic memory. ");
         return {};

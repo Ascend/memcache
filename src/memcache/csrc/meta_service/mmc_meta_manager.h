@@ -202,7 +202,7 @@ private:
         constexpr std::size_t FNV_OFFSET = 2166136261u;
         std::size_t hash = FNV_OFFSET;
         const char* ptr = reinterpret_cast<const char*>(objPtr);
-        for (size_t i = 0; i < sizeof(objPtr); ++i) {
+        for (size_t i = 0; i < sizeof(MmcMemObjMeta); ++i) {
             hash ^= ptr[i];
             hash *= FNV_PRIME;
         }

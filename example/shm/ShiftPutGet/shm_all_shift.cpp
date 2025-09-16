@@ -108,7 +108,7 @@ public:
 
         uint32_t rank = smem_shm_get_global_rank();
         uint32_t rankSize = smem_shm_get_global_rank_size();
-	    uint64_t ss = smem_shm_get_symmetric_size();
+        uint64_t ss = smem_shm_get_symmetric_size();
         smem_shm_put_int64(gvaSt, inputGm, (rank + 1) % rankSize, BLOCK_LEN);
         buf[0] = rank;
         buf[1] = rankSize;

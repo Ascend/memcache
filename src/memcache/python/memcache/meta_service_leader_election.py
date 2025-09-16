@@ -77,6 +77,29 @@ class MetaServiceLeaderElection:
         self.stop_event = threading.Event()
         self.renew_thread = None
 
+    def start_election(self):
+        """运行主备选举循环，仅仅用于测试Python功能，核心选举逻辑在C++中"""
+        logger.info(f'Start to elect leader, current pod name: {self.pod_name}')
+
+        # 启动续约线程
+        self.renew_thread = threading.Thread(target=self._renew_lease, daemon=True)
+        self.renew_thread.start()
+
+        try:
+            while not self.stop_event.is_set():
+                self._check_and_update_leadership()
+                time.sleep(self.retry_period)
+        finally:
+            self.stop_event.set()
+            logger.info(f'Stop election {self.pod_name=}')
+            if self.renew_thread:
+                self.renew_thread.join()
+
+    def stop_election(self):
+        """停止选举循环"""
+        self.stop_event.set()
+        logger.info(f'Stop in electing leader, {self.pod_name=}')
+
     def update_lease(self, is_renew=False):
         """刷新Lease"""
         try:
@@ -84,7 +107,7 @@ class MetaServiceLeaderElection:
         except ApiException as e:
             if e.status == 409:
                 # 多个POD，并发更新，冲突
-                for attempt in range(3):
+                for _ in range(3):
                     time.sleep(1)
                     ret = self._retry_update_lease(is_renew)
                     if ret == 1:
@@ -105,65 +128,6 @@ class MetaServiceLeaderElection:
         except Exception as e:
             logger.error(f'Failed in updating lease {self.pod_name=}, Exception: {e}')
             return False
-
-    def _retry_update_lease(self, is_renew):
-        try:
-            return 1 if self._update_lease(is_renew) else 0
-        except ApiException as e:
-            logger.error(f'Failed in retry updating lease {self.pod_name=}, ApiException: {e}')
-            return e.status
-        except Exception as e:
-            logger.error(f'Failed in updating lease {self.pod_name=}, Exception: {e}')
-            return -1
-
-    def _update_lease(self, is_renew):
-        # 尝试获取现有Lease
-        lease = self.coordination_v1.read_namespaced_lease(
-            name=self.lease_name,
-            namespace=self.namespace
-        )
-
-        # 检查是否需要更新
-        renew_time = lease.spec.renew_time
-        if renew_time:
-            renew_time = datetime.fromisoformat(str(lease.spec.renew_time)).astimezone(UTC)
-
-        holder = lease.spec.holder_identity
-        if lease.spec.lease_duration_seconds is not None:
-            self.lease_duration = lease.spec.lease_duration_seconds
-
-            # 续约间隔为有效期的 1/3（如 10 秒有效期，每 3 秒续约一次），预留网络延迟缓冲
-            if self.retry_period * 3 > self.lease_duration:
-                self.retry_period = max(self.lease_duration // 3, 1)
-
-        # 租约未被持有，或持有者是自己，或租约已过期
-        current_time = datetime.now(UTC)
-        if not holder or holder == self.pod_name or \
-                (renew_time and (current_time - renew_time > timedelta(seconds=self.lease_duration))):
-            self.__update_lease(is_renew, lease, current_time)
-            return True
-
-        logger.debug(f"Lease={self.lease_name} is not expired: curHolder={holder}, "
-                     f"leaseDuration={self.lease_duration}, renewTime={renew_time}, currentTime={current_time}, "
-                     f"retry_period={self.retry_period}, my_pod_name={self.pod_name}")
-        return False
-
-    def __update_lease(self, is_renew, lease, current_time):
-        # 更新租约
-        lease.spec.holder_identity = self.pod_name
-        lease.spec.lease_duration_seconds = self.lease_duration
-        lease.spec.renew_time = current_time
-        if not is_renew:  # 首次获取时更新获取时间
-            lease.spec.acquire_time = current_time
-
-        self.coordination_v1.replace_namespaced_lease(
-            name=self.lease_name,
-            namespace=self.namespace,
-            body=lease
-        )
-        logger.debug(f"Succeed in updating lease={self.lease_name}: curHolder={self.pod_name}, "
-                     f"leaseDuration={self.lease_duration}, renewTime={current_time}, currentTime={current_time}, "
-                     f"retry_period={self.retry_period}, my_pod_name={self.pod_name}")
 
     def check_leader_status(self):
         """检查当前主节点状态"""
@@ -203,6 +167,65 @@ class MetaServiceLeaderElection:
         # 示例：更新自身标签为backup
         self._update_pod_label({"role": "backup"})
 
+    def _retry_update_lease(self, is_renew):
+        try:
+            return 1 if self._update_lease(is_renew) else 0
+        except ApiException as e:
+            logger.error(f'Failed in retry updating lease {self.pod_name=}, ApiException: {e}')
+            return e.status
+        except Exception as e:
+            logger.error(f'Failed in updating lease {self.pod_name=}, Exception: {e}')
+            return -1
+
+    def _update_lease(self, is_renew):
+        # 尝试获取现有Lease
+        lease = self.coordination_v1.read_namespaced_lease(
+            name=self.lease_name,
+            namespace=self.namespace
+        )
+
+        # 检查是否需要更新
+        renew_time = lease.spec.renew_time
+        if renew_time:
+            renew_time = datetime.fromisoformat(str(lease.spec.renew_time)).astimezone(UTC)
+
+        holder = lease.spec.holder_identity
+        if lease.spec.lease_duration_seconds is not None:
+            self.lease_duration = lease.spec.lease_duration_seconds
+
+            # 续约间隔为有效期的 1/3（如 10 秒有效期，每 3 秒续约一次），预留网络延迟缓冲
+            if self.retry_period * 3 > self.lease_duration:
+                self.retry_period = max(self.lease_duration // 3, 1)
+
+        # 租约未被持有，或持有者是自己，或租约已过期
+        current_time = datetime.now(UTC)
+        if not holder or holder == self.pod_name or \
+                (renew_time and (current_time - renew_time > timedelta(seconds=self.lease_duration))):
+            self._inner_update_lease(is_renew, lease, current_time)
+            return True
+
+        logger.debug(f"Lease={self.lease_name} is not expired: curHolder={holder}, "
+                     f"leaseDuration={self.lease_duration}, renewTime={renew_time}, currentTime={current_time}, "
+                     f"retry_period={self.retry_period}, my_pod_name={self.pod_name}")
+        return False
+
+    def _inner_update_lease(self, is_renew, lease, current_time):
+        # 更新租约
+        lease.spec.holder_identity = self.pod_name
+        lease.spec.lease_duration_seconds = self.lease_duration
+        lease.spec.renew_time = current_time
+        if not is_renew:  # 首次获取时更新获取时间
+            lease.spec.acquire_time = current_time
+
+        self.coordination_v1.replace_namespaced_lease(
+            name=self.lease_name,
+            namespace=self.namespace,
+            body=lease
+        )
+        logger.debug(f"Succeed in updating lease={self.lease_name}: curHolder={self.pod_name}, "
+                     f"leaseDuration={self.lease_duration}, renewTime={current_time}, currentTime={current_time}, "
+                     f"retry_period={self.retry_period}, my_pod_name={self.pod_name}")
+
     def _update_pod_label(self, labels):
         """更新当前Pod的标签"""
         try:
@@ -225,24 +248,6 @@ class MetaServiceLeaderElection:
             logger.error(f'Failed in updating label of {self.pod_name=} {labels=}, ApiException: {e}')
         except Exception as e:
             logger.error(f'Failed in updating label of {self.pod_name=} {labels=}, Exception: {e}')
-
-    def start_election(self):
-        """运行主备选举循环，仅仅用于测试Python功能，核心选举逻辑在C++中"""
-        logger.info(f'Start to elect leader, current pod name: {self.pod_name}')
-
-        # 启动续约线程
-        self.renew_thread = threading.Thread(target=self._renew_lease, daemon=True)
-        self.renew_thread.start()
-
-        try:
-            while not self.stop_event.is_set():
-                self._check_and_update_leadership()
-                time.sleep(self.retry_period)
-        finally:
-            self.stop_event.set()
-            logger.info(f'Stop election {self.pod_name=}')
-            if self.renew_thread:
-                self.renew_thread.join()
 
     def _renew_lease(self):
         """定期续约租约"""
@@ -276,11 +281,6 @@ class MetaServiceLeaderElection:
                     logger.info(f'Pod {self.pod_name} becomes the leader')
                     self.is_leader = True
                     self.update_pod_to_master()
-
-    def stop_election(self):
-        """停止选举循环"""
-        self.stop_event.set()
-        logger.info(f'Stop in electing leader, {self.pod_name=}')
 
 
 # 示例用法

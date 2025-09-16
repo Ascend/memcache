@@ -109,9 +109,8 @@ int32_t HostDataOpRDMA::DataCopy2d(const void *srcVA, uint64_t spitch, void *des
     return ret;
 }
 
-int32_t
-HostDataOpRDMA::DataCopyAsync(const void *srcVA, void *destVA, uint64_t length, hybm_data_copy_direction direction,
-                              const ExtOptions &options) noexcept
+int32_t HostDataOpRDMA::DataCopyAsync(const void *srcVA, void *destVA, uint64_t length,
+                                      hybm_data_copy_direction direction, const ExtOptions &options) noexcept
 {
     BM_LOG_ERROR("not supported data copy async!");
     return BM_ERROR;
