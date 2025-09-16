@@ -12,6 +12,10 @@
 namespace ock {
 namespace mmc {
 constexpr int CLIENT_THREAD_COUNT = 2;
+constexpr uint32_t MMC_REGISTER_SET_MARK_BIT = 1U;
+constexpr uint32_t MMC_REGISTER_SET_LEFT_MARK = 1U;
+constexpr int32_t MMC_BATCH_TRANSPORT = 1U;
+constexpr int32_t MMC_ASYNC_TRANSPORT = 2U;
 MmcClientDefault* MmcClientDefault::gClientHandler = nullptr;
 std::mutex MmcClientDefault::gClientHandlerMtx;
 
@@ -112,11 +116,13 @@ Result MmcClientDefault::Put(const std::string &key, const MmcBufferArray& bufAr
         return MMC_ERROR;
     }
 
+    auto transType = SelectTransportType(bufArr.Buffers()[0]);
     for (uint8_t i = 0; i < response.numBlobs_; i++) {
         auto blob = response.blobs_[i];
         MMC_LOG_DEBUG("Attempting to put to blob " << i << " key " << key);
-        auto ret = bmProxy_->Put(bufArr, blob);
-        if (ret == MMC_OK) {
+        auto ret = transType == MMC_ASYNC_TRANSPORT ?
+            bmProxy_->Put(bufArr, blob) : bmProxy_->BatchPut(bufArr, blob);
+        if (ret == MMC_OK && transType == MMC_ASYNC_TRANSPORT) {
             ret = bmProxy_->CopyWait();
             if (ret != MMC_OK) {
                 MMC_LOG_ERROR("Failed to wait copy task, ret: " << ret);
@@ -244,8 +250,10 @@ Result MmcClientDefault::Get(const std::string &key, const MmcBufferArray& bufAr
         return MMC_ERROR;
     }
     auto& blob = response.blobs_[0];
-    auto ret = bmProxy_->Get(bufArr, blob);
-    if (ret == MMC_OK) {
+    auto transType = SelectTransportType(bufArr.Buffers()[0]);
+    auto ret = transType == MMC_ASYNC_TRANSPORT ? bmProxy_->Get(bufArr, blob) :
+        bmProxy_->BatchGet(bufArr, blob);
+    if (ret == MMC_OK && transType == MMC_ASYNC_TRANSPORT) {
         ret = bmProxy_->CopyWait();
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("Failed to wait copy task, ret: " << ret);
@@ -324,7 +332,7 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
     std::vector<BlobActionResult> actionResults;
     std::vector<uint32_t> ranks;
     std::vector<uint16_t> mediaTypes;
-
+    auto transType = SelectTransportType(bufArrs[0].Buffers()[0]);
     batchResult.resize(keys.size(), MMC_ERROR);
     for (size_t i = 0; i < keys.size(); ++i) {
         const auto& blobs = response.blobs_[i];
@@ -341,7 +349,8 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
             continue;
         }
 
-        auto ret = bmProxy_->Get(bufArrs[i], blobs[0]);
+        Result ret = transType == MMC_ASYNC_TRANSPORT ?
+            bmProxy_->Get(bufArrs[i], blobs[0]) : bmProxy_->BatchGet(bufArrs[i], blobs[0]);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("client " << name_ << " batch get failed:" << ret << " for key " << keys[i]);
             batchResult[i] = MMC_ERROR;
@@ -352,8 +361,7 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
         ranks.push_back(blobs[0].rank_);
         mediaTypes.push_back(blobs[0].mediaType_);
     }
-
-    auto ret = bmProxy_->CopyWait();
+    auto ret = transType == MMC_ASYNC_TRANSPORT ? bmProxy_->CopyWait() : MMC_OK;
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("Failed to wait copy task ret: " << ret);
     }
@@ -554,6 +562,7 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
         return MMC_ERROR;
     }
 
+    auto transType = SelectTransportType(bufArrs[0].Buffers()[0]);
     for (size_t i = 0; i < keys.size(); ++i) {
         const std::string& key = keys[i];
         const MmcBufferArray& bufArr = bufArrs[i];
@@ -575,7 +584,8 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
 
         batchResult[i] = MMC_OK;
         for (uint8_t j = 0; j < numBlobs; ++j) {
-            Result putResult = bmProxy_->Put(bufArr, blobs[j]);
+            Result putResult = transType == MMC_ASYNC_TRANSPORT ? bmProxy_->Put(bufArr, blobs[j]) :
+                bmProxy_->BatchPut(bufArr, blobs[j]);
             if (putResult != MMC_OK) {
                 MMC_LOG_ERROR("client " << name_ << " batch put " << key << " failed, get error code " << putResult);
                 batchResult[i] = putResult;
@@ -583,11 +593,52 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
             }
         }
     }
-    auto ret = bmProxy_->CopyWait();
+    auto ret = transType == MMC_ASYNC_TRANSPORT ? bmProxy_->CopyWait() : MMC_OK;
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("Failed to wait copy task ret: " << ret);
     }
     return ret;
+}
+
+Result MmcClientDefault::RegisterBuffer(uint64_t addr, uint64_t size)
+{
+    auto ret = smem_bm_register_into_svsp(addr, size);
+    if (ret == MMC_OK) {
+        UpdateRegisterMap(addr, size);
+    }
+    return ret;
+}
+
+void MmcClientDefault::UpdateRegisterMap(uint64_t va, uint64_t size)
+{
+    registerSet_.insert((va << MMC_REGISTER_SET_MARK_BIT) | MMC_REGISTER_SET_LEFT_MARK);
+    registerSet_.insert((va + size) << MMC_REGISTER_SET_MARK_BIT);
+}
+
+bool MmcClientDefault::QueryInRegisterMap(uint64_t va, uint64_t size)
+{
+    auto it = registerSet_.upper_bound((va << MMC_REGISTER_SET_MARK_BIT) | MMC_REGISTER_SET_LEFT_MARK);
+    return (it != registerSet_.end() && !((*it) & MMC_REGISTER_SET_LEFT_MARK) &&
+            (va + size) <= ((*it) >> MMC_REGISTER_SET_MARK_BIT));
+}
+
+bool MmcClientDefault::QueryInRegisterMap(const mmc_buffer &buf)
+{
+    uint64_t addr = buf.addr;
+    if (buf.dimType == 0) {
+        return QueryInRegisterMap(addr, buf.oneDim.len);
+    } else if (buf.dimType == 1) {
+        return QueryInRegisterMap(addr, buf.twoDim.width);
+    }
+    return false;
+}
+
+int32_t MmcClientDefault::SelectTransportType(const mmc_buffer &buf)
+{
+    if (QueryInRegisterMap(buf)) {
+        return MMC_ASYNC_TRANSPORT;
+    }
+    return MMC_BATCH_TRANSPORT;
 }
 
 }

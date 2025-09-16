@@ -59,6 +59,8 @@ public:
     Result BatchQuery(const std::vector<std::string> &keys, std::vector<mmc_data_info> &query_infos,
                       uint32_t flags) const;
 
+    Result RegisterBuffer(uint64_t addr, uint64_t size);
+
     static Result RegisterInstance()
     {
         std::lock_guard<std::mutex> lock(gClientHandlerMtx);
@@ -102,6 +104,10 @@ private:
     Result AllocateAndPutBlobs(const std::vector<std::string>& keys, const std::vector<MmcBufferArray>& bufs,
                                const mmc_put_options& options, uint32_t flags, uint64_t operateId,
                                std::vector<int>& batchResult, BatchAllocResponse& allocResponse);
+    void UpdateRegisterMap(uint64_t va, uint64_t size);
+    bool QueryInRegisterMap(const mmc_buffer &buf);
+    bool QueryInRegisterMap(uint64_t va, uint64_t size);
+    int32_t SelectTransportType(const mmc_buffer &buf);
 
     static std::mutex gClientHandlerMtx;
     static MmcClientDefault *gClientHandler;
@@ -114,6 +120,7 @@ private:
     uint32_t rpcRetryTimeOut_ = 0;
     uint64_t defaultTtlMs_ = MMC_DATA_TTL_MS;
     MmcThreadPoolPtr threadPool_;
+    std::set<uint64_t> registerSet_; // va << 1 | is_left
 };
 
 uint32_t MmcClientDefault::RankId(const affinity_policy &policy)
