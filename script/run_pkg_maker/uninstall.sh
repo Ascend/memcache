@@ -29,7 +29,7 @@ function delete_latest()
     print "INFO" "memfabric_hybrid delete latest!"
     cd $1/..
     if [ -f "set_env.sh" ]; then
-        chmod 700 set_env.sh
+        chmod 500 set_env.sh
         rm -rf set_env.sh
     fi
     if [ -d "latest" ]; then

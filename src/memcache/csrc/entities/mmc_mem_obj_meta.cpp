@@ -72,7 +72,7 @@ std::vector<MmcMemBlobPtr> MmcMemObjMeta::GetBlobs(const MmcBlobFilterPtr &filte
 {
     std::vector<MmcMemBlobPtr> blobs;
     for (auto blob : blobs_) {
-        if (blob != nullptr && blob->MatchFilter(filter) ^ revert) {
+        if ((blob != nullptr) && (blob->MatchFilter(filter) ^ revert)) {
             blobs.emplace_back(blob);
         }
     }
