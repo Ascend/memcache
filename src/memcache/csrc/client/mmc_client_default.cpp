@@ -635,7 +635,7 @@ bool MmcClientDefault::QueryInRegisterMap(const mmc_buffer &buf)
 
 int32_t MmcClientDefault::SelectTransportType(const mmc_buffer &buf)
 {
-    if (QueryInRegisterMap(buf) || bmProxy_->GetDataOpType() == "roce") {
+    if (QueryInRegisterMap(buf) || bmProxy_->GetDataOpType() == "host_rdma") {
         return MMC_ASYNC_TRANSPORT;
     }
     return MMC_BATCH_TRANSPORT;
