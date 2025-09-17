@@ -1064,16 +1064,11 @@ int HostDataOpSDMA::BatchCopyLD2GD(void **gvaAddrs, const void **deviceAddrs, co
     auto ret = 0;
 
     for (auto i = 0U; i < batchSize; i++) {
-        ret = CopyG2GAsync(gvaAddrs[i], deviceAddrs[i], counts[i]);
+        ret = CopyLD2GD(gvaAddrs[i], deviceAddrs[i], counts[i], stream);
         if (ret != 0) {
             BM_LOG_ERROR("copy memory on local device to GVA failed: " << ret);
             return ret;
         }
-    }
-    ret = Wait(0);
-    if (ret != 0) {
-        BM_LOG_ERROR("g2g wait failed: " << ret);
-        return ret;
     }
     return BM_OK;
 }
@@ -1088,18 +1083,12 @@ int HostDataOpSDMA::BatchCopyGD2LD(void **deviceAddrs, const void **gvaAddrs, co
     auto ret = 0;
 
     for (auto i = 0U; i < batchSize; i++) {
-        ret = CopyG2GAsync(deviceAddrs[i], gvaAddrs[i], counts[i]);
+        ret = CopyGD2LD(deviceAddrs[i], gvaAddrs[i], counts[i], stream);
         if (ret != 0) {
             BM_LOG_ERROR("copy memory on local device to GVA failed: " << ret);
             return ret;
         }
     }
-    ret = Wait(0);
-    if (ret != 0) {
-        BM_LOG_ERROR("g2g wait failed: " << ret);
-        return ret;
-    }
-
     return BM_OK;
 }
 
