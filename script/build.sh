@@ -42,8 +42,7 @@ cd ${ROOT_PATH}/..
 PROJ_DIR=$(pwd)
 bash script/gen_last_git_commit.sh
 
-rm -rf ./build ./output/memcache ./output/hybm ./output/smem
-rm -f ./output/mxc-memfabric_hybrid-1.0.0_linux_aarch64.run
+rm -rf ./build ./output
 
 mkdir build/
 cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_TESTS="${BUILD_TESTS}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -DBUILD_PYTHON="${BUILD_PYTHON}" -DBUILD_ASAN="${BUILD_ASAN}" -DENABLE_PTRACER="${ENABLE_PTRACER}" -S . -B build/
