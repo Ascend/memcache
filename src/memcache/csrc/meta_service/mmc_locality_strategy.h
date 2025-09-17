@@ -31,9 +31,9 @@ struct AllocOptions {
     uint32_t preferredRank_{0};
     uint32_t flags_{0};
     AllocOptions() = default;
-    AllocOptions(uint64_t blobSize, uint32_t numBlobs, uint16_t mediaType, uint32_t preferredRank, uint32_t flags) :
-                  blobSize_(blobSize), numBlobs_(numBlobs), mediaType_(mediaType), preferredRank_(preferredRank),
-                  flags_(flags) {}
+    AllocOptions(uint64_t blobSize, uint32_t numBlobs, uint16_t mediaType, uint32_t preferredRank, uint32_t flags)
+        : blobSize_(blobSize), numBlobs_(numBlobs), mediaType_(mediaType), preferredRank_(preferredRank), flags_(flags)
+    {}
 };
 
 struct MmcLocalMemCurInfo {

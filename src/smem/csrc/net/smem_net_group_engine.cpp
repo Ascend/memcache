@@ -57,7 +57,7 @@ static inline std::pair<int32_t, int32_t> SplitSizeAndVersion(int64_t val)
 
 static int64_t MergeSizeAndVersion(int32_t ver, int32_t size)
 {
-    return ((1LL * ver) << GROUP_DYNAMIC_SIZE_BIT_LEN | size);
+    return ((1LL * ver) << GROUP_DYNAMIC_SIZE_BIT_LEN) | size;
 }
 
 SmemNetGroupEngine::~SmemNetGroupEngine()

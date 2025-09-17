@@ -88,7 +88,7 @@ bool HybmGvmVirPageManager::UpdateRegisterMap(uint64_t va, uint64_t size)
     }
 
     std::unique_lock<std::mutex> lockGuard{mutex_};
-    auto it = registerSet_.lower_bound(va << REGISTER_SET_MARK_BIT | REGISTER_SET_LEFT_MARK);
+    auto it = registerSet_.lower_bound((va << REGISTER_SET_MARK_BIT) | REGISTER_SET_LEFT_MARK);
     if (it != registerSet_.end() && ((*it) >> REGISTER_SET_MARK_BIT) < (va + size)) {
         BM_USER_LOG_ERROR("va has registered, va:" << std::hex << va << " size:" << size);
         return false;

@@ -28,7 +28,7 @@ Result MmcMemObjMeta::RemoveBlobs(const MmcBlobFilterPtr& filter, bool revert)
 
     for (auto iter = blobs_.begin(); iter != blobs_.end();) {
         auto& blob = *iter;
-        if (blob != nullptr && blob->MatchFilter(filter) ^ revert) {
+        if ((blob != nullptr) && (blob->MatchFilter(filter) ^ revert)) {
             iter = blobs_.erase(iter);
             numBlobs_--;
         } else {

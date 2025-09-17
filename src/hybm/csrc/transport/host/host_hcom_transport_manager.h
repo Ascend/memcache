@@ -21,7 +21,7 @@ struct HcomMemoryRegion {
     Service_MemoryRegion mr;
 };
 
-constexpr size_t KEYPASS_MAX_LEN = 1024 * 10;
+constexpr size_t KEYPASS_MAX_LEN = 10000;
 
 class HcomTransportManager : public TransportManager {
 public:
