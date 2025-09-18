@@ -50,6 +50,10 @@ Result HcomTransportManager::OpenDevice(const TransportOptions &options)
         tlsConfig_ = options.tlsOption;
         DlHcomApi::ServiceSetTlsOptions(rpcService_, true, C_SERVICE_TLS_1_3, C_SERVICE_AES_GCM_256,
             GetCertCallBack, GetPrivateKeyCallBack, GetCACallBack);
+    } else {
+        tlsConfig_ = options.tlsOption;
+        DlHcomApi::ServiceSetTlsOptions(rpcService_, false, C_SERVICE_TLS_1_3, C_SERVICE_AES_GCM_256,
+                                        nullptr, nullptr, nullptr);
     }
 
     DlHcomApi::ServiceSetSendQueueSize(rpcService_, HCOM_SEND_QUEUE_SIZE);

@@ -290,7 +290,7 @@ typedef struct {
 } Channel_OneSideRequest;
 
 typedef struct {
-    uint64_t intervalTimeMs;
+    uint16_t intervalTimeMs;
     uint64_t thresholdByte;
     Channel_FlowCtrlLevel flowCtrlLevel;
 } Channel_FlowCtrlOptions;
