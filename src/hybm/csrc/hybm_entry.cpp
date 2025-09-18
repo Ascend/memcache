@@ -348,6 +348,13 @@ HYBM_API int32_t hybm_set_log_level(int level)
     }
 
     instance->SetLogLevel(static_cast<LogLevel>(level));
+
+    const auto result = hybm_gvm_set_log_level(level);
+    if (result != HYBM_GVM_SUCCESS) {
+        BM_LOG_ERROR("set hybm gvm log level failed, result: " << result);
+        return result;
+    }
+
     return 0;
 }
 

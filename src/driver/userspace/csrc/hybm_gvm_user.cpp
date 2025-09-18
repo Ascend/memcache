@@ -382,3 +382,19 @@ int32_t hybm_gvm_mem_close(uint64_t addr)
     BM_USER_LOG_INFO("ioctl HYBM_GVM_CMD_MEM_CLOSE success, addr:" << std::hex << addr);
     return HYBM_GVM_SUCCESS;
 }
+
+int32_t hybm_gvm_set_log_level(int level)
+{
+    const auto instance = HybmUserOutLogger::Instance();
+    if (instance == nullptr) {
+        return HYBM_GVM_FAILURE;
+    }
+
+    if (level < 0 || level >= BUTT_LEVEL) {
+        BM_USER_LOG_ERROR("Set log level error, invalid param level: " << level);
+        return HYBM_GVM_FAILURE;
+    }
+
+    instance->SetLogLevel(static_cast<LogLevel>(level));
+    return HYBM_GVM_SUCCESS;
+}

@@ -27,6 +27,7 @@ int32_t hybm_gvm_get_key(uint64_t addr, uint64_t *key);
 int32_t hybm_gvm_set_whitelist(uint64_t key, uint32_t sdid);
 int32_t hybm_gvm_mem_open(uint64_t addr, uint64_t key);
 int32_t hybm_gvm_mem_close(uint64_t addr);
+int32_t hybm_gvm_set_log_level(int level);
 
 #ifdef __cplusplus
 }
