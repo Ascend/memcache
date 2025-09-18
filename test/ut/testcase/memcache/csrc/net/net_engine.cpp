@@ -28,12 +28,12 @@ MMcNetEngine::MMcNetEngine()
 
 void MMcNetEngine::SetUp()
 {
-    cout << "this is NetEngine TEST_F setup:";
+    cout << "this is NetEngine TEST_F setup:" << endl;
 }
 
 void MMcNetEngine::TearDown()
 {
-    cout << "this is NetEngine TEST_F teardown";
+    cout << "this is NetEngine TEST_F teardown" << endl;
 }
 int32_t HandleTestRequest(NetContextPtr &ctx)
 {

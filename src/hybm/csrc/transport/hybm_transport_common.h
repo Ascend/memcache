@@ -44,7 +44,7 @@ struct TransportOptions {
 
 static inline std::ostream &operator<<(std::ostream &output, const TransportOptions &options)
 {
-    output << "TransportOptions(rankId=" << options.rankId << ", count=" << options.rankCount << ", nid=" << options.nic
+    output << "TransportOptions(rankId=" << options.rankId << ", count=" << options.rankCount << ", nic=" << options.nic
            << ")";
     return output;
 }

@@ -27,7 +27,7 @@ struct ConnectionChannel {
     bool qpConnectCalled{false};
     int qpStatus{-1};
 
-    ConnectionChannel(): remoteNet{}, socketHandle{nullptr} {}
+    ConnectionChannel() : remoteNet{}, socketHandle{nullptr} {}
     explicit ConnectionChannel(sockaddr_in net) : ConnectionChannel{std::move(net), nullptr} {}
     ConnectionChannel(sockaddr_in net, void *sock) : remoteNet{std::move(net)}, socketHandle{sock} {}
 };
@@ -46,6 +46,7 @@ public:
     virtual int WaitingConnectionReady() noexcept;
     virtual const void *GetQpInfoAddress() const noexcept;
     virtual void *GetQpHandleWithRankId(uint32_t rankId) const noexcept = 0;
+    virtual bool CheckQpReady(const std::vector<uint32_t> &rankIds) const noexcept;
 
 protected:
     void *CreateLocalSocket() noexcept;
@@ -60,9 +61,9 @@ protected:
     const hybm_role_type rankRole_;
     void *serverSocketHandle_{nullptr};
 };
-}
-}
-}
-}
+}  // namespace device
+}  // namespace transport
+}  // namespace mf
+}  // namespace ock
 
 #endif  // MF_HYBRID_DEVICE_QP_MANAGER_H

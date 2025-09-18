@@ -18,6 +18,8 @@ using aclrtDestroyStreamFunc = int (*)(void *);
 using aclrtSynchronizeStreamFunc = int (*)(void *);
 using aclrtMallocFunc = int32_t (*)(void **, size_t, uint32_t);
 using aclrtFreeFunc = int (*)(void *);
+using aclrtMallocHostFunc = int32_t (*)(void **, size_t);
+using aclrtFreeHostFunc = int (*)(void *);
 using aclrtMemcpyFunc = int32_t (*)(void *, size_t, const void *, size_t, uint32_t);
 using aclrtMemcpyAsyncFunc = int32_t (*)(void *, size_t, const void *, size_t, uint32_t, void *);
 using aclrtMemcpy2dFunc = int32_t (*)(void *, size_t, const void *, size_t, size_t, size_t, uint32_t);
@@ -98,6 +100,22 @@ public:
             return BM_UNDER_API_UNLOAD;
         }
         return pAclrtFree(ptr);
+    }
+
+    static inline Result AclrtMallocHost(void **ptr, size_t count)
+    {
+        if (pAclrtMallocHost == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pAclrtMallocHost(ptr, count);
+    }
+
+    static inline Result AclrtFreeHost(void *ptr)
+    {
+        if (pAclrtFreeHost == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pAclrtFreeHost(ptr);
     }
 
     static inline Result AclrtMemcpy(void *dst, size_t destMax, const void *src, size_t count, uint32_t kind)
@@ -213,6 +231,8 @@ private:
     static aclrtSynchronizeStreamFunc pAclrtSynchronizeStream;
     static aclrtMallocFunc pAclrtMalloc;
     static aclrtFreeFunc pAclrtFree;
+    static aclrtMallocHostFunc pAclrtMallocHost;
+    static aclrtFreeHostFunc pAclrtFreeHost;
     static aclrtMemcpyFunc pAclrtMemcpy;
     static aclrtMemcpyAsyncFunc pAclrtMemcpyAsync;
     static aclrtMemcpy2dFunc pAclrtMemcpy2d;

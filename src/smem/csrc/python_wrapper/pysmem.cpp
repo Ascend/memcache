@@ -4,6 +4,7 @@
 #include <Python.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
+#include <cstdint>
 
 #include "smem.h"
 #include "smem_shm.h"
@@ -215,6 +216,11 @@ whether to start config store, default true)")
         .def_readwrite("flags", &smem_shm_config_t::flags, "other flags, default 0");
 }
 
+// enum wrap for binding
+enum smem_bm_init_flag : uint32_t {
+    SMEM_BM_INIT_FLAG_GVM = SMEM_BM_INIT_GVM_FLAG,
+};
+
 void DefineBmConfig(py::module_ &m)
 {
     py::enum_<smem_bm_mem_type>(m, "BmMemType")
@@ -225,7 +231,11 @@ void DefineBmConfig(py::module_ &m)
         .value("L2G", SMEMB_COPY_L2G, "copy data from local space to global space")
         .value("G2L", SMEMB_COPY_G2L, "copy data from global space to local space")
         .value("G2H", SMEMB_COPY_G2H, "copy data from global space to host memory")
-        .value("H2G", SMEMB_COPY_H2G, "copy data from host memory to global space");
+        .value("H2G", SMEMB_COPY_H2G, "copy data from host memory to global space")
+        .value("G2G", SMEMB_COPY_G2G, "copy data from global space to global space");
+
+    py::enum_<smem_bm_init_flag>(m, "BmInitFlag")
+        .value("GVM", SMEM_BM_INIT_FLAG_GVM, "enable GVM");
 
     py::class_<smem_bm_config_t>(m, "BmConfig")
         .def(py::init([]() {

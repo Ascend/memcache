@@ -57,6 +57,9 @@ private:
     int ConvertHccpMrInfo(const TransportMemoryRegion &mr, HccpMrInfo &info);
     void RecordRegisterMemoryMapping(const TransportMemoryRegion &mr, const HccpMrInfo &info);
     void OptionsToRankMRs(const HybmTransPrepareOptions &options);
+    Result WaitQpReady() const;
+    int PollCq(void *qpHandle) const noexcept;
+    int GetRegAddress(const MemoryRegionMap &map, uint64_t inputAddr, uint64_t size, uint64_t &outputAddr) const;
 
 private: // RDMA HOST STARS
     void ConstructSqeNoSinkModeForRdmaDbSendTask(const send_wr_rsp &rspInfo, rtStarsSqe_t &command);
@@ -79,9 +82,9 @@ private:
     std::shared_ptr<DeviceChipInfo> deviceChipInfo_;
     std::map<uint64_t, std::pair<uint64_t, size_t>, std::greater<uint64_t>> hostRegisterMaps_;
 };
-}
-}
-}
-}
+} // namespace device
+} // namespace transport
+} // namespace mf
+} // namespace ock
 
-#endif  // MF_HYBRID_DEVICE_RDMA_TRANSPORT_MANAGER_H
+#endif // MF_HYBRID_DEVICE_RDMA_TRANSPORT_MANAGER_H

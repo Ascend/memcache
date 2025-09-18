@@ -28,12 +28,12 @@ TestBmInit::TestBmInit() {}
 
 void TestBmInit::SetUp()
 {
-    cout << "this is NetEngine TEST_F setup:";
+    cout << "this is NetEngine TEST_F setup:" << endl;
 }
 
 void TestBmInit::TearDown()
 {
-    cout << "this is NetEngine TEST_F teardown";
+    cout << "this is NetEngine TEST_F teardown" << endl;
 }
 
 static void UrlStringToChar(std::string &urlString, char *urlChar)

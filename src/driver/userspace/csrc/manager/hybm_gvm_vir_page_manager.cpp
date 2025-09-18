@@ -32,7 +32,7 @@ HybmGvmVirPageManager::~HybmGvmVirPageManager()
 int32_t HybmGvmVirPageManager::Initialize(uint64_t startAddr, uint64_t size, int fd)
 {
     if (local_.start != 0 || global_.start != 0) {
-        BM_USER_LOG_ERROR("Gvm manager is already inited" << startAddr << " size:" << size);
+        BM_USER_LOG_ERROR("Gvm manager is already inited, addr:" << startAddr << " size:" << size);
         return -1;
     }
 

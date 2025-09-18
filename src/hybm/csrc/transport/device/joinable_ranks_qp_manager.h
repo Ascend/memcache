@@ -28,6 +28,7 @@ public:
     int Startup(void *rdma) noexcept override;
     void Shutdown() noexcept override;
     void *GetQpHandleWithRankId(uint32_t rankId) const noexcept override;
+    bool CheckQpReady(const std::vector<uint32_t> &rankIds) const noexcept override;
 
 private:
     void CloseServices() noexcept;

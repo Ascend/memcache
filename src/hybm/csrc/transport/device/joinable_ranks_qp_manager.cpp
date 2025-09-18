@@ -117,12 +117,29 @@ void JoinableRanksQpManager::Shutdown() noexcept
 
 void *JoinableRanksQpManager::GetQpHandleWithRankId(uint32_t rankId) const noexcept
 {
-    if (rankId > rankCount_) {
+    if (rankId >= rankCount_) {
         BM_LOG_ERROR("invalid rank id: " << rankId << ", rank count: " << rankCount_);
         return nullptr;
     }
 
     return connections_[rankId].qpHandle;
+}
+
+bool JoinableRanksQpManager::CheckQpReady(const std::vector<uint32_t> &rankIds) const noexcept
+{
+    for (auto rankId : rankIds) {
+        if (rankId == rankId_) {
+            continue;
+        }
+        if (rankId >= rankCount_) {
+            BM_LOG_ERROR("invalid rank id: " << rankId << ", rank count: " << rankCount_);
+            return false;
+        }
+        if (connections_[rankId].qpStatus != 1) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void JoinableRanksQpManager::CloseServices() noexcept

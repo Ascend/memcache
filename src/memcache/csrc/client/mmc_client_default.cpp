@@ -119,7 +119,7 @@ Result MmcClientDefault::Put(const std::string &key, const MmcBufferArray& bufAr
     auto transType = SelectTransportType(bufArr.Buffers()[0]);
     for (uint8_t i = 0; i < response.numBlobs_; i++) {
         auto blob = response.blobs_[i];
-        MMC_LOG_DEBUG("Attempting to put to blob " << i << " key " << key);
+        MMC_LOG_DEBUG("Attempting to put to blob " << static_cast<int>(i) << " key " << key);
         auto ret = transType == MMC_ASYNC_TRANSPORT ?
             bmProxy_->Put(bufArr, blob) : bmProxy_->BatchPut(bufArr, blob);
         if (ret == MMC_OK && transType == MMC_ASYNC_TRANSPORT) {

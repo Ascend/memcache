@@ -33,6 +33,8 @@ SMEM_API int32_t smem_bm_config_init(smem_bm_config_t *config)
     config->rankId = std::numeric_limits<uint16_t>::max();
     config->flags = 0;
     bzero(config->hcomUrl, sizeof(config->hcomUrl));
+    bzero(&config->hcomTlsConfig, sizeof(config->hcomTlsConfig));
+    bzero(&config->storeTlsConfig, sizeof(config->storeTlsConfig));
     return SM_OK;
 }
 

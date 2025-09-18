@@ -551,7 +551,6 @@ int HostDataOpSDMA::CopyLD2GH(void *destVA, const void *srcVA, uint64_t length, 
     auto ret = CopyLD2GD(tmpHbm, srcVA, length, stream);
     if (ret != BM_OK) {
         BM_LOG_ERROR("Failed to CopyLD2GD ret: " << ret);
-        sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
         return ret;
     }
     // GD2GH
@@ -560,7 +559,6 @@ int HostDataOpSDMA::CopyLD2GH(void *destVA, const void *srcVA, uint64_t length, 
         BM_LOG_ERROR("Failed to CopyG2G ret: " << ret << " dest:"<< tmpHbm << " srcVa:" << srcVA
             << " length:" << length);
     }
-    sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
     return ret;
 }
 
@@ -584,7 +582,6 @@ int HostDataOpSDMA::CopyLH2GH(void *destVA, const void *srcVA, uint64_t length, 
     auto ret = CopyLH2GD(tmpHbm, srcVA, length, stream);
     if (ret != BM_OK) {
         BM_LOG_ERROR("Failed to CopyLD2GD ret: " << ret);
-        sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
         return ret;
     }
     // GD2GH
@@ -593,7 +590,6 @@ int HostDataOpSDMA::CopyLH2GH(void *destVA, const void *srcVA, uint64_t length, 
         BM_LOG_ERROR("Failed to CopyG2G ret: " << ret << " dest:"<< tmpHbm << " srcVa:" << srcVA
             << " length:" << length);
     }
-    sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
     return 0;
 }
 
@@ -618,7 +614,6 @@ int HostDataOpSDMA::CopyGH2LD(void *destVA, const void *srcVA, uint64_t length, 
     if (ret != BM_OK) {
         BM_LOG_ERROR("Failed to CopyG2G ret: " << ret << " dest:"<< tmpHbm << " srcVa:" << srcVA
             << " length:" << length);
-        sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
         return ret;
     }
     // GD2LD
@@ -627,7 +622,6 @@ int HostDataOpSDMA::CopyGH2LD(void *destVA, const void *srcVA, uint64_t length, 
         BM_LOG_ERROR("Failed to CopyLD2GD ret: " << ret << " dest:"<< destVA << " srcVa:" << tmpHbm
             << " length:" << length);
     }
-    sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
     return ret;
 }
 
@@ -652,7 +646,6 @@ int HostDataOpSDMA::CopyGH2LH(void *destVA, const void *srcVA, uint64_t length, 
     if (ret != BM_OK) {
         BM_LOG_ERROR("Failed to CopyG2G ret: " << ret << " dest:"<< tmpHbm << " srcVa:" << srcVA
             << " length:" << length);
-        sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
         return ret;
     }
     // GD2LH
@@ -661,7 +654,6 @@ int HostDataOpSDMA::CopyGH2LH(void *destVA, const void *srcVA, uint64_t length, 
         BM_LOG_ERROR("Failed to CopyLD2GD ret: " << ret << " dest:"<< destVA << " srcVa:" << tmpHbm
             << " length:" << length);
     }
-    sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
     return ret;
 }
 
@@ -854,7 +846,6 @@ int HostDataOpSDMA::CopyGH2LD2d(void *deviceAddr, uint64_t dpitch, const void *g
     if (ret != BM_OK) {
         BM_LOG_ERROR("Failed to CopyG2G ret: " << ret << " dest:"<< tmpHbm << " srcVa:" << gvaAddr
                                                << " length:" << length);
-        sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
         return ret;
     }
 
@@ -863,7 +854,6 @@ int HostDataOpSDMA::CopyGH2LD2d(void *deviceAddr, uint64_t dpitch, const void *g
         BM_LOG_ERROR("Failed to CopyGD2LD2d ret: " << ret << " dest:"<< deviceAddr << " srcVa:" << tmpHbm
                      << " spitch: " << spitch << " dpitch: " << dpitch << " width: " << width
                      << " height:" << height << " stream:" << stream);
-        sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
     }
     return ret;
 }
@@ -891,14 +881,12 @@ int HostDataOpSDMA::CopyLD2GH2d(void *gvaAddr, uint64_t dpitch, const void *devi
         BM_LOG_ERROR("Failed to CopyLD2GD2d ret: " << ret << " dest:"<< deviceAddr << " srcVa:" << tmpHbm
                      << " spitch: " << spitch << " dpitch: " << dpitch << " width: " << width
                      << " height:" << height << " stream:" << stream);
-        sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
         return ret;
     }
     ret = CopyG2G(gvaAddr, tmpHbm, length);
     if (ret != BM_OK) {
         BM_LOG_ERROR("Failed to CopyG2G ret: " << ret << " dest:"<< gvaAddr << " srcVa:" << tmpHbm
                                                << " length:" << length);
-        sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
     }
     return ret;
 }
@@ -983,7 +971,6 @@ int HostDataOpSDMA::BatchCopyLD2GH(void **gvaAddrs, const void **deviceAddrs, co
         ret = DlAclApi::AclrtMemcpyAsync(destAddr, count, srcAddr, count, ACL_MEMCPY_DEVICE_TO_DEVICE, st);
         if (ret != 0) {
             BM_LOG_ERROR("copy memory on local device to GVA failed: " << ret << " stream:" << st);
-            sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
             return BM_DL_FUNCTION_FAILED;
         }
     }
@@ -991,7 +978,6 @@ int HostDataOpSDMA::BatchCopyLD2GH(void **gvaAddrs, const void **deviceAddrs, co
     ret  = DlAclApi::AclrtSynchronizeStream(st);
     if (ret != 0) {
         BM_LOG_ERROR("aclrtSynchronizeStream failed: " << ret << " stream:" << st);
-        sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
         return ret;
     }
     ret = CopyG2G(gvaAddrs[0], tmpHbm, totalSize);
@@ -999,7 +985,6 @@ int HostDataOpSDMA::BatchCopyLD2GH(void **gvaAddrs, const void **deviceAddrs, co
         BM_LOG_ERROR("Failed to g2g ret:" << ret << " src:" <<  gvaAddrs[0]
                                           << " tmpHbm:" << tmpHbm << " length: " << totalSize);
     }
-    sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
     return ret;
 }
 
@@ -1028,7 +1013,6 @@ int HostDataOpSDMA::BatchCopyGH2LD(void **deviceAddrs, const void **gvaAddrs, co
     if (ret != 0) {
         BM_LOG_ERROR("Failed to g2g ret:" << ret << " src:" <<  gvaAddrs[0]
             << " tmpHbm:" << tmpHbm << " length: " << totalSize);
-        sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
         return ret;
     }
 
@@ -1041,7 +1025,6 @@ int HostDataOpSDMA::BatchCopyGH2LD(void **deviceAddrs, const void **gvaAddrs, co
         ret = DlAclApi::AclrtMemcpyAsync(destAddr, count, srcAddr, count, ACL_MEMCPY_DEVICE_TO_DEVICE, st);
         if (ret != 0) {
             BM_LOG_ERROR("copy memory on local device to GVA failed: " << ret << " stream:" << st);
-            sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
             return BM_DL_FUNCTION_FAILED;
         }
     }
@@ -1050,7 +1033,6 @@ int HostDataOpSDMA::BatchCopyGH2LD(void **deviceAddrs, const void **gvaAddrs, co
     if (ret != 0) {
         BM_LOG_ERROR("aclrtSynchronizeStream failed: " << ret << " stream:" << st);
     }
-    sdmaSwapMemoryAllocator_->Release(tmpSdmaMemory);
     return ret;
 }
 

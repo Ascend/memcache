@@ -188,7 +188,7 @@ HYBM_API void hybm_unmap(hybm_entity_t e, uint32_t flags)
 HYBM_API int32_t hybm_mem_register_into_svsp(uint64_t addr, uint64_t size)
 {
     if (!HybmGvmHasInited()) {
-        BM_LOG_ERROR("gmv is not inited!");
+        BM_LOG_ERROR("gvm is not inited!");
         return BM_ERROR;
     }
 

@@ -308,7 +308,9 @@ static int gvm_agent_map_svm_pa(u32 devid, struct hybm_gvm_agent_fetch_msg *fetc
     u64 *pa_list = NULL;
     u64 new_ed;
     int ret = 0;
-    u32 pg_size, i, num;
+    u64 pg_size;
+    u32 i;
+    u32 num;
     id.hostpid = fetch->hostpid;
     id.devid = devid;
 
@@ -319,7 +321,7 @@ static int gvm_agent_map_svm_pa(u32 devid, struct hybm_gvm_agent_fetch_msg *fetc
     }
 
     if (fetch->pa_num > 0 && pg_size != HYBM_HPAGE_SIZE) {
-        hybm_gvm_err("record mem pg_size must be 2M, real is 0x%x", pg_size);
+        hybm_gvm_err("record mem pg_size must be 2M, real is 0x%llx", pg_size);
         return -EBUSY;
     }
 
@@ -331,7 +333,7 @@ static int gvm_agent_map_svm_pa(u32 devid, struct hybm_gvm_agent_fetch_msg *fetc
 
     num = fetch->size / pg_size;
     if (fetch->size % pg_size || num > HYBM_GVM_QUERY_SVM_PA_MAX_NUM) {
-        hybm_gvm_err("query mem size is too large, size:0x%llx pg_size:0x%x", fetch->size, pg_size);
+        hybm_gvm_err("query mem size is too large, size:0x%llx pg_size:0x%llx", fetch->size, pg_size);
         return -EBUSY;
     }
 
@@ -369,7 +371,7 @@ int gvm_agent_fetch_recv(struct hybm_gvm_agent_msg *msg, u32 devid)
         hybm_gvm_err("input msg type is invalid.");
         return -EINVAL;
     }
-    
+
     fetch_body = (struct hybm_gvm_agent_fetch_msg *)msg->body;
     va = fetch_body->va;
     if (va < HYBM_SVM_START || va + fetch_body->size > HYBM_SVM_END) {
@@ -569,7 +571,7 @@ int gvm_peer_mem_get_pages(unsigned long addr, size_t size, int write, int force
         }
 
         st = (va - addr) / mm_context->page_size;
-        for (i = 0;i < HYBM_GVM_PAGE_NUM; i++) {
+        for (i = 0; i < HYBM_GVM_PAGE_NUM; i++) {
             mm_context->pa_list[st + i] = node->pa[i];
         }
     }

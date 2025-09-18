@@ -21,13 +21,8 @@ sockaddr_in Ip2Net(in_addr ip)
 
 DeviceQpManager::DeviceQpManager(uint32_t deviceId, uint32_t rankId, uint32_t rankCount, sockaddr_in devNet,
                                  hybm_role_type role) noexcept
-    : deviceId_{deviceId},
-      rankId_{rankId},
-      rankCount_{rankCount},
-      deviceAddress_{devNet},
-      rankRole_{role}
-{
-}
+    : deviceId_{deviceId}, rankId_{rankId}, rankCount_{rankCount}, deviceAddress_{devNet}, rankRole_{role}
+{}
 
 int DeviceQpManager::WaitingConnectionReady() noexcept
 {
@@ -108,8 +103,14 @@ int DeviceQpManager::RemoveRanks(const std::unordered_set<uint32_t> &ranks) noex
     BM_LOG_INFO("Do not support remove ranks.");
     return BM_OK;
 }
-}
-}
+
+bool DeviceQpManager::CheckQpReady(const std::vector<uint32_t> &rankIds) const noexcept
+{
+    return true;
 }
 
-}
+}  // namespace device
+}  // namespace transport
+}  // namespace mf
+
+}  // namespace ock

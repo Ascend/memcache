@@ -525,7 +525,7 @@ int32_t MemEntityDefault::CopyData2d(const void *src, uint64_t spitch, void *des
     }
 
     if ((options_.bmDataOpType & HYBM_DOP_TYPE_SDMA) != 0 && sdmaDataOperator_ != nullptr) {
-        ret = sdmaDataOperator_->DataCopy2d(src, spitch, dest,  dpitch, width, height, direction, options);
+        ret = sdmaDataOperator_->DataCopy2d(src, spitch, dest, dpitch, width, height, direction, options);
         if (ret == BM_OK) {
             return BM_OK;
         }
@@ -534,7 +534,7 @@ int32_t MemEntityDefault::CopyData2d(const void *src, uint64_t spitch, void *des
     }
 
     if (devRdmaDataOperator_ != nullptr) {
-        ret = devRdmaDataOperator_->DataCopy2d(src, spitch, dest,  dpitch, width, height, direction, options);
+        ret = devRdmaDataOperator_->DataCopy2d(src, spitch, dest, dpitch, width, height, direction, options);
         if (ret == BM_OK) {
             return BM_OK;
         }
@@ -542,7 +542,7 @@ int32_t MemEntityDefault::CopyData2d(const void *src, uint64_t spitch, void *des
     }
 
     if (hostRdmaDataOperator_ != nullptr) {
-        ret = hostRdmaDataOperator_->DataCopy2d(src, spitch, dest,  dpitch, width, height, direction, options);
+        ret = hostRdmaDataOperator_->DataCopy2d(src, spitch, dest, dpitch, width, height, direction, options);
         if (ret == BM_OK) {
             return BM_OK;
         }
@@ -603,6 +603,9 @@ int32_t MemEntityDefault::Wait() noexcept
     }
     if (hostRdmaDataOperator_ != nullptr) {
         return hostRdmaDataOperator_->Wait(0);
+    }
+    if (devRdmaDataOperator_ != nullptr) {
+        return devRdmaDataOperator_->Wait(0);
     }
     BM_LOG_ERROR("Not wait type:" << options_.bmDataOpType);
     return BM_ERROR;
@@ -793,6 +796,9 @@ Result MemEntityDefault::InitDramSegment()
     segmentOptions.segType = HYBM_MST_DRAM;
     segmentOptions.rankId = options_.rankId;
     segmentOptions.rankCnt = options_.rankCount;
+    if (options_.bmDataOpType & HYBM_DOP_TYPE_DEVICE_RDMA) {
+        segmentOptions.shared = false;
+    }
     dramSegment_ = MemSegment::Create(segmentOptions, id_);
     if (dramSegment_ == nullptr) {
         BM_LOG_ERROR("Failed to create dram segment");
@@ -858,7 +864,7 @@ Result MemEntityDefault::InitDataOperator()
 
     if (options_.rankCount > 1) {
         if (options_.bmDataOpType & HYBM_DOP_TYPE_DEVICE_RDMA) {
-            devRdmaDataOperator_ = std::make_shared<DataOpDeviceRDMA>(options_.rankId, transportManager_);
+            devRdmaDataOperator_ = std::make_shared<DataOpDeviceRDMA>(options_.rankId, stream_, transportManager_);
             auto ret = devRdmaDataOperator_->Initialize();
             if (ret != BM_OK) {
                 BM_LOG_ERROR("Device RDMA data operator init failed, ret:" << ret);

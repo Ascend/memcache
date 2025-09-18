@@ -7,6 +7,7 @@ Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
 
 #include "hybm_ex_info_transfer.h"
 #include "hybm_gvm_user.h"
+#include "hybm_types.h"
 
 using namespace ock::mf;
 
@@ -33,7 +34,7 @@ Result MemSegmentHostSDMA::ReserveMemorySpace(void **address) noexcept
 
     uint64_t base = 0;
     totalVirtualSize_ = options_.rankCnt * options_.size;
-    auto ret = hybm_gvm_reserve_memory(&base, totalVirtualSize_, true);
+    auto ret = hybm_gvm_reserve_memory(&base, totalVirtualSize_, options_.shared);
     if (ret != 0 || base == 0) {
         BM_LOG_ERROR("prepare virtual memory size(" << totalVirtualSize_ << ") failed. ret: " << ret);
         return BM_MALLOC_FAILED;
@@ -64,10 +65,8 @@ Result MemSegmentHostSDMA::AllocLocalMemory(uint64_t size, std::shared_ptr<MemSl
         return BM_DL_FUNCTION_FAILED;
     }
 
-    auto sliceAddr = localVirtualBase + allocatedSize_;
     allocatedSize_ += size;
-    slice = std::make_shared<MemSlice>(sliceCount_++, MEM_TYPE_HOST_DRAM, MEM_PT_TYPE_GVM,
-                                       reinterpret_cast<uint64_t>(sliceAddr), size);
+    slice = std::make_shared<MemSlice>(sliceCount_++, MEM_TYPE_HOST_DRAM, MEM_PT_TYPE_GVM, allocAddr, size);
     slices_.emplace(slice->index_, slice);
     BM_LOG_DEBUG("allocate slice(idx:" << slice->index_ << ", size:" << slice->size_ << ", address:0x" << std::hex
                                        << slice->vAddress_ << ").");
@@ -77,11 +76,12 @@ Result MemSegmentHostSDMA::AllocLocalMemory(uint64_t size, std::shared_ptr<MemSl
 
 Result MemSegmentHostSDMA::Export(std::string &exInfo) noexcept
 {
-    return 0;
+    return BM_OK;
 }
 
 Result MemSegmentHostSDMA::Export(const std::shared_ptr<MemSlice> &slice, std::string &exInfo) noexcept
 {
+    BM_ASSERT_LOG_AND_RETURN(options_.shared, "hybm_gvm_get_key requires shared memory", BM_OK);
     auto pos = slices_.find(slice->index_);
     if (pos == slices_.end()) {
         BM_LOG_ERROR("input slice(idx:" << slice->index_ << ") not exist.");
@@ -126,6 +126,7 @@ Result MemSegmentHostSDMA::Export(const std::shared_ptr<MemSlice> &slice, std::s
 
 Result MemSegmentHostSDMA::Import(const std::vector<std::string> &allExInfo) noexcept
 {
+    BM_ASSERT_LOG_AND_RETURN(options_.shared, "hybm_gvm_set_whitelist requires shared memory", BM_OK);
     LiteralExInfoTranslater<HostSdmaExportInfo> translator;
     std::vector<HostSdmaExportInfo> deserializedInfos{allExInfo.size()};
     for (auto i = 0U; i < allExInfo.size(); i++) {
@@ -165,6 +166,7 @@ Result MemSegmentHostSDMA::Import(const std::vector<std::string> &allExInfo) noe
 
 Result MemSegmentHostSDMA::Mmap() noexcept
 {
+    BM_ASSERT_LOG_AND_RETURN(options_.shared, "hybm_gvm_mem_open requires shared memory", BM_OK);
     if (imports_.empty()) {
         return BM_OK;
     }
@@ -195,15 +197,17 @@ Result MemSegmentHostSDMA::Mmap() noexcept
 
 Result MemSegmentHostSDMA::Unmap() noexcept
 {
+    BM_ASSERT_LOG_AND_RETURN(options_.shared, "hybm_gvm_mem_close requires shared memory", BM_OK);
     for (auto va : mappedMem_) {
         hybm_gvm_mem_close(va);
     }
     mappedMem_.clear();
-    return 0;
+    return BM_OK;
 }
 
 Result MemSegmentHostSDMA::RemoveImported(const std::vector<uint32_t> &ranks) noexcept
 {
+    BM_ASSERT_LOG_AND_RETURN(options_.shared, "hybm_gvm_mem_close requires shared memory", BM_OK);
     for (auto &rank : ranks) {
         if (rank >= options_.rankCnt) {
             BM_LOG_ERROR("input rank is invalid! rank:" << rank << " rankSize:" << options_.rankCnt);
@@ -224,7 +228,7 @@ Result MemSegmentHostSDMA::RemoveImported(const std::vector<uint32_t> &ranks) no
             mappedMem_.erase(st, it);
         }
     }
-    return 0;
+    return BM_OK;
 }
 
 std::shared_ptr<MemSlice> MemSegmentHostSDMA::GetMemSlice(hybm_mem_slice_t slice) const noexcept

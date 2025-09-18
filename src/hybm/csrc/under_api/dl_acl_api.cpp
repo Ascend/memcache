@@ -19,6 +19,8 @@ aclrtDestroyStreamFunc DlAclApi::pAclrtDestroyStream = nullptr;
 aclrtSynchronizeStreamFunc DlAclApi::pAclrtSynchronizeStream = nullptr;
 aclrtMallocFunc DlAclApi::pAclrtMalloc = nullptr;
 aclrtFreeFunc DlAclApi::pAclrtFree = nullptr;
+aclrtMallocHostFunc DlAclApi::pAclrtMallocHost = nullptr;
+aclrtFreeHostFunc DlAclApi::pAclrtFreeHost = nullptr;
 aclrtMemcpyFunc DlAclApi::pAclrtMemcpy = nullptr;
 aclrtMemcpyAsyncFunc DlAclApi::pAclrtMemcpyAsync = nullptr;
 aclrtMemcpy2dFunc DlAclApi::pAclrtMemcpy2d = nullptr;
@@ -62,6 +64,8 @@ Result DlAclApi::LoadLibrary(const std::string &libDirPath)
     DL_LOAD_SYM(pAclrtSynchronizeStream, aclrtSynchronizeStreamFunc, rtHandle, "aclrtSynchronizeStream");
     DL_LOAD_SYM(pAclrtMalloc, aclrtMallocFunc, rtHandle, "aclrtMalloc");
     DL_LOAD_SYM(pAclrtFree, aclrtFreeFunc, rtHandle, "aclrtFree");
+    DL_LOAD_SYM(pAclrtMallocHost, aclrtMallocHostFunc, rtHandle, "aclrtMallocHost");
+    DL_LOAD_SYM(pAclrtFreeHost, aclrtFreeHostFunc, rtHandle, "aclrtFreeHost");
     DL_LOAD_SYM(pAclrtMemcpy, aclrtMemcpyFunc, rtHandle, "aclrtMemcpy");
     DL_LOAD_SYM(pAclrtMemcpyAsync, aclrtMemcpyAsyncFunc, rtHandle, "aclrtMemcpyAsync");
     DL_LOAD_SYM(pAclrtMemcpy2d, aclrtMemcpy2dFunc, rtHandle, "aclrtMemcpy2d");
@@ -94,6 +98,8 @@ void DlAclApi::CleanupLibrary()
     pAclrtSynchronizeStream = nullptr;
     pAclrtMalloc = nullptr;
     pAclrtFree = nullptr;
+    pAclrtMallocHost = nullptr;
+    pAclrtFreeHost = nullptr;
     pAclrtMemcpy = nullptr;
     pAclrtMemcpyAsync = nullptr;
     pAclrtMemcpy2d = nullptr;

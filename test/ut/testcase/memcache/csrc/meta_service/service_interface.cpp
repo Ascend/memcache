@@ -29,12 +29,12 @@ TestMmcServiceInterface::TestMmcServiceInterface() {}
 
 void TestMmcServiceInterface::SetUp()
 {
-    cout << "this is NetEngine TEST_F setup:";
+    cout << "this is NetEngine TEST_F setup:" << endl;
 }
 
 void TestMmcServiceInterface::TearDown()
 {
-    cout << "this is NetEngine TEST_F teardown";
+    cout << "this is NetEngine TEST_F teardown" << endl;
 }
 
 static void UrlStringToChar(std::string &urlString, char *urlChar)
@@ -144,7 +144,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     EXPECT_EQ(results[1], MMC_UNMATCHED_KEY);  // 被淘汰
     EXPECT_EQ(results[2], MMC_UNMATCHED_KEY);  // 被淘汰
     for (size_t i = 3; i < keys.size(); ++i) {
-        EXPECT_EQ(results[i], MMC_OK);
+        EXPECT_EQ(results[i], MMC_OK) << "i=" << i;
     }
 
     sleep(1);
@@ -303,7 +303,7 @@ TEST_F(TestMmcServiceInterface, testPutInvalidParam)
     mmc_buffer invalidBuf{ 0, 0, 0, {0, 1024} };
     ret = mmcc_put("validKey", &invalidBuf, mmc_put_options{}, 0);
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
-    
+
     free((void*)validBuf.addr);
 }
 
@@ -315,7 +315,7 @@ TEST_F(TestMmcServiceInterface, testBatchOperationsEdgeCases)
 
     int32_t ret = mmcc_batch_remove(nullptr, 0, results, 0);
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
-    
+
     ret = mmcc_batch_exist(nullptr, 0, results, 0);
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
 
@@ -338,10 +338,10 @@ TEST_F(TestMmcServiceInterface, testBatchQueryInvalidKeys)
 
     bool exists1 = mmcc_exist(keys[1], 0) == ock::mmc::MMC_OK;
     ASSERT_FALSE(exists1);
-    
+
     bool exists2 = mmcc_exist(keys[2], 0) == ock::mmc::MMC_OK;
     ASSERT_FALSE(exists2);
-    
+
     bool exists3 = mmcc_exist(keys[3], 0) == ock::mmc::MMC_OK;
     ASSERT_FALSE(exists3);
 }
@@ -390,7 +390,7 @@ TEST_F(TestMmcServiceInterface, testBatchGetErrorHandling)
     GenerateData(data, 1);
     mmc_buffer writeBuf = {.addr = (uint64_t)data, .type = 0, .dimType = 0, .oneDim = {0, SIZE_32K}};
     mmc_put_options putOpts{0, NATIVE_AFFINITY};
-    
+
     mmcc_put("key1", &writeBuf, putOpts, 0);
     mmcc_put("key2", &writeBuf, putOpts, 0);
     std::vector<int> results3(2, -1);
@@ -419,17 +419,17 @@ TEST_F(TestMmcServiceInterface, testBatchGetWithPartialData)
     void* data3 = malloc(SIZE_32K);
     GenerateData(data1, 1);
     GenerateData(data3, 3);
-    
+
     mmc_buffer writeBuf1 = {.addr = (uint64_t)data1, .type = 0, .dimType = 0, .oneDim = {0, SIZE_32K}};
     mmc_buffer writeBuf3 = {.addr = (uint64_t)data3, .type = 0, .dimType = 0, .oneDim = {0, SIZE_32K}};
-    
+
     mmc_put_options putOpts{0, NATIVE_AFFINITY};
     mmcc_put(keys[0], &writeBuf1, putOpts, 0);
     mmcc_put(keys[2], &writeBuf3, putOpts, 0);
 
     mmc_buffer readBufs[keyCount];
     void* destData[keyCount];
-    
+
     for (uint32_t i = 0; i < keyCount; i++) {
         destData[i] = malloc(SIZE_32K);
         memset(destData[i], 0, SIZE_32K);

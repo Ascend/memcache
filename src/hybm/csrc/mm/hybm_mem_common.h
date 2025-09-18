@@ -58,6 +58,7 @@ struct MemSegmentOptions {
     int32_t segId = 0;
     MemSegType segType = HYBM_MST_HBM;
     MemSegInfoExchangeType infoExType = HYBM_INFO_EXG_IN_NODE;
+    bool shared = true;
     uint64_t size = 0;
     uint32_t rankId = 0;  // must start from 0 and increase continuously
     uint32_t rankCnt = 0; // total rank count

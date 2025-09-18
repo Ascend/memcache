@@ -46,7 +46,7 @@ AllocatedElement RbtreeRangePool::Allocate(uint64_t size) noexcept
     if (sizePos == sizeTree.end()) {
         pthread_spin_unlock(&lock);
         BM_LOG_ERROR("cannot allocate with size: " << size);
-        return AllocatedElement{nullptr, 0};
+        return AllocatedElement{};
     }
 
     auto targetOffset = sizePos->offset;
@@ -54,8 +54,8 @@ AllocatedElement RbtreeRangePool::Allocate(uint64_t size) noexcept
     auto addrPos = addressTree.find(targetOffset);
     if (addrPos == addressTree.end()) {
         pthread_spin_unlock(&lock);
-        BM_LOG_ERROR("offset: " << targetOffset <<  "size: " << targetSize << "in size tree, not in address tree.");
-        return AllocatedElement{nullptr, 0};
+        BM_LOG_ERROR("offset: " << targetOffset << "size: " << targetSize << "in size tree, not in address tree.");
+        return AllocatedElement{};
     }
 
     sizeTree.erase(sizePos);
@@ -66,8 +66,7 @@ AllocatedElement RbtreeRangePool::Allocate(uint64_t size) noexcept
         sizeTree.emplace(left);
     }
     pthread_spin_unlock(&lock);
-
-    return AllocatedElement{baseAddress + targetOffset, size};
+    return AllocatedElement{baseAddress + targetOffset, size, this};
 }
 
 bool RbtreeRangePool::Release(const AllocatedElement &element) noexcept
@@ -96,7 +95,7 @@ bool RbtreeRangePool::Release(const AllocatedElement &element) noexcept
     }
 
     auto nextAddrPos = addressTree.find(offset + alignedSize);
-    if (nextAddrPos != addressTree.end()) {  // 合并后一个range
+    if (nextAddrPos != addressTree.end()) { // 合并后一个range
         finalSize += nextAddrPos->second;
         sizeTree.erase(SpaceRange{nextAddrPos->first, nextAddrPos->second});
         addressTree.erase(nextAddrPos);
@@ -115,4 +114,4 @@ uint64_t RbtreeRangePool::AllocateSizeAlignUp(uint64_t inputSize) noexcept
     constexpr uint64_t alignSizeMask = ~(alignSize - 1UL);
     return (inputSize + alignSize - 1UL) & alignSizeMask;
 }
-}
+} // namespace ock::mf

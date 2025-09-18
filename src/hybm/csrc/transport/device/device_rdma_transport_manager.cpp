@@ -3,6 +3,11 @@
  */
 #include "device_rdma_transport_manager.h"
 
+#include <unistd.h>
+#include <chrono>
+#include <cstdint>
+#include <thread>
+
 #include "hybm_define.h"
 #include "hybm_logger.h"
 #include "dl_acl_api.h"
@@ -12,14 +17,24 @@
 #include "device_rdma_helper.h"
 #include "fixed_ranks_qp_manager.h"
 #include "bipartite_ranks_qp_manager.h"
+#include "hybm_types.h"
 #include "joinable_ranks_qp_manager.h"
+
+namespace {
+
+constexpr auto QP_READY_CHECK_TIMEOUT_BASE = std::chrono::seconds(30);
+constexpr auto QP_READY_CHECK_TIMEOUT_PER_RANK = std::chrono::milliseconds(100);
+constexpr auto QP_READY_CHECK_INTERVAL = std::chrono::milliseconds(5);
+const auto POOL_CQ_TIMEOUT = std::chrono::seconds(10);
+const auto POOL_CQ_INTERVAL = std::chrono::microseconds(1);
+
+} // namespace
 
 namespace ock {
 namespace mf {
 namespace transport {
 namespace device {
 
-const uint32_t RDMA_POLL_TIMES_MAX = 1000;
 constexpr int RT_STARS_SQE_TYPE_WRITE_VALUE = 8;
 constexpr int RT_STARS_WRITE_VALUE_SIZE_TYPE_64BIT = 3;
 constexpr int RT_STARS_WRITE_VALUE_SUB_TYPE_RDMA_DB_SEND = 2;
@@ -71,7 +86,7 @@ Result RdmaTransportManager::OpenDevice(const TransportOptions &options)
         }
     } else {
         qpManager_ = std::make_shared<BipartiteRanksQpManager>(deviceId_, rankId_, rankCount_, deviceAddr,
-                                                             role_ == HYBM_ROLE_RECEIVER);
+                                                               role_ == HYBM_ROLE_RECEIVER);
     }
 
     stream_ = HybmStreamManager::CreateStream(deviceId, 0, 0);
@@ -257,7 +272,7 @@ Result RdmaTransportManager::Connect()
         return ret;
     }
 
-    return BM_OK;
+    return WaitQpReady();
 }
 
 Result RdmaTransportManager::AsyncConnect()
@@ -279,6 +294,28 @@ Result RdmaTransportManager::WaitForConnected(int64_t timeoutNs)
     }
 
     return BM_OK;
+}
+
+Result RdmaTransportManager::WaitQpReady() const
+{
+    std::vector<uint32_t> rankIds;
+    for (auto it = ranksMRs_.begin(); it != ranksMRs_.end(); ++it) {
+        rankIds.emplace_back(it->first);
+    }
+
+    auto timeout = QP_READY_CHECK_TIMEOUT_BASE + QP_READY_CHECK_TIMEOUT_PER_RANK * rankIds.size();
+    auto expire_time = std::chrono::steady_clock::now() + timeout;
+    uint64_t tries = 0;
+    while (std::chrono::steady_clock::now() < expire_time) {
+        if (qpManager_->CheckQpReady(rankIds)) {
+            return BM_OK;
+        }
+        tries++;
+        std::this_thread::sleep_for(QP_READY_CHECK_INTERVAL);
+    }
+    BM_LOG_ERROR("CheckQpReady timeout: " << (std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count())
+                                          << "ms after " << tries << " tries.");
+    return BM_TIMEOUT;
 }
 
 Result RdmaTransportManager::UpdateRankOptions(const HybmTransPrepareOptions &options)
@@ -306,7 +343,8 @@ Result RdmaTransportManager::UpdateRankOptions(const HybmTransPrepareOptions &op
     }
 
     OptionsToRankMRs(options);
-    return BM_OK;
+
+    return WaitQpReady();
 }
 
 const std::string &RdmaTransportManager::GetNic() const
@@ -406,7 +444,7 @@ bool RdmaTransportManager::RaInit(uint32_t deviceId)
     HccpRaInitConfig initConfig{};
     initConfig.phyId = deviceId;
     initConfig.nicPosition = NETWORK_OFFLINE;
-    initConfig.hdcType = 6;  // HDC_SERVICE_TYPE_RDMA = 6
+    initConfig.hdcType = 6; // HDC_SERVICE_TYPE_RDMA = 6
     BM_LOG_DEBUG("RaInit=" << initConfig);
     auto ret = DlHccpApi::RaInit(initConfig);
     if (ret != 0) {
@@ -532,6 +570,29 @@ int RdmaTransportManager::CheckPrepareOptions(const ock::mf::transport::HybmTran
     return BM_OK;
 }
 
+int RdmaTransportManager::PollCq(void *qpHandle) const noexcept
+{
+    struct ibv_wc wcs;
+    auto expire_time = std::chrono::steady_clock::now() + POOL_CQ_TIMEOUT;
+    uint64_t tries = 0;
+    while (std::chrono::steady_clock::now() < expire_time) {
+        auto count = DlHccpApi::RaPollCq(qpHandle, true, 1, &wcs);
+        if (count < 0) {
+            BM_LOG_ERROR("DlHccpApi::RaPollCq failed!");
+            return BM_DL_FUNCTION_FAILED;
+        }
+        if (count > 0) {
+            return BM_OK;
+        }
+        tries++;
+        std::this_thread::sleep_for(POOL_CQ_INTERVAL);
+    }
+    BM_LOG_ERROR("DlHccpApi::RaPollCq timeout: "
+                 << (std::chrono::duration_cast<std::chrono::milliseconds>(POOL_CQ_TIMEOUT).count()) << "ms after "
+                 << tries << " tries.");
+    return BM_TIMEOUT;
+}
+
 int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size, bool write)
 {
     if (qpManager_ == nullptr) {
@@ -548,7 +609,7 @@ int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAd
     struct send_wr wr = {};
     struct sg_list sgList = {.addr = lAddr, .len = (uint32_t)size, .lkey = 0};
     wr.buf_list = &sgList;
-    wr.buf_num = 1;  // 此处list只有一个，设置为1
+    wr.buf_num = 1; // 此处list只有一个，设置为1
     wr.dst_addr = rAddr;
     wr.op = write ? 0 : 4; /* RDMA_WRITE: 0  RDMA_READ: 4 */
     wr.send_flag = RA_SEND_SIGNALED;
@@ -580,57 +641,54 @@ int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAd
         return ret;
     }
 
-    struct ibv_wc wcs;
-    uint32_t retryTimes = 0;
-    while (retryTimes++ < RDMA_POLL_TIMES_MAX) {
-        auto count = DlHccpApi::RaPollCq(qpHandle, true, 1, &wcs);
-        if (count < 0) {
-            BM_LOG_ERROR("DlHccpApi::RaPollCq failed!");
-            return BM_DL_FUNCTION_FAILED;
+    return PollCq(qpHandle);
+}
+
+int RdmaTransportManager::GetRegAddress(const MemoryRegionMap &map, uint64_t inputAddr, uint64_t size,
+                                        uint64_t &outputAddr) const
+{
+    auto pos = map.lower_bound(inputAddr);
+    if (pos == map.end() || pos->first + pos->second.size < inputAddr + size) {
+        BM_LOG_ERROR("[GetRegAddress] Input address not register: " << reinterpret_cast<void *>(inputAddr)
+                                                                    << ", size: " << size);
+        for (auto &pair : map) {
+            BM_LOG_DEBUG("[GetRegAddress] Registered MR: rank: " << rankId_
+                                                                 << ", addr: " << reinterpret_cast<void *>(pair.first)
+                                                                 << ", size: " << pair.second.size);
         }
-        if (count == 0) {
-            usleep(1);
-            continue;
-        }
-        break;
+        return BM_INVALID_PARAM;
     }
-    BM_ASSERT_RETURN(retryTimes < RDMA_POLL_TIMES_MAX, BM_TIMEOUT);
+    outputAddr = pos->second.regAddress + (inputAddr - pos->first);
     return BM_OK;
 }
 
 int RdmaTransportManager::CorrectHostRegWr(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size, send_wr &wr)
 {
-    if (lAddr >= HYBM_HOST_GVA_START_ADDR) {
-        auto pos = registerMRS_.lower_bound(lAddr);
-        if (pos == registerMRS_.end() || pos->first + pos->second.size < lAddr + size) {
-            BM_LOG_ERROR("input local address not register: " << reinterpret_cast<void *>(lAddr));
-            return BM_INVALID_PARAM;
-        }
-        wr.buf_list->addr = pos->second.regAddress + (lAddr - pos->first);
+    auto ret = GetRegAddress(registerMRS_, lAddr, size, wr.buf_list->addr);
+    if (ret != BM_OK) {
+        return ret;
+    }
+    auto it = ranksMRs_.find(rankId);
+    if (it == ranksMRs_.end()) {
+        BM_LOG_ERROR("input rankId: " << rankId << " not found.");
+        return BM_INVALID_PARAM;
+    }
+    ret = GetRegAddress(it->second, rAddr, size, wr.dst_addr);
+    if (ret != BM_OK) {
+        return ret;
     }
 
-    if (rAddr >= HYBM_HOST_GVA_START_ADDR) {
-        auto it = ranksMRs_.find(rankId);
-        if (it == ranksMRs_.end()) {
-            BM_LOG_ERROR("input rankId: " << rankId << " not found.");
-            return BM_INVALID_PARAM;
-        }
-
-        auto pos = it->second.lower_bound(rAddr);
-        if (pos == it->second.end() || pos->first + pos->second.size <= lAddr + size) {
-            BM_LOG_ERROR("input remote address not register: " << reinterpret_cast<void *>(rAddr));
-            return BM_INVALID_PARAM;
-        }
-
-        wr.dst_addr = pos->second.regAddress + (rAddr - pos->first);
-    }
+    BM_LOG_DEBUG("CorrectHostRegWr lAddr: "
+                 << reinterpret_cast<void *>(lAddr) << " to " << reinterpret_cast<void *>(wr.buf_list->addr)
+                 << ", rAddr: " << reinterpret_cast<void *>(rAddr) << " to " << reinterpret_cast<void *>(wr.dst_addr));
     return BM_OK;
 }
 
 int RdmaTransportManager::ConvertHccpMrInfo(const TransportMemoryRegion &mr, HccpMrInfo &info)
 {
     auto addr = mr.addr;
-    if (addr >= HYBM_HOST_GVA_START_ADDR && addr < HYBM_GVM_START_ADDR) {
+    // need register: dram except gvm
+    if ((mr.flags & REG_MR_FLAG_DRAM) && (addr < HYBM_GVM_START_ADDR || addr >= HYBM_GVM_END_ADDR)) {
         auto input = (void *)(ptrdiff_t)addr;
         void *output = nullptr;
         auto ret = DlHalApi::HalHostRegister(input, mr.size, 3, deviceId_, &output);
@@ -646,6 +704,9 @@ int RdmaTransportManager::ConvertHccpMrInfo(const TransportMemoryRegion &mr, Hcc
     info.access = mr.access;
     info.lkey = 0;
     info.rkey = 0;
+
+    BM_LOG_DEBUG("ConvertHccpMrInfo input addr: " << reinterpret_cast<void *>(mr.addr)
+                                                  << ", output addr: " << info.addr);
 
     return BM_OK;
 }
@@ -683,26 +744,27 @@ void RdmaTransportManager::ConstructSqeNoSinkModeForRdmaDbSendTask(const send_wr
 
     auto taskId = taskIdGenerator.fetch_add(1);
     memset(sqe, 0, sizeof(rtStarsSqe_t));
-    sqe->header.type = RT_STARS_SQE_TYPE_WRITE_VALUE;  // RT_STARS_SQE_TYPE_WRITE_VALUE;
+    sqe->header.type = RT_STARS_SQE_TYPE_WRITE_VALUE;
     sqe->header.ie = RT_STARS_SQE_INT_DIR_NO;
     sqe->header.pre_p = RT_STARS_SQE_INT_DIR_NO;
     sqe->header.post_p = RT_STARS_SQE_INT_DIR_NO;
-    sqe->header.wr_cqe = 1;  // stream->GetStarsWrCqeFlag();
+    sqe->header.wr_cqe = 0; // stream->GetStarsWrCqeFlag();
     sqe->header.rt_stream_id = static_cast<uint16_t>(stream_->GetId());
     sqe->header.task_id = taskId;
 
     sqe->va = 0U;
     sqe->kernel_credit = RT_STARS_DEFAULT_KERNEL_CREDIT;
-    sqe->awsize = RT_STARS_WRITE_VALUE_SIZE_TYPE_64BIT;    // RT_STARS_WRITE_VALUE_SIZE_TYPE_64BIT;
-    sqe->sub_type = RT_STARS_WRITE_VALUE_SUB_TYPE_RDMA_DB_SEND;  // RT_STARS_WRITE_VALUE_SUB_TYPE_RDMA_DB_SEND;
+    sqe->awsize = RT_STARS_WRITE_VALUE_SIZE_TYPE_64BIT;
+    sqe->sub_type = RT_STARS_WRITE_VALUE_SUB_TYPE_RDMA_DB_SEND;
 
     uint64_t dbVal = rspInfo.db.db_info;
     uint64_t dbAddr = GetRoceDbAddrForRdmaDbSendTask();
     if (dbAddr == 0ULL) {
-        sqe->header.type = RT_STARS_SQE_TYPE_INVALID;  // RT_STARS_SQE_TYPE_INVALID;
+        sqe->header.type = RT_STARS_SQE_TYPE_INVALID;
         BM_LOG_ERROR("generate db address is zero.");
         return;
     }
+    BM_LOG_DEBUG("db val=" << std::hex << dbVal << ", addr=" << reinterpret_cast<void *>(dbAddr));
 
     sqe->write_value_part0 = static_cast<uint32_t>(dbVal & MASK_32_BIT);
     sqe->write_value_part1 = static_cast<uint32_t>(dbVal >> UINT32_BIT_NUM);
@@ -721,12 +783,12 @@ uint64_t RdmaTransportManager::GetRoceDbAddrForRdmaDbSendTask()
     auto dieOffset = deviceChipInfo_->GetDieOffset();
 
     const uint64_t dbAddr = RT_ASCEND910B1_ROCEE_BASE_ADDR + RT_ASCEND910B1_ROCEE_VF_DB_CFG0_REG +
-        chipOffset * static_cast<uint64_t>(chipId) + dieOffset * dieId + chipAddr;
-    BM_LOG_INFO("deviceId=" << deviceId << ", die_id=" << dieId << ", db=0x" << std::hex << dbAddr);
+                            chipOffset * static_cast<uint64_t>(chipId) + dieOffset * dieId + chipAddr;
+    BM_LOG_INFO("deviceId=" << deviceId << ", die_id=" << dieId << ", db=0x" << reinterpret_cast<void *>(dbAddr));
 
     return dbAddr;
 }
-}  // namespace device
-}  // namespace transport
-}  // namespace mf
-}  // namespace ock
+} // namespace device
+} // namespace transport
+} // namespace mf
+} // namespace ock
