@@ -88,13 +88,7 @@ ${INSTALL_PATH}/mxc/memfabric_hybrid/latest/${arch}-${os}/include/smem/host/smem
 和
 ${INSTALL_PATH}/mxc/memfabric_hybrid/latest/${arch}-${os}/include/smem/device/lowlevel/smem_shm_aicore_base_api.h
 ```
-
-#### Memory Cache(MMC)
-    * 提供和Kimi Mooncake形式一致的python接口
-安装memfabric hybrid后，MMC接口详情参见
-```
-${INSTALL_PATH}/mxc/memfabric_hybrid/latest/${arch}-${os}/include/memcache
-```
+         
 
 ### 使用方法
 #### C接口
@@ -119,22 +113,4 @@ help(mf_smem.bm)    # 查看big memory接口介绍
 help(mf_smem.shm)   # 查看share memory接口介绍
 ```
 
-```python
-import memcache        # 导入memcache
-help(memcache)         # 查看memcache基础函数介绍
-```
-
-#### 端到端运行Memcache流程
-**1. 启动metaservice独立进程**
-```
-source /usr/local/mxc/memfabric_hybrid/set_env.sh
-export MMC_META_CONFIG_PATH=/usr/local/mxc/memfabric_hybrid/latest/config/mmc-meta.conf
-/usr/local/mxc/memfabric_hybrid/latest/aarch64-linux/bin/mmc_meta_service
-```
-
-**2. 通过memcache提供的接口初始化客户端并拉起localservice，执行数据写入、查询、获取、删除等**
-```
-export MMC_LOCAL_CONFIG_PATH=/usr/local/mxc/memfabric_hybrid/latest/config/mmc-local.conf
-python3 test_mmc_demo.py
-```
 

@@ -11,8 +11,8 @@ MemCache是针对LLM推理场景设计的高性能分布式键值 KV Cache 存�
 ## 架构
 ![memcache_architecture.png](../source/memcache_architecture.png)
 MemCache包含LocalService和MetaService两大核心模块，基于MemFabric构建能力。
-* **MetaService**：负责管理整个集群的内存池空间分配和元数据管理，并处理LocalService的加入与退出。MetaService作为独立进程运行，提供两种启动方式:**python API启动**；**二进制启动**，详见***安装部署***章节。    
-MetaService支持两种部署形态： 
+* **MetaService**：负责管理整个集群的内存池空间分配和元数据管理，并处理LocalService的加入与退出。MetaService作为独立进程运行，提供两种启动方式：**python API启动**；**二进制启动**，详见***安装部署***章节。    
+MetaService支持两种部署形态：      
 **1、单点模式**：MetaService由单个进程组成，部署方式简单，但存在单点故障的问题。如果MetaService进程崩溃或无法访问，系统将无法继续提供服务，直至重新恢复为止。  
 **2、HA模式**：该模式基于K8S的的ClusterIP Service和Lease资源构建，部署较为复杂，会部署多个MetaService进程实例，实现多活高可用。部署详见[MetaService HA](./memcache_metaservice_HA.md)    
     
@@ -34,15 +34,73 @@ MemCache在LLM推理场景，核心能力是提供大容量内存池和高性能
 ## API
 MemCache提供三种形式的API: python、C++、C，具体详见[MemCache API](./memcache_api.md)
 
+```python
+import memcache        # 导入memcache
+help(memcache)         # 查看memcache基础函数介绍
+```
+
+
 ## 安装部署
 ### MetaService
 * **python形式**：
+*以下均以python311版本whl包（memcache-1.0.0-cp311-cp311-linux_aarch64.whl）为例*
+```
+1、安装whl包
+pip install memcache-1.0.0-cp311-cp311-linux_aarch64.whl
+
+2、设置配置文件环境变量
+export MMC_META_CONFIG_PATH=/usr/local/mxc/memfabric_hybrid/latest/config/mmc-meta.conf
+
+3、进入python控制台或者编写python脚本如下即可拉起进程：
+from memcache import MetaService
+MetaService.main()
+```
 * **bin形式**：
+```
+1、安装run包
+run包格式为 mxc-memfabric-hybrid-${version}_${os}_${arch}.run
+默认安装根路径为 /usr/local/
+参考安装命令如下：
+bash mxc-memfabric_hybrid-1.0.0_linux_aarch64.run
+
+如果想要自定义安装路径，可以添加--install-path参数
+bash mxc-memfabric_hybrid-1.0.0_linux_aarch64.run --install-path=${your path}
+如果自定义安装路径，下述 /usr/local 需替换为 ${your path}
+
+2、设置环境变量
+source /usr/local/mxc/memfabric_hybrid/set_env.sh
+export MMC_META_CONFIG_PATH=/usr/local/mxc/memfabric_hybrid/latest/config/mmc-meta.conf
+
+3、拉起二进制
+/usr/local/mxc/memfabric_hybrid/latest/aarch64-linux/bin/mmc_meta_service
+```
 
 ### LocalService
 * **whl（python）**：
-* **so（C/C++）**：
+```
+1、安装whl包
+pip install memcache-1.0.0-cp311-cp311-linux_aarch64.whl
+
+2、设置配置文件环境变量
+export MMC_LOCAL_CONFIG_PATH=/usr/local/mxc/memfabric_hybrid/latest/config/mmc-local.conf
+
+3、通过memcache提供的接口初始化客户端并拉起localservice，执行数据写入、查询、获取、删除等，下面的脚本时一个示例：
+python3 test_mmc_demo.py
+```
   
+* **so（C++）**：
+```
+1、导入头文件
+#include "mmcache.h"
+
+2、将 libmf_memcache.so 路径加入到 LD_LIBRARY_PATH 环境变量
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${libmf_memcache.so path}
+
+注：如果其所在路径已经在 PATH 或 LD_LIBRARY_PATH，则无需此步骤
+
+3、调用API
+
+```
 
 ## 配置
 MemCache将MetaService和LocalService的公共配置部分抽取为配置文件，具体详见[MemCache Conf](./memcache_config.md)
