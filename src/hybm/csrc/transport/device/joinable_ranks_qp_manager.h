@@ -19,7 +19,8 @@ namespace transport {
 namespace device {
 class JoinableRanksQpManager : public DeviceQpManager {
 public:
-    JoinableRanksQpManager(uint32_t deviceId, uint32_t rankId, uint32_t rankCount, sockaddr_in devNet) noexcept;
+    JoinableRanksQpManager(uint32_t userDeviceId, uint32_t deviceId, uint32_t rankId, uint32_t rankCount,
+                           sockaddr_in devNet) noexcept;
     ~JoinableRanksQpManager() noexcept override;
 
     int SetRemoteRankInfo(const std::unordered_map<uint32_t, ConnectRankInfo> &ranks) noexcept override;
@@ -58,6 +59,7 @@ private:
     std::set<uint32_t> newServers_;
     std::set<uint32_t> removedClientRanks_;
     std::set<uint32_t> removedServerRanks_;
+    uint32_t userDeviceId_{0};
 };
 
 }  // namespace device

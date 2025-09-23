@@ -44,7 +44,10 @@ raDeregisterMrFunc DlHccpApi::gRaDeregisterMR;
 raMrRegFunc DlHccpApi::gRaMrReg;
 raMrDeregFunc DlHccpApi::gRaMrDereg;
 raSendWrFunc DlHccpApi::gRaSendWr;
+raSendWrV2Func DlHccpApi::gRaSendWrV2;
 raPollCqFunc DlHccpApi::gRaPollCq;
+raGetNotifyBaseAddrFunc DlHccpApi::gRaGetNotifyBaseAddr;
+raGetNotifyMrInfoFunc DlHccpApi::gRaGetNotifyMrInfo;
 
 tsdOpenFunc DlHccpApi::gTsdOpen;
 
@@ -106,7 +109,10 @@ Result DlHccpApi::LoadLibrary()
     DL_LOAD_SYM(gRaMrReg, raMrRegFunc, raHandle, "ra_mr_reg");
     DL_LOAD_SYM(gRaMrDereg, raMrDeregFunc, raHandle, "ra_mr_dereg");
     DL_LOAD_SYM(gRaSendWr, raSendWrFunc, raHandle, "ra_send_wr");
+    DL_LOAD_SYM(gRaSendWrV2, raSendWrV2Func, raHandle, "ra_send_wr_v2");
     DL_LOAD_SYM(gRaPollCq, raPollCqFunc, raHandle, "ra_poll_cq");
+    DL_LOAD_SYM(gRaGetNotifyBaseAddr, raGetNotifyBaseAddrFunc, raHandle, "ra_get_notify_base_addr");
+    DL_LOAD_SYM(gRaGetNotifyMrInfo, raGetNotifyMrInfoFunc, raHandle, "ra_get_notify_mr_info");
 
     DL_LOAD_SYM(gTsdOpen, tsdOpenFunc, tsdHandle, "TsdOpen");
 

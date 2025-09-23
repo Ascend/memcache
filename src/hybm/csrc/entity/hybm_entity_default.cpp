@@ -13,6 +13,7 @@
 #include "hybm_device_mem_segment.h"
 #include "hybm_ex_info_transfer.h"
 #include "hybm_logger.h"
+#include "hybm_gvm_user.h"
 
 namespace ock {
 namespace mf {
@@ -153,7 +154,6 @@ int32_t MemEntityDefault::AllocLocalMemory(uint64_t size, hybm_mem_type mType, u
     transport::TransportMemoryRegion info;
     info.size = realSlice->size_;
     info.addr = realSlice->vAddress_;
-    info.access = transport::REG_MR_ACCESS_FLAG_BOTH_READ_WRITE;
     info.flags =
         segment->GetMemoryType() == HYBM_MEM_TYPE_DEVICE ? transport::REG_MR_FLAG_HBM : transport::REG_MR_FLAG_DRAM;
     if (transportManager_ != nullptr) {
@@ -282,6 +282,11 @@ int32_t MemEntityDefault::ImportExchangeInfo(const ExchangeInfoReader desc[], ui
     ret = ImportForTransport(desc, count);
     if (ret != BM_OK) {
         return ret;
+    }
+
+    if (desc[0].LeftBytes() == 0) {
+        BM_LOG_INFO("no segment need import.");
+        return BM_OK;
     }
 
     uint64_t magic;
@@ -563,6 +568,11 @@ int32_t MemEntityDefault::BatchCopyData(hybm_batch_copy_params &params, hybm_dat
     ExtOptions options{};
     options.flags = flags;
     options.stream = stream;
+    ret = GenCopyExtOption(params.sources[0], params.destinations[0], params.dataSizes[0], options);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("generate copy ext options failed: " << ret);
+        return ret;
+    }
 
     if ((options_.bmDataOpType & HYBM_DOP_TYPE_SDMA) != 0 && sdmaDataOperator_ != nullptr) {
         ret = sdmaDataOperator_->BatchDataCopy(params, direction, options);
@@ -735,7 +745,6 @@ int MemEntityDefault::GenCopyExtOption(const void *src, void *dest, uint64_t len
     if (options.destRankId == UINT32_MAX) {
         options.destRankId = options_.rankId;
     }
-
     return BM_OK;
 }
 
@@ -779,7 +788,6 @@ Result MemEntityDefault::InitHbmSegment()
         BM_LOG_ERROR("Failed to create hbm segment");
         return BM_ERROR;
     }
-
     return MemSegmentDevice::GetDeviceId(HybmGetInitDeviceId());
 }
 
@@ -927,5 +935,31 @@ void *MemEntityDefault::GetReservedMemoryPtr(hybm_mem_type memType) noexcept
 
     return nullptr;
 }
+
+int32_t MemEntityDefault::RegisterMem(uint64_t addr, uint64_t size) noexcept
+{
+    if (!HybmGvmHasInited()) {
+        BM_LOG_ERROR("gvm is not inited, skip register mem!");
+        return BM_ERROR;
+    }
+    // only register hbm
+    if (!(addr >= HYBM_HBM_START_ADDR && addr < HYBM_HOST_REG_START_ADDR)) {
+        BM_LOG_ERROR("input addr is not hbm! addr:" << std::hex << addr);
+        return BM_ERROR;
+    }
+
+    if (options_.bmDataOpType & HYBM_DOP_TYPE_DEVICE_RDMA) {
+        transport::TransportMemoryRegion info;
+        info.size = size;
+        info.addr = addr;
+        info.flags = transport::REG_MR_FLAG_HBM;
+        auto ret = transportManager_->RegisterMemoryRegion(info);
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "Failed to RegisterMem into rdma", ret);
+    }
+
+    size = (size + DEVICE_LARGE_PAGE_SIZE - 1) / DEVICE_LARGE_PAGE_SIZE * DEVICE_LARGE_PAGE_SIZE;
+    return hybm_gvm_mem_register(addr, size);
+}
+
 }  // namespace mf
 }  // namespace ock

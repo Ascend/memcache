@@ -4,7 +4,6 @@
 #include "hybm_logger.h"
 #include "hybm_entity_factory.h"
 #include "hybm_big_mem.h"
-#include "hybm_gvm_user.h"
 
 using namespace ock::mf;
 
@@ -185,13 +184,9 @@ HYBM_API void hybm_unmap(hybm_entity_t e, uint32_t flags)
     entity->Unmap();
 }
 
-HYBM_API int32_t hybm_mem_register_into_svsp(uint64_t addr, uint64_t size)
+HYBM_API int32_t hybm_mem_register_into_svsp(hybm_entity_t e, uint64_t addr, uint64_t size)
 {
-    if (!HybmGvmHasInited()) {
-        BM_LOG_ERROR("gvm is not inited!");
-        return BM_ERROR;
-    }
-
-    size = (size + DEVICE_LARGE_PAGE_SIZE - 1) / DEVICE_LARGE_PAGE_SIZE * DEVICE_LARGE_PAGE_SIZE;
-    return hybm_gvm_mem_register(addr, size);
+    auto entity = (MemEntity *)e;
+    BM_ASSERT_RETURN(entity != nullptr, BM_INVALID_PARAM);
+    return entity->RegisterMem(addr, size);
 }

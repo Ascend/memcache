@@ -1,7 +1,6 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
  */
-
 #include "hybm_stream.h"
 #include "hybm_common_include.h"
 #include "dl_hal_api.h"
@@ -13,6 +12,8 @@
 
 namespace ock {
 namespace mf {
+constexpr uint32_t HYBM_SQE_PRINT_WIDTH = 8U;
+
 HybmStream::HybmStream(uint32_t deviceId, uint32_t prio, uint32_t flags) noexcept
     : deviceId_{deviceId},
       prio_{prio},
@@ -186,6 +187,16 @@ void HybmStream::Destroy()
     inited_ = false;
 }
 
+void PrintSqe(const rtStarsSqe_t *sqe)
+{
+    const uint32_t * const cmd = reinterpret_cast<const uint32_t *>(sqe);
+    std::ostringstream info;
+    for (size_t i = 0UL; i < (sizeof(rtStarsSqe_t) / sizeof(uint32_t)); i++) {
+        info << " " << std::setw(HYBM_SQE_PRINT_WIDTH) << std::setfill('0') << std::hex << cmd[i];
+    }
+    BM_LOG_DEBUG("SQE:" << info.str());
+}
+
 int32_t HybmStream::SubmitTasks(const StreamTask &tasks) noexcept
 {
     BM_ASSERT_LOG_AND_RETURN(inited_, "stream not init!", BM_NOT_INITIALIZED);
@@ -209,25 +220,13 @@ int32_t HybmStream::SubmitTasks(const StreamTask &tasks) noexcept
     info.tsId = tsId_;
     info.sqId = sqId_;
 
-    BM_LOG_DEBUG("[TEST] submit task, task_Id:" << taskId << " task_type:" << static_cast<int32_t>(tasks.type)
-                                                << " src:" << tasks.sqe.memcpyAsyncSqe.src_addr_low << "~"
-                                                << tasks.sqe.memcpyAsyncSqe.src_addr_high
-                                                << " dest:" << tasks.sqe.memcpyAsyncSqe.dst_addr_low << "~"
-                                                << tasks.sqe.memcpyAsyncSqe.dst_addr_high
-                                                << " length:" << tasks.sqe.memcpyAsyncSqe.length);
+    PrintSqe(&taskList_[taskId].sqe);
 
     ret = DlHalApi::HalSqTaskSend(deviceId_, &info);
     if (ret != 0) {
         BM_LOG_ERROR("SQ send task failed: " << ret);
         return BM_DL_FUNCTION_FAILED;
     }
-
-    BM_LOG_DEBUG("[TEST] submit task, task_Id:" << taskId << " task_type:" << static_cast<int32_t>(tasks.type)
-                                                << " src:" << tasks.sqe.memcpyAsyncSqe.src_addr_low << "~"
-                                                << tasks.sqe.memcpyAsyncSqe.src_addr_high
-                                                << " dest:" << tasks.sqe.memcpyAsyncSqe.dst_addr_low << "~"
-                                                << tasks.sqe.memcpyAsyncSqe.dst_addr_high
-                                                << " length:" << tasks.sqe.memcpyAsyncSqe.length);
     return BM_OK;
 }
 

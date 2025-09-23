@@ -40,8 +40,11 @@ using raDeregisterMrFunc = int (*)(const void *, void *);
 using raMrRegFunc = int (*)(void *, HccpMrInfo *);
 using raMrDeregFunc = int (*)(void *, HccpMrInfo *);
 using raSendWrFunc = int (*)(void *, send_wr *, send_wr_rsp *);
+using raSendWrV2Func = int (*)(void *, send_wr_v2 *, send_wr_rsp *);
 using tsdOpenFunc = uint32_t (*)(uint32_t, uint32_t);
 using raPollCqFunc = int (*)(void *, bool, uint32_t, void *);
+using raGetNotifyBaseAddrFunc = int (*)(void *, uint64_t *, uint64_t *);
+using raGetNotifyMrInfoFunc = int (*)(void *, HccpMrInfo *);
 
 class DlHccpApi {
 public:
@@ -188,6 +191,11 @@ public:
         return gRaSendWr(qp_handle, wr, op_rsp);
     }
 
+    static inline int RaSendWrV2(void *qp_handle, struct send_wr_v2 *wr, struct send_wr_rsp *op_rsp)
+    {
+        return gRaSendWrV2(qp_handle, wr, op_rsp);
+    }
+
     static inline int RaPollCq(void *qp_handle, bool is_send_cq, unsigned int num_entries, void *wc)
     {
         return gRaPollCq(qp_handle, is_send_cq, num_entries, wc);
@@ -196,6 +204,16 @@ public:
     static inline uint32_t TsdOpen(uint32_t deviceId, uint32_t rankSize)
     {
         return gTsdOpen(deviceId, rankSize);
+    }
+
+    static inline int RaGetNotifyBaseAddr(void *rdmaHandle, uint64_t *va, uint64_t *size)
+    {
+        return gRaGetNotifyBaseAddr(rdmaHandle, va, size);
+    }
+
+    static inline int RaGetNotifyMrInfo(void *rdmaHandle, HccpMrInfo *info)
+    {
+        return gRaGetNotifyMrInfo(rdmaHandle, info);
     }
 
 private:
@@ -235,7 +253,10 @@ private:
     static raMrRegFunc gRaMrReg;
     static raMrDeregFunc gRaMrDereg;
     static raSendWrFunc gRaSendWr;
+    static raSendWrV2Func gRaSendWrV2;
     static raPollCqFunc gRaPollCq;
+    static raGetNotifyBaseAddrFunc gRaGetNotifyBaseAddr;
+    static raGetNotifyMrInfoFunc gRaGetNotifyMrInfo;
 
     static tsdOpenFunc gTsdOpen;
 };

@@ -21,21 +21,17 @@
 #include "joinable_ranks_qp_manager.h"
 
 namespace {
-
 constexpr auto QP_READY_CHECK_TIMEOUT_BASE = std::chrono::seconds(30);
 constexpr auto QP_READY_CHECK_TIMEOUT_PER_RANK = std::chrono::milliseconds(100);
 constexpr auto QP_READY_CHECK_INTERVAL = std::chrono::milliseconds(5);
-const auto POOL_CQ_TIMEOUT = std::chrono::seconds(10);
-const auto POOL_CQ_INTERVAL = std::chrono::microseconds(1);
-
 } // namespace
 
 namespace ock {
 namespace mf {
+
 namespace transport {
 namespace device {
 
-constexpr int RT_STARS_SQE_TYPE_WRITE_VALUE = 8;
 constexpr int RT_STARS_WRITE_VALUE_SIZE_TYPE_64BIT = 3;
 constexpr int RT_STARS_WRITE_VALUE_SUB_TYPE_RDMA_DB_SEND = 2;
 constexpr int RT_STARS_SQE_TYPE_INVALID = 63;
@@ -45,63 +41,74 @@ constexpr unsigned long RT_ASCEND910B1_ROCEE_VF_DB_CFG0_REG = 0x230UL;
 RdmaTransportManager::~RdmaTransportManager()
 {
     ClearAllRegisterMRs();
+
+    if (notifyInfo_.srcAddr != 0U) {
+        DlAclApi::AclrtFree(reinterpret_cast<void *>(notifyInfo_.srcAddr));
+        notifyInfo_.srcAddr = 0;
+        notifyInfo_.srcRkey = 0;
+    }
 }
 
 Result RdmaTransportManager::OpenDevice(const TransportOptions &options)
 {
-    int32_t deviceId = -1;
+    int32_t userId = -1;
+    int32_t logicId = -1;
 
     BM_LOG_DEBUG("begin to open device with " << options);
-    auto ret = DlAclApi::AclrtGetDevice(&deviceId);
-    if (ret != 0 || deviceId < 0) {
-        BM_LOG_ERROR("AclrtGetDevice() return=" << ret << ", output deviceId=" << deviceId);
+    auto ret = DlAclApi::AclrtGetDevice(&userId);
+    if (ret != 0 || userId < 0) {
+        BM_LOG_ERROR("AclrtGetDevice() return=" << ret << ", output deviceId=" << userId);
         return BM_DL_FUNCTION_FAILED;
     }
-    deviceId_ = static_cast<uint32_t>(deviceId);
+
+    ret = DlAclApi::RtGetLogicDevIdByUserDevId(userId, &logicId);
+    if (ret != 0 || logicId < 0) {
+        BM_LOG_ERROR("RtGetLogicDevIdByUserDevId() return=" << ret << ", output deviceId=" << logicId);
+        return BM_DL_FUNCTION_FAILED;
+    }
+
+    BM_LOG_DEBUG("AclrtGetDevice() = " << logicId);
+    deviceId_ = static_cast<uint32_t>(logicId);
+
     rankId_ = options.rankId;
     rankCount_ = options.rankCount;
     role_ = options.role;
     ret = ParseDeviceNic(options.nic, devicePort_);
-    if (ret != BM_OK) {
-        BM_LOG_ERROR("parse input nic(" << options.nic << ") failed!");
-        return BM_INVALID_PARAM;
-    }
+    BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "parse input nic(" << options.nic << ") failed!", BM_INVALID_PARAM);
 
-    if (!PrepareOpenDevice(deviceId_, rankCount_, deviceIp_, rdmaHandle_)) {
+    if (!PrepareOpenDevice(userId, deviceId_, rankCount_, deviceIp_, rdmaHandle_)) {
         BM_LOG_ERROR("PrepareOpenDevice failed.");
         return BM_ERROR;
     }
 
     nicInfo_ = GenerateDeviceNic(deviceIp_, devicePort_);
 
-    sockaddr_in deviceAddr;
+    sockaddr_in deviceAddr{};
     deviceAddr.sin_family = AF_INET;
     deviceAddr.sin_addr = deviceIp_;
     deviceAddr.sin_port = devicePort_;
     if (role_ == HYBM_ROLE_PEER) {
         if (options.initialType == HYBM_TYPE_AI_CORE_INITIATE) {
-            qpManager_ = std::make_shared<FixedRanksQpManager>(deviceId_, rankId_, rankCount_, deviceAddr);
+            qpManager_ = std::make_shared<FixedRanksQpManager>(userId, rankId_, rankCount_, deviceAddr);
         } else {
-            qpManager_ = std::make_shared<JoinableRanksQpManager>(deviceId_, rankId_, rankCount_, deviceAddr);
+            qpManager_ = std::make_shared<JoinableRanksQpManager>(userId, deviceId_, rankId_, rankCount_, deviceAddr);
         }
     } else {
-        qpManager_ = std::make_shared<BipartiteRanksQpManager>(deviceId_, rankId_, rankCount_, deviceAddr,
+        qpManager_ = std::make_shared<BipartiteRanksQpManager>(userId, rankId_, rankCount_, deviceAddr,
                                                                role_ == HYBM_ROLE_RECEIVER);
     }
 
-    stream_ = HybmStreamManager::CreateStream(deviceId, 0, 0);
+    stream_ = HybmStreamManager::CreateStream(deviceId_, 0, 0);
     ret = stream_->Initialize();
-    if (ret != BM_OK) {
-        BM_LOG_ERROR("HybmStream init failed: " << ret);
-        return ret;
-    }
+    BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "HybmStream init failed: " << ret, ret);
 
-    deviceChipInfo_ = std::make_shared<DeviceChipInfo>(deviceId_);
+    deviceChipInfo_ = std::make_shared<DeviceChipInfo>(userId);
     ret = deviceChipInfo_->Init();
-    if (ret != BM_OK) {
-        BM_LOG_ERROR("device info init failed: " << ret);
-        return ret;
-    }
+    BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "device info init failed: " << ret, ret);
+
+    ret = InitStreamNotify();
+    BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "init notify failed.", ret);
+
     BM_LOG_INFO("open device with " << options << " success.");
     return BM_OK;
 }
@@ -178,6 +185,8 @@ Result RdmaTransportManager::QueryMemoryKey(uint64_t addr, TransportMemoryKey &k
     }
 
     keyUnion.deviceKey = pos->second;
+    keyUnion.deviceKey.notifyAddr = notifyInfo_.srcAddr;
+    keyUnion.deviceKey.notifyRkey = notifyInfo_.srcRkey;
 
     key = keyUnion.commonKey;
     return BM_OK;
@@ -363,9 +372,7 @@ const void *RdmaTransportManager::GetQpInfo() const
 
 Result RdmaTransportManager::ReadRemote(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size)
 {
-    BM_LOG_DEBUG("=========== read remote for rankId=" << rankId << ", size=" << size << ", laddr=" << std::hex << lAddr
-                                                       << ", raddr=" << rAddr);
-    auto ret = RemoteIO(rankId, lAddr, rAddr, size, false);
+    auto ret = RemoteIO(rankId, lAddr, rAddr, size, false, true);
     if (ret != BM_OK) {
         BM_LOG_ERROR("ReadRemote() failed: " << ret);
         return ret;
@@ -377,9 +384,7 @@ Result RdmaTransportManager::ReadRemote(uint32_t rankId, uint64_t lAddr, uint64_
 
 Result RdmaTransportManager::WriteRemote(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size)
 {
-    BM_LOG_DEBUG("=========== write remote for rankId=" << rankId << ", size=" << size << ", laddr=" << std::hex
-                                                        << lAddr << ", raddr=" << rAddr);
-    auto ret = RemoteIO(rankId, lAddr, rAddr, size, true);
+    auto ret = RemoteIO(rankId, lAddr, rAddr, size, true, true);
     if (ret != BM_OK) {
         BM_LOG_ERROR("WriteRemote() failed: " << ret);
         return ret;
@@ -389,9 +394,46 @@ Result RdmaTransportManager::WriteRemote(uint32_t rankId, uint64_t lAddr, uint64
     return BM_OK;
 }
 
-bool RdmaTransportManager::PrepareOpenDevice(uint32_t device, uint32_t rankCount, in_addr &deviceIp, void *&rdmaHandle)
+Result RdmaTransportManager::ReadRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size)
 {
-    if (!OpenTsd(device, rankCount)) {
+    auto ret = RemoteIO(rankId, lAddr, rAddr, size, false, false);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("ReadRemoteAsync() failed: " << ret);
+        return ret;
+    }
+
+    BM_LOG_INFO("ReadRemoteAsync() success. size=" << size);
+    return BM_OK;
+}
+
+Result RdmaTransportManager::WriteRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size)
+{
+    auto ret = RemoteIO(rankId, lAddr, rAddr, size, true, false);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("WriteRemoteAsync() failed: " << ret);
+        return ret;
+    }
+
+    BM_LOG_INFO("WriteRemoteAsync() success. size=" << size);
+    return BM_OK;
+}
+
+Result RdmaTransportManager::Synchronize(uint32_t rankId)
+{
+    auto qpHandle = qpManager_->GetQpHandleWithRankId(rankId);
+    if (qpHandle == nullptr) {
+        BM_LOG_ERROR("no qp to rankId: " << rankId);
+        return BM_ERROR;
+    }
+
+    return Synchronize(qpHandle, rankId);
+}
+
+bool RdmaTransportManager::PrepareOpenDevice(uint32_t userId, uint32_t device, uint32_t rankCount,
+                                             in_addr &deviceIp, void *&rdmaHandle)
+{
+    // OpenTsd need userDeviceId
+    if (!OpenTsd(userId, rankCount)) {
         BM_LOG_ERROR("open tsd failed.");
         return false;
     }
@@ -444,11 +486,11 @@ bool RdmaTransportManager::RaInit(uint32_t deviceId)
     HccpRaInitConfig initConfig{};
     initConfig.phyId = deviceId;
     initConfig.nicPosition = NETWORK_OFFLINE;
-    initConfig.hdcType = 6; // HDC_SERVICE_TYPE_RDMA = 6
+    initConfig.hdcType = 6; // HDC_SERVICE_TYPE_RDMA = 6  HDC_SERVICE_TYPE_RDMA_V2=18
     BM_LOG_DEBUG("RaInit=" << initConfig);
     auto ret = DlHccpApi::RaInit(initConfig);
     if (ret != 0) {
-        BM_LOG_ERROR("Hccp Init RA failed: " << ret);
+        BM_LOG_ERROR("Hccp Init RA failed: " << ret << " devid:" << deviceId);
         return false;
     }
 
@@ -516,7 +558,7 @@ bool RdmaTransportManager::RaRdevInit(uint32_t deviceId, in_addr deviceIp, void 
 
     info.mode = NETWORK_OFFLINE;
     info.notifyType = NOTIFY;
-    info.enabled2mbLite = true;
+    info.enabled2mbLite = false;
     rdev.phyId = deviceId;
     rdev.family = AF_INET;
     rdev.localIp.addr = deviceIp;
@@ -570,30 +612,8 @@ int RdmaTransportManager::CheckPrepareOptions(const ock::mf::transport::HybmTran
     return BM_OK;
 }
 
-int RdmaTransportManager::PollCq(void *qpHandle) const noexcept
-{
-    struct ibv_wc wcs;
-    auto expire_time = std::chrono::steady_clock::now() + POOL_CQ_TIMEOUT;
-    uint64_t tries = 0;
-    while (std::chrono::steady_clock::now() < expire_time) {
-        auto count = DlHccpApi::RaPollCq(qpHandle, true, 1, &wcs);
-        if (count < 0) {
-            BM_LOG_ERROR("DlHccpApi::RaPollCq failed!");
-            return BM_DL_FUNCTION_FAILED;
-        }
-        if (count > 0) {
-            return BM_OK;
-        }
-        tries++;
-        std::this_thread::sleep_for(POOL_CQ_INTERVAL);
-    }
-    BM_LOG_ERROR("DlHccpApi::RaPollCq timeout: "
-                 << (std::chrono::duration_cast<std::chrono::milliseconds>(POOL_CQ_TIMEOUT).count()) << "ms after "
-                 << tries << " tries.");
-    return BM_TIMEOUT;
-}
-
-int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size, bool write)
+int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size,
+                                   bool write, bool sync)
 {
     if (qpManager_ == nullptr) {
         BM_LOG_ERROR("ReadRemote(): connection manager not created.");
@@ -606,13 +626,14 @@ int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAd
         return BM_ERROR;
     }
 
-    struct send_wr wr = {};
+    struct send_wr_v2 wr = {};
     struct sg_list sgList = {.addr = lAddr, .len = (uint32_t)size, .lkey = 0};
     wr.buf_list = &sgList;
     wr.buf_num = 1; // 此处list只有一个，设置为1
     wr.dst_addr = rAddr;
     wr.op = write ? 0 : 4; /* RDMA_WRITE: 0  RDMA_READ: 4 */
     wr.send_flag = RA_SEND_SIGNALED;
+    wr.wr_id = wrIdx_.fetch_add(1U);
     auto ret = CorrectHostRegWr(rankId, lAddr, rAddr, size, wr);
     if (ret != BM_OK) {
         BM_LOG_ERROR("CorrectHostRegWr failed : " << ret);
@@ -620,7 +641,7 @@ int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAd
     }
 
     send_wr_rsp rspInfo{};
-    ret = DlHccpApi::RaSendWr(qpHandle, &wr, &rspInfo);
+    ret = DlHccpApi::RaSendWrV2(qpHandle, &wr, &rspInfo);
     if (ret != 0) {
         BM_LOG_ERROR("DlHccpApi::RaSendWr(handle, &wr, &opRsp) failed: " << ret);
         return ret;
@@ -635,17 +656,18 @@ int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAd
         return ret;
     }
 
-    ret = stream_->Synchronize();
-    if (ret != BM_OK) {
-        BM_LOG_ERROR("stream_->Synchronize() failed: " << ret);
-        return ret;
+    if (sync) {
+        ret = Synchronize(qpHandle, rankId);
+        if (ret != BM_OK) {
+            BM_LOG_ERROR("Synchronize failed: " << ret);
+            return ret;
+        }
     }
-
-    return PollCq(qpHandle);
+    return BM_OK;
 }
 
-int RdmaTransportManager::GetRegAddress(const MemoryRegionMap &map, uint64_t inputAddr, uint64_t size,
-                                        uint64_t &outputAddr) const
+int RdmaTransportManager::GetRegAddress(const MemoryRegionMap &map, uint64_t inputAddr, uint64_t size, bool isLocal,
+                                        uint64_t &outputAddr, uint32_t &mrKey) const
 {
     auto pos = map.lower_bound(inputAddr);
     if (pos == map.end() || pos->first + pos->second.size < inputAddr + size) {
@@ -659,12 +681,14 @@ int RdmaTransportManager::GetRegAddress(const MemoryRegionMap &map, uint64_t inp
         return BM_INVALID_PARAM;
     }
     outputAddr = pos->second.regAddress + (inputAddr - pos->first);
+    mrKey = (isLocal ? pos->second.lkey : pos->second.rkey);
     return BM_OK;
 }
 
-int RdmaTransportManager::CorrectHostRegWr(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size, send_wr &wr)
+int RdmaTransportManager::CorrectHostRegWr(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size,
+                                           send_wr_v2 &wr)
 {
-    auto ret = GetRegAddress(registerMRS_, lAddr, size, wr.buf_list->addr);
+    auto ret = GetRegAddress(registerMRS_, lAddr, size, true, wr.buf_list->addr, wr.buf_list->lkey);
     if (ret != BM_OK) {
         return ret;
     }
@@ -673,7 +697,7 @@ int RdmaTransportManager::CorrectHostRegWr(uint32_t rankId, uint64_t lAddr, uint
         BM_LOG_ERROR("input rankId: " << rankId << " not found.");
         return BM_INVALID_PARAM;
     }
-    ret = GetRegAddress(it->second, rAddr, size, wr.dst_addr);
+    ret = GetRegAddress(it->second, rAddr, size, false, wr.dst_addr, wr.rkey);
     if (ret != BM_OK) {
         return ret;
     }
@@ -731,6 +755,10 @@ void RdmaTransportManager::OptionsToRankMRs(const HybmTransPrepareOptions &optio
             keyUnion.commonKey = key;
             auto &devKey = keyUnion.deviceKey;
             ranksInfo[node].emplace(devKey.address, devKey);
+
+            if (devKey.notifyAddr != 0ULL) {
+                notifyRemoteInfo_[node] = std::make_pair(devKey.notifyAddr, devKey.notifyRkey);
+            }
         }
     }
 
@@ -748,7 +776,7 @@ void RdmaTransportManager::ConstructSqeNoSinkModeForRdmaDbSendTask(const send_wr
     sqe->header.ie = RT_STARS_SQE_INT_DIR_NO;
     sqe->header.pre_p = RT_STARS_SQE_INT_DIR_NO;
     sqe->header.post_p = RT_STARS_SQE_INT_DIR_NO;
-    sqe->header.wr_cqe = 0; // stream->GetStarsWrCqeFlag();
+    sqe->header.wr_cqe = stream_->GetWqeFlag();
     sqe->header.rt_stream_id = static_cast<uint16_t>(stream_->GetId());
     sqe->header.task_id = taskId;
 
@@ -788,7 +816,89 @@ uint64_t RdmaTransportManager::GetRoceDbAddrForRdmaDbSendTask()
 
     return dbAddr;
 }
-} // namespace device
-} // namespace transport
-} // namespace mf
-} // namespace ock
+
+int32_t RdmaTransportManager::InitStreamNotify()
+{
+    uint32_t notifySize = 4U;
+    uint32_t notifyVal = 1U;
+    uint64_t va;
+    uint64_t size;
+    void *ptr;
+    auto ret = DlHccpApi::RaGetNotifyBaseAddr(rdmaHandle_, &va, &size);
+    BM_ASSERT_LOG_AND_RETURN(ret == 0, "RaGetNotifyBaseAddr failed.", ret);
+
+    notify_ = std::make_shared<HybmStreamNotify>(stream_);
+    BM_ASSERT_LOG_AND_RETURN(notify_ != nullptr, "notify create failed.", BM_ERROR);
+
+    ret = notify_->Init();
+    BM_ASSERT_LOG_AND_RETURN(ret == 0, "notify init failed.", ret);
+
+    HccpMrInfo info;
+    ret = DlHccpApi::RaGetNotifyMrInfo(rdmaHandle_, &info);
+    BM_ASSERT_LOG_AND_RETURN(ret == 0, "get notify mr failed.", ret);
+
+    ret = DlAclApi::AclrtMalloc(&ptr, DEVICE_LARGE_PAGE_SIZE, 0);
+    BM_ASSERT_LOG_AND_RETURN(ret == 0, "alloc notify buf failed.", ret);
+
+    ret = DlAclApi::AclrtMemcpy(ptr, notifySize, &notifyVal, notifySize, ACL_MEMCPY_HOST_TO_DEVICE);
+    BM_ASSERT_LOG_AND_RETURN(ret == 0, "set notify val failed.", ret);
+
+    void *mrHandle = nullptr;
+    HccpMrInfo info2{ptr, DEVICE_LARGE_PAGE_SIZE, RA_ACCESS_NORMAL, 0, 0};
+    ret = DlHccpApi::RaRegisterMR(rdmaHandle_, &info2, mrHandle);
+    if (ret != 0) {
+        BM_LOG_ERROR("register notify mr failed: " << ret);
+        DlAclApi::AclrtFree(ptr);
+        return BM_DL_FUNCTION_FAILED;
+    }
+
+    notifyInfo_.notifyAddr = va + notify_->GetOffset();
+    notifyInfo_.len = notifySize;
+    notifyInfo_.notifyLkey = info.lkey;
+    notifyInfo_.srcAddr = reinterpret_cast<uint64_t>(ptr);
+    notifyInfo_.srcRkey = info2.rkey;
+    BM_LOG_INFO("init notify, addr: " << std::hex << va << " offset:" << notify_->GetOffset() << " len:" << size);
+    return BM_OK;
+}
+
+int32_t RdmaTransportManager::Synchronize(void *qpHandle, uint32_t rankId)
+{
+    BM_LOG_DEBUG("notify, rank: " << rankId);
+
+    auto remoteMr = notifyRemoteInfo_.find(rankId);
+    BM_ASSERT_LOG_AND_RETURN(remoteMr != notifyRemoteInfo_.end(), "remote notify not set! rank:" << rankId, BM_ERROR);
+
+    struct send_wr_v2 wr = {};
+    struct sg_list sgList = {.addr = notifyInfo_.notifyAddr, .len = notifyInfo_.len, .lkey = notifyInfo_.notifyLkey};
+    wr.wr_id = wrIdx_.fetch_add(1U);
+    wr.buf_list = &sgList;
+    wr.buf_num = 1;  // 此处list只有一个，设置为1
+    wr.dst_addr = remoteMr->second.first;
+    wr.rkey = remoteMr->second.second;
+    wr.op = 4; /* RDMA_WRITE: 0  RDMA_READ: 4 */
+    wr.send_flag = RA_SEND_SIGNALED | RA_SEND_FENCE;
+
+    send_wr_rsp rspInfo{};
+    auto ret = DlHccpApi::RaSendWrV2(qpHandle, &wr, &rspInfo);
+    if (ret != 0) {
+        BM_LOG_ERROR("send notify wr failed: " << ret);
+        return ret;
+    }
+
+    StreamTask task;
+    task.type = STREAM_TASK_TYPE_RDMA;
+    ConstructSqeNoSinkModeForRdmaDbSendTask(rspInfo, task.sqe);
+    ret = stream_->SubmitTasks(task);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("stream_->SubmitTasks(task) failed: " << ret);
+        return ret;
+    }
+
+    ret = notify_->Wait();
+    return ret;
+}
+
+}  // namespace device
+}  // namespace transport
+}  // namespace mf
+}  // namespace ock

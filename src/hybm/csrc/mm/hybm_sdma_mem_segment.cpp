@@ -81,7 +81,10 @@ Result MemSegmentHostSDMA::Export(std::string &exInfo) noexcept
 
 Result MemSegmentHostSDMA::Export(const std::shared_ptr<MemSlice> &slice, std::string &exInfo) noexcept
 {
-    BM_ASSERT_LOG_AND_RETURN(options_.shared, "hybm_gvm_get_key requires shared memory", BM_OK);
+    if (!options_.shared) {
+        BM_LOG_INFO("hybm_gvm_get_key requires shared memory, skip");
+        return BM_OK;
+    }
     auto pos = slices_.find(slice->index_);
     if (pos == slices_.end()) {
         BM_LOG_ERROR("input slice(idx:" << slice->index_ << ") not exist.");
@@ -166,7 +169,11 @@ Result MemSegmentHostSDMA::Import(const std::vector<std::string> &allExInfo) noe
 
 Result MemSegmentHostSDMA::Mmap() noexcept
 {
-    BM_ASSERT_LOG_AND_RETURN(options_.shared, "hybm_gvm_mem_open requires shared memory", BM_OK);
+    if (!options_.shared) {
+        BM_LOG_INFO("hybm_gvm_mem_open requires shared memory, skip");
+        return BM_OK;
+    }
+
     if (imports_.empty()) {
         return BM_OK;
     }

@@ -37,6 +37,7 @@ using halResourceConfigFunc = int (*)(uint32_t, struct halResourceIdInputInfo *,
 using halSqCqQueryFunc = int (*)(uint32_t devId, struct halSqCqQueryInfo *info);
 using halHostRegisterFunc = int (*)(void *, uint64_t, uint32_t, uint32_t, void **);
 using halHostUnregisterFunc = int (*)(void *, uint32_t);
+using drvNotifyIdAddrOffsetFunc = int (*)(uint32_t, struct drvNotifyInfo *);
 
 class DlHalApi {
 public:
@@ -166,6 +167,11 @@ public:
         return pHalHostUnregister(srcPtr, devid);
     }
 
+    static inline int DrvNotifyIdAddrOffset(uint32_t deviceId, struct drvNotifyInfo *drvInfo)
+    {
+        return pDrvNotifyIdAddrOffset(deviceId, drvInfo);
+    }
+
 private:
     static std::mutex gMutex;
     static bool gLoaded;
@@ -197,6 +203,7 @@ private:
     static halSqCqQueryFunc pHalSqCqQuery;
     static halHostRegisterFunc pHalHostRegister;
     static halHostUnregisterFunc pHalHostUnregister;
+    static drvNotifyIdAddrOffsetFunc pDrvNotifyIdAddrOffset;
 };
 
 }

@@ -173,7 +173,7 @@ void hybm_unmap(hybm_entity_t e, uint32_t flags);
  * @param addr              [in] register addr
  * @param size              [in] register size
  */
-int32_t hybm_mem_register_into_svsp(uint64_t addr, uint64_t size);
+int32_t hybm_mem_register_into_svsp(hybm_entity_t e, uint64_t addr, uint64_t size);
 
 #ifdef __cplusplus
 }

@@ -15,6 +15,7 @@
 
 #include "hybm_define.h"
 #include "hybm_stream_manager.h"
+#include "hybm_stream_notify.h"
 #include "hybm_transport_manager.h"
 #include "device_chip_info.h"
 #include "device_rdma_common.h"
@@ -43,27 +44,33 @@ public:
     const void *GetQpInfo() const override;
     Result ReadRemote(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size) override;
     Result WriteRemote(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size) override;
+    Result ReadRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size) override;
+    Result WriteRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size) override;
+    Result Synchronize(uint32_t rankId) override;
 
 private:
-    static bool PrepareOpenDevice(uint32_t device, uint32_t rankCount, in_addr &deviceIp, void *&rdmaHandle);
+    static bool PrepareOpenDevice(uint32_t userId, uint32_t device, uint32_t rankCount,
+                                  in_addr &deviceIp, void *&rdmaHandle);
     static bool OpenTsd(uint32_t deviceId, uint32_t rankCount);
     static bool RaInit(uint32_t deviceId);
     static bool RetireDeviceIp(uint32_t deviceId, in_addr &deviceIp);
     static bool RaRdevInit(uint32_t deviceId, in_addr deviceIp, void *&rdmaHandle);
     void ClearAllRegisterMRs();
     int CheckPrepareOptions(const HybmTransPrepareOptions &options);
-    int RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size, bool write);
-    int CorrectHostRegWr(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size, send_wr &wr);
+    int RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size, bool write, bool sync);
+    int CorrectHostRegWr(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size, send_wr_v2 &wr);
     int ConvertHccpMrInfo(const TransportMemoryRegion &mr, HccpMrInfo &info);
     void RecordRegisterMemoryMapping(const TransportMemoryRegion &mr, const HccpMrInfo &info);
     void OptionsToRankMRs(const HybmTransPrepareOptions &options);
     Result WaitQpReady() const;
-    int PollCq(void *qpHandle) const noexcept;
-    int GetRegAddress(const MemoryRegionMap &map, uint64_t inputAddr, uint64_t size, uint64_t &outputAddr) const;
+    int GetRegAddress(const MemoryRegionMap &map, uint64_t inputAddr, uint64_t size, bool isLocal,
+                      uint64_t &outputAddr, uint32_t &mrKey) const;
 
 private: // RDMA HOST STARS
     void ConstructSqeNoSinkModeForRdmaDbSendTask(const send_wr_rsp &rspInfo, rtStarsSqe_t &command);
     uint64_t GetRoceDbAddrForRdmaDbSendTask();
+    int32_t InitStreamNotify();
+    int32_t Synchronize(void *qpHandle, uint32_t rankId);
 
 private:
     bool started_{false};
@@ -79,8 +86,12 @@ private:
     std::unordered_map<uint32_t, MemoryRegionMap> ranksMRs_;
     std::shared_ptr<DeviceQpManager> qpManager_;
     HybmStreamPtr stream_;
+    HybmStreamNotifyPtr notify_;
+    RdmaNotifyInfo notifyInfo_ = {};
+    std::unordered_map<uint32_t, std::pair<uint64_t, uint32_t>> notifyRemoteInfo_;
     std::shared_ptr<DeviceChipInfo> deviceChipInfo_;
     std::map<uint64_t, std::pair<uint64_t, size_t>, std::greater<uint64_t>> hostRegisterMaps_;
+    std::atomic<uint64_t> wrIdx_{0};
 };
 } // namespace device
 } // namespace transport

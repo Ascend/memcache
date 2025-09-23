@@ -76,6 +76,7 @@ struct ra_qp_handle {
     unsigned int psn;
     unsigned int gid_idx;
 };
+
 }
 }
 

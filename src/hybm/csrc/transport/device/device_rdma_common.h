@@ -24,14 +24,16 @@ namespace device {
 
 // 注册内存结果结构体
 struct RegMemResult {
-    uint32_t type;
-    uint32_t reserved{0};
     uint64_t address;
     uint64_t size;
     uint64_t regAddress;
     void *mrHandle;
     uint32_t lkey;
     uint32_t rkey;
+
+    uint32_t type;
+    uint32_t notifyRkey = 0;
+    uint64_t notifyAddr = 0;
 
     RegMemResult() : RegMemResult{0, 0, nullptr, 0, 0} {}
 
@@ -208,6 +210,14 @@ inline std::ostream &operator<<(std::ostream &output, const HccpSocketConnectInf
            << ", port=" << info.port << ")";
     return output;
 }
+
+struct RdmaNotifyInfo {
+    uint64_t srcAddr;
+    uint64_t notifyAddr;
+    uint32_t len;
+    uint32_t srcRkey;
+    uint32_t notifyLkey;
+};
 
 }  // namespace device
 }  // namespace transport

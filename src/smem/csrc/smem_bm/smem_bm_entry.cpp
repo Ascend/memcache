@@ -323,6 +323,12 @@ Result SmemBmEntry::Wait()
     return hybm_wait(entity_);
 }
 
+Result SmemBmEntry::RegisterMem(uint64_t addr, uint64_t size)
+{
+    SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
+    return hybm_mem_register_into_svsp(entity_, addr, size);
+}
+
 Result SmemBmEntry::DataCopyBatch(const void **src, void **dest, const uint32_t *size, uint32_t count,
                                   smem_bm_copy_type t, uint32_t flags)
 {

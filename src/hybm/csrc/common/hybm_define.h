@@ -32,6 +32,7 @@ constexpr uint32_t HCCL_ROOT_INFO_BYTES = 256;  // 4108: root info length
 constexpr uint32_t HCCP_SOCK_CONN_TAG_SIZE = 192;
 constexpr uint32_t HCCP_MAX_INTERFACE_NAME_LEN = 256;
 
+constexpr uint64_t HYBM_HBM_START_ADDR      = 0x0000100000000000UL;
 constexpr uint64_t HYBM_HOST_REG_START_ADDR = 0x0000180000000000UL;
 constexpr uint64_t HYBM_HOST_GVA_START_ADDR = 0x0000200000000000UL; // 32T
 constexpr uint64_t HYBM_GVM_START_ADDR      = 0x0000700000000000UL; // 112T
@@ -44,6 +45,7 @@ constexpr uint64_t SDMA_SLICE_EXPORT_INFO_MAGIC = 0xAABB1234FFFFEE03UL;
 constexpr uint64_t EXPORT_INFO_VERSION = 0x1UL;
 
 enum DeviceSystemInfoType {
+    INFO_TYPE_VERSION = 1,
     INFO_TYPE_PHY_CHIP_ID = 18,
     INFO_TYPE_PHY_DIE_ID,
     INFO_TYPE_SDID = 26,
@@ -79,6 +81,7 @@ struct HccpRaInitConfig {
     uint32_t phyId;       /**< physical device id */
     uint32_t nicPosition; /**< reference to HccpNetworkMode */
     int hdcType;          /**< reference to drvHdcServiceType */
+    bool enable_hdc_async; /**< true will init an extra HDC session for async APIs */
 };
 
 /**
@@ -116,6 +119,7 @@ enum HccpMrAccessFlags {
     RA_ACCESS_LOCAL_WRITE = 1,         /**< mr local write access */
     RA_ACCESS_REMOTE_WRITE = (1 << 1), /**< mr remote write access */
     RA_ACCESS_REMOTE_READ = (1 << 2),  /**< mr remote read access */
+    RA_ACCESS_NORMAL = 7, // RA_ACCESS_LOCAL_WRITE | RA_ACCESS_REMOTE_WRITE | RA_ACCESS_REMOTE_READ
     RA_ACCESS_REDUCE = (1 << 8),
 };
 
@@ -429,6 +433,31 @@ struct send_wr {
     uint32_t rkey;            /**< remote address access key */
     uint32_t op;              /**< operations of RDMA supported:RDMA_WRITE:0 */
     int send_flag;            /**< reference to ra_send_flags */
+};
+
+struct wr_aux_info {
+    uint8_t data_type;
+    uint8_t reduce_type;
+    uint32_t notify_offset;
+};
+
+struct wr_ext_info {
+    uint32_t imm_data;
+    uint16_t resv;
+};
+
+struct send_wr_v2 {
+    uint64_t wr_id; /**< user assigned work request ID */
+    struct sg_list *buf_list; /**< list of sg */
+    uint16_t buf_num; /**< num of buf_list */
+    uint64_t dst_addr; /**< destination address */
+    uint32_t rkey;     /**< remote address access key */
+    uint32_t op; /**< operations of RDMA supported:RDMA_WRITE:0 */
+    int send_flag; /**< reference to ra_send_flags */
+    union {
+        struct wr_aux_info aux; /**< aux info */
+        struct wr_ext_info ext; /**< ext info */
+    };
 };
 
 /**

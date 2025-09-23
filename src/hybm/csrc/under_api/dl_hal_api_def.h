@@ -155,6 +155,12 @@ struct halResourceIdOutputInfo {
     uint32_t res[RESOURCEID_RESV_LENGTH];
 };
 
+struct drvNotifyInfo {
+    uint32_t tsId;
+    uint32_t notifyId;
+    uint64_t devAddrOffset;
+};
+
 constexpr uint32_t RT_MILAN_MAX_QUERY_CQE_NUM = 32U;
 
 /**

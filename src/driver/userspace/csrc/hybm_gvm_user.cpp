@@ -117,6 +117,12 @@ int32_t hybm_gvm_get_device_info(uint32_t *ssid)
         return HYBM_GVM_FAILURE;
     }
 
+    if ((g_sdid >> GVM_SDID_SERVER_OFFSET) == GVM_SDID_UNKNOWN_SERVER_ID) {
+        BM_USER_LOG_INFO("found A2 server, return zero!");
+        *ssid = 0;
+        return HYBM_GVM_SUCCESS;
+    }
+    
     if (ssid == nullptr) {
         BM_USER_LOG_ERROR("input is nullptr");
         return HYBM_GVM_FAILURE;
@@ -151,6 +157,11 @@ int32_t hybm_gvm_unreserve_memory()
 
 int32_t hybm_gvm_mem_fetch(uint64_t addr, uint64_t size, uint32_t sdid)
 {
+    if ((g_sdid >> GVM_SDID_SERVER_OFFSET) == GVM_SDID_UNKNOWN_SERVER_ID) {
+        BM_USER_LOG_INFO("found A2 server, skip fetch mem!");
+        return HYBM_GVM_SUCCESS;
+    }
+
     int ret;
     struct hybm_gvm_ioctl_arg arg = {};
     if (g_hybm_fd < 0) {
@@ -184,6 +195,12 @@ int32_t hybm_gvm_mem_fetch(uint64_t addr, uint64_t size, uint32_t sdid)
 
 int32_t hybm_gvm_mem_register(uint64_t addr, uint64_t size)
 {
+    if ((g_sdid >> GVM_SDID_SERVER_OFFSET) == GVM_SDID_UNKNOWN_SERVER_ID) {
+        BM_USER_LOG_INFO("found A2 server, skip register mem!");
+        HybmGvmVirPageManager::Instance()->UpdateRegisterMap(addr, size);
+        return HYBM_GVM_SUCCESS;
+    }
+
     int ret;
     struct hybm_gvm_ioctl_arg arg = {};
     if (g_hybm_fd < 0) {
@@ -273,7 +290,7 @@ int32_t hybm_gvm_mem_free(uint64_t addr)
 int32_t hybm_gvm_get_key(uint64_t addr, uint64_t *key)
 {
     if ((g_sdid >> GVM_SDID_SERVER_OFFSET) == GVM_SDID_UNKNOWN_SERVER_ID) {
-        BM_USER_LOG_ERROR("found A2 server, skip get key!");
+        BM_USER_LOG_INFO("found A2 server, skip get key!");
         return HYBM_GVM_SUCCESS;
     }
 
@@ -301,7 +318,7 @@ int32_t hybm_gvm_get_key(uint64_t addr, uint64_t *key)
 int32_t hybm_gvm_set_whitelist(uint64_t key, uint32_t sdid)
 {
     if ((g_sdid >> GVM_SDID_SERVER_OFFSET) == GVM_SDID_UNKNOWN_SERVER_ID) {
-        BM_USER_LOG_ERROR("found A2 server, skip set wl!");
+        BM_USER_LOG_INFO("found A2 server, skip set wl!");
         return HYBM_GVM_SUCCESS;
     }
 
@@ -330,7 +347,7 @@ int32_t hybm_gvm_set_whitelist(uint64_t key, uint32_t sdid)
 int32_t hybm_gvm_mem_open(uint64_t addr, uint64_t key)
 {
     if ((g_sdid >> GVM_SDID_SERVER_OFFSET) == GVM_SDID_UNKNOWN_SERVER_ID) {
-        BM_USER_LOG_ERROR("found A2 server, skip open!");
+        BM_USER_LOG_INFO("found A2 server, skip open!");
         return HYBM_GVM_SUCCESS;
     }
 
@@ -359,7 +376,7 @@ int32_t hybm_gvm_mem_open(uint64_t addr, uint64_t key)
 int32_t hybm_gvm_mem_close(uint64_t addr)
 {
     if ((g_sdid >> GVM_SDID_SERVER_OFFSET) == GVM_SDID_UNKNOWN_SERVER_ID) {
-        BM_USER_LOG_ERROR("found A2 server, skip close!");
+        BM_USER_LOG_INFO("found A2 server, skip close!");
         return HYBM_GVM_SUCCESS;
     }
 

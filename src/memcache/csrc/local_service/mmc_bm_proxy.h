@@ -54,6 +54,7 @@ public:
     Result Get(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
     Result BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
     Result BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
+    Result RegisterBuffer(uint64_t addr, uint64_t size);
 
     Result CopyWait();
 

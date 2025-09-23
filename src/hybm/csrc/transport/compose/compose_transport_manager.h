@@ -58,6 +58,12 @@ public:
 
     Result WriteRemote(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size) override;
 
+    Result ReadRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size) override;
+
+    Result WriteRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size) override;
+
+    Result Synchronize(uint32_t rankId) override;
+
 private:
     Result OpenHostTransport(const TransportOptions &options);
 

@@ -89,6 +89,12 @@ public:
     virtual Result ReadRemote(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size) = 0;
 
     virtual Result WriteRemote(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size) = 0;
+
+    virtual Result ReadRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size) = 0;
+
+    virtual Result WriteRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size) = 0;
+
+    virtual Result Synchronize(uint32_t rankId) = 0;
 };
 
 using TransManagerPtr = std::shared_ptr<TransportManager>;

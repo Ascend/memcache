@@ -602,7 +602,7 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
 
 Result MmcClientDefault::RegisterBuffer(uint64_t addr, uint64_t size)
 {
-    auto ret = smem_bm_register_into_svsp(addr, size);
+    auto ret = bmProxy_->RegisterBuffer(addr, size);
     if (ret == MMC_OK) {
         UpdateRegisterMap(addr, size);
     }
@@ -635,6 +635,10 @@ bool MmcClientDefault::QueryInRegisterMap(const mmc_buffer &buf)
 
 int32_t MmcClientDefault::SelectTransportType(const mmc_buffer &buf)
 {
+    if (bmProxy_->GetDataOpType() == "device_rdma") { // device RDMA暂不支持异步
+        return MMC_BATCH_TRANSPORT;
+    }
+
     if (QueryInRegisterMap(buf) || buf.dimType == 1 || bmProxy_->GetDataOpType() == "host_rdma") {
         return MMC_ASYNC_TRANSPORT;
     }

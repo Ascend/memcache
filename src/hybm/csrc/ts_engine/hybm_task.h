@@ -10,8 +10,13 @@
 namespace ock {
 namespace mf {
 
+constexpr uint8_t RT_STARS_SQE_TYPE_NOTIFY_RECORD = 6U;
+constexpr uint8_t RT_STARS_SQE_TYPE_NOTIFY_WAIT = 7U;
+constexpr uint8_t RT_STARS_SQE_TYPE_WRITE_VALUE = 8U;
 constexpr uint8_t RT_STARS_SQE_TYPE_SDMA = 11U;
+
 constexpr uint8_t RT_STARS_DEFAULT_KERNEL_CREDIT = 254U;
+constexpr uint8_t RT_STARS_NEVER_TIMEOUT_KERNEL_CREDIT = 255U;
 constexpr uint32_t UINT32_BIT_NUM = 32U;
 constexpr uint32_t MASK_17_BIT = 0x0001FFFFU;
 constexpr uint32_t MASK_32_BIT = 0xFFFFFFFFU;
@@ -29,6 +34,7 @@ enum RtStarsSqeIntDirType {
 enum StreamTaskType : uint32_t {
     STREAM_TASK_TYPE_SDMA = 1,
     STREAM_TASK_TYPE_RDMA = 2,
+    STREAM_TASK_TYPE_NOTIFY = 3,
 };
 
 #pragma pack(push)
@@ -129,11 +135,25 @@ struct rtStarsWriteValueSqe_t {
     uint32_t write_value_part7;
 };
 
+struct rtStarsNotifySqe_t {
+    rtStarsSqeHeader_t header;
+
+    uint32_t notify_id : 13;
+    uint32_t res2 : 19;
+
+    uint16_t res3;
+    uint8_t kernel_credit;
+    uint8_t res4;
+    uint32_t timeout;
+    uint32_t res5[11];
+};
+
 #pragma pack(pop)
 
 union rtStarsSqe_t {
     rtStarsMemcpyAsyncSqe_t memcpyAsyncSqe;
     rtStarsWriteValueSqe_t writeValueSqe;
+    rtStarsNotifySqe_t notifySqe;
 };
 
 struct StreamTask {

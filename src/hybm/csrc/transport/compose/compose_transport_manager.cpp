@@ -327,6 +327,24 @@ Result ComposeTransportManager::WriteRemote(uint32_t rankId, uint64_t lAddr, uin
     return transport->WriteRemote(rankId, lAddr, rAddr, size);
 }
 
+Result ComposeTransportManager::ReadRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size)
+{
+    BM_LOG_ERROR("not support ReadRemoteAsync!");
+    return BM_ERROR;
+}
+
+Result ComposeTransportManager::WriteRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size)
+{
+    BM_LOG_ERROR("not support WriteRemoteAsync!");
+    return BM_ERROR;
+}
+
+Result ComposeTransportManager::Synchronize(uint32_t rankId)
+{
+    BM_LOG_ERROR("not support Synchronize!");
+    return BM_ERROR;
+}
+
 std::shared_ptr<TransportManager> ComposeTransportManager::GetTransportFromType(TransportType type)
 {
     switch (type) {

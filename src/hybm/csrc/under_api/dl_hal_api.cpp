@@ -42,6 +42,7 @@ halResourceConfigFunc DlHalApi::pHalResourceConfig = nullptr;
 halSqCqQueryFunc DlHalApi::pHalSqCqQuery = nullptr;
 halHostRegisterFunc DlHalApi::pHalHostRegister = nullptr;
 halHostUnregisterFunc DlHalApi::pHalHostUnregister = nullptr;
+drvNotifyIdAddrOffsetFunc DlHalApi::pDrvNotifyIdAddrOffset = nullptr;
 
 Result DlHalApi::LoadLibrary()
 {
@@ -89,6 +90,7 @@ Result DlHalApi::LoadLibrary()
     DL_LOAD_SYM(pHalSqCqQuery, halSqCqQueryFunc, halHandle, "halSqCqQuery");
     DL_LOAD_SYM(pHalHostRegister, halHostRegisterFunc, halHandle, "halHostRegister");
     DL_LOAD_SYM(pHalHostUnregister, halHostUnregisterFunc, halHandle, "halHostUnregister");
+    DL_LOAD_SYM(pDrvNotifyIdAddrOffset, drvNotifyIdAddrOffsetFunc, halHandle, "drvNotifyIdAddrOffset");
 
     gLoaded = true;
     return BM_OK;

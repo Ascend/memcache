@@ -180,7 +180,7 @@ int32_t smem_bm_wait(smem_bm_t handle);
  * @param addr              [in] register addr
  * @param size              [in] register size
  */
-int32_t smem_bm_register_into_svsp(uint64_t addr, uint64_t size);
+int32_t smem_bm_register_into_svsp(smem_bm_t handle, uint64_t addr, uint64_t size);
 
 #ifdef __cplusplus
 }

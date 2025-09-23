@@ -13,11 +13,12 @@ namespace transport {
 namespace device {
 constexpr int MR_INFO_ACCESS = 7;
 constexpr int WAIT_TIME_MS = 300;
-JoinableRanksQpManager::JoinableRanksQpManager(uint32_t deviceId, uint32_t rankId, uint32_t rankCount,
-                                               sockaddr_in devNet) noexcept
+JoinableRanksQpManager::JoinableRanksQpManager(uint32_t userDeviceId, uint32_t deviceId, uint32_t rankId,
+                                               uint32_t rankCount, sockaddr_in devNet) noexcept
     : DeviceQpManager(deviceId, rankId, rankCount, devNet, HYBM_ROLE_PEER)
 {
     connections_.resize(rankCount);
+    userDeviceId_ = userDeviceId;
 }
 
 JoinableRanksQpManager::~JoinableRanksQpManager() noexcept
@@ -182,7 +183,7 @@ int JoinableRanksQpManager::StartClientSide() noexcept
 
 void JoinableRanksQpManager::ServerSideRunLoop() noexcept
 {
-    DlAclApi::AclrtSetDevice(deviceId_);
+    DlAclApi::AclrtSetDevice(userDeviceId_);
 
     while (running_) {
         std::unique_lock<std::mutex> uniqueLock{mutex_};
@@ -220,7 +221,7 @@ void JoinableRanksQpManager::ServerSideRunLoop() noexcept
 
 void JoinableRanksQpManager::ClientSideRunLoop() noexcept
 {
-    DlAclApi::AclrtSetDevice(deviceId_);
+    DlAclApi::AclrtSetDevice(userDeviceId_);
     while (running_) {
         std::unique_lock<std::mutex> uniqueLock{mutex_};
         cond_.wait_for(uniqueLock, std::chrono::milliseconds(WAIT_TIME_MS));
@@ -324,16 +325,9 @@ void JoinableRanksQpManager::MakeQpConnections(const std::set<uint32_t> &newRank
         }
         if (connections_[rankId].qpHandle == nullptr) {
             void *qpHandle = nullptr;
-            auto ret = DlHccpApi::RaQpCreate(rdmaHandle_, 0, 2, qpHandle);
+            auto ret = DlHccpApi::RaQpCreate(rdmaHandle_, 0, 4, qpHandle);
             if (ret != 0) {
                 BM_LOG_ERROR("create QP to " << rankId << " failed: " << ret);
-                continue;
-            }
-
-            ret = RegisterLocalMrToQpHandle(qpHandle);
-            if (ret != 0) {
-                BM_LOG_ERROR("RegisterLocalMrToQpHandle QP to " << rankId << " failed: " << ret);
-                DlHccpApi::RaQpDestroy(qpHandle);
                 continue;
             }
 

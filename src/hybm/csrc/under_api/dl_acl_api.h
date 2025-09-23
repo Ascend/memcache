@@ -32,6 +32,7 @@ using rtSetIpcMemorySuperPodPidFunc = int32_t (*)(const char *, uint32_t, int32_
 using rtIpcDestroyMemoryNameFunc = int32_t (*)(const char *);
 using rtEnableP2PFunc = int32_t (*)(uint32_t, uint32_t, uint32_t);
 using rtDisableP2PFunc = int32_t (*)(uint32_t, uint32_t);
+using rtGetLogicDevIdByUserDevIdFunc = int32_t (*)(const int32_t, int32_t *const);
 
 class DlAclApi {
 public:
@@ -217,6 +218,14 @@ public:
         return pRtDisableP2P(devIdDes, phyIdSrc);
     }
 
+    static inline Result RtGetLogicDevIdByUserDevId(const int32_t userDevId, int32_t * const logicDevId)
+    {
+        if (pRtGetLogicDevIdByUserDevId == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pRtGetLogicDevIdByUserDevId(userDevId, logicDevId);
+    }
+
 private:
     static std::mutex gMutex;
     static bool gLoaded;
@@ -245,6 +254,7 @@ private:
     static rtIpcDestroyMemoryNameFunc pRtIpcDestroyMemoryName;
     static rtEnableP2PFunc pRtEnableP2P;
     static rtDisableP2PFunc pRtDisableP2P;
+    static rtGetLogicDevIdByUserDevIdFunc pRtGetLogicDevIdByUserDevId;
 };
 }
 }

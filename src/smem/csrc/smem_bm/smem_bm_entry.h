@@ -54,6 +54,8 @@ public:
 
     Result Wait();
 
+    Result RegisterMem(uint64_t addr, uint64_t size);
+
     uint32_t Id() const;
 
     const hybm_options &GetCoreOptions() const;

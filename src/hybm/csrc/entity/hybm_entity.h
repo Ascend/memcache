@@ -51,6 +51,8 @@ public:
                                   void *stream, uint32_t flags) noexcept = 0;
     virtual int32_t Wait() noexcept = 0;
 
+    virtual int32_t RegisterMem(uint64_t addr, uint64_t size) noexcept = 0;
+
     virtual ~MemEntity() noexcept = default;
 };
 

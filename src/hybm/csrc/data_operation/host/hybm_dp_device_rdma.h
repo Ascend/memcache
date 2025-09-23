@@ -49,6 +49,16 @@ private:
     int32_t CopyLD2LH(const void *srcVA, void *destVA, uint64_t length, const ExtOptions &options) noexcept;
     int32_t CopyRDMA(const void *srcVA, void *destVA, uint64_t length, const ExtOptions &options) noexcept;
 
+    int32_t BatchCopyLH2GD(hybm_batch_copy_params &params, const ExtOptions &options) noexcept;
+    int32_t BatchCopyGD2LH(hybm_batch_copy_params &params, const ExtOptions &options) noexcept;
+    int32_t BatchCopyLD2GD(hybm_batch_copy_params &params, const ExtOptions &options) noexcept;
+    int32_t BatchCopyLD2GH(hybm_batch_copy_params &params, const ExtOptions &options) noexcept;
+    int32_t BatchCopyGH2LD(hybm_batch_copy_params &params, const ExtOptions &options) noexcept;
+    int32_t BatchCopyGD2LD(hybm_batch_copy_params &params, const ExtOptions &options) noexcept;
+
+    int32_t BatchDataCopyDefault(hybm_batch_copy_params &params, hybm_data_copy_direction direction,
+                                const ExtOptions &options) noexcept;
+
     int32_t AllocSwapMemory();
     void FreeSwapMemory();
 

@@ -26,6 +26,9 @@ public:
     int Synchronize(uint32_t task = UINT32_MAX) noexcept;
 
     uint32_t GetId() const;
+    uint32_t GetDevId() const;
+    uint32_t GetTsId() const;
+    bool GetWqeFlag() const;
 
 private:
     int32_t AllocStreamId();
@@ -50,12 +53,28 @@ private:
     uint32_t sqTail_{0};
     std::atomic<int64_t> runningTaskCount_{0};
     std::vector<StreamTask> taskList_;
+    bool wqeFlag_ = false;
     bool inited_ = false;
 };
 
 inline uint32_t HybmStream::GetId() const
 {
     return streamId_;
+}
+
+inline uint32_t HybmStream::GetDevId() const
+{
+    return deviceId_;
+}
+
+inline uint32_t HybmStream::GetTsId() const
+{
+    return tsId_;
+}
+
+inline bool HybmStream::GetWqeFlag() const
+{
+    return wqeFlag_;
 }
 
 inline bool HybmStream::TaskInRange(uint32_t task) const
