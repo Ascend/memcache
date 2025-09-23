@@ -232,9 +232,10 @@ static int32_t hybm_init_hbm_gva(uint16_t deviceId, uint64_t flags)
         ret = hybm_gvm_init(initedLogicDeviceId);
         if (ret != 0) {
             BM_LOG_ERROR("init hybm gvm failed: " << ret);
-            return BM_ERROR;
+            initedGvm = false;
+        } else {
+            initedGvm = true;
         }
-        initedGvm = true;
     } else {
         initedGvm = false;
     }

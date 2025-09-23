@@ -46,15 +46,9 @@ Result HcomTransportManager::OpenDevice(const TransportOptions &options)
                                                             << " ret: " << ret);
         return BM_DL_FUNCTION_FAILED;
     }
-    if (options.tlsOption.tlsEnable) {
-        tlsConfig_ = options.tlsOption;
-        DlHcomApi::ServiceSetTlsOptions(rpcService_, true, C_SERVICE_TLS_1_3, C_SERVICE_AES_GCM_256,
-            GetCertCallBack, GetPrivateKeyCallBack, GetCACallBack);
-    } else {
-        tlsConfig_ = options.tlsOption;
-        DlHcomApi::ServiceSetTlsOptions(rpcService_, false, C_SERVICE_TLS_1_3, C_SERVICE_AES_GCM_256,
-                                        nullptr, nullptr, nullptr);
-    }
+    tlsConfig_ = options.tlsOption;
+    DlHcomApi::ServiceSetTlsOptions(rpcService_, options.tlsOption.tlsEnable, C_SERVICE_TLS_1_3, C_SERVICE_AES_GCM_256,
+        GetCertCallBack, GetPrivateKeyCallBack, GetCACallBack);
 
     DlHcomApi::ServiceSetSendQueueSize(rpcService_, HCOM_SEND_QUEUE_SIZE);
     DlHcomApi::ServiceSetRecvQueueSize(rpcService_, HCOM_RECV_QUEUE_SIZE);
@@ -419,7 +413,7 @@ Result HcomTransportManager::CheckTransportOptions(const TransportOptions &optio
         return ret;
     }
     const auto hcomAutoPort = basePort + options.rankId;
-    BM_LOG_INFO("hcom base port: " << basePort << ", hcom auto port with rank :" << hcomAutoPort);
+    BM_LOG_INFO("hcom base port: " << basePort << ", hcom auto port with rank: " << hcomAutoPort);
     localNic_ = protocol + localIp_ + ":" + std::to_string(hcomAutoPort);
     return BM_OK;
 }
