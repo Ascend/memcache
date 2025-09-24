@@ -56,20 +56,14 @@ Result RdmaTransportManager::OpenDevice(const TransportOptions &options)
 
     BM_LOG_DEBUG("begin to open device with " << options);
     auto ret = DlAclApi::AclrtGetDevice(&userId);
-    if (ret != 0 || userId < 0) {
-        BM_LOG_ERROR("AclrtGetDevice() return=" << ret << ", output deviceId=" << userId);
-        return BM_DL_FUNCTION_FAILED;
-    }
+    BM_ASSERT_LOG_AND_RETURN(ret == 0 && userId >= 0,
+        "AclrtGetDevice() return=" << ret << ", output deviceId=" << userId, BM_DL_FUNCTION_FAILED);
 
     ret = DlAclApi::RtGetLogicDevIdByUserDevId(userId, &logicId);
-    if (ret != 0 || logicId < 0) {
-        BM_LOG_ERROR("RtGetLogicDevIdByUserDevId() return=" << ret << ", output deviceId=" << logicId);
-        return BM_DL_FUNCTION_FAILED;
-    }
+    BM_ASSERT_LOG_AND_RETURN(ret == 0 && logicId >= 0,
+        "RtGetLogicDevIdByUserDevId() return=" << ret << ", output deviceId=" << logicId, BM_DL_FUNCTION_FAILED);
 
-    BM_LOG_DEBUG("AclrtGetDevice() = " << logicId);
     deviceId_ = static_cast<uint32_t>(logicId);
-
     rankId_ = options.rankId;
     rankCount_ = options.rankCount;
     role_ = options.role;
@@ -109,6 +103,7 @@ Result RdmaTransportManager::OpenDevice(const TransportOptions &options)
     ret = InitStreamNotify();
     BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "init notify failed.", ret);
 
+    ranksMRs_.resize(rankCount_);
     BM_LOG_INFO("open device with " << options << " success.");
     return BM_OK;
 }
@@ -246,12 +241,17 @@ Result RdmaTransportManager::RemoveRanks(const std::vector<uint32_t> &removedRan
     std::unordered_set<uint32_t> ranksSet;
     std::unordered_map<uint32_t, MemoryRegionMap> removedRankRegions;
     for (auto rank : removedRanks) {
-        auto pos = ranksMRs_.find(rank);
-        if (pos != ranksMRs_.end()) {
-            ranksSet.emplace(rank);
-            removedRankRegions.emplace(pos->first, pos->second);
-            ranksMRs_.erase(pos);
+        if (rank >= rankCount_) {
+            BM_LOG_ERROR("input rank is large than world size! rk:" << rank << " world_size:" << rankCount_);
+            continue;
         }
+        auto &pos = ranksMRs_[rank];
+        if (!pos.empty()) {
+            ranksSet.emplace(rank);
+            removedRankRegions.emplace(rank, pos);
+            pos.clear();
+        }
+        notifyRemoteInfo_[rank] = std::make_pair(0U, 0U);
     }
 
     if (ranksSet.empty()) {
@@ -308,8 +308,10 @@ Result RdmaTransportManager::WaitForConnected(int64_t timeoutNs)
 Result RdmaTransportManager::WaitQpReady() const
 {
     std::vector<uint32_t> rankIds;
-    for (auto it = ranksMRs_.begin(); it != ranksMRs_.end(); ++it) {
-        rankIds.emplace_back(it->first);
+    for (uint32_t i = 0; i < rankCount_; i++) {
+        if (!ranksMRs_[i].empty()) {
+            rankIds.emplace_back(i);
+        }
     }
 
     auto timeout = QP_READY_CHECK_TIMEOUT_BASE + QP_READY_CHECK_TIMEOUT_PER_RANK * rankIds.size();
@@ -686,12 +688,12 @@ int RdmaTransportManager::CorrectHostRegWr(uint32_t rankId, uint64_t lAddr, uint
     if (ret != BM_OK) {
         return ret;
     }
-    auto it = ranksMRs_.find(rankId);
-    if (it == ranksMRs_.end()) {
+    auto &it = ranksMRs_[rankId];
+    if (it.empty()) {
         BM_LOG_ERROR("input rankId: " << rankId << " not found.");
         return BM_INVALID_PARAM;
     }
-    ret = GetRegAddress(it->second, rAddr, size, false, wr.dst_addr, wr.rkey);
+    ret = GetRegAddress(it, rAddr, size, false, wr.dst_addr, wr.rkey);
     if (ret != BM_OK) {
         return ret;
     }
@@ -735,22 +737,29 @@ void RdmaTransportManager::RecordRegisterMemoryMapping(const TransportMemoryRegi
 
 void RdmaTransportManager::OptionsToRankMRs(const HybmTransPrepareOptions &options)
 {
-    std::unordered_map<uint32_t, MemoryRegionMap> ranksInfo;
     RegMemKeyUnion keyUnion{};
     for (auto it = options.options.begin(); it != options.options.end(); ++it) {
         auto node = it->first;
+        if (node >= rankCount_) {
+            BM_LOG_ERROR("input rank is large than world size! rk:" << node << " world_size:" << rankCount_);
+            continue;
+        }
+
+        auto &pos = ranksMRs_[node];
+        if (!pos.empty()) {
+            continue;
+        }
+
         for (auto &key : it->second.memKeys) {
             keyUnion.commonKey = key;
             auto &devKey = keyUnion.deviceKey;
-            ranksInfo[node].emplace(devKey.address, devKey);
+            pos.emplace(devKey.address, devKey);
 
             if (devKey.notifyAddr != 0ULL) {
                 notifyRemoteInfo_[node] = std::make_pair(devKey.notifyAddr, devKey.notifyRkey);
             }
         }
     }
-
-    ranksMRs_ = std::move(ranksInfo);
 }
 
 void RdmaTransportManager::ConstructSqeNoSinkModeForRdmaDbSendTask(const send_wr_rsp &rspInfo, rtStarsSqe_t &command)
@@ -845,6 +854,11 @@ int32_t RdmaTransportManager::InitStreamNotify()
     notifyInfo_.notifyLkey = info.lkey;
     notifyInfo_.srcAddr = reinterpret_cast<uint64_t>(ptr);
     notifyInfo_.srcRkey = info2.rkey;
+
+    notifyRemoteInfo_.resize(rankCount_);
+    for (uint32_t i = 0; i < rankCount_; i++) {
+        notifyRemoteInfo_[i] = std::make_pair(0U, 0U);
+    }
     BM_LOG_INFO("init notify, offset:" << notify_->GetOffset() << " len:" << size);
     return BM_OK;
 }
@@ -852,17 +866,16 @@ int32_t RdmaTransportManager::InitStreamNotify()
 int32_t RdmaTransportManager::Synchronize(void *qpHandle, uint32_t rankId)
 {
     BM_LOG_DEBUG("notify, rank: " << rankId);
-
-    auto remoteMr = notifyRemoteInfo_.find(rankId);
-    BM_ASSERT_LOG_AND_RETURN(remoteMr != notifyRemoteInfo_.end(), "remote notify not set! rank:" << rankId, BM_ERROR);
+    auto &remoteMr = notifyRemoteInfo_[rankId];
+    BM_ASSERT_LOG_AND_RETURN(remoteMr.second != 0, "remote notify not set! rank:" << rankId, BM_ERROR);
 
     struct send_wr_v2 wr = {};
     struct sg_list sgList = {.addr = notifyInfo_.notifyAddr, .len = notifyInfo_.len, .lkey = notifyInfo_.notifyLkey};
     wr.wr_id = wrIdx_.fetch_add(1U);
     wr.buf_list = &sgList;
     wr.buf_num = 1;  // 此处list只有一个，设置为1
-    wr.dst_addr = remoteMr->second.first;
-    wr.rkey = remoteMr->second.second;
+    wr.dst_addr = remoteMr.first;
+    wr.rkey = remoteMr.second;
     wr.op = 4; /* RDMA_WRITE: 0  RDMA_READ: 4 */
     wr.send_flag = RA_SEND_SIGNALED | RA_SEND_FENCE;
 

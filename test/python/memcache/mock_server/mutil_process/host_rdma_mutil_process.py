@@ -9,10 +9,12 @@ import torch_npu
 from memcache import DistributedObjectStore
 
 process_count: int = 8
-one_batch_count: int = 10
-call_count: int = 1024
-size1 = [64 * 1024 for _ in range(64)]
-size2 = [64 * 1024 for _ in range(64)]
+one_batch_count: int = 16
+call_count: int = 64
+test_times: int = 8
+size1 = [16 * 1024 for _ in range(61)]
+size2 = [128 * 1024 for _ in range(61)]
+upper_layer: int = 128
 size = size1 + size2
 key_prefix: str = "key_"
 IS_2D = False
@@ -56,12 +58,12 @@ def batch_malloc_tensor(count: int, tesor_size: list, need_2d: bool = False):
     buffs = []
     sizes = []
     for _ in range(count):
-        tensor = malloc_tensor(layer_num=layer, mini_block_size=max(tesor_size, default=0), device='npu')
+        tensor = malloc_tensor(layer_num=upper_layer, mini_block_size=max(tesor_size, default=0), device='npu')
         tensors.append(tensor)
         buff = [] if tensor is None else [layer.data_ptr() for layer in tensor]
         if not need_2d:
             buff[0], buff[-1] = buff[-1], buff[0]
-        buffs.append(buff)
+        buffs.append(buff[:layer])
         sizes.append(size)
     return tensors, buffs, sizes
 
@@ -76,7 +78,7 @@ def write_worker(device_id: int):
         raise f"Failed to start pid:{os.getpid()} deviceId:{device_id}"
     print(f"==== Success to init device:{device_id}")
     for i in range(one_batch_count):
-        store.register_buffer(tensors[i].data_ptr(), max(size, default=0) * len(size))
+        store.register_buffer(tensors[i].data_ptr(), max(size, default=0) * upper_layer)
     for i in range(call_count):
         keys = []
         for j in range(one_batch_count):
@@ -97,16 +99,17 @@ def read_worker(device_id: int):
     res = store.init(device_id)
     if res != 0:
         raise f"Failed to start pid:{os.getpid()} deviceId:{device_id}"
-    print("==== Success to init device:{device_id}")
+    print(f"==== Success to init device:{device_id}")
     for i in range(one_batch_count):
-        store.register_buffer(tensors[i].data_ptr(), max(size, default=0) * len(size))
-    for i in range(call_count):
-        keys = []
-        for j in range(one_batch_count):
-            key = key_prefix + str(device_id) + '_' + str(i) + '_' + str(j)
-            keys.append(key)
-        ret = store.batch_get_into_layers(keys, buffs, sizes, 1)
-        for j in range(one_batch_count):
-            print(f"==== key({keys[j]}) res({ret[j]}) sum({tensor_sum(tensors[j], sizes[j])})")
+        store.register_buffer(tensors[i].data_ptr(), max(size, default=0) * upper_layer)
+    for _ in range(test_times):
+        for i in range(call_count):
+            keys = []
+            for j in range(one_batch_count):
+                key = key_prefix + str(device_id) + '_' + str(i) + '_' + str(j)
+                keys.append(key)
+            ret = store.batch_get_into_layers(keys, buffs, sizes, 1)
+            for j in range(one_batch_count):
+                print(f"==== key({keys[j]}) res({ret[j]}) sum({tensor_sum(tensors[j], sizes[j])})")
     print(f"==== npu:{device_id} 结束 wait......")
     sleep(30 * 60)

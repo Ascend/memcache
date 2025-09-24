@@ -175,12 +175,12 @@ int32_t smem_bm_copy_batch(smem_bm_t handle, smem_batch_copy_params *params, sme
 int32_t smem_bm_wait(smem_bm_t handle);
 
 /**
- * @brief register into svsp, support sdma
+ * @brief register hbm mem, support sdma or drma
  *
  * @param addr              [in] register addr
  * @param size              [in] register size
  */
-int32_t smem_bm_register_into_svsp(smem_bm_t handle, uint64_t addr, uint64_t size);
+int32_t smem_bm_register_user_mem(smem_bm_t handle, uint64_t addr, uint64_t size);
 
 #ifdef __cplusplus
 }

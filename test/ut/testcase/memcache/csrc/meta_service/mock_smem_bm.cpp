@@ -92,7 +92,7 @@ int32_t smem_bm_copy_2d(smem_bm_t handle, const void *src, uint64_t spitch,
     return 0;
 }
 
-int32_t smem_bm_register_into_svsp(smem_bm_t handle, uint64_t addr, uint64_t size)
+int32_t smem_bm_register_user_mem(smem_bm_t handle, uint64_t addr, uint64_t size)
 {
     return 0;
 }

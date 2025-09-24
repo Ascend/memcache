@@ -168,12 +168,12 @@ int32_t hybm_set_extra_context(hybm_entity_t e, const void *context, uint32_t si
 void hybm_unmap(hybm_entity_t e, uint32_t flags);
 
 /**
- * @brief register into svsp, support sdma
+ * @brief register user mem, support sdma or rdma
  *
  * @param addr              [in] register addr
  * @param size              [in] register size
  */
-int32_t hybm_mem_register_into_svsp(hybm_entity_t e, uint64_t addr, uint64_t size);
+int32_t hybm_register_user_mem(hybm_entity_t e, uint64_t addr, uint64_t size);
 
 #ifdef __cplusplus
 }

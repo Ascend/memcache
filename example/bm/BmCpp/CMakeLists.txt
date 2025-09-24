@@ -18,6 +18,7 @@ target_compile_options(bm_example PRIVATE
 include_directories(
         ${MF_PATH}/aarch64-linux/include/smem/host
         ${ASCEND_CANN_PACKAGE_PATH}/aarch64-linux/include/
+        ${MF_PATH}/aarch64-linux/include/util/
 )
 target_link_directories(bm_example PUBLIC
         ${MF_PATH}/aarch64-linux/lib64

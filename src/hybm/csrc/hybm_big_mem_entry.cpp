@@ -184,7 +184,7 @@ HYBM_API void hybm_unmap(hybm_entity_t e, uint32_t flags)
     entity->Unmap();
 }
 
-HYBM_API int32_t hybm_mem_register_into_svsp(hybm_entity_t e, uint64_t addr, uint64_t size)
+HYBM_API int32_t hybm_register_user_mem(hybm_entity_t e, uint64_t addr, uint64_t size)
 {
     auto entity = (MemEntity *)e;
     BM_ASSERT_RETURN(entity != nullptr, BM_INVALID_PARAM);

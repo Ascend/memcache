@@ -25,6 +25,7 @@ namespace ock {
 namespace mf {
 namespace transport {
 namespace device {
+
 class RdmaTransportManager : public TransportManager {
 public:
     ~RdmaTransportManager() override;
@@ -83,12 +84,12 @@ private:
     void *rdmaHandle_{nullptr};
     std::string nicInfo_;
     MemoryRegionMap registerMRS_;
-    std::unordered_map<uint32_t, MemoryRegionMap> ranksMRs_;
+    std::vector<MemoryRegionMap> ranksMRs_;
     std::shared_ptr<DeviceQpManager> qpManager_;
     HybmStreamPtr stream_;
     HybmStreamNotifyPtr notify_;
     RdmaNotifyInfo notifyInfo_ = {};
-    std::unordered_map<uint32_t, std::pair<uint64_t, uint32_t>> notifyRemoteInfo_;
+    std::vector<std::pair<uint64_t, uint32_t>> notifyRemoteInfo_;
     std::shared_ptr<DeviceChipInfo> deviceChipInfo_;
     std::map<uint64_t, std::pair<uint64_t, size_t>, std::greater<uint64_t>> hostRegisterMaps_;
     std::atomic<uint64_t> wrIdx_{0};

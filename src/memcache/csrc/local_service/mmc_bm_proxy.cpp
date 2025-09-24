@@ -353,7 +353,7 @@ Result MmcBmProxy::BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
 Result MmcBmProxy::RegisterBuffer(uint64_t addr, uint64_t size)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    auto ret = smem_bm_register_into_svsp(handle_, addr, size);
+    auto ret = smem_bm_register_user_mem(handle_, addr, size);
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("Failed to register mem,  ret:" << ret);
     }

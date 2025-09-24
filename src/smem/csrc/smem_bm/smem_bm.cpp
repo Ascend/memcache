@@ -313,7 +313,7 @@ SMEM_API int32_t smem_bm_wait(smem_bm_t handle)
     return entry->Wait();
 }
 
-SMEM_API int32_t smem_bm_register_into_svsp(smem_bm_t handle, uint64_t addr, uint64_t size)
+SMEM_API int32_t smem_bm_register_user_mem(smem_bm_t handle, uint64_t addr, uint64_t size)
 {
     SM_PARAM_VALIDATE(handle == nullptr, "invalid param, handle is NULL", SM_INVALID_PARAM);
     SM_PARAM_VALIDATE(!g_smemBmInited, "smem bm not initialized yet", SM_NOT_INITIALIZED);
