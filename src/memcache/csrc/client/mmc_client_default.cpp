@@ -639,7 +639,7 @@ int32_t MmcClientDefault::SelectTransportType(const mmc_buffer &buf)
         return MMC_BATCH_TRANSPORT;
     }
 
-    if (QueryInRegisterMap(buf) || buf.dimType == 1 || bmProxy_->GetDataOpType() == "host_rdma") {
+    if (QueryInRegisterMap(buf) || buf.dimType == 1) {
         return MMC_ASYNC_TRANSPORT;
     }
     return MMC_BATCH_TRANSPORT;
