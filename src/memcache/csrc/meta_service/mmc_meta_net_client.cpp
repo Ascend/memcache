@@ -20,13 +20,14 @@ Result MetaNetClient::Start(const NetEngineOptions &config)
 {
     std::lock_guard<std::mutex> guard(mutex_);
     if (started_) {
-        MMC_LOG_INFO("MetaNetServer [" << name_ << "] already started");
+        MMC_LOG_INFO("MetaNetClient [" << name_ << "] already started");
         return MMC_OK;
     }
 
     /* init engine */
 
     NetEnginePtr client = NetEngine::Create();
+    MMC_ASSERT_RETURN(client != nullptr, MMC_MALLOC_FAILED);
     client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_PING_REQ, nullptr);
     client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_ALLOC_REQ, nullptr);
     client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_UPDATE_REQ, nullptr);
@@ -66,7 +67,9 @@ void MetaNetClient::Stop()
         MMC_LOG_WARN("MetaNetClient has not been started");
         return;
     }
-    engine_->Stop();
+    if (engine_ != nullptr) {
+        engine_->Stop();
+    }
     started_ = false;
 }
 
@@ -74,6 +77,7 @@ Result MetaNetClient::Connect(const std::string &url)
 {
     NetEngineOptions options;
     NetEngineOptions::ExtractIpPortFromUrl(url, options);
+    MMC_ASSERT_RETURN(engine_ != nullptr, MMC_NOT_INITIALIZED);
     MMC_RETURN_ERROR(engine_->ConnectToPeer(rankId_, options.ip, options.port, link2Index_, false),
                      "MetaNetClient Connect " << url << " failed");
     ip_ = options.ip;
@@ -132,6 +136,7 @@ Result MetaNetClient::HandlePing(const NetContextPtr &context)
 Result MetaNetClient::HandleLinkBroken(const NetLinkPtr &link)
 {
     MMC_LOG_INFO(name_ << " link broken");
+    MMC_ASSERT_RETURN(engine_ != nullptr, MMC_NOT_INITIALIZED);
     for (uint32_t count = 0; count < retryCount_; count++) {
         Result ret = engine_->ConnectToPeer(rankId_, ip_, port_, link2Index_, false);
         if (ret != MMC_OK) {
