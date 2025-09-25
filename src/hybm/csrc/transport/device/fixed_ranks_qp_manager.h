@@ -20,12 +20,12 @@ public:
     ~FixedRanksQpManager() noexcept override;
 
     int SetRemoteRankInfo(const std::unordered_map<uint32_t, ConnectRankInfo> &ranks) noexcept override;
-    int SetLocalMemories(const MemoryRegionMap &mrs) noexcept override;
     int Startup(void *rdma) noexcept override;
     void Shutdown() noexcept override;
     int WaitingConnectionReady() noexcept override;
     const void *GetQpInfoAddress() const noexcept override;
-    void *GetQpHandleWithRankId(uint32_t rankId) const noexcept override;
+    UserQpInfo *GetQpHandleWithRankId(uint32_t rankId) noexcept override;
+    void PutQpHandle(UserQpInfo *qp) const noexcept override;
 
 private:
     struct AiCoreConnChannel {

@@ -61,9 +61,8 @@ private:
     int RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size, bool write, bool sync);
     int CorrectHostRegWr(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size, send_wr_v2 &wr);
     int ConvertHccpMrInfo(const TransportMemoryRegion &mr, HccpMrInfo &info);
-    void RecordRegisterMemoryMapping(const TransportMemoryRegion &mr, const HccpMrInfo &info);
     void OptionsToRankMRs(const HybmTransPrepareOptions &options);
-    Result WaitQpReady() const;
+    Result WaitQpReady();
     int GetRegAddress(const MemoryRegionMap &map, uint64_t inputAddr, uint64_t size, bool isLocal,
                       uint64_t &outputAddr, uint32_t &mrKey) const;
 
@@ -91,8 +90,9 @@ private:
     RdmaNotifyInfo notifyInfo_ = {};
     std::vector<std::pair<uint64_t, uint32_t>> notifyRemoteInfo_;
     std::shared_ptr<DeviceChipInfo> deviceChipInfo_;
-    std::map<uint64_t, std::pair<uint64_t, size_t>, std::greater<uint64_t>> hostRegisterMaps_;
     std::atomic<uint64_t> wrIdx_{0};
+
+    ReadWriteLock lock_;
 };
 } // namespace device
 } // namespace transport

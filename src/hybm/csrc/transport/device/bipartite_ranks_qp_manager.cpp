@@ -19,6 +19,7 @@ BipartiteRanksQpManager::BipartiteRanksQpManager(uint32_t deviceId, uint32_t ran
     : DeviceQpManager{deviceId, rankId, rankCount, devNet, server ? HYBM_ROLE_RECEIVER : HYBM_ROLE_SENDER}
 {
     connectionView_.resize(rankCount);
+    userQpInfo_.resize(rankCount);
 }
 
 BipartiteRanksQpManager::~BipartiteRanksQpManager() noexcept
@@ -43,7 +44,6 @@ int BipartiteRanksQpManager::SetRemoteRankInfo(const std::unordered_map<uint32_t
     }
 
     std::unordered_map<uint32_t, sockaddr_in> addedRanks;
-    std::unordered_set<uint32_t> addMrRanks;
 
     std::unique_lock<std::mutex> uniqueLock{mutex_};
     auto lastTimeRanksInfo = std::move(currentRanksInfo_);
@@ -52,29 +52,10 @@ int BipartiteRanksQpManager::SetRemoteRankInfo(const std::unordered_map<uint32_t
         return BM_OK;
     }
 
-    GenDiffInfoChangeRanks(lastTimeRanksInfo, addedRanks, addMrRanks);
+    GenDiffInfoChangeRanks(lastTimeRanksInfo, addedRanks);
     uniqueLock.unlock();
 
-    GenTaskFromChangeRanks(addedRanks, addMrRanks);
-    return BM_OK;
-}
-
-int BipartiteRanksQpManager::SetLocalMemories(const MemoryRegionMap &mrs) noexcept
-{
-    std::unique_lock<std::mutex> uniqueLock{mutex_};
-    currentLocalMrs_ = mrs;
-    if (backGroundThread_ == nullptr) {
-        return BM_OK;
-    }
-    uniqueLock.unlock();
-
-    auto &task = connectionTasks_.updateMrTask;
-    std::unique_lock<std::mutex> taskLocker{task.locker};
-    task.status.exist = true;
-    task.status.failedTimes = 0;
-    taskLocker.unlock();
-    cond_.notify_one();
-
+    GenTaskFromChangeRanks(addedRanks);
     return BM_OK;
 }
 
@@ -128,20 +109,24 @@ void BipartiteRanksQpManager::Shutdown() noexcept
     CloseServices();
 }
 
-void *BipartiteRanksQpManager::GetQpHandleWithRankId(uint32_t rankId) const noexcept
+UserQpInfo *BipartiteRanksQpManager::GetQpHandleWithRankId(uint32_t rankId) noexcept
 {
-    if (rankId >= connectionView_.size()) {
+    if (rankId >= userQpInfo_.size()) {
         BM_LOG_ERROR("get qp handle with rankId: " << rankId << ", too large.");
         return nullptr;
     }
 
-    auto conn = connectionView_[rankId];
-    if (conn == nullptr) {
+    if (userQpInfo_[rankId].qpHandle == nullptr) {
         BM_LOG_ERROR("get qp handle with rankId: " << rankId << ", no connection.");
         return nullptr;
     }
 
-    return conn->qpHandle;
+    return &userQpInfo_[rankId];
+}
+
+void BipartiteRanksQpManager::PutQpHandle(UserQpInfo *qp) const noexcept
+{
+    return;
 }
 
 void BipartiteRanksQpManager::BackgroundProcess() noexcept
@@ -153,8 +138,6 @@ void BipartiteRanksQpManager::BackgroundProcess() noexcept
         count += ProcessQueryConnectionStateTask();
         count += ProcessConnectQpTask();
         count += ProcessQueryQpStateTask();
-        ProcessUpdateLocalMrTask();
-        ProcessUpdateRemoteMrTask();
         if (count > 0) {
             continue;
         }
@@ -196,6 +179,7 @@ int BipartiteRanksQpManager::ProcessServerAddWhitelistTask() noexcept
         whitelist.emplace_back(info);
         auto res = connections_.emplace(it->first, ConnectionChannel{Ip2Net(info.remoteIp.addr), serverSocketHandle_});
         connectionView_[it->first] = &res.first->second;
+        userQpInfo_[it->first].qpHandle = connectionView_[it->first]->qpHandle;
     }
 
     if (whitelist.empty()) {
@@ -250,6 +234,7 @@ int BipartiteRanksQpManager::ProcessClientConnectSocketTask() noexcept
             }
             pos = connections_.emplace(it->first, ConnectionChannel{it->second, socketHandle}).first;
             connectionView_[it->first] = &pos->second;
+            userQpInfo_[it->first].qpHandle = connectionView_[it->first]->qpHandle;
         } else {
             socketHandle = pos->second.socketHandle;
         }
@@ -429,7 +414,6 @@ int BipartiteRanksQpManager::ProcessQueryQpStateTask() noexcept
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    auto localMrs = GenerateLocalLiteMrs();
     for (auto rank : ranks) {
         auto pos = connections_.find(rank);
         if (pos == connections_.end()) {
@@ -448,10 +432,6 @@ int BipartiteRanksQpManager::ProcessQueryQpStateTask() noexcept
             currTask.ranks.emplace(rank);
             continue;
         }
-
-        auto remoteMrs = GenerateRemoteLiteMrs(rank);
-        SetQpHandleRegisterMr(pos->second.qpHandle, localMrs, true);
-        SetQpHandleRegisterMr(pos->second.qpHandle, remoteMrs, false);
     }
 
     if (!currTask.ranks.empty()) {
@@ -461,47 +441,6 @@ int BipartiteRanksQpManager::ProcessQueryQpStateTask() noexcept
     }
 
     return 0;
-}
-
-void BipartiteRanksQpManager::ProcessUpdateLocalMrTask() noexcept
-{
-    auto &currTask = connectionTasks_.updateMrTask;
-    std::unique_lock<std::mutex> uniqueLock{currTask.locker};
-    if (!currTask.status.exist) {
-        return;
-    }
-    currTask.status.exist = false;
-    uniqueLock.unlock();
-
-    auto localMRs = GenerateLocalLiteMrs();
-    for (auto it = connections_.begin(); it != connections_.end(); ++it) {
-        if (it->second.qpHandle == nullptr || it->second.qpStatus != 1) {
-            continue;
-        }
-        SetQpHandleRegisterMr(it->second.qpHandle, localMRs, true);
-    }
-}
-
-void BipartiteRanksQpManager::ProcessUpdateRemoteMrTask() noexcept
-{
-    auto &currTask = connectionTasks_.updateRemoteMrTask;
-    std::unique_lock<std::mutex> uniqueLock{currTask.locker};
-    if (!currTask.status.exist) {
-        return;
-    }
-    currTask.status.exist = false;
-    auto addedMrRanks = std::move(currTask.addedMrRanks);
-    uniqueLock.unlock();
-
-    for (auto remoteRank : addedMrRanks) {
-        auto mrs = GenerateRemoteLiteMrs(remoteRank);
-        auto pos = connections_.find(remoteRank);
-        if (pos == connections_.end()) {
-            continue;
-        }
-
-        SetQpHandleRegisterMr(pos->second.qpHandle, mrs, false);
-    }
 }
 
 void BipartiteRanksQpManager::CloseServices() noexcept
@@ -552,64 +491,19 @@ void BipartiteRanksQpManager::CloseServices() noexcept
     DestroyServerSocket();
 }
 
-std::vector<lite_mr_info> BipartiteRanksQpManager::GenerateLocalLiteMrs() noexcept
-{
-    std::vector<lite_mr_info> localMrs;
-    std::unique_lock<std::mutex> uniqueLock{mutex_};
-    for (auto it = currentLocalMrs_.begin(); it != currentLocalMrs_.end(); ++it) {
-        lite_mr_info info;
-        info.key = it->second.lkey;
-        info.addr = it->second.address;
-        info.len = it->second.size;
-        localMrs.emplace_back(info);
-    }
-    uniqueLock.unlock();
-    return localMrs;
-}
-
-std::vector<lite_mr_info> BipartiteRanksQpManager::GenerateRemoteLiteMrs(uint32_t rankId) noexcept
-{
-    std::vector<lite_mr_info> remoteMrs;
-    std::unique_lock<std::mutex> uniqueLock{mutex_};
-    auto pos = currentRanksInfo_.find(rankId);
-    if (pos == currentRanksInfo_.end()) {
-        uniqueLock.unlock();
-        return remoteMrs;
-    }
-
-    for (auto it = pos->second.memoryMap.begin(); it != pos->second.memoryMap.end(); ++it) {
-        lite_mr_info info;
-        info.key = it->second.lkey;
-        info.addr = it->second.address;
-        info.len = it->second.size;
-        remoteMrs.emplace_back(info);
-    }
-    uniqueLock.unlock();
-    return remoteMrs;
-}
-
 void BipartiteRanksQpManager::GenDiffInfoChangeRanks(const std::unordered_map<uint32_t, ConnectRankInfo> &last,
-                                                     std::unordered_map<uint32_t, sockaddr_in> &addedRanks,
-                                                     std::unordered_set<uint32_t> &addMrRanks) noexcept
+                                                     std::unordered_map<uint32_t, sockaddr_in> &addedRanks) noexcept
 {
     for (auto it = currentRanksInfo_.begin(); it != currentRanksInfo_.end(); ++it) {
         auto pos = last.find(it->first);
         if (pos == last.end()) {
             addedRanks.emplace(it->first, it->second.network);
-        } else {
-            for (auto mit = it->second.memoryMap.begin(); mit != it->second.memoryMap.end(); ++mit) {
-                if (pos->second.memoryMap.find(mit->first) == pos->second.memoryMap.end()) {
-                    addMrRanks.emplace(it->first);
-                    break;
-                }
-            }
         }
     }
 }
 
 void BipartiteRanksQpManager::GenTaskFromChangeRanks(
-    const std::unordered_map<uint32_t, sockaddr_in> &addedRanks,
-    const std::unordered_set<uint32_t> &addMrRanks) noexcept
+    const std::unordered_map<uint32_t, sockaddr_in> &addedRanks) noexcept
 {
     if (rankRole_ == HYBM_ROLE_RECEIVER) {
         auto &task = connectionTasks_.whitelistTask;
@@ -631,35 +525,13 @@ void BipartiteRanksQpManager::GenTaskFromChangeRanks(
         task.status.failedTimes = 0;
     }
 
-    auto &task = connectionTasks_.updateRemoteMrTask;
-    std::unique_lock<std::mutex> taskLocker{task.locker};
-    task.addedMrRanks = addMrRanks;
-    task.status.exist = !task.addedMrRanks.empty();
-    task.status.failedTimes = 0;
-    taskLocker.unlock();
-
-    if (addedRanks.empty() && addMrRanks.empty()) {
+    if (addedRanks.empty()) {
         return;
     }
 
     cond_.notify_one();
 }
 
-void BipartiteRanksQpManager::SetQpHandleRegisterMr(void *qpHandle, const std::vector<lite_mr_info> &mrs,
-                                                    bool local) noexcept
-{
-    if (qpHandle == nullptr) {
-        return;
-    }
-
-    auto qp = (ra_qp_handle *)qpHandle;
-    auto dest = local ? qp->local_mr : qp->rem_mr;
-    pthread_mutex_lock(&qp->qp_mutex);
-    for (auto i = 0U; i < mrs.size() && i < RA_MR_MAX_NUM - 1U; i++) {
-        dest[i + 1] = mrs[i];
-    }
-    pthread_mutex_unlock(&qp->qp_mutex);
-}
 }
 }
 }

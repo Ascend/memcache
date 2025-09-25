@@ -9,8 +9,10 @@
 #include <cstdint>
 #include <unordered_set>
 #include <unordered_map>
+#include <atomic>
 #include "hybm_def.h"
 #include "device_rdma_common.h"
+#include "mf_rwlock.h"
 
 namespace ock {
 namespace mf {
@@ -18,6 +20,14 @@ namespace transport {
 namespace device {
 
 sockaddr_in Ip2Net(in_addr ip);
+
+struct UserQpInfo {
+    void *qpHandle{nullptr};
+    std::atomic<uint32_t> ref{0};
+    UserQpInfo() : qpHandle{nullptr}, ref{0} {}
+    UserQpInfo& operator=(UserQpInfo&&) = delete;
+    UserQpInfo(UserQpInfo&& ot) noexcept : qpHandle(ot.qpHandle), ref(ot.ref.load()) {}
+};
 
 struct ConnectionChannel {
     sockaddr_in remoteNet;
@@ -40,12 +50,12 @@ public:
 
     virtual int SetRemoteRankInfo(const std::unordered_map<uint32_t, ConnectRankInfo> &ranks) noexcept = 0;
     virtual int RemoveRanks(const std::unordered_set<uint32_t> &ranks) noexcept;
-    virtual int SetLocalMemories(const MemoryRegionMap &mrs) noexcept = 0;
     virtual int Startup(void *rdma) noexcept = 0;
     virtual void Shutdown() noexcept = 0;
     virtual int WaitingConnectionReady() noexcept;
     virtual const void *GetQpInfoAddress() const noexcept;
-    virtual void *GetQpHandleWithRankId(uint32_t rankId) const noexcept = 0;
+    virtual UserQpInfo *GetQpHandleWithRankId(uint32_t rankId) noexcept = 0;
+    virtual void PutQpHandle(UserQpInfo *qp) const noexcept = 0;
     virtual bool CheckQpReady(const std::vector<uint32_t> &rankIds) const noexcept;
 
 protected:

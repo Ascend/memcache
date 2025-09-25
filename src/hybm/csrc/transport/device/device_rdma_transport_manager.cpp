@@ -140,19 +140,14 @@ Result RdmaTransportManager::RegisterMemoryRegion(const TransportMemoryRegion &m
     RegMemResult result{mr.addr, (uint64_t)(ptrdiff_t)info.addr, mr.size, mrHandle, info.lkey, info.rkey};
     BM_LOG_DEBUG("register MR result=" << result);
 
+    WriteGuard lockGuard(lock_);
     registerMRS_.emplace(mr.addr, result);
-    ret = qpManager_->SetLocalMemories(registerMRS_);
-    if (ret != BM_OK) {
-        BM_LOG_ERROR("qp manager set mr failed: " << ret);
-        return ret;
-    }
-
-    RecordRegisterMemoryMapping(mr, info);
     return BM_OK;
 }
 
 Result RdmaTransportManager::UnregisterMemoryRegion(uint64_t addr)
 {
+    WriteGuard lockGuard(lock_);
     auto pos = registerMRS_.find(addr);
     if (pos == registerMRS_.end()) {
         BM_LOG_ERROR("input address not register!");
@@ -166,17 +161,13 @@ Result RdmaTransportManager::UnregisterMemoryRegion(uint64_t addr)
     }
 
     registerMRS_.erase(pos);
-    ret = qpManager_->SetLocalMemories(registerMRS_);
-    if (ret != BM_OK) {
-        BM_LOG_ERROR("qp manager set mr failed: " << ret);
-        return ret;
-    }
     return BM_OK;
 }
 
 Result RdmaTransportManager::QueryMemoryKey(uint64_t addr, TransportMemoryKey &key)
 {
     RegMemKeyUnion keyUnion{};
+    ReadGuard lockGuard(lock_);
     auto pos = registerMRS_.lower_bound(addr);
     if (pos == registerMRS_.end() || pos->first + pos->second.size <= addr) {
         BM_LOG_ERROR("input address not register");
@@ -244,6 +235,7 @@ Result RdmaTransportManager::RemoveRanks(const std::vector<uint32_t> &removedRan
 {
     std::unordered_set<uint32_t> ranksSet;
     std::unordered_map<uint32_t, MemoryRegionMap> removedRankRegions;
+    WriteGuard lockGuard(lock_);
     for (auto rank : removedRanks) {
         if (rank >= rankCount_) {
             BM_LOG_ERROR("input rank is large than world size! rk:" << rank << " world_size:" << rankCount_);
@@ -309,12 +301,15 @@ Result RdmaTransportManager::WaitForConnected(int64_t timeoutNs)
     return BM_OK;
 }
 
-Result RdmaTransportManager::WaitQpReady() const
+Result RdmaTransportManager::WaitQpReady()
 {
     std::vector<uint32_t> rankIds;
-    for (uint32_t i = 0; i < rankCount_; i++) {
-        if (!ranksMRs_[i].empty()) {
-            rankIds.emplace_back(i);
+    {
+        ReadGuard lockGuard(lock_);
+        for (uint32_t i = 0; i < rankCount_; i++) {
+            if (!ranksMRs_[i].empty()) {
+                rankIds.emplace_back(i);
+            }
         }
     }
 
@@ -426,13 +421,15 @@ Result RdmaTransportManager::WriteRemoteAsync(uint32_t rankId, uint64_t lAddr, u
 
 Result RdmaTransportManager::Synchronize(uint32_t rankId)
 {
-    auto qpHandle = qpManager_->GetQpHandleWithRankId(rankId);
-    if (qpHandle == nullptr) {
+    auto qp = qpManager_->GetQpHandleWithRankId(rankId);
+    if (qp == nullptr) {
         BM_LOG_ERROR("no qp to rankId: " << rankId);
         return BM_ERROR;
     }
 
-    return Synchronize(qpHandle, rankId);
+    auto ret = Synchronize(qp->qpHandle, rankId);
+    qpManager_->PutQpHandle(qp);
+    return ret;
 }
 
 bool RdmaTransportManager::PrepareOpenDevice(uint32_t userId, uint32_t device, uint32_t rankCount,
@@ -582,6 +579,7 @@ bool RdmaTransportManager::RaRdevInit(uint32_t deviceId, in_addr deviceIp, void 
 
 void RdmaTransportManager::ClearAllRegisterMRs()
 {
+    WriteGuard lockGuard(lock_);
     for (auto it = registerMRS_.begin(); it != registerMRS_.end(); ++it) {
         auto ret = DlHccpApi::RaDeregisterMR(rdmaHandle_, it->second.mrHandle);
         if (ret != 0) {
@@ -626,8 +624,8 @@ int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAd
         return BM_ERROR;
     }
 
-    auto qpHandle = qpManager_->GetQpHandleWithRankId(rankId);
-    if (qpHandle == nullptr) {
+    auto qp = qpManager_->GetQpHandleWithRankId(rankId);
+    if (qp == nullptr) {
         BM_LOG_ERROR("no qp to rankId: " << rankId);
         return BM_ERROR;
     }
@@ -643,13 +641,15 @@ int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAd
     auto ret = CorrectHostRegWr(rankId, lAddr, rAddr, size, wr);
     if (ret != BM_OK) {
         BM_LOG_ERROR("CorrectHostRegWr failed : " << ret);
+        qpManager_->PutQpHandle(qp);
         return ret;
     }
 
     send_wr_rsp rspInfo{};
-    ret = DlHccpApi::RaSendWrV2(qpHandle, &wr, &rspInfo);
+    ret = DlHccpApi::RaSendWrV2(qp->qpHandle, &wr, &rspInfo);
     if (ret != 0) {
         BM_LOG_ERROR("DlHccpApi::RaSendWr(handle, &wr, &opRsp) failed: " << ret);
+        qpManager_->PutQpHandle(qp);
         return ret;
     }
 
@@ -659,17 +659,18 @@ int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAd
     ret = stream_->SubmitTasks(task);
     if (ret != BM_OK) {
         BM_LOG_ERROR("stream_->SubmitTasks(task) failed: " << ret);
+        qpManager_->PutQpHandle(qp);
         return ret;
     }
 
     if (sync) {
-        ret = Synchronize(qpHandle, rankId);
+        ret = Synchronize(qp->qpHandle, rankId);
         if (ret != BM_OK) {
             BM_LOG_ERROR("Synchronize failed: " << ret);
-            return ret;
         }
     }
-    return BM_OK;
+    qpManager_->PutQpHandle(qp);
+    return ret;
 }
 
 int RdmaTransportManager::GetRegAddress(const MemoryRegionMap &map, uint64_t inputAddr, uint64_t size, bool isLocal,
@@ -688,6 +689,7 @@ int RdmaTransportManager::GetRegAddress(const MemoryRegionMap &map, uint64_t inp
 int RdmaTransportManager::CorrectHostRegWr(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size,
                                            send_wr_v2 &wr)
 {
+    ReadGuard lockGuard(lock_);
     auto ret = GetRegAddress(registerMRS_, lAddr, size, true, wr.buf_list->addr, wr.buf_list->lkey);
     if (ret != BM_OK) {
         return ret;
@@ -729,19 +731,10 @@ int RdmaTransportManager::ConvertHccpMrInfo(const TransportMemoryRegion &mr, Hcc
     return BM_OK;
 }
 
-void RdmaTransportManager::RecordRegisterMemoryMapping(const TransportMemoryRegion &mr, const HccpMrInfo &info)
-{
-    uint64_t infoAddr = (uint64_t)(ptrdiff_t)info.addr;
-    if (mr.addr == infoAddr) {
-        return;
-    }
-
-    hostRegisterMaps_.emplace(mr.addr, std::make_pair(infoAddr, mr.size));
-}
-
 void RdmaTransportManager::OptionsToRankMRs(const HybmTransPrepareOptions &options)
 {
     RegMemKeyUnion keyUnion{};
+    WriteGuard lockGuard(lock_);
     for (auto it = options.options.begin(); it != options.options.end(); ++it) {
         auto node = it->first;
         if (node >= rankCount_) {

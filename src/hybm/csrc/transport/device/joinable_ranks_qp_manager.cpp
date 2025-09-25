@@ -18,6 +18,7 @@ JoinableRanksQpManager::JoinableRanksQpManager(uint32_t userDeviceId, uint32_t d
     : DeviceQpManager(deviceId, rankId, rankCount, devNet, HYBM_ROLE_PEER)
 {
     connections_.resize(rankCount);
+    qpArray_.resize(rankCount, nullptr);
     userDeviceId_ = userDeviceId;
 }
 
@@ -50,19 +51,7 @@ int JoinableRanksQpManager::SetRemoteRankInfo(const std::unordered_map<uint32_t,
     return BM_OK;
 }
 
-int JoinableRanksQpManager::SetLocalMemories(const MemoryRegionMap &mrs) noexcept
-{
-    std::unique_lock<std::mutex> uniqueLock{mutex_};
-    currentLocalMrs_ = mrs;
-    uniqueLock.unlock();
-
-    if (started_.load()) {
-        cond_.notify_all();
-    }
-
-    return BM_OK;
-}
-
+// 上层保证 SetRemoteRankInfo和RemoveRanks操作不并发
 int JoinableRanksQpManager::RemoveRanks(const std::unordered_set<uint32_t> &ranks) noexcept
 {
     std::unique_lock<std::mutex> uniqueLock{mutex_};
@@ -116,14 +105,31 @@ void JoinableRanksQpManager::Shutdown() noexcept
     CloseServices();
 }
 
-void *JoinableRanksQpManager::GetQpHandleWithRankId(uint32_t rankId) const noexcept
+UserQpInfo *JoinableRanksQpManager::GetQpHandleWithRankId(uint32_t rankId) noexcept
 {
     if (rankId >= rankCount_) {
         BM_LOG_ERROR("invalid rank id: " << rankId << ", rank count: " << rankCount_);
         return nullptr;
     }
+    ReadGuard lockGuard(qpLock_);
+    if (qpArray_[rankId] != nullptr) {
+        qpArray_[rankId]->ref.fetch_add(1U);
+        return qpArray_[rankId];
+    } else {
+        return nullptr;
+    }
+}
 
-    return connections_[rankId].qpHandle;
+void JoinableRanksQpManager::PutQpHandle(UserQpInfo *qp) const noexcept
+{
+    uint32_t val = qp->ref.fetch_sub(1U);
+    if (val == 1U) { // 返回减之前的值
+        auto ret = DlHccpApi::RaQpDestroy(qp->qpHandle);
+        if (ret != 0) {
+            BM_LOG_WARN("close qp from " << rankId_ << " failed, ret: " << ret);
+        }
+        delete qp;
+    }
 }
 
 bool JoinableRanksQpManager::CheckQpReady(const std::vector<uint32_t> &rankIds) const noexcept
@@ -332,14 +338,22 @@ void JoinableRanksQpManager::MakeQpConnections(const std::set<uint32_t> &newRank
         }
         if (connections_[rankId].qpHandle == nullptr) {
             void *qpHandle = nullptr;
+            auto info = new UserQpInfo;
+            BM_ASSERT_RET_VOID(info != nullptr);
             auto ret = DlHccpApi::RaQpCreate(rdmaHandle_, 0, 4, qpHandle);
             if (ret != 0) {
                 BM_LOG_ERROR("create QP to " << rankId << " failed: " << ret);
+                delete info;
                 continue;
             }
 
             connections_[rankId].qpHandle = qpHandle;
             connections_[rankId].qpConnectCalled = false;
+
+            info->ref.store(1U);
+            info->qpHandle = qpHandle;
+            WriteGuard lockGuard(qpLock_);
+            qpArray_[rankId] = info;
         }
 
         if (!connections_[rankId].qpConnectCalled) {
@@ -499,10 +513,10 @@ void JoinableRanksQpManager::RemoveRanksProcess(const std::set<uint32_t> &ranks)
     for (auto it = removedConnections.begin(); it != removedConnections.end(); ++it) {
         BM_LOG_INFO("close connection from " << rankId_ << " to " << it->first);
         if (it->second.qpHandle != nullptr) {
-            auto ret = DlHccpApi::RaQpDestroy(it->second.qpHandle);
-            if (ret != 0) {
-                BM_LOG_WARN("close qp from " << rankId_ << " to " << it->first << " failed: " << ret);
-            }
+            WriteGuard guard(qpLock_);
+            auto info = qpArray_[it->first];
+            qpArray_[it->first] = nullptr;
+            PutQpHandle(info);
         }
 
         HccpSocketCloseInfo closeInfo{};

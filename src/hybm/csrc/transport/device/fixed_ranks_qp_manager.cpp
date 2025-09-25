@@ -42,17 +42,6 @@ int FixedRanksQpManager::SetRemoteRankInfo(const std::unordered_map<uint32_t, Co
     return BM_OK;
 }
 
-int FixedRanksQpManager::SetLocalMemories(const MemoryRegionMap &mrs) noexcept
-{
-    if (started_.load()) {
-        BM_LOG_INFO("fixed ranks not support update register MRs after startup");
-        return BM_OK;
-    }
-
-    currentLocalMrs_ = mrs;
-    return BM_OK;
-}
-
 int FixedRanksQpManager::Startup(void *rdma) noexcept
 {
     if (rdma == nullptr) {
@@ -131,15 +120,15 @@ const void *FixedRanksQpManager::GetQpInfoAddress() const noexcept
     return qpInfo_;
 }
 
-void *FixedRanksQpManager::GetQpHandleWithRankId(uint32_t rankId) const noexcept
+UserQpInfo *FixedRanksQpManager::GetQpHandleWithRankId(uint32_t rankId) noexcept
 {
-    auto connections = rankId < rankId_ ? &clientConnections_ : &serverConnections_;
-    auto pos = connections->find(rankId);
-    if (pos == connections->end()) {
-        return nullptr;
-    }
+    BM_LOG_ERROR("FixedRanksQpManager can't get qp!");
+    return nullptr;
+}
 
-    return pos->second.qpHandle;
+void FixedRanksQpManager::PutQpHandle(UserQpInfo *qp) const noexcept
+{
+    return;
 }
 
 bool FixedRanksQpManager::ReserveQpInfoSpace() noexcept
@@ -386,18 +375,6 @@ int FixedRanksQpManager::CreateQpWaitingReady(std::unordered_map<uint32_t, AiCor
         if (ret != 0) {
             BM_LOG_ERROR("create QP  to " << it->first << " failed: " << ret);
             return BM_DL_FUNCTION_FAILED;
-        }
-
-        for (auto pos = currentLocalMrs_.begin(); pos != currentLocalMrs_.end(); ++pos) {
-            HccpMrInfo info{};
-            info.addr = (void *)(ptrdiff_t)pos->second.address;
-            info.size = pos->second.size;
-            info.access = MR_INFO_ACCESS;
-            ret = DlHccpApi::RaMrReg(it->second.qpHandle, info);
-            if (ret != 0) {
-                BM_LOG_ERROR("register MR failed: " << ret);
-                return BM_DL_FUNCTION_FAILED;
-            }
         }
 
         ret = DlHccpApi::RaQpConnectAsync(it->second.qpHandle, it->second.socketFd);

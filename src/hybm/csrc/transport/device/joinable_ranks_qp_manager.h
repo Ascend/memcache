@@ -24,11 +24,11 @@ public:
     ~JoinableRanksQpManager() noexcept override;
 
     int SetRemoteRankInfo(const std::unordered_map<uint32_t, ConnectRankInfo> &ranks) noexcept override;
-    int SetLocalMemories(const MemoryRegionMap &mrs) noexcept override;
     int RemoveRanks(const std::unordered_set<uint32_t> &ranks) noexcept override;
     int Startup(void *rdma) noexcept override;
     void Shutdown() noexcept override;
-    void *GetQpHandleWithRankId(uint32_t rankId) const noexcept override;
+    UserQpInfo *GetQpHandleWithRankId(uint32_t rankId) noexcept override;
+    void PutQpHandle(UserQpInfo *qp) const noexcept override;
     bool CheckQpReady(const std::vector<uint32_t> &rankIds) const noexcept override;
 
 private:
@@ -52,7 +52,9 @@ private:
     std::shared_ptr<std::thread> serverConnectThread_;
     void *rdmaHandle_{nullptr};
     MemoryRegionMap currentLocalMrs_;
-    std::vector<ConnectionChannel> connections_;
+    std::vector<UserQpInfo *> qpArray_;
+    ReadWriteLock qpLock_;
+    std::vector<ConnectionChannel> connections_; // connections_操作由mutex_保证不并发
     std::mutex mutex_;
     std::condition_variable cond_;
     std::set<uint32_t> newClients_;

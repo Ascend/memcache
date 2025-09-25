@@ -100,52 +100,12 @@ struct QueryQpStateTask {
     }
 };
 
-// (6)
-struct UpdateLocalMrTask {
-    TaskStatus status;
-    std::mutex locker;
-    inline int64_t Failed() noexcept
-    {
-        std::unique_lock<std::mutex> uniqueLock{locker};
-        status.exist = true;
-        return ++status.failedTimes;
-    }
-
-    inline void Success() noexcept
-    {
-        std::unique_lock<std::mutex> uniqueLock{locker};
-        status.exist = false;
-        status.failedTimes = 0;
-    }
-};
-// (7)
-struct UpdateRemoteMrTask {
-    TaskStatus status;
-    std::mutex locker;
-    std::unordered_set<uint32_t> addedMrRanks;
-    inline int64_t Failed() noexcept
-    {
-        std::unique_lock<std::mutex> uniqueLock{locker};
-        status.exist = true;
-        return ++status.failedTimes;
-    }
-
-    inline void Success() noexcept
-    {
-        std::unique_lock<std::mutex> uniqueLock{locker};
-        status.exist = false;
-        status.failedTimes = 0;
-    }
-};
-
 struct ConnectionTasks {
     ServerAddWhitelistTask whitelistTask;
     ClientConnectSocketTask clientConnectTask;
     QueryConnectionStateTask queryConnectTask;
     ConnectQpTask connectQpTask;
     QueryQpStateTask queryQpStateTask;
-    UpdateLocalMrTask updateMrTask;
-    UpdateRemoteMrTask updateRemoteMrTask;
 };
 }
 }
