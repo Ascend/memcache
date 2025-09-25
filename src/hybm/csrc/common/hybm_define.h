@@ -10,6 +10,14 @@
 namespace ock {
 namespace mf {
 
+constexpr uint64_t KB = 1024ULL;
+constexpr uint64_t MB = KB * 1024ULL;
+constexpr uint64_t GB = MB * 1024ULL;
+constexpr uint64_t TB = GB * 1024ULL;
+
+constexpr uint64_t HEIGHT_MAX = 256ULL;
+constexpr uint32_t RANK_MAX = 1024UL;
+
 constexpr uint64_t DEVICE_LARGE_PAGE_SIZE = 2UL * 1024UL * 1024UL;  // 大页的size, 2M
 constexpr uint64_t SVM_END_ADDR = 0x100000000000ULL + 0x80000000000ULL; // svm的结尾虚拟地址
 constexpr uint64_t HYBM_DEVICE_PRE_META_SIZE = 128UL; // 128B

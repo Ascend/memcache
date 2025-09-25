@@ -34,14 +34,19 @@ HYBM_API int32_t hybm_data_copy_2d(hybm_entity_t e, const void *src, uint64_t sp
         return BM_INVALID_PARAM;
     }
 
-    if (width == 0 || height == 0 || direction >= HYBM_DATA_COPY_DIRECTION_BUTT) {
+    if (spitch == 0 || spitch > TB || dpitch == 0 || dpitch > TB) {
+        BM_LOG_ERROR("input parameter invalid, spitch: " << spitch << " dpitch: " << dpitch);
+        return BM_INVALID_PARAM;
+    }
+
+    if (width == 0 || width > TB || height == 0 || height > HEIGHT_MAX || direction >= HYBM_DATA_COPY_DIRECTION_BUTT) {
         BM_LOG_ERROR("input parameter invalid, width: " << width << " height: "
                                                         << height << ", direction: " << direction);
         return BM_INVALID_PARAM;
     }
 
     bool addressValid = true;
-    auto entity = (MemEntity *)e;
+    auto entity = static_cast<MemEntity *>(e);
     if (direction == HYBM_LOCAL_DEVICE_TO_GLOBAL_DEVICE || direction == HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE ||
         direction == HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE) {
         addressValid = entity->CheckAddressInEntity(dest, dpitch * (height - 1) + width);
@@ -67,7 +72,7 @@ HYBM_API int32_t hybm_wait(hybm_entity_t e)
         BM_LOG_ERROR("input parameter invalid, e: 0x" << std::hex << e);
         return BM_INVALID_PARAM;
     }
-    auto entity = (MemEntity *)e;
+    auto entity = static_cast<MemEntity *>(e);
     return entity->Wait();
 }
 
@@ -97,7 +102,7 @@ HYBM_API int32_t hybm_data_batch_copy(hybm_entity_t e,
     }
 
     bool addressValid = true;
-    auto entity = (MemEntity *)e;
+    auto entity = static_cast<MemEntity *>(e);
     for (uint32_t i = 0; i < params->batchSize; i++) {
         if (direction == HYBM_LOCAL_DEVICE_TO_GLOBAL_DEVICE || direction == HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE ||
             direction == HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE) {

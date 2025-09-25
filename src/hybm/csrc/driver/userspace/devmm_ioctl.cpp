@@ -161,7 +161,6 @@ int HybmTranslateAddress(uint64_t va, uint64_t &pa, uint32_t &da) noexcept
 
     pa = arg.data.translateParam.pptr;
     da = arg.data.translateParam.addrInDevice;
-    BM_LOG_INFO("translate va:" << (void *)(ptrdiff_t)va << ", pa = " << (void *)(ptrdiff_t)pa << ", da=" << da);
 
     return 0;
 }

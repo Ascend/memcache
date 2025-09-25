@@ -67,12 +67,17 @@ static int32_t InitGvaHeapMgmt(uint64_t st, uint64_t ed, int32_t deviceId)
         BM_LOG_ERROR("malloc gva_heap error.");
         return -1;
     }
+    if (pthread_mutex_init(&g_gvaHeapMgr->treeLock, nullptr) != 0) {
+        BM_LOG_ERROR("failed to init mutex");
+        delete g_gvaHeapMgr;
+        g_gvaHeapMgr = nullptr;
+        return -1;
+    }
 
     g_gvaHeapMgr->tree.clear();
     g_gvaHeapMgr->start = st;
     g_gvaHeapMgr->end = ed;
     g_gvaHeapMgr->deviceId = deviceId;
-    (void)pthread_mutex_init(&g_gvaHeapMgr->treeLock, nullptr);
     g_gvaHeapMgr->inited = true;
 
     return 0;
@@ -175,6 +180,10 @@ static inline void DevmmVirtListAddInner(struct devmm_virt_list_head *new_, stru
 
 static inline void DevmmVirtListAdd(struct devmm_virt_list_head *new_, struct devmm_virt_list_head *head)
 {
+    if (head == nullptr) {
+        BM_LOG_ERROR("head is nullptr");
+        return;
+    }
     DevmmVirtListAddInner(new_, head, head->next);
 }
 
@@ -186,6 +195,10 @@ static inline void DevmmVirtListDelInner(struct devmm_virt_list_head *prev, stru
 
 static inline void DevmmVirtListDel(struct devmm_virt_list_head *entry)
 {
+    if (entry == nullptr) {
+        BM_LOG_ERROR("entry is nullptr");
+        return;
+    }
     DevmmVirtListDelInner(entry->prev, entry->next);
     // init
     entry->next = entry;
@@ -245,6 +258,7 @@ static uint64_t DevmmVirtAllocGvaMem(void *mgmt, uint64_t allocPtr,
     heap = DevmmVirtAllocHeapForBaseMem(mgmt, heap_type, retPtr, allocSize);
     if (heap == nullptr) {
         BM_LOG_ERROR("gva alloc heap failed. (size=0x" << std::hex << allocSize << ")");
+        (void)DlHalApi::HalDevmmIoctlFreePages(retPtr);
         return 0;
     }
 
@@ -253,11 +267,13 @@ static uint64_t DevmmVirtAllocGvaMem(void *mgmt, uint64_t allocPtr,
     if (ret != 0) {
         BM_LOG_ERROR("gva update heap failed. (size=0x" << std::hex << allocSize << ")");
         (void)DlHalApi::HalDevmmVirtSetHeapIdle(mgmt, heap);
+        (void)DlHalApi::HalDevmmIoctlFreePages(retPtr);
         return 0;
     }
 
     if (DlHalApi::HalDevmmGetHeapListByType(mgmt, heap_type, &heap_list) != 0) {
         (void)DlHalApi::HalDevmmVirtDestroyHeap(mgmt, heap, false);
+        (void)DlHalApi::HalDevmmIoctlFreePages(retPtr);
         return 0;
     }
 
@@ -312,14 +328,18 @@ static int32_t DevmmFreeManagedNomal(uint64_t va)
 
 int32_t HalGvaReserveMemory(uint64_t *address, size_t size, int32_t deviceId, uint64_t flags)
 {
+    if (address == nullptr) {
+        BM_LOG_ERROR("address is nullptr");
+        return -1;
+    }
+    if (size == 0 || size > (DEVMM_SVM_MEM_SIZE >> 1)) { // init size <= 4T
+        BM_LOG_ERROR("gva init failed, (size must > 0 && <= 4T). "
+                     "(flag=" << flags << " size=0x" << std::hex << size << ")");
+        return -1;
+    }
     uint32_t advise = 0;
     struct devmm_virt_heap_type heap_type{};
     size_t allocSize = ALIGN_UP(size, DEVMM_HEAP_SIZE);
-    if (allocSize == 0 || allocSize > (DEVMM_SVM_MEM_SIZE >> 1) || address == nullptr) { // init size <= 4T
-        BM_LOG_ERROR("gva init failed, (size must > 0 && <= 4T) or address is null. (flag=" << flags <<
-            " size=0x" << std::hex << size << ")");
-        return -1;
-    }
 
     advise |= DV_ADVISE_HUGEPAGE;
     SetModuleId2Advise(HCCL_HAL_MODULE_ID, &advise);
@@ -446,7 +466,10 @@ int32_t HalGvaOpen(uint64_t address, const char *name, size_t size, uint64_t fla
 
     auto ret = HybmMapShareMemory(name, reinterpret_cast<void *>(address), size, flags);
     if (ret != 0) {
-        HalGvaFree(address, 0);
+        BM_LOG_ERROR("HalGvaOpen map share memory error, ret = " << ret);
+        if (HalGvaFree(address, 0) != 0) {
+            BM_LOG_ERROR("HalGvaOpen free gva error. ");
+        }
     }
     return ret;
 }

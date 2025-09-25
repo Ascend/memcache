@@ -938,6 +938,11 @@ void *MemEntityDefault::GetReservedMemoryPtr(hybm_mem_type memType) noexcept
 
 int32_t MemEntityDefault::RegisterMem(uint64_t addr, uint64_t size) noexcept
 {
+    if (size == 0 || size > TB) {
+        BM_LOG_ERROR("Invalid memory size: " << size);
+        return BM_INVALID_PARAM;
+    }
+
     if (!HybmGvmHasInited()) {
         BM_LOG_ERROR("gvm is not inited, skip register mem!");
         return BM_OK;

@@ -284,7 +284,7 @@ MMC_API int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffe
             return MMC_INVALID_PARAM;
         }
         if (strlen(keys[i]) == 0 || strlen(keys[i]) > MAX_KEY_LEN) {
-            MMC_LOG_ERROR("Remove invalid key: " << keys[i]);
+            MMC_LOG_ERROR("Get invalid key on idx [" << i << "]");
             return MMC_INVALID_PARAM;  // 这个错误属于入参不合法，直接给调用者返回错误
         }
         keys_vector.emplace_back(keys[i]);
