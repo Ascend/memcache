@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <chrono>
 #include <cstdint>
+#include <cstring>
 #include <thread>
 
 #include "hybm_define.h"
@@ -76,6 +77,9 @@ Result RdmaTransportManager::OpenDevice(const TransportOptions &options)
     }
 
     nicInfo_ = GenerateDeviceNic(deviceIp_, devicePort_);
+    BM_ASSERT_LOG_AND_RETURN(
+        !nicInfo_.empty(),
+        "GenerateDeviceNic failed, deviceIp=" << DescribeIPv4(deviceIp_) << ", devicePort=" << devicePort_, BM_ERROR);
 
     sockaddr_in deviceAddr{};
     deviceAddr.sin_family = AF_INET;
@@ -507,7 +511,7 @@ bool RdmaTransportManager::RetireDeviceIp(uint32_t deviceId, in_addr &deviceIp)
     static in_addr retiredIp{};
 
     if (deviceIpRetired) {
-        BM_LOG_INFO("device ip already retired : " << inet_ntoa(retiredIp));
+        BM_LOG_INFO("device ip already retired : " << DescribeIPv4(retiredIp));
         deviceIp = retiredIp;
         return true;
     }
@@ -537,7 +541,7 @@ bool RdmaTransportManager::RetireDeviceIp(uint32_t deviceId, in_addr &deviceIp)
         if (info.family == AF_INET) {
             deviceIp = retiredIp = info.ifaddr.ip.addr;
             deviceIpRetired = true;
-            BM_LOG_DEBUG("retire device ip success : " << inet_ntoa(deviceIp));
+            BM_LOG_DEBUG("retire device ip success : " << DescribeIPv4(deviceIp));
             return true;
         }
     }
@@ -768,7 +772,7 @@ void RdmaTransportManager::ConstructSqeNoSinkModeForRdmaDbSendTask(const send_wr
     auto sqe = &command.writeValueSqe;
 
     auto taskId = taskIdGenerator.fetch_add(1);
-    memset(sqe, 0, sizeof(rtStarsSqe_t));
+    explicit_bzero(sqe, sizeof(rtStarsSqe_t));
     sqe->header.type = RT_STARS_SQE_TYPE_WRITE_VALUE;
     sqe->header.ie = RT_STARS_SQE_INT_DIR_NO;
     sqe->header.pre_p = RT_STARS_SQE_INT_DIR_NO;

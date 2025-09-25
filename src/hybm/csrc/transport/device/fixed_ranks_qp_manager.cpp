@@ -209,7 +209,7 @@ int FixedRanksQpManager::StartClientSide() noexcept
     std::vector<HccpSocketConnectInfo> connectInfos;
     for (auto it = currentRanksInfo_.begin(); it != currentRanksInfo_.end(); ++it) {
         if (it->first >= rankId_) {
-            continue;  // client connect to small ranks.
+            continue; // client connect to small ranks.
         }
 
         auto socketHandle = CreateLocalSocket();
@@ -262,7 +262,7 @@ int FixedRanksQpManager::GenerateWhiteList() noexcept
     std::vector<HccpSocketWhiteListInfo> whitelist;
     for (auto it = currentRanksInfo_.begin(); it != currentRanksInfo_.end(); ++it) {
         if (it->first <= rankId_) {
-            continue;  // small id as server, large id as client
+            continue; // small id as server, large id as client
         }
         HccpSocketWhiteListInfo info{};
         info.remoteIp.addr = it->second.network.sin_addr;
@@ -282,6 +282,39 @@ int FixedRanksQpManager::GenerateWhiteList() noexcept
         return BM_ERROR;
     }
 
+    return BM_OK;
+}
+
+int FixedRanksQpManager::CheckReadyConnection(std::unordered_map<uint32_t, AiCoreConnChannel> &connections,
+                                              const std::unordered_map<in_addr_t, uint32_t> addr2index,
+                                              const HccpSocketInfo &socketInfo) noexcept
+{
+    auto& addr = socketInfo.remoteIp.addr;
+    auto socketInfoPos = addr2index.find(addr.s_addr);
+    if (socketInfoPos == addr2index.end()) {
+        BM_LOG_ERROR("socket ip(" << DescribeIPv4(addr) << ") should exist in address mapping.");
+        return BM_DL_FUNCTION_FAILED;
+    }
+
+    auto rankId = socketInfoPos->second;
+    auto pos = connections.find(rankId);
+    if (pos == connections.end()) {
+        BM_LOG_ERROR("socket with rank(" << rankId << ") should exist in connections.");
+        return BM_DL_FUNCTION_FAILED;
+    }
+
+    if (pos->second.socketFd != nullptr) {
+        BM_LOG_ERROR("socket ip(" << DescribeIPv4(addr) << ") already get socket fd.");
+        return BM_DL_FUNCTION_FAILED;
+    }
+
+    if (pos->second.socketHandle != socketInfo.handle) {
+        BM_LOG_ERROR("socket ip(" << DescribeIPv4(addr) << ") socket handle not match.");
+        return BM_DL_FUNCTION_FAILED;
+    }
+
+    pos->second.socketFd = socketInfo.fd;
+    BM_LOG_INFO("connect to (" << rankId << ") ready.");
     return BM_OK;
 }
 
@@ -323,32 +356,10 @@ int FixedRanksQpManager::WaitConnectionsReady(std::unordered_map<uint32_t, AiCor
         }
 
         for (auto i = 0U; i < successCount; i++) {
-            auto socketInfoPos = addr2index.find(socketInfos[i].remoteIp.addr.s_addr);
-            if (socketInfoPos == addr2index.end()) {
-                BM_LOG_ERROR("socket ip(" << inet_ntoa(socketInfos[i].remoteIp.addr) << ") should not exist.");
-                return BM_DL_FUNCTION_FAILED;
+            ret = CheckReadyConnection(connections, addr2index, socketInfos[i]);
+            if (ret != BM_OK) {
+                return ret;
             }
-
-            auto rankId = socketInfoPos->second;
-            auto pos = connections.find(rankId);
-            if (pos == connections.end()) {
-                BM_LOG_ERROR("socket ip(" << inet_ntoa(socketInfos[i].remoteIp.addr) << ") should not exist.");
-                return BM_DL_FUNCTION_FAILED;
-            }
-
-            if (pos->second.socketFd != nullptr) {
-                BM_LOG_ERROR("get socket ip(" << inet_ntoa(socketInfos[i].remoteIp.addr) << ") already get socket fd.");
-                return BM_DL_FUNCTION_FAILED;
-            }
-
-            if (pos->second.socketHandle != socketInfos[i].handle) {
-                BM_LOG_ERROR("get socket ip(" << inet_ntoa(socketInfos[i].remoteIp.addr)
-                                              << ") socket handle not match.");
-                return BM_DL_FUNCTION_FAILED;
-            }
-
-            pos->second.socketFd = socketInfos[i].fd;
-            BM_LOG_INFO("connect to (" << rankId << ") ready.");
         }
 
         totalSuccessCount += successCount;
@@ -600,7 +611,7 @@ void FixedRanksQpManager::CloseConnections(std::unordered_map<uint32_t, AiCoreCo
 
     connections.clear();
 }
-}  // namespace device
-}  // namespace transport
-}  // namespace mf
-}  // namespace ock
+} // namespace device
+} // namespace transport
+} // namespace mf
+} // namespace ock

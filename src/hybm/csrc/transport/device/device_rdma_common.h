@@ -5,6 +5,8 @@
 #define MF_HYBRID_DEVICE_RDMA_COMMON_H
 
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <cstring>
 #include <ostream>
 #include <sstream>
 #include <map>
@@ -104,10 +106,20 @@ inline std::ostream &operator<<(std::ostream &output, const HccpRdevInitInfo &in
     return output;
 }
 
+inline std::string DescribeIPv4(const struct in_addr &addr)
+{
+    char str[INET_ADDRSTRLEN];
+    auto ret = inet_ntop(AF_INET, &addr, str, INET_ADDRSTRLEN);
+    if (ret == nullptr) {
+        return "<Invalid IP>";
+    }
+    return str;
+}
+
 inline std::ostream &operator<<(std::ostream &output, const HccpRdev &rdev)
 {
     output << "HccpRdev(phyId=" << rdev.phyId << ", family=" << rdev.family
-           << ", rdev.ip=" << inet_ntoa(rdev.localIp.addr) << ")";
+           << ", rdev.ip=" << DescribeIPv4(rdev.localIp.addr) << ")";
     return output;
 }
 
@@ -206,7 +218,7 @@ inline std::string AiQpInfoToString(const AiQpRMAQueueInfo &info, uint32_t rankC
 
 inline std::ostream &operator<<(std::ostream &output, const HccpSocketConnectInfo &info)
 {
-    output << "HccpSocketConnectInfo(socketHandle=" << info.handle << ", remoteIp=" << inet_ntoa(info.remoteIp.addr)
+    output << "HccpSocketConnectInfo(socketHandle=" << info.handle << ", remoteIp=" << DescribeIPv4(info.remoteIp.addr)
            << ", port=" << info.port << ")";
     return output;
 }

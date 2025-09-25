@@ -18,12 +18,25 @@ static int g_hybm_fd = -1;
 static uint32_t g_svspid = 0;
 static uint32_t g_sdid = 0;
 
+/**
+ * Copy C-style string, ensure dst to be `NULL` terminated, and no dirty data after the `NULL` terminator.
+ * @param src A C-style string to copy from
+ * @param src_size The capacity of the src string, including the `NULL` terminator.
+ * @param dst A C-style string to copy into
+ * @param dst_size The capacity of the dst buffer, including the `NULL` terminator.
+ */
+static inline void copy(const char *src, size_t src_size, char *dst, size_t dst_size)
+{
+    auto copy_size = std::min(strnlen(src, src_size - 1) + 1, sizeof(dst_size) - 1);
+    std::copy_n(src, copy_size, dst);
+    std::fill(dst + copy_size, dst + dst_size, '\0');
+}
+
 static void hybm_davinci_close(int fd, const char *davinci_sub_name)
 {
     struct davinci_intf_close_arg arg = {{0}, 0};
-    int ret;
-    (void)std::copy_n(davinci_sub_name, DAVINIC_MODULE_NAME_MAX, arg.module_name);
-    ret = ioctl(fd, DAVINCI_INTF_IOCTL_CLOSE, &arg);
+    copy(davinci_sub_name, DAVINIC_MODULE_NAME_MAX, arg.module_name, sizeof(arg.module_name));
+    auto ret = ioctl(fd, DAVINCI_INTF_IOCTL_CLOSE, &arg);
     if (ret != 0) {
         BM_USER_LOG_ERROR("Davinci close fail. ret:" << ret << " errno:" << errno);
     }
@@ -32,9 +45,8 @@ static void hybm_davinci_close(int fd, const char *davinci_sub_name)
 static int32_t hybm_davinci_open(int fd, const char *davinci_sub_name)
 {
     struct davinci_intf_open_arg arg = {{0}, 0};
-    int ret;
-    (void)std::copy_n(davinci_sub_name, DAVINIC_MODULE_NAME_MAX, arg.module_name);
-    ret = ioctl(fd, DAVINCI_INTF_IOCTL_OPEN, &arg);
+    copy(davinci_sub_name, DAVINIC_MODULE_NAME_MAX, arg.module_name, sizeof(arg.module_name));
+    auto ret = ioctl(fd, DAVINCI_INTF_IOCTL_OPEN, &arg);
     if (ret != 0) {
         BM_USER_LOG_ERROR("DAVINCI_INTF_IOCTL_OPEN failed. ret:" << ret << " errno:" << errno);
         return -1;
@@ -331,8 +343,8 @@ int32_t hybm_gvm_set_whitelist(uint64_t key, uint32_t sdid)
     arg.data.set_wl_para.sdid = sdid;
     ret = ioctl(g_hybm_fd, HYBM_GVM_CMD_SET_WL, &arg);
     if (ret < 0) {
-        BM_USER_LOG_ERROR("ioctl HYBM_GVM_CMD_SET_WL failed, ret:" << ret << " sdid:" << std::hex << sdid << " key:"
-                                                                   << key);
+        BM_USER_LOG_ERROR("ioctl HYBM_GVM_CMD_SET_WL failed, ret:" << ret << " sdid:" << std::hex << sdid
+                                                                   << " key:" << key);
         return HYBM_GVM_FAILURE;
     }
     BM_USER_LOG_INFO("ioctl HYBM_GVM_CMD_SET_WL success, sdid:" << std::hex << sdid << " key:" << key);

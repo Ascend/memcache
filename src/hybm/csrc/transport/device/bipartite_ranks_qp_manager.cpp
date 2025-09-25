@@ -332,14 +332,14 @@ int BipartiteRanksQpManager::ProcessQueryConnectionStateTask() noexcept
     for (auto i = 0U; i < successCount; i++) {
         auto pos = ip2rank.find(socketInfos[i].remoteIp.addr.s_addr);
         if (pos == ip2rank.end()) {
-            BM_LOG_ERROR("get non-expected socket remote ip: " << inet_ntoa(socketInfos[i].remoteIp.addr));
+            BM_LOG_ERROR("get non-expected socket remote ip: " << DescribeIPv4(socketInfos[i].remoteIp.addr));
             continue;
         }
 
         auto rankId = pos->second;
         auto nPos = connections_.find(rankId);
         if (nPos == connections_.end()) {
-            BM_LOG_ERROR("get non-expected ip: " << inet_ntoa(socketInfos[i].remoteIp.addr) << ", rank: " << rankId);
+            BM_LOG_ERROR("get non-expected ip: " << DescribeIPv4(socketInfos[i].remoteIp.addr) << ", rank: " << rankId);
             continue;
         }
 

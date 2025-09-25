@@ -127,7 +127,10 @@ private:
     do {                                                                                    \
         std::ostringstream oss;                                                             \
         oss << "[HyBM " << HYBM_USER_LOG_FILENAME_SHORT << ":" << __LINE__ << "] " << ARGS; \
-        HybmUserOutLogger::Instance()->Log(LEVEL, oss);                                     \
+        auto loggerInstance = HybmUserOutLogger::Instance();                                \
+        if (loggerInstance != nullptr) {                                                    \
+            loggerInstance->Log(LEVEL, oss);                                                \
+        }                                                                                   \
     } while (0)
 
 #define BM_USER_LOG_DEBUG(ARGS) BM_OUT_LOG(DEBUG_LEVEL, ARGS)
@@ -157,7 +160,7 @@ private:
             BM_USER_LOG_ERROR("Assert " << #ARGS); \
         }                                          \
     } while (0)
-}
-}
+} // namespace mf
+} // namespace ock
 
 #endif // MEMFABRIC_HYBRID_USER_LOGGER_H

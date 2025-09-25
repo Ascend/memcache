@@ -363,6 +363,10 @@ static void hybm_gvm_dma_unmap(struct hybm_gvm_process *proc, u64 *pa_list, u32 
 {
     u32 i;
     struct device *dev = uda_get_device(proc->devid);
+    if (dev == NULL) {
+        hybm_gvm_err("uda_get_device failed, devid:%u", proc->devid);
+        return;
+    }
 
     for (i = 0; i < num; i++) {
         if (dma_mapping_error(dev, pa_list[i]) == 0) {
@@ -871,7 +875,11 @@ static int hybm_gvm_proc_get_pa_inner(struct hybm_gvm_process *proc, u64 va, u64
     u64 i;
 
     node = (struct gvm_node *)gvm_va_tree_search_and_inc(&proc->va_tree, va);
-    if (node == NULL || node->va != va || node->size != size || node->pa_num != num) {
+    if (node == NULL) {
+        hybm_gvm_err("cannot find mem starts with input va");
+        return -EINVAL;
+    }
+    if (node->va != va || node->size != size || node->pa_num != num) {
         hybm_gvm_err("input va,size,pa_num not match. input:size(0x%llx)pa_num(%llu) range:size(0x%llx)pa_num(%u)",
                      size, num, node->size, node->pa_num);
         kref_put(&node->ref, hybm_gvm_node_ref_release);

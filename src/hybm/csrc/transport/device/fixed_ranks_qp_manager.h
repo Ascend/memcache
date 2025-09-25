@@ -45,6 +45,9 @@ private:
     int StartClientSide() noexcept;
     int GenerateWhiteList() noexcept;
     int WaitConnectionsReady(std::unordered_map<uint32_t, AiCoreConnChannel> &connections) noexcept;
+    int CheckReadyConnection(std::unordered_map<uint32_t, AiCoreConnChannel> &connections,
+                             const std::unordered_map<in_addr_t, uint32_t> addr2index,
+                             const HccpSocketInfo &socketInfo) noexcept;
     int CreateQpWaitingReady(std::unordered_map<uint32_t, AiCoreConnChannel> &connections) noexcept;
     int CreateOneQp(AiCoreConnChannel &channel) noexcept;
     int FillQpInfo() noexcept;

@@ -295,17 +295,17 @@ int JoinableRanksQpManager::WaitSocketConnections(const std::set<uint32_t> &newR
     for (auto i = 0U; i < successCount; i++) {
         auto socketInfoPos = addr2rank.find(socketInfos[i].remoteIp.addr.s_addr);
         if (socketInfoPos == addr2rank.end()) {
-            BM_LOG_ERROR("socket ip(" << inet_ntoa(socketInfos[i].remoteIp.addr) << ") should not exist.");
+            BM_LOG_ERROR("socket ip(" << DescribeIPv4(socketInfos[i].remoteIp.addr) << ") should not exist.");
             continue;
         }
 
         auto rankId = socketInfoPos->second;
         if (rankId >= rankCount_) {
-            BM_LOG_ERROR("socket ip(" << inet_ntoa(socketInfos[i].remoteIp.addr) << ") should not exist.");
+            BM_LOG_ERROR("socket ip(" << DescribeIPv4(socketInfos[i].remoteIp.addr) << ") should not exist.");
             continue;
         }
         if (connections_[rankId].socketFd != nullptr) {
-            BM_LOG_ERROR("get socket ip(" << inet_ntoa(socketInfos[i].remoteIp.addr) << ") already get socket fd.");
+            BM_LOG_ERROR("get socket ip(" << DescribeIPv4(socketInfos[i].remoteIp.addr) << ") already get socket fd.");
             continue;
         }
         connections_[rankId].socketFd = socketInfos[i].fd;

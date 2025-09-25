@@ -24,7 +24,7 @@ Result ParseDeviceNic(const std::string &nic, uint16_t &port)
     }
 
     auto caught = match[1].str();
-    auto parsePort = std::atol(caught.c_str());
+    auto parsePort = std::strtol(caught.c_str(), nullptr, 10);
     if (parsePort <= 0 || parsePort > std::numeric_limits<uint16_t>::max()) {
         BM_LOG_ERROR("input nic(" << nic << ") not matches, port(" << parsePort << ") too large.");
         return BM_INVALID_PARAM;
@@ -50,7 +50,7 @@ Result ParseDeviceNic(const std::string &nic, sockaddr_in &address)
     }
 
     auto caught = match[2].str();
-    auto parsePort = std::atol(caught.c_str());
+    auto parsePort = std::strtol(caught.c_str(), nullptr, 10);
     if (parsePort <= 0 || parsePort > std::numeric_limits<uint16_t>::max()) {
         BM_LOG_ERROR("input nic(" << nic << ") not matches, port(" << parsePort << ") too large.");
         return BM_INVALID_PARAM;
@@ -64,7 +64,13 @@ Result ParseDeviceNic(const std::string &nic, sockaddr_in &address)
 std::string GenerateDeviceNic(in_addr ip, uint16_t port)
 {
     std::stringstream ss;
-    ss << "tcp://" << inet_ntoa(ip) << ":" << port;
+    char host[INET_ADDRSTRLEN];
+    auto ret = inet_ntop(AF_INET, &ip, host, INET_ADDRSTRLEN);
+    if (ret == nullptr) {
+        BM_LOG_ERROR("inet_ntop failed, " << strerror(errno));
+        return "";
+    }
+    ss << "tcp://" << host << ":" << port;
     return ss.str();
 }
 }
