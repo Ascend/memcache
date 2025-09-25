@@ -41,6 +41,7 @@ private:
     };
 
     bool ReserveQpInfoSpace() noexcept;
+    void ReleaseQpInfoSpace() noexcept;
     int StartServerSide() noexcept;
     int StartClientSide() noexcept;
     int GenerateWhiteList() noexcept;

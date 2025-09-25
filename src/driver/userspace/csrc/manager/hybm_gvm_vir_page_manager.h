@@ -24,7 +24,7 @@ public:
     int32_t ReserveMemory(uint64_t *addr, uint64_t size, bool shared);
 
     bool UpdateRegisterMap(uint64_t va, uint64_t size);
-    bool QeuryInRegisterMap(uint64_t va, uint64_t size);
+    bool QueryInRegisterMap(uint64_t va, uint64_t size);
 
 private:
     HybmGvmVirPageManager() = default;

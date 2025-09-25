@@ -14,7 +14,6 @@
 #include "hybm_gvm_proc_info.h"
 
 #define HYBM_GVM_QUERY_SVM_PA_MAX_NUM (2U << 20) // 2M
-#define IS_MULTIPLE_OF(value, base)   ((value) != 0 && (base) != 0 && ((value) % (base)) == 0)
 
 /* common msg */
 enum agentdrv_common_msg_type {
@@ -466,6 +465,7 @@ static int gvm_agent_map_svm_pa(u32 devid, struct hybm_gvm_agent_fetch_msg *fetc
     ret = devmm_get_mem_pa_list(&id, fetch->va, fetch->size, pa_list, num);
     if (ret != 0) {
         hybm_gvm_err("get svm pa failed. ret:%d", ret);
+        kfree(pa_list);
         return -EINVAL;
     }
 
@@ -590,13 +590,26 @@ struct peer_memory_data {
     u32 mem_side; /* 0: device mem, 1: host mem */
 };
 
+static inline struct gvm_dev_mem_node* find_gvm_dev_mem_node_by_va(struct list_head* head, u64 addr)
+{
+    struct gvm_dev_mem_node *node = NULL;
+    struct list_head *pos = NULL, *n = NULL;
+    list_for_each_safe(pos, n, head)
+    {
+        node = list_entry(pos, struct gvm_dev_mem_node, node);
+        if (node->va == addr) {
+            break;
+        }
+    }
+    return node;
+}
+
 int gvm_peer_mem_acquire(unsigned long addr, size_t size, void *peer_mem_data, char *peer_mem_name,
                          void **client_context)
 {
     struct peer_memory_data *memory_data = (struct peer_memory_data *)peer_mem_data;
     u64 va_aligned_start, va_aligned_end, aligned_size, page_size;
     struct gvm_peer_mem_context *mm_context = NULL;
-    struct list_head *pos = NULL, *n = NULL;
     struct gvm_dev_mem_node *node = NULL;
     u32 page_num;
 
@@ -604,18 +617,13 @@ int gvm_peer_mem_acquire(unsigned long addr, size_t size, void *peer_mem_data, c
         hybm_gvm_err("input err check private_data, client_context.");
         return false;
     }
-    if (addr % HYBM_GVM_PAGE_SIZE || size % HYBM_GVM_PAGE_SIZE) {
-        hybm_gvm_err("input is not aligned or size is not a multiple of 1G, size:0x%lx", size);
+    if (!IS_MULTIPLE_OF(addr, HYBM_GVM_PAGE_SIZE) || !IS_MULTIPLE_OF(size, HYBM_GVM_PAGE_SIZE) ||
+        size > HYBM_GVM_ALLOC_MAX_SIZE) {
+        hybm_gvm_err("invalid addr or size, size:0x%lx", size);
         return false;
     }
 
-    list_for_each_safe(pos, n, &g_gvm_agent_info.roce_head)
-    {
-        node = list_entry(pos, struct gvm_dev_mem_node, node);
-        if (node->va == addr) {
-            break;
-        }
-    }
+    node = find_gvm_dev_mem_node_by_va(&g_gvm_agent_info.roce_head, addr);
     if (node == NULL || node->va != addr) {
         hybm_gvm_err("input addr has not been mapped");
         return false;
@@ -665,6 +673,12 @@ int gvm_peer_mem_get_pages(unsigned long addr, size_t size, int write, int force
     if (mm_context->page_size != HYBM_HPAGE_SIZE || mm_context->aligned_size % HYBM_GVM_PAGE_SIZE) {
         hybm_gvm_err("input param is invalid, pg_size:0x%x,size:0x%llx", mm_context->page_size,
                      mm_context->aligned_size);
+        return -EINVAL;
+    }
+
+    // check for end addr overflow and loop value overflow
+    if (size > UINT64_MAX - addr || GVM_ALIGN_UP(size, HYBM_GVM_PAGE_SIZE) > UINT64_MAX - addr) {
+        hybm_gvm_err("input addr+size too large");
         return -EINVAL;
     }
 
@@ -733,6 +747,7 @@ int gvm_peer_mem_dma_map(struct sg_table *sg_head, void *context, struct device 
         if (sg == NULL) {
             hybm_gvm_err("sg is null.");
             ret = -ENOMEM;
+            sg_free_table(sg_head);
             goto dma_map_exit;
         }
         sg_set_page(sg, NULL, mm_context->page_size, 0);
@@ -971,7 +986,6 @@ static int __init gvm_agent_init(void)
 
     ret = agent_symbol_get();
     if (ret != 0) {
-        agent_symbol_put();
         goto init_failed1;
     }
 

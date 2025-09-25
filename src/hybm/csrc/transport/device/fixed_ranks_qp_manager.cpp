@@ -28,6 +28,7 @@ FixedRanksQpManager::FixedRanksQpManager(uint32_t deviceId, uint32_t rankId, uin
 FixedRanksQpManager::~FixedRanksQpManager() noexcept
 {
     CloseServices();
+    ReleaseQpInfoSpace();
 }
 
 int FixedRanksQpManager::SetRemoteRankInfo(const std::unordered_map<uint32_t, ConnectRankInfo> &ranks) noexcept
@@ -101,6 +102,7 @@ int FixedRanksQpManager::Startup(void *rdma) noexcept
 void FixedRanksQpManager::Shutdown() noexcept
 {
     CloseServices();
+    ReleaseQpInfoSpace();
 }
 
 int FixedRanksQpManager::WaitingConnectionReady() noexcept
@@ -159,6 +161,14 @@ bool FixedRanksQpManager::ReserveQpInfoSpace() noexcept
     return true;
 }
 
+void FixedRanksQpManager::ReleaseQpInfoSpace() noexcept
+{
+    if (qpInfo_ != nullptr) {
+        DlAclApi::AclrtFree(qpInfo_);
+        qpInfo_ = nullptr;
+    }
+}
+
 int FixedRanksQpManager::StartServerSide() noexcept
 {
     if (rankId_ + 1U == rankCount_) {
@@ -190,6 +200,7 @@ int FixedRanksQpManager::StartServerSide() noexcept
         if (ret != BM_OK) {
             BM_LOG_ERROR("wait connection AI qp ready failed: " << ret);
             serverConnectResult = ret;
+            return;
         }
 
         serverConnectResult = BM_OK;
@@ -289,7 +300,7 @@ int FixedRanksQpManager::CheckReadyConnection(std::unordered_map<uint32_t, AiCor
                                               const std::unordered_map<in_addr_t, uint32_t> addr2index,
                                               const HccpSocketInfo &socketInfo) noexcept
 {
-    auto& addr = socketInfo.remoteIp.addr;
+    auto &addr = socketInfo.remoteIp.addr;
     auto socketInfoPos = addr2index.find(addr.s_addr);
     if (socketInfoPos == addr2index.end()) {
         BM_LOG_ERROR("socket ip(" << DescribeIPv4(addr) << ") should exist in address mapping.");

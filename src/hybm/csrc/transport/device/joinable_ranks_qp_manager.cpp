@@ -181,6 +181,24 @@ int JoinableRanksQpManager::StartClientSide() noexcept
     return BM_OK;
 }
 
+void JoinableRanksQpManager::ServerSideHandleNewClients(const std::set<uint32_t> &newRanks) noexcept
+{
+    auto ret = GenerateWhiteList(newRanks);
+    if (ret != 0) {
+        BM_LOG_ERROR("generate white list failed: " << ret);
+        return;
+    }
+
+    ret = WaitSocketConnections(newRanks);
+    if (ret != 0) {
+        BM_LOG_ERROR("make socket connections for server side failed: " << ret);
+        return;
+    }
+
+    MakeQpConnections(newRanks);
+    WaitQpConnections(newRanks);
+}
+
 void JoinableRanksQpManager::ServerSideRunLoop() noexcept
 {
     DlAclApi::AclrtSetDevice(userDeviceId_);
@@ -199,18 +217,7 @@ void JoinableRanksQpManager::ServerSideRunLoop() noexcept
         uniqueLock.unlock();
 
         if (!newClients.empty()) {
-            auto ret = GenerateWhiteList(newClients);
-            if (ret != 0) {
-                BM_LOG_ERROR("generate white list failed: " << ret);
-            }
-
-            ret = WaitSocketConnections(newClients);
-            if (ret != 0) {
-                BM_LOG_ERROR("make socket connections for server side failed: " << ret);
-            }
-
-            MakeQpConnections(newClients);
-            WaitQpConnections(newClients);
+            ServerSideHandleNewClients(newClients);
         }
 
         if (!removedRanks.empty()) {
@@ -476,31 +483,6 @@ int JoinableRanksQpManager::CreateConnectionToServers(const std::set<uint32_t> &
         DlHccpApi::RaSocketDeinit(socketHandle);
     }
     return BM_ERROR;
-}
-
-int JoinableRanksQpManager::RegisterLocalMrToQpHandle(void *qpHandle) noexcept
-{
-    std::vector<RegMemResult> regMrs;
-    std::unique_lock<std::mutex> uniqueLock{mutex_};
-    regMrs.reserve(currentLocalMrs_.size());
-    for (auto it = currentLocalMrs_.begin(); it != currentLocalMrs_.end(); ++it) {
-        regMrs.push_back(it->second);
-    }
-    uniqueLock.unlock();
-
-    for (auto &mr : regMrs) {
-        HccpMrInfo info{};
-        info.addr = reinterpret_cast<void *>(mr.regAddress);
-        info.size = mr.size;
-        info.access = MR_INFO_ACCESS;
-        auto ret = DlHccpApi::RaMrReg(qpHandle, info);
-        if (ret != 0) {
-            BM_LOG_ERROR("register MR failed: " << ret);
-            return BM_DL_FUNCTION_FAILED;
-        }
-    }
-
-    return BM_OK;
 }
 
 void JoinableRanksQpManager::RemoveRanksProcess(const std::set<uint32_t> &ranks) noexcept

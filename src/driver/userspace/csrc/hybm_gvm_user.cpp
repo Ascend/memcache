@@ -180,8 +180,8 @@ int32_t hybm_gvm_mem_fetch(uint64_t addr, uint64_t size, uint32_t sdid)
         BM_USER_LOG_ERROR("hybm gvm module has not been initialized");
         return HYBM_GVM_FAILURE;
     }
-    if (addr == 0 || size % SIZE_1G) {
-        BM_USER_LOG_ERROR("Invalid param, addr is nullptr or size is not multiple of 1G, size:" << size);
+    if (addr == 0 || size == 0 || size > HYBM_GVM_RESERVE_SIZE || size % SIZE_1G) {
+        BM_USER_LOG_ERROR("Invalid param, addr is nullptr or size is invalid, size:" << size);
         return HYBM_GVM_FAILURE;
     }
 
@@ -218,7 +218,7 @@ int32_t hybm_gvm_mem_register(uint64_t addr, uint64_t size)
         BM_USER_LOG_ERROR("hybm gvm module has not been initialized");
         return HYBM_GVM_FAILURE;
     }
-    if (addr == 0 || HybmGvmVirPageManager::Instance()->QeuryInRegisterMap(addr, size)) {
+    if (addr == 0 || HybmGvmVirPageManager::Instance()->QueryInRegisterMap(addr, size)) {
         BM_USER_LOG_ERROR("Invalid param addr or size, size:" << size);
         return HYBM_GVM_FAILURE;
     }
@@ -244,7 +244,7 @@ int32_t hybm_gvm_mem_register(uint64_t addr, uint64_t size)
 
 bool hybm_gvm_mem_has_registered(uint64_t addr, uint64_t size)
 {
-    return HybmGvmVirPageManager::Instance()->QeuryInRegisterMap(addr, size);
+    return HybmGvmVirPageManager::Instance()->QueryInRegisterMap(addr, size);
 }
 
 int32_t hybm_gvm_mem_alloc(uint64_t addr, uint64_t size)

@@ -41,6 +41,10 @@
 #define UINT64_MAX (~(u64)0)
 #endif
 
+#ifndef IS_MULTIPLE_OF
+#define IS_MULTIPLE_OF(value, base) ((value) != 0 && (base) != 0 && ((value) % (base)) == 0)
+#endif
+
 struct gvm_private_data {
     void *process;
     atomic_t init_flag;

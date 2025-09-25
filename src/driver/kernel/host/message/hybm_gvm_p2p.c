@@ -28,7 +28,6 @@ struct hybm_gvm_p2p_node_info_msg {
 
 struct hybm_gvm_p2p_set_wl_reply {
     void *rproc;
-    u32 dst_sdid;
 };
 
 struct hybm_gvm_p2p_unset_msg {

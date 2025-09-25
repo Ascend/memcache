@@ -17,7 +17,7 @@ constexpr uint64_t HYBM_VIR_PAGE_SIZE = 1024ULL * 1024ULL * 1024ULL;
 constexpr uint32_t REGISTER_SET_MARK_BIT = 1U;
 constexpr uint32_t REGISTER_SET_LEFT_MARK = 1U;
 constexpr uint64_t REGISTER_SET_VA_MAX = UINT64_MAX >> REGISTER_SET_MARK_BIT;
-}
+} // namespace
 
 HybmGvmVirPageManager *HybmGvmVirPageManager::Instance()
 {
@@ -25,14 +25,16 @@ HybmGvmVirPageManager *HybmGvmVirPageManager::Instance()
     return &instance;
 }
 
-HybmGvmVirPageManager::~HybmGvmVirPageManager()
-{
-}
+HybmGvmVirPageManager::~HybmGvmVirPageManager() {}
 
 int32_t HybmGvmVirPageManager::Initialize(uint64_t startAddr, uint64_t size, int fd)
 {
     if (local_.start != 0 || global_.start != 0) {
         BM_USER_LOG_ERROR("Gvm manager is already inited, size:" << size);
+        return -1;
+    }
+    if (size == 0 || size > HYBM_GVM_RESERVE_SIZE || size % HYBM_VIR_PAGE_SIZE != 0) {
+        BM_USER_LOG_ERROR("Failed to init, invalid size, size:" << size);
         return -1;
     }
 
@@ -63,13 +65,13 @@ int32_t HybmGvmVirPageManager::Initialize(uint64_t startAddr, uint64_t size, int
 int32_t HybmGvmVirPageManager::ReserveMemory(uint64_t *addr, uint64_t size, bool shared)
 {
     std::unique_lock<std::mutex> lockGuard{mutex_};
-    if (size % HYBM_VIR_PAGE_SIZE != 0) {
+    if (size == 0 || size % HYBM_VIR_PAGE_SIZE != 0) {
         BM_USER_LOG_ERROR("Failed to reserve memory size:" << size << " must alignment " << HYBM_VIR_PAGE_SIZE);
         return -1;
     }
 
     HGM_MemInfo *info = (shared ? &global_ : &local_);
-    if (size + info->used > info->reserved) {
+    if (size > std::numeric_limits<uint64_t>::max() - info->used || size + info->used > info->reserved) {
         BM_USER_LOG_ERROR("Failed to reserve memory size:" << size << " usedSize:" << info->used
                                                            << " totalSize:" << info->reserved);
         return -1;
@@ -81,7 +83,8 @@ int32_t HybmGvmVirPageManager::ReserveMemory(uint64_t *addr, uint64_t size, bool
 
 bool HybmGvmVirPageManager::UpdateRegisterMap(uint64_t va, uint64_t size)
 {
-    if (va > REGISTER_SET_VA_MAX || va + size > REGISTER_SET_VA_MAX) {
+    if (va > REGISTER_SET_VA_MAX || size > std::numeric_limits<uint64_t>::max() - va ||
+        va + size > REGISTER_SET_VA_MAX) {
         BM_USER_LOG_ERROR("register va is too large, size:" << size);
         return false;
     }
@@ -98,9 +101,13 @@ bool HybmGvmVirPageManager::UpdateRegisterMap(uint64_t va, uint64_t size)
     return true;
 }
 
-bool HybmGvmVirPageManager::QeuryInRegisterMap(uint64_t va, uint64_t size)
+bool HybmGvmVirPageManager::QueryInRegisterMap(uint64_t va, uint64_t size)
 {
     std::unique_lock<std::mutex> lockGuard{mutex_};
+    // check overflow
+    if (size > std::numeric_limits<uint64_t>::max() - va) {
+        return false;
+    }
     // 必须查询到一个右端点,且待查询区间<=右端点
     auto it = registerSet_.upper_bound((va << REGISTER_SET_MARK_BIT) | REGISTER_SET_LEFT_MARK);
     return (it != registerSet_.end() && !((*it) & REGISTER_SET_LEFT_MARK) &&

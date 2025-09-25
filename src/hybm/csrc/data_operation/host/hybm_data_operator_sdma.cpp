@@ -47,7 +47,7 @@ int32_t HostDataOpSDMA::Initialize() noexcept
             sdmaSwapMemAddr_ = nullptr;
             hybmStream_->Destroy();
             hybmStream_ = nullptr;
-            BM_LOG_ERROR("hybm_gvm_mem_fetch failed: " << ret << " addr:" << sdmaSwapMemAddr_);
+            BM_LOG_ERROR("hybm_gvm_mem_register failed: " << ret << " addr:" << sdmaSwapMemAddr_);
             return BM_DL_FUNCTION_FAILED;
         }
         BM_LOG_INFO("Success to register sdma swap memory add: " << sdmaSwapMemAddr_

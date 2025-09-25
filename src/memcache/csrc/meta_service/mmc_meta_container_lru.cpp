@@ -84,6 +84,7 @@ public:
         if (ret.second) {
             return MMC_OK;
         }
+        lruList_.erase(lruItem.lruIter_);
         MMC_LOG_ERROR("Fail to insert " << key << " into MmcMetaContainer. ErrCode: " << MMC_ERROR);
         return MMC_ERROR;
     }

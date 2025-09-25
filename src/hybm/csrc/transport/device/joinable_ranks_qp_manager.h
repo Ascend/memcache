@@ -37,12 +37,12 @@ private:
     int StartClientSide() noexcept;
     void ServerSideRunLoop() noexcept;
     void ClientSideRunLoop() noexcept;
+    void ServerSideHandleNewClients(const std::set<uint32_t> &newRanks) noexcept;
     int WaitSocketConnections(const std::set<uint32_t> &newRanks) noexcept;
     void MakeQpConnections(const std::set<uint32_t> &newRanks) noexcept;
     void WaitQpConnections(const std::set<uint32_t> &newRanks) noexcept;
     int GenerateWhiteList(const std::set<uint32_t> &newClients) noexcept;
     int CreateConnectionToServers(const std::set<uint32_t> &newServers) noexcept;
-    int RegisterLocalMrToQpHandle(void *qpHandle) noexcept;
     void RemoveRanksProcess(const std::set<uint32_t> &ranks) noexcept;
 
 private:

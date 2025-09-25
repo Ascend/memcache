@@ -138,7 +138,7 @@ public:
 
     static inline int RaSocketWhiteListDel(void *socket, const HccpSocketWhiteListInfo list[], uint32_t num)
     {
-        return gRaSocketWhiteListAdd(socket, list, num);
+        return gRaSocketWhiteListDel(socket, list, num);
     }
 
     static inline int RaQpCreate(void *rdmaHandle, int flag, int qpMode, void *&qpHandle)

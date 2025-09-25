@@ -3,14 +3,14 @@
  */
 
 #include "mmc_meta_manager.h"
-#include <chrono>
-#include <thread>
+
+#include "mmc_logger.h"
+#include "mmc_types.h"
 
 namespace ock {
 namespace mmc {
 
 constexpr int TIMEOUT_SECOND = 60;
-static const uint16_t NUM_BUCKETS = 29;
 
 Result MmcMetaManager::Get(const std::string& key, uint64_t operateId, MmcBlobFilterPtr filterPtr,
                            MmcMemMetaDesc& objMeta)
@@ -216,13 +216,24 @@ Result MmcMetaManager::Mount(const std::vector<MmcLocation>& locs,
         MMC_LOG_ERROR("Mount: loc size:" << locs.size() << " != localMemInitInfo size:" << localMemInitInfos.size());
         return MMC_INVALID_PARAM;
     }
-
-    for (uint32_t i = 0; i < locs.size(); i++) {
-        Result ret = Mount(locs[i], localMemInitInfos[i], blobMap);
+    Result ret = MMC_OK;
+    uint32_t i = 0;
+    for (; i < locs.size(); i++) {
+        ret = Mount(locs[i], localMemInitInfos[i], blobMap);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("Mount failed ret:" << ret << " loc rank:" << locs[i].rank_
                                               << " mediaType_: " << locs[i].mediaType_);
-            return ret;
+            break;
+        }
+    }
+    if (ret != MMC_OK) {
+        MMC_LOG_INFO("Mount locs partially failed, unmounting mounted locs...");
+        for (; i > 0; i--) {
+            auto unmountRet = Unmount(locs[i - 1]);
+            if (unmountRet != MMC_OK) {
+                MMC_LOG_ERROR("Unmount failed ret:" << unmountRet << " loc rank:" << locs[i - 1].rank_
+                                                    << " mediaType_: " << locs[i - 1].mediaType_);
+            }
         }
     }
     return MMC_OK;
@@ -391,6 +402,7 @@ Result MmcMetaManager::MoveBlob(const std::string& key, const MmcLocation& src, 
     ret = objMeta->FreeBlobs(key, globalAllocator_, filter);
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("key: " << key << " free blob failed, ret " << ret);
+        return ret;
     }
 
     MMC_LOG_INFO("move " << key << " from " << src << " to " << dst << " " << blobsDesc[0] << ", " << objMeta);

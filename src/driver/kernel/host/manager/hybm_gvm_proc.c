@@ -112,7 +112,7 @@ static struct gvm_node *hybm_gvm_node_alloc(u64 va, u64 size)
 {
     struct gvm_node *node = NULL;
     u32 pa_num = size / HYBM_GVM_PAGE_SIZE;
-    if (va % HYBM_GVM_PAGE_SIZE || size % HYBM_GVM_PAGE_SIZE) {
+    if (!IS_MULTIPLE_OF(va, HYBM_GVM_PAGE_SIZE) || !IS_MULTIPLE_OF(size, HYBM_GVM_PAGE_SIZE)) {
         hybm_gvm_err("input va is not aligned or size is not a multiple of page. size(0x%llx)", size);
         return NULL;
     }
@@ -340,6 +340,11 @@ static int hybm_gvm_map_phys_to_user(struct hybm_gvm_process *proc, u64 virt_add
         return -EINVAL;
     }
 
+    if (size > UINT64_MAX - virt_addr) {
+        hybm_gvm_err("input va+size overflow!");
+        return -EINVAL;
+    }
+
     vma = proc->vma;
     if (!pfn_valid(pfn)) {
         hybm_gvm_err("Invalid PFN: 0x%llx", pfn);
@@ -548,9 +553,13 @@ static int hybm_gvm_mem_alloc(struct file *file, struct hybm_gvm_process *proc, 
     u64 size = arg->size;
     int ret;
 
-    if (va % HYBM_GVM_PAGE_SIZE || size % HYBM_GVM_PAGE_SIZE) {
+    if (!IS_MULTIPLE_OF(va, HYBM_GVM_PAGE_SIZE) || !IS_MULTIPLE_OF(size, HYBM_GVM_PAGE_SIZE)) {
         hybm_gvm_err("input va is not aligned or size is not a multiple of page. size(0x%llx)", size);
         return -EINVAL;
+    }
+
+    if (size > UINT64_MAX - va) {
+        hybm_gvm_err("input va+size overflow. size(0x%llx)", size);
     }
 
     if (va < proc->va_start || va + size > proc->va_end) {
@@ -652,11 +661,16 @@ static int hybm_gvm_get_key(struct file *file, struct hybm_gvm_process *proc, st
 
     mutex_lock(&node->lock);
     if (node->shm_key == 0) {
-        node->shm_key = gvm_generate_key(proc->sdid, ++proc->key_idx);
-        if (!gvm_key_tree_insert(&proc->key_tree, node)) {
-            hybm_gvm_err("set key failed, duplicated key exists! maybe retry. key(0x%llx)", node->shm_key);
-            node->shm_key = 0;
-            ret = -EAGAIN;
+        if (proc->key_idx == U32_MAX) {
+            hybm_gvm_err("set key failed, available key exhausted!.");
+            ret = -EBUSY;
+        } else {
+            node->shm_key = gvm_generate_key(proc->sdid, ++proc->key_idx);
+            if (!gvm_key_tree_insert(&proc->key_tree, node)) {
+                hybm_gvm_err("set key failed, duplicated key exists! maybe retry. key(0x%llx)", node->shm_key);
+                node->shm_key = 0;
+                ret = -EAGAIN;
+            }
         }
     }
 
@@ -695,6 +709,7 @@ static int hybm_gvm_set_whitelist(struct file *file, struct hybm_gvm_process *pr
     wnode = kzalloc(sizeof(struct gvm_wlist_node), GFP_KERNEL | __GFP_ACCOUNT);
     if (wnode == NULL) {
         hybm_gvm_err("kzalloc gvm_wlist_node fail.");
+        kref_put(&node->ref, hybm_gvm_node_ref_release);
         return -ENOMEM;
     }
 
@@ -780,6 +795,7 @@ static int hybm_gvm_mem_close(struct file *file, struct hybm_gvm_process *proc, 
     hybm_gvm_mem_free_inner(proc, node, UINT64_MAX);
     mutex_unlock(&node->lock);
     hybm_gvm_debug("hybm_gvm_mem_close success. key(0x%llx)", node->shm_key);
+    kref_put(&node->ref, hybm_gvm_node_ref_release);
     return 0;
 }
 
@@ -791,7 +807,8 @@ static int hybm_gvm_mem_fetch(struct file *file, struct hybm_gvm_process *proc, 
     u64 size = arg->size;
     int ret;
 
-    if (!va || !size || (!arg->no_record && (va % HYBM_GVM_PAGE_SIZE || size != HYBM_GVM_PAGE_SIZE))) {
+    if (!va || !size || (size > UINT64_MAX - va) ||
+        (!arg->no_record && (va % HYBM_GVM_PAGE_SIZE || size != HYBM_GVM_PAGE_SIZE))) {
         hybm_gvm_err("input invalid! size(0x%llx)no_record(%u)", size, arg->no_record);
         return -EBUSY;
     }
@@ -905,6 +922,7 @@ static int hybm_gvm_proc_get_pa_inner(struct hybm_gvm_process *proc, u64 va, u64
             return -EINVAL;
         }
     }
+    kref_put(&node->ref, hybm_gvm_node_ref_release);
     return 0;
 }
 
@@ -1014,7 +1032,7 @@ static int hybm_gvm_insert_remote_inner(struct hybm_gvm_process *proc, u64 key, 
         hybm_gvm_err("set key failed, unknown error. key(0x%llx)", node->shm_key);
         mutex_unlock(&node->lock);
         gvm_va_tree_remove_and_dec(&proc->va_tree, (void *)node, hybm_gvm_node_ref_release);
-        ret = -EBUSY;
+        return -EBUSY;
     }
 
     mutex_unlock(&node->lock);
