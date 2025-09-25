@@ -59,6 +59,7 @@ Result MmcMetaManager::ExistKey(const std::string& key)
         MMC_LOG_ERROR("Key is exist but do not have readable blob key:" << key);
         return MMC_OBJECT_NOT_EXISTS;
     }
+    metaContainer_->Promote(key);
     return MMC_OK;
 }
 
