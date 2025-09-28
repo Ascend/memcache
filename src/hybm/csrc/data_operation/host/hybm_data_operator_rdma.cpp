@@ -528,11 +528,11 @@ int HostDataOpRDMA::BatchCopyLD2GH(void **gvaAddrs, const void **deviceAddrs, co
                                    uint32_t batchSize, const ExtOptions &options) noexcept
 {
     BM_ASSERT_RETURN(counts != nullptr, BM_INVALID_PARAM);
-    BM_ASSERT_RETURN(rdmaSwapMemoryAllocator_ != nullptr, BM_INVALID_PARAM);
-    BM_ASSERT_RETURN(transportManager_ != nullptr, BM_INVALID_PARAM);
     if (options.destRankId == rankId_) {
         return BatchCopyLD2LH(gvaAddrs, deviceAddrs, counts, batchSize, options);
     }
+    BM_ASSERT_RETURN(rdmaSwapMemoryAllocator_ != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(transportManager_ != nullptr, BM_INVALID_PARAM);
     auto ret = 0;
     uint64_t totalSize = 0;
     for (size_t i = 0; i < batchSize; ++i) {
@@ -569,11 +569,11 @@ int HostDataOpRDMA::BatchCopyGH2LD(void **deviceAddrs, const void **gvaAddrs, co
     BM_ASSERT_RETURN(deviceAddrs != nullptr, BM_INVALID_PARAM);
     BM_ASSERT_RETURN(gvaAddrs != nullptr, BM_INVALID_PARAM);
     BM_ASSERT_RETURN(counts != nullptr, BM_INVALID_PARAM);
-    BM_ASSERT_RETURN(rdmaSwapMemoryAllocator_ != nullptr, BM_INVALID_PARAM);
-    BM_ASSERT_RETURN(transportManager_ != nullptr, BM_INVALID_PARAM);
     if (options.srcRankId == rankId_) {
         return BatchCopyLH2LD(deviceAddrs, gvaAddrs, counts, batchSize, options);
     }
+    BM_ASSERT_RETURN(rdmaSwapMemoryAllocator_ != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(transportManager_ != nullptr, BM_INVALID_PARAM);
     auto ret = 0;
     uint64_t totalSize = 0;
     for (size_t i = 0; i < batchSize; ++i) {
