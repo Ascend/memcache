@@ -124,7 +124,7 @@ TEST_F(TestMmcacheStore, Init)
     std::shared_ptr<ObjectStore> store = ObjectStore::CreateObjectStore();
     auto ret = GenerateLocalConf(confPath_);
     ASSERT_EQ(ret, 0);
-    MMC_LOCAL_CONF_PATH = confPath_.c_str();
+    MMC_LOCAL_CONF_PATH = confPath_;
     ret = store->Init(0);
     ASSERT_EQ(ret, 0);
 

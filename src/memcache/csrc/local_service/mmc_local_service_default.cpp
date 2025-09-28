@@ -123,6 +123,8 @@ Result MmcLocalServiceDefault::DestroyBm()
 
 Result MmcLocalServiceDefault::RegisterBm()
 {
+    MMC_RETURN_ERROR(bmProxyPtr_ == nullptr, "bm proxy has not been initialized.");
+
     BmRegisterRequest req;
     req.rank_ = options_.rankId;
     for (MediaType type = MEDIA_DRAM; type != MEDIA_NONE;) {

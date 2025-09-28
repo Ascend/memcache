@@ -118,11 +118,11 @@ bool MmcMetaServiceProcess::CheckIsRunning()
 
 int MmcMetaServiceProcess::LoadConfig()
 {
-    if (MMC_META_CONF_PATH == nullptr) {
+    if (MMC_META_CONF_PATH.empty()) {
         std::cerr << "MMC_META_CONFIG_PATH is not set." << std::endl;
         return -1;
     }
-    const auto confPath = std::string(MMC_META_CONF_PATH);
+    const auto confPath = MMC_META_CONF_PATH;
     MetaServiceConfig configManager;
     if (!configManager.LoadFromFile(confPath)) {
         std::cerr << "Failed to load config from file" << std::endl;

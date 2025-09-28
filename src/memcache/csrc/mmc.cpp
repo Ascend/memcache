@@ -27,7 +27,7 @@ MMC_API int32_t mmc_init(const mmc_init_config &config)
         return MMC_OK;
     }
 
-    MMC_VALIDATE_RETURN(MMC_LOCAL_CONF_PATH != nullptr, "MMC_LOCAL_CONFIG_PATH is not set", MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(!MMC_LOCAL_CONF_PATH.empty(), "MMC_LOCAL_CONFIG_PATH is not set", MMC_INVALID_PARAM);
 
     ClientConfig configManager{};
 
@@ -35,8 +35,7 @@ MMC_API int32_t mmc_init(const mmc_init_config &config)
 
     const std::vector<std::string> validationError = configManager.ValidateConf();
     if (!validationError.empty()) {
-        MMC_LOG_ERROR("Wrong configuration in file <" << std::string(MMC_LOCAL_CONF_PATH)
-            << ">, because of following mistakes:");
+        MMC_LOG_ERROR("Wrong configuration in file <" << MMC_LOCAL_CONF_PATH << ">, because of following mistakes:");
         for (auto &item : validationError) {
             MMC_LOG_ERROR(item);
         }

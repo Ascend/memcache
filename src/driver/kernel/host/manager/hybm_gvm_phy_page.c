@@ -23,7 +23,7 @@ u64 hybm_gvm_alloc_pg(void)
         }
     }
 
-    hybm_gvm_debug("alloc pa:0x%llx", addr);
+    hybm_gvm_debug("alloc pa valid:%d, numa:%d", addr != 0, i);
     return addr;
 }
 
@@ -31,6 +31,6 @@ int hybm_gvm_free_pg(u64 addr)
 {
     obmm_free((void *)addr, 0);
 
-    hybm_gvm_debug("free pa:0x%llx", addr);
+    hybm_gvm_debug("free pa");
     return 0;
 }

@@ -4,6 +4,9 @@
 
 #include "mmc_blob_allocator.h"
 
+#include <cstdint>
+#include <limits>
+
 namespace ock {
 namespace mmc {
 bool MmcBlobAllocator::CanAlloc(uint64_t blobSize)
@@ -33,6 +36,7 @@ MmcMemBlobPtr MmcBlobAllocator::Alloc(uint64_t blobSize)
         return nullptr;
     }
     auto alignedSize = AllocSizeAlignUp(blobSize);
+
     SpaceRange anchor{0, alignedSize};
 
     spinlock_.lock();
@@ -138,7 +142,7 @@ Result MmcBlobAllocator::BuildFromBlobs(std::map<std::string, MmcMemBlobDesc> &b
             << ", allocator must not started and empty");
         return MMC_ERROR;
     }
-    
+
     // 处理每个已分配的blob
     for (auto it = blobMap.begin(); it != blobMap.end();) {
         if (it->second.rank_ != rank_) {
@@ -180,29 +184,33 @@ Result MmcBlobAllocator::ValidateAndAddAllocation(uint64_t offset, uint64_t size
                    << ", size: " << size << ", capacity: " << capacity_);
         return MMC_ERROR;
     }
-    
+
     // 计算对齐后的大小
     uint64_t alignedSize = AllocSizeAlignUp(size);
-    
+    if (offset > std::numeric_limits<uint64_t>::max() - alignedSize) {
+        MMC_LOG_ERROR("offset plus size overflow: offset=" << offset << ", size=" << size);
+        return MMC_ERROR;
+    }
+
     // 查找包含该分配的空闲块
     auto it = addressTree_.upper_bound(offset);
     if (it != addressTree_.begin()) {
         --it;  // 回退到可能包含offset的块
     }
-    
+
     if (it == addressTree_.end() || it->first > offset ||
         (it->first + it->second) < (offset + alignedSize)) {
         MMC_LOG_ERROR("No matching free block for blob: offset=" << offset
                    << ", size=" << size);
         return MMC_ERROR;
     }
-    
+
     // 从空闲树中移除该块
     uint64_t blockOffset = it->first;
     uint64_t blockSize = it->second;
     sizeTree_.erase(SpaceRange{blockOffset, blockSize});
     addressTree_.erase(it);
-    
+
     // 分割剩余空间（前部）
     if (blockOffset < offset) {
         uint64_t frontSize = offset - blockOffset;
@@ -210,7 +218,7 @@ Result MmcBlobAllocator::ValidateAndAddAllocation(uint64_t offset, uint64_t size
         addressTree_.emplace(left.offset_, left.size_);
         sizeTree_.emplace(left);
     }
-    
+
     // 分割剩余空间（后部）
     uint64_t endOffset = offset + alignedSize;
     uint64_t remainingSize = (blockOffset + blockSize) - endOffset;
@@ -219,7 +227,7 @@ Result MmcBlobAllocator::ValidateAndAddAllocation(uint64_t offset, uint64_t size
         addressTree_.emplace(left.offset_, left.size_);
         sizeTree_.emplace(left);
     }
-    
+
     // 更新已分配大小
     allocatedSize_ += alignedSize;
     return MMC_OK;

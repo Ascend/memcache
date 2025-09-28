@@ -2,7 +2,12 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 #include "mmc_meta_lease_manager.h"
+
+#include <cstdint>
+#include <limits>
+
 #include "mmc_montotonic.h"
+#include "mmc_types.h"
 
 namespace ock {
 namespace mmc {
@@ -11,6 +16,9 @@ Result MmcMetaLeaseManager::Add(uint32_t id, uint32_t requestId, uint64_t ttl)
     MMC_LOG_DEBUG("MmcMetaLeaseManager ADD " << " id " << id << " requestId " << requestId << " ttl " << ttl);
     std::unique_lock<std::mutex> lockGuard(lock_);
     const uint64_t nowMs = ock::dagger::Monotonic::TimeNs() / 1000U;
+    if (ttl > std::numeric_limits<uint64_t>::max() - nowMs) {
+        return MMC_INVALID_PARAM;
+    }
     lease_ = std::max(lease_, nowMs + ttl);
     useClient.insert(GenerateClientId(id, requestId));
     return MMC_OK;
@@ -29,6 +37,9 @@ Result MmcMetaLeaseManager::Extend(uint64_t ttl)
     MMC_LOG_DEBUG("MmcMetaLeaseManager Extend " << " ttl " << ttl);
     std::unique_lock<std::mutex> lockGuard(lock_);
     const uint64_t nowMs = ock::dagger::Monotonic::TimeNs() / 1000U;
+    if (ttl > std::numeric_limits<uint64_t>::max() - nowMs) {
+        return MMC_INVALID_PARAM;
+    }
     lease_ = std::max(lease_, nowMs + ttl);
     return MMC_OK;
 }
@@ -46,5 +57,5 @@ void MmcMetaLeaseManager::Wait()
         MMC_LOG_WARN("blob time out, wite time " << waitTime << " ms, used client size " << useClient.size());
     }
 }
-}
-}
+} // namespace mmc
+} // namespace ock

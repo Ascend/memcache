@@ -32,15 +32,15 @@ public:
             case ALLOC_ARRANGE:
                 ret = MmcLocalityStrategy::ArrangeLocality(allocators_, allocReq, blobs);
                 break;
-            
+
             case ALLOC_FORCE_BY_RANK:
                 ret = MmcLocalityStrategy::ForceAssign(allocators_, allocReq, blobs);
                 break;
-            
+
             case ALLOC_RANDOM:
                 ret = MmcLocalityStrategy::RandomAssign(allocators_, allocReq, blobs);
                 break;
-            
+
             default:
                 ret = MmcLocalityStrategy::ArrangeLocality(allocators_, allocReq, blobs);
                 break;
@@ -224,7 +224,7 @@ public:
         for (uint32_t i = 0; i < MEDIA_NONE; i++) {
             // 只要一个类型的池触发水位，即淘汰
             if (usedSize[i] > std::numeric_limits<uint64_t>::max() / LEVEL_BASE ||
-                totalSize[i] > std::numeric_limits<uint64_t>::max() / level) {
+                (level != 0 && (totalSize[i] > std::numeric_limits<uint64_t>::max() / level))) {
                 MMC_LOG_ERROR("overflow: usedSize: " << usedSize[i] << ", LEVEL_BASE: " <<
                     LEVEL_BASE << ", totalSize: " << totalSize[i] << ", level: " << level);
                 return false;

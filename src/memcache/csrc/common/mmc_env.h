@@ -3,12 +3,14 @@
  */
 #pragma once
 
+#include <string>
+
 namespace ock {
 namespace mmc {
-extern const char* MMC_META_CONF_PATH;
-extern const char* MMC_LOCAL_CONF_PATH;
-extern const char* META_POD_NAME;
-extern const char* META_NAMESPACE;
-extern const char* META_LEASE_NAME;
+extern std::string MMC_META_CONF_PATH;
+extern std::string MMC_LOCAL_CONF_PATH;
+extern std::string META_POD_NAME;
+extern std::string META_NAMESPACE;
+extern std::string META_LEASE_NAME;
 }
 }

@@ -30,6 +30,7 @@ public:
 
     friend std::ostream &operator<<(std::ostream &os, const MmcMetaLeaseManager &leaseMgr)
     {
+        std::unique_lock<std::mutex> lockGuard(leaseMgr.lock_);
         os << "lease={" << leaseMgr.lease_ << ",client:";
         for (const auto& c : leaseMgr.useClient) {
             os << c << ",";
@@ -41,7 +42,7 @@ public:
 private:
     uint64_t lease_{0}; /* lease of the memory object */
     std::unordered_set<uint64_t> useClient;
-    std::mutex lock_;
+    mutable std::mutex lock_;
     std::condition_variable cv_;
 };
 

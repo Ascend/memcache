@@ -30,7 +30,10 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
     config.flags = initConfig.flags;
     config.hcomTlsConfig = initConfig.hcomTlsConfig;
     config.storeTlsConfig = initConfig.storeTlsConfig;
-    (void) std::copy_n(initConfig.hcomUrl.c_str(), initConfig.hcomUrl.size(), config.hcomUrl);
+
+    // config.hcomUrl is zero-filled, copy only valid chars, and ensure at least one zero at the end.
+    std::copy_n(initConfig.hcomUrl.c_str(), std::min(sizeof(config.hcomUrl) - 1, initConfig.hcomUrl.size()),
+                config.hcomUrl);
 
     MMC_RETURN_ERROR(smem_init(0), "Failed to init smem");
 
