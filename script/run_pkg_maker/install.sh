@@ -295,7 +295,7 @@ function generate_set_env()
     cat>>${default_install_dir}/set_env.sh<<EOF
 export MEMFABRIC_HYBRID_HOME_PATH=${default_install_dir}/latest
 export LD_LIBRARY_PATH=${default_install_dir}/latest/${pkg_arch}-${os1}/lib64:\$LD_LIBRARY_PATH
-export PATH=${default_install_dir}/latest/bin:\$PATH
+export PATH=${default_install_dir}/latest/${pkg_arch}-${os1}/bin:\$PATH
 EOF
 }
 
