@@ -23,6 +23,7 @@ Result MemSegmentHostSDMA::ValidateOptions() noexcept
 
 Result MemSegmentHostSDMA::ReserveMemorySpace(void **address) noexcept
 {
+    BM_ASSERT_RETURN(address != nullptr, BM_INVALID_PARAM);
     BM_ASSERT_LOG_AND_RETURN(ValidateOptions() == BM_OK, "Failed to validate options.", BM_INVALID_PARAM);
     if (globalVirtualAddress_ != nullptr) {
         BM_LOG_ERROR("already prepare virtual memory.");
@@ -84,6 +85,7 @@ Result MemSegmentHostSDMA::Export(std::string &exInfo) noexcept
 
 Result MemSegmentHostSDMA::Export(const std::shared_ptr<MemSlice> &slice, std::string &exInfo) noexcept
 {
+    BM_ASSERT_RETURN(slice != nullptr, BM_INVALID_PARAM);
     if (!options_.shared) {
         BM_LOG_INFO("hybm_gvm_get_key requires shared memory, skip");
         return BM_OK;
@@ -166,7 +168,12 @@ Result MemSegmentHostSDMA::Import(const std::vector<std::string> &allExInfo) noe
             return BM_DL_FUNCTION_FAILED;
         }
     }
-    std::copy(deserializedInfos.begin(), deserializedInfos.end(), std::back_inserter(imports_));
+    try {
+        std::copy(deserializedInfos.begin(), deserializedInfos.end(), std::back_inserter(imports_));
+    } catch (...) {
+        BM_LOG_ERROR("copy failed.");
+        return BM_MALLOC_FAILED;
+    }
     return BM_OK;
 }
 

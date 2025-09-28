@@ -286,6 +286,7 @@ void SmemNetGroupEngine::GroupListenEvent()
         }
 
         if (contextRet != SM_OK) {
+            store_->Unwatch(listenCtx_.watchId);
             listenCtx_.watchId = UINT32_MAX;
             continue;
         }

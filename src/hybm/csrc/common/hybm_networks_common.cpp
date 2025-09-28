@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <cerrno>
 #include <cstring>
-
+#include "hybm_functions.h"
 #include "hybm_logger.h"
 #include "hybm_networks_common.h"
 
@@ -21,7 +21,7 @@ std::vector<uint32_t> NetworkGetIpAddresses() noexcept
     struct ifaddrs *ifa;
     struct ifaddrs *p;
     if (getifaddrs(&ifa) < 0) {
-        BM_LOG_ERROR("getifaddrs() failed: " << errno << " : " << strerror(errno));
+        BM_LOG_ERROR("getifaddrs() failed: " << errno << " : " << SafeStrError(errno));
         return addresses;
     }
 

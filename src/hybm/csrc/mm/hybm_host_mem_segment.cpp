@@ -52,6 +52,7 @@ Result MemSegmentHost::UnReserveMemorySpace() noexcept
 
 void MemSegmentHost::LvaShmReservePhysicalMemory(void *mappedAddress, uint64_t size) noexcept
 {
+    BM_ASSERT_RET_VOID(mappedAddress != nullptr);
     auto *pos = reinterpret_cast<uint8_t *>(mappedAddress);
     uint64_t setLength = 0;
     while (setLength < size) {
@@ -76,7 +77,7 @@ Result MemSegmentHost::AllocLocalMemory(uint64_t size, std::shared_ptr<MemSlice>
     void *mapped = mmap(sliceAddr, size, PROT_READ | PROT_WRITE,
                         MAP_FIXED | MAP_ANONYMOUS | MAP_HUGETLB | MAP_PRIVATE, -1, 0);
     if (mapped == MAP_FAILED) {
-        BM_LOG_ERROR("Failed to alloc size:" << size << " error:" << errno << ", " << strerror(errno));
+        BM_LOG_ERROR("Failed to alloc size:" << size << " error:" << errno << ", " << SafeStrError(errno));
         return BM_ERROR;
     }
     LvaShmReservePhysicalMemory(sliceAddr, size);
@@ -160,7 +161,12 @@ Result MemSegmentHost::Import(const std::vector<std::string> &allExInfo) noexcep
         }
     }
     BM_ASSERT_RETURN(localIdx < deserializedInfos.size(), BM_INVALID_PARAM);
-    std::copy(deserializedInfos.begin(), deserializedInfos.end(), std::back_inserter(imports_));
+    try {
+        std::copy(deserializedInfos.begin(), deserializedInfos.end(), std::back_inserter(imports_));
+    } catch (...) {
+        BM_LOG_ERROR("copy failed.");
+        return BM_MALLOC_FAILED;
+    }
     return BM_OK;
 }
 
@@ -218,11 +224,15 @@ uint32_t MemSegmentHost::GetRankIdByAddr(const void *addr, uint64_t size) const 
 void MemSegmentHost::FreeMemory() noexcept
 {
     if (localVirtualBase_ != nullptr) {
-        munmap(localVirtualBase_, options_.size);
+        if (munmap(localVirtualBase_, options_.size) != 0) {
+            BM_LOG_ERROR("Failed to unmap local memory");
+        }
         localVirtualBase_ = nullptr;
     }
     if (globalVirtualAddress_ != nullptr) {
-        munmap(globalVirtualAddress_, totalVirtualSize_);
+        if (munmap(globalVirtualAddress_, totalVirtualSize_) != 0) {
+            BM_LOG_ERROR("Failed to unmap global memory");
+        }
         globalVirtualAddress_ = nullptr;
     }
 }

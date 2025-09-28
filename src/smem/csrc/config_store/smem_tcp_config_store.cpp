@@ -320,8 +320,13 @@ Result TcpConfigStore::Add(const std::string &key, int64_t increment, int64_t &v
     STORE_ASSERT_RETURN(response->DataPtr() != nullptr, IO_ERROR);
     std::string data(reinterpret_cast<char *>(response->DataPtr()), response->DataLen());
     errno = 0;
-    value = strtol(data.c_str(), nullptr, DECIMAL_BASE);
+    char *remain = nullptr;
+    value = strtol(data.c_str(), &remain, DECIMAL_BASE);
     STORE_ASSERT_RETURN(errno != ERANGE, IO_ERROR);
+    if ((value == 0 && data != "0") || remain == nullptr || strlen(remain) > 0 || errno == ERANGE) {
+        STORE_LOG_ERROR("data=" << data);
+        return StoreErrorCode::ERROR;
+    }
     return StoreErrorCode::SUCCESS;
 }
 

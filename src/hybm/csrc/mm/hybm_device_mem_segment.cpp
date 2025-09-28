@@ -42,6 +42,7 @@ Result MemSegmentDevice::ReserveMemorySpace(void **address) noexcept
         BM_LOG_ERROR("already prepare virtual memory.");
         return BM_ERROR;
     }
+    BM_ASSERT_RETURN(address != nullptr, BM_INVALID_PARAM);
 
     uint64_t base = 0;
     totalVirtualSize_ = options_.rankCnt * options_.size;
@@ -214,8 +215,7 @@ Result MemSegmentDevice::Import(const std::vector<std::string> &allExInfo) noexc
         }
     }
 
-    std::copy(deserializedInfos.begin(), deserializedInfos.end(), std::back_inserter(imports_));
-    return BM_OK;
+    return SafeCopy(deserializedInfos.begin(), deserializedInfos.end(), std::back_inserter(imports_));
 }
 
 Result MemSegmentDevice::Mmap() noexcept

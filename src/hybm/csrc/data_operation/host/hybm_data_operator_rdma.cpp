@@ -47,6 +47,9 @@ void HostDataOpRDMA::UnInitialize() noexcept
     if (!inited_) {
         return;
     }
+    if (transportManager_ != nullptr && rdmaSwapBaseAddr_ != nullptr) {
+        transportManager_->UnregisterMemoryRegion(reinterpret_cast<uint64_t>(rdmaSwapBaseAddr_));
+    }
     if (rdmaSwapBaseAddr_ != nullptr) {
         free(rdmaSwapBaseAddr_);
         rdmaSwapBaseAddr_ = nullptr;
@@ -143,7 +146,9 @@ int32_t HostDataOpRDMA::CopyHost2Gva(const void *srcVA, void *destVA, uint64_t l
         auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
         auto tmpHost = tmpRdmaMemory.Address();
         if (tmpHost == nullptr) {
-            BM_LOG_ERROR("Failed to malloc host srcVa: " << srcVA << " destVa: " << destVA << " length: " << length);
+            BM_LOG_ERROR("Failed to malloc host srcVa: " << reinterpret_cast<uintptr_t>(srcVA)
+                                                         << " destVa: " << reinterpret_cast<uintptr_t>(destVA)
+                                                         << " length: " << length);
             return BM_MALLOC_FAILED;
         }
         auto ret = DlAclApi::AclrtMemcpy(tmpHost, length, srcVA, length, ACL_MEMCPY_HOST_TO_HOST);
@@ -175,7 +180,9 @@ int32_t HostDataOpRDMA::CopyGva2Host(const void *srcVA, void *destVA, uint64_t l
         auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
         auto tmpHost = tmpRdmaMemory.Address();
         if (tmpHost == nullptr) {
-            BM_LOG_ERROR("Failed to malloc host srcVa: " << srcVA << " destVa: " << destVA << " length: " << length);
+            BM_LOG_ERROR("Failed to malloc host srcVa: " << reinterpret_cast<uintptr_t>(srcVA)
+                                                         << " destVa: " << reinterpret_cast<uintptr_t>(destVA)
+                                                         << " length: " << length);
             return BM_MALLOC_FAILED;
         }
 
@@ -207,7 +214,9 @@ int32_t HostDataOpRDMA::CopyDevice2Gva(const void *srcVA, void *destVA, uint64_t
         auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
         auto tmpHost = tmpRdmaMemory.Address();
         if (tmpHost == nullptr) {
-            BM_LOG_ERROR("Failed to malloc host srcVa: " << srcVA << " destVa: " << destVA << " length: " << length);
+            BM_LOG_ERROR("Failed to malloc host srcVa: " << reinterpret_cast<uintptr_t>(srcVA)
+                                                         << " destVa: " << reinterpret_cast<uintptr_t>(destVA)
+                                                         << " length: " << length);
             return BM_MALLOC_FAILED;
         }
         auto ret = DlAclApi::AclrtMemcpy(tmpHost, length, srcVA, length, ACL_MEMCPY_DEVICE_TO_HOST);
@@ -237,7 +246,8 @@ int32_t HostDataOpRDMA::CopyGva2Device(const void *srcVA, void *destVA, uint64_t
         auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
         auto tmpHost = tmpRdmaMemory.Address();
         if (tmpHost == nullptr) {
-            BM_LOG_ERROR("Failed to malloc host tmp memory srcVa: " << srcVA << " destVa: " << destVA
+            BM_LOG_ERROR("Failed to malloc host tmp memory srcVa: " << reinterpret_cast<uintptr_t>(srcVA) << " destVa: "
+                                                                    << reinterpret_cast<uintptr_t>(destVA)
                                                                     << " length: " << length);
             return BM_MALLOC_FAILED;
         }
@@ -311,7 +321,8 @@ int32_t HostDataOpRDMA::CopyDevice2Gva2d(const void *srcVA, uint64_t spitch, voi
         auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(size);
         auto tmpHost = tmpRdmaMemory.Address();
         if (tmpHost == nullptr) {
-            BM_LOG_ERROR("Failed to malloc host srcVa: " << srcVA << " destVa: " << destVA << " length: " << size);
+            BM_LOG_ERROR("Failed to malloc host srcVa: " << reinterpret_cast<uintptr_t>(srcVA) << " destVa: "
+                                                         << reinterpret_cast<uintptr_t>(destVA) << " length: " << size);
             return BM_MALLOC_FAILED;
         }
         auto ret = DlAclApi::AclrtMemcpy2d(tmpHost, dpitch, srcVA, spitch, width, height, ACL_MEMCPY_DEVICE_TO_HOST);
@@ -347,7 +358,8 @@ int32_t HostDataOpRDMA::CopyGva2Device2d(const void *srcVA, uint64_t spitch, voi
         auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(size);
         auto tmpHost = tmpRdmaMemory.Address();
         if (tmpHost == nullptr) {
-            BM_LOG_ERROR("Failed to malloc host srcVa: " << srcVA << " destVa: " << destVA << " length: " << size);
+            BM_LOG_ERROR("Failed to malloc host srcVa: " << reinterpret_cast<uintptr_t>(srcVA) << " destVa: "
+                                                         << reinterpret_cast<uintptr_t>(destVA) << " length: " << size);
             return BM_MALLOC_FAILED;
         }
         auto ret = transportManager_->ReadRemote(options.srcRankId, (uint64_t)tmpHost, (uint64_t)srcVA, size);
@@ -387,15 +399,15 @@ int32_t HostDataOpRDMA::RtMemoryCopyAsync(const void *srcVA, void *destVA, uint6
 
     auto ret = DlAclApi::AclrtMemcpyAsync(destVA, length, srcVA, length, kind, st);
     if (ret != 0) {
-        BM_LOG_ERROR("Failed to add aclrt memory copy async task srcVa: " << srcVA << " destVa: "
-                                                                          << destVA << " length: " << length
-                                                                          << " ret: " << ret);
+        BM_LOG_ERROR("Failed to add aclrt memory copy async task srcVa: "
+                     << reinterpret_cast<uintptr_t>(srcVA) << " destVa: " << reinterpret_cast<uintptr_t>(destVA)
+                     << " length: " << length << " ret: " << ret);
         return BM_DL_FUNCTION_FAILED;
     }
 
     ret = DlAclApi::AclrtSynchronizeStream(st);
     if (ret != 0) {
-        BM_LOG_ERROR("aclrtSynchronizeStream failed: " << ret << " stream:" << st);
+        BM_LOG_ERROR("aclrtSynchronizeStream failed: " << ret << " stream:" << reinterpret_cast<uintptr_t>(st));
         return BM_DL_FUNCTION_FAILED;
     }
     return BM_OK;
@@ -411,16 +423,16 @@ int32_t HostDataOpRDMA::RtMemoryCopy2dAsync(const void *srcVA, uint64_t spitch, 
 
     auto ret = DlAclApi::AclrtMemcpy2dAsync(destVA, dpitch, srcVA, spitch, width, height, kind, st);
     if (ret != 0) {
-        BM_LOG_ERROR("Failed to add aclrt memory copy2d async task srcVa: " << srcVA << " spitch: " << spitch
-                                                                            << " destVA: " << destVA << " width: "
-                                                                            << width << " height: " << height
-                                                                            << " kind: " << kind << " ret: " << ret);
+        BM_LOG_ERROR("Failed to add aclrt memory copy2d async task srcVa: "
+                     << reinterpret_cast<uintptr_t>(srcVA) << " spitch: " << spitch
+                     << " destVA: " << reinterpret_cast<uintptr_t>(destVA) << " width: " << width
+                     << " height: " << height << " kind: " << kind << " ret: " << ret);
         return BM_DL_FUNCTION_FAILED;
     }
 
     ret = DlAclApi::AclrtSynchronizeStream(st);
     if (ret != 0) {
-        BM_LOG_ERROR("aclrtSynchronizeStream failed: " << ret << " stream:" << st);
+        BM_LOG_ERROR("aclrtSynchronizeStream failed: " << ret << " stream:" << reinterpret_cast<uintptr_t>(st));
         return BM_DL_FUNCTION_FAILED;
     }
     return BM_OK;
@@ -483,14 +495,15 @@ int HostDataOpRDMA::BatchCopyLD2LH(void **hostAddrs, const void **deviceAddrs, c
         auto count = counts[i];
         ret = DlAclApi::AclrtMemcpyAsync(destAddr, count, srcAddr, count, ACL_MEMCPY_DEVICE_TO_HOST, st);
         if (ret != 0) {
-            BM_LOG_ERROR("copy memory on local device to local host failed: " << ret << " stream:" << st);
+            BM_LOG_ERROR("copy memory on local device to local host failed: " << ret << " stream:"
+                                                                              << reinterpret_cast<uintptr_t>(st));
             return BM_DL_FUNCTION_FAILED;
         }
     }
 
-    ret  = DlAclApi::AclrtSynchronizeStream(st);
+    ret = DlAclApi::AclrtSynchronizeStream(st);
     if (ret != 0) {
-        BM_LOG_ERROR("aclrtSynchronizeStream failed: " << ret << " stream:" << st);
+        BM_LOG_ERROR("aclrtSynchronizeStream failed: " << ret << " stream:" << reinterpret_cast<uintptr_t>(st));
     }
     return ret;
 }
@@ -512,14 +525,15 @@ int HostDataOpRDMA::BatchCopyLH2LD(void **deviceAddrs, const void **hostAddrs, c
         auto count = counts[i];
         ret = DlAclApi::AclrtMemcpyAsync(destAddr, count, srcAddr, count, ACL_MEMCPY_HOST_TO_DEVICE, st);
         if (ret != 0) {
-            BM_LOG_ERROR("copy memory on local host to local device failed: " << ret << " stream:" << st);
+            BM_LOG_ERROR("copy memory on local host to local device failed: " << ret << " stream:"
+                                                                              << reinterpret_cast<uintptr_t>(st));
             return BM_DL_FUNCTION_FAILED;
         }
     }
 
-    ret  = DlAclApi::AclrtSynchronizeStream(st);
+    ret = DlAclApi::AclrtSynchronizeStream(st);
     if (ret != 0) {
-        BM_LOG_ERROR("aclrtSynchronizeStream failed: " << ret << " stream:" << st);
+        BM_LOG_ERROR("aclrtSynchronizeStream failed: " << ret << " stream:" << reinterpret_cast<uintptr_t>(st));
     }
     return ret;
 }

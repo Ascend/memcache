@@ -96,6 +96,10 @@ void AccStoreServer::Shutdown() noexcept
         storeCond_.notify_one();
         timerThread_.join();
     }
+    if (rankStateThread_.joinable()) {
+        rankStateTaskCondition_.notify_one();
+        rankStateThread_.join();
+    }
     STORE_LOG_INFO("finished shutdown Acc Store Server");
 }
 
@@ -401,7 +405,14 @@ Result AccStoreServer::AddHandler(const ock::acc::AccTcpRequestContext &context,
         kvStore_.emplace(key, std::move(value));
     } else {
         std::string oldValueStr{pos->second.begin(), pos->second.end()};
-        auto storedValueNum = strtol(oldValueStr.c_str(), nullptr, 10);
+        char *remain = nullptr;
+        auto storedValueNum = strtol(oldValueStr.c_str(), &remain, 10);
+        if ((storedValueNum == 0 && oldValueStr != "0") || remain == nullptr || strlen(remain) > 0 || errno == ERANGE) {
+            lockGuard.unlock();
+            STORE_LOG_ERROR("oldValueStr is " << oldValueStr);
+            ReplyWithMessage(context, StoreErrorCode::INVALID_MESSAGE, "oldValueStr should be a number.");
+            return SM_ERROR;
+        }
         storedValueNum += valueNum;
         auto storedValueStr = std::to_string(storedValueNum);
         pos->second = std::vector<uint8_t>(storedValueStr.begin(), storedValueStr.end());

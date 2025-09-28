@@ -10,14 +10,14 @@ namespace mf {
 bool Func::Realpath(std::string &path)
 {
     if (path.empty() || path.size() > PATH_MAX) {
-        BM_LOG_ERROR("Failed to get realpath of [" << path << "] as path is invalid");
+        BM_LOG_ERROR("Failed to get realpath as path is invalid");
         return false;
     }
 
     /* It will allocate memory to store path */
     char *realPath = realpath(path.c_str(), nullptr);
     if (realPath == nullptr) {
-        BM_LOG_ERROR("Failed to get realpath of [" << path << "] as error " << errno);
+        BM_LOG_ERROR("Failed to get realpath as error " << errno);
         return false;
     }
 
@@ -41,7 +41,7 @@ Result Func::LibraryRealPath(const std::string &libDirPath, const std::string &l
     tmpFullPath.append(libName);
     auto ret = ::access(tmpFullPath.c_str(), F_OK);
     if (ret != 0) {
-        BM_LOG_ERROR(tmpFullPath << " cannot be accessed, ret: " << ret);
+        BM_LOG_ERROR("libDirPath cannot be accessed, ret: " << ret);
         return BM_FILE_NOT_ACCESS;
     }
 
