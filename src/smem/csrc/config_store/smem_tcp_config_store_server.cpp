@@ -265,6 +265,7 @@ Result AccStoreServer::FindOrInsertRank(const ock::acc::AccTcpRequestContext &co
         return SM_OK;
     }
     if (aliveRankSet_.size() >= worldSize_) {
+        lockGuard.unlock();
         STORE_LOG_ERROR("Failed to insert rank, rank count:" << aliveRankSet_.size()
                                                           << " equal worldSize: " << worldSize_);
         ReplyWithMessage(context, StoreErrorCode::ERROR, "error: worldSize rankSize bigger than worldSize.");
@@ -329,7 +330,6 @@ Result AccStoreServer::GetHandler(const ock::acc::AccTcpRequestContext &context,
 
     if (request.userDef == 0) {
         lockGuard.unlock();
-
         STORE_LOG_DEBUG("GET REQUEST(" << context.SeqNo() << ") for key(" << key << ") not exist.");
         ReplyWithMessage(context, StoreErrorCode::NOT_EXIST, "<not exist>");
         return SM_ERROR;

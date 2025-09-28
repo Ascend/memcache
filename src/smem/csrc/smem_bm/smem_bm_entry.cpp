@@ -120,7 +120,8 @@ void SmemBmEntry::UnInitalize()
 
 Result SmemBmEntry::JoinHandle(uint32_t rk)
 {
-    SM_LOG_INFO("do join func, receive_rk: " << rk << ", rank size is: " << globalGroup_->GetRankSize());
+    SM_LOG_INFO("do join func, local_rk: " << options_.rank << " receive_rk: " << rk
+        << ", rank size is: " << globalGroup_->GetRankSize());
     SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
 
     std::vector<uint32_t> allRanks(globalGroup_->GetRankSize());
