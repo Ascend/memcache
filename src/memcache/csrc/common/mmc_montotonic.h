@@ -103,7 +103,6 @@ namespace ock {
         std::vector<std::string> splitVec;
         NN_SplitStr(strLine, " ", splitVec);
         if (splitVec.empty()) {
-            ;
             printf("Failed to get tick as failed to get line %s\n", prefix.c_str());
             return FAILURE_RET;
         }

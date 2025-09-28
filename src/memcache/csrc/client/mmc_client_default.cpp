@@ -118,7 +118,7 @@ Result MmcClientDefault::Put(const std::string &key, const MmcBufferArray& bufAr
                                 << ", numBlob:" << response.numBlobs_);
         return MMC_ERROR;
     }
-
+    MMC_ASSERT_RETURN(!bufArr.Buffers().empty(), MMC_ERROR);
     auto transType = SelectTransportType(bufArr.Buffers()[0]);
     for (uint8_t i = 0; i < response.numBlobs_; i++) {
         auto blob = response.blobs_[i];

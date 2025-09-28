@@ -64,6 +64,7 @@ int32_t HybmGvmVirPageManager::Initialize(uint64_t startAddr, uint64_t size, int
 
 int32_t HybmGvmVirPageManager::ReserveMemory(uint64_t *addr, uint64_t size, bool shared)
 {
+    BM_ASSERT_RETURN(addr != nullptr, -1);
     std::unique_lock<std::mutex> lockGuard{mutex_};
     if (size == 0 || size % HYBM_VIR_PAGE_SIZE != 0) {
         BM_USER_LOG_ERROR("Failed to reserve memory size:" << size << " must alignment " << HYBM_VIR_PAGE_SIZE);

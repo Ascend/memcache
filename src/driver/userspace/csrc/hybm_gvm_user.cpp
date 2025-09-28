@@ -124,6 +124,10 @@ void hybm_gvm_deinit(void)
 
 int32_t hybm_gvm_get_device_info(uint32_t *ssid)
 {
+    if (ssid == nullptr) {
+        BM_USER_LOG_ERROR("input is nullptr");
+        return HYBM_GVM_FAILURE;
+    }
     if (g_hybm_fd < 0) {
         BM_USER_LOG_ERROR("hybm gvm module has not been initialized");
         return HYBM_GVM_FAILURE;
@@ -133,11 +137,6 @@ int32_t hybm_gvm_get_device_info(uint32_t *ssid)
         BM_USER_LOG_INFO("found A2 server, return zero!");
         *ssid = 0;
         return HYBM_GVM_SUCCESS;
-    }
-
-    if (ssid == nullptr) {
-        BM_USER_LOG_ERROR("input is nullptr");
-        return HYBM_GVM_FAILURE;
     }
 
     *ssid = g_svspid;

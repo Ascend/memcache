@@ -424,6 +424,7 @@ std::vector<int> MmcacheStore::BatchGetInto(const std::vector<std::string> &keys
 int MmcacheStore::PutFromLayers(const std::string &key, const std::vector<void *> &buffers,
                                 const std::vector<size_t> &sizes, const int32_t direct)
 {
+    MMC_ASSERT_RETURN(MmcClientDefault::GetInstance() != nullptr, MMC_INVALID_PARAM);
     if (direct != SMEMB_COPY_L2G && direct != SMEMB_COPY_H2G) {
         MMC_LOG_ERROR("Invalid direct(" << direct << "), only 0 (SMEMB_COPY_L2G) and 3 (SMEMB_COPY_H2G) is supported");
         return MMC_INVALID_PARAM;
@@ -482,6 +483,7 @@ std::vector<int> MmcacheStore::BatchPutFromLayers(const std::vector<std::string>
                                                   const std::vector<std::vector<void *>> &buffers,
                                                   const std::vector<std::vector<size_t>> &sizes, const int32_t direct)
 {
+    MMC_ASSERT_RETURN(MmcClientDefault::GetInstance() != nullptr, {});
     const size_t batchSize = keys.size();
     MMC_VALIDATE_RETURN(batchSize > 0, "key vector is empty", {});
     MMC_VALIDATE_RETURN(batchSize <= MAX_BATCH_SIZE, "key vector length exceeds limit" << MAX_BATCH_SIZE,
@@ -545,6 +547,7 @@ int MmcacheStore::GetIntoLayers(const std::string &key, const std::vector<void *
         MMC_LOG_ERROR("Invalid direct(" << direct << "), only 1 (SMEMB_COPY_G2L) and 2 (SMEMB_COPY_G2H) is supported");
         return MMC_INVALID_PARAM;
     }
+    MMC_ASSERT_RETURN(MmcClientDefault::GetInstance() != nullptr, MMC_INVALID_PARAM);
     uint32_t type = (direct == SMEMB_COPY_G2L ? 1 : 0);
 
     if (key.length() == 0 || key.length() > MAX_KEY_LEN) {
@@ -597,6 +600,7 @@ std::vector<int> MmcacheStore::BatchGetIntoLayers(const std::vector<std::string>
                                                   const std::vector<std::vector<void *>> &buffers,
                                                   const std::vector<std::vector<size_t>> &sizes, const int32_t direct)
 {
+    MMC_ASSERT_RETURN(MmcClientDefault::GetInstance() != nullptr, {});
     const size_t batchSize = keys.size();
     MMC_VALIDATE_RETURN(batchSize > 0, "key vector is empty", {});
     MMC_VALIDATE_RETURN(batchSize <= MAX_BATCH_SIZE, "key vector length exceeds limit" << MAX_BATCH_SIZE,

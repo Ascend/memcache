@@ -35,6 +35,10 @@ int hybm_gvm_to_agent_init(u32 devid, u32 *pasid, u32 *svspid)
     msg->result = 0;
 
     init_body = (struct hybm_gvm_agent_init_msg *)msg->body;
+    if (init_body == NULL) {
+        hybm_gvm_err("init_body is NULL.");
+        return -ENOMEM;
+    }
     init_body->hostpid = (current->tgid);
     init_body->pasid = 0;
     init_body->svspid = 0;
@@ -72,6 +76,10 @@ int hybm_gvm_to_agent_mmap(u32 devid, u32 pasid, u64 va, u64 size, u64 *pa_list,
     msg->result = 0;
 
     map_body = (struct hybm_gvm_agent_mmap_msg *)msg->body;
+    if (map_body == NULL) {
+        hybm_gvm_err("map_body is null.");
+        return -ENOMEM;
+    }
     map_body->va = va;
     map_body->size = size;
     map_body->pasid = pasid;
@@ -111,6 +119,10 @@ int hybm_gvm_to_agent_unmap(u32 devid, u32 pasid, u64 va, u64 size, u64 page_siz
     msg->result = 0;
 
     unmap_body = (struct hybm_gvm_agent_unmap_msg *)msg->body;
+    if (unmap_body == NULL) {
+        hybm_gvm_err("unmap_body is null.");
+        return -ENOMEM;
+    }
     unmap_body->va = va;
     unmap_body->pasid = pasid;
     unmap_body->size = size;
@@ -147,6 +159,10 @@ int hybm_gvm_to_agent_fetch(u32 devid, u32 pasid, u64 va, u64 size, u32 *pg_size
     msg->result = 0;
 
     fetch_body = (struct hybm_gvm_agent_fetch_msg *)msg->body;
+    if (fetch_body == NULL) {
+        hybm_gvm_err("fetch_body is NULL.");
+        return -ENOMEM;
+    }
     fetch_body->va = va;
     fetch_body->size = size;
     fetch_body->hostpid = (current->tgid);
