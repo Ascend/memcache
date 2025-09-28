@@ -976,6 +976,20 @@ int32_t HostDataOpSDMA::BatchDataCopy(hybm_batch_copy_params &params, hybm_data_
             TP_TRACE_END(TP_HYBM_SDMA_BATCH_GD_TO_LD, ret);
             break;
         }
+        case HYBM_LOCAL_HOST_TO_GLOBAL_HOST: {
+            TP_TRACE_BEGIN(TP_HYBM_SDMA_BATCH_LH_TO_GH);
+            ret = BatchCopyLH2GH(params.destinations, params.sources, params.dataSizes,
+                                 params.batchSize, options.stream);
+            TP_TRACE_END(TP_HYBM_SDMA_BATCH_LH_TO_GH, ret);
+            break;
+        }
+        case HYBM_GLOBAL_HOST_TO_LOCAL_HOST: {
+            TP_TRACE_BEGIN(TP_HYBM_SDMA_BATCH_GH_TO_LH);
+            ret = BatchCopyGH2LH(params.destinations, params.sources, params.dataSizes,
+                                 params.batchSize, options.stream);
+            TP_TRACE_END(TP_HYBM_SDMA_BATCH_GH_TO_LH, ret);
+            break;
+        }
         default:
             BM_LOG_ERROR("data copy invalid direction: " << direction);
             ret = BM_INVALID_PARAM;
@@ -1128,6 +1142,43 @@ int HostDataOpSDMA::BatchCopyGD2LD(void **deviceAddrs, const void **gvaAddrs, co
     return BM_OK;
 }
 
+int HostDataOpSDMA::BatchCopyLH2GH(void **gvaAddrs, const void **hostAddrs, const uint32_t *counts,
+                                   uint32_t batchSize, void *stream) noexcept
+{
+    void *st = stream_;
+    if (stream != nullptr) {
+        st = stream;
+    }
+    auto ret = 0;
+
+    for (auto i = 0U; i < batchSize; i++) {
+        ret = CopyLH2GH(gvaAddrs[i], hostAddrs[i], counts[i], stream);
+        if (ret != 0) {
+            BM_LOG_ERROR("copy memory on local host to GVA failed: " << ret);
+            return ret;
+        }
+    }
+    return BM_OK;
+}
+
+int HostDataOpSDMA::BatchCopyGH2LH(void **hostAddrs, const void **gvaAddrs, const uint32_t *counts,
+                                   uint32_t batchSize, void *stream) noexcept
+{
+    void *st = stream_;
+    if (stream != nullptr) {
+        st = stream;
+    }
+    auto ret = 0;
+
+    for (auto i = 0U; i < batchSize; i++) {
+        ret = CopyGH2LH(hostAddrs[i], gvaAddrs[i],  counts[i], stream);
+        if (ret != 0) {
+            BM_LOG_ERROR("copy memory on GVA to local host failed: " << ret);
+            return ret;
+        }
+    }
+    return BM_OK;
+}
 int HostDataOpSDMA::BatchCopyLH2GD(void **gvaAddrs, const void **hostAddrs, const uint32_t *counts, uint32_t batchSize,
                                    void *stream) noexcept
 {

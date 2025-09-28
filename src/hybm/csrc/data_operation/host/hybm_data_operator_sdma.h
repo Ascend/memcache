@@ -79,6 +79,10 @@ private:
                        uint32_t batchSize, void *stream) noexcept;
     int BatchCopyGD2LD(void *deviceAddrs[], const void *gvaAddrs[], const uint32_t counts[],
                        uint32_t batchSize, void *stream) noexcept;
+    int BatchCopyLH2GH(void *gvaAddrs[], const void *hostAddrs[], const uint32_t counts[],
+                       uint32_t batchSize, void *stream) noexcept;
+    int BatchCopyGH2LH(void *hostAddrs[], const void *gvaAddrs[], const uint32_t counts[],
+                       uint32_t batchSize, void *stream) noexcept;
 
 private:
     void *stream_;
