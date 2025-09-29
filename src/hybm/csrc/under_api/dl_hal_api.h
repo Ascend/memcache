@@ -111,7 +111,7 @@ public:
 
     static inline uint32_t HalDevmmVaToHeapIdx(void *mgmt, uint64_t va)
     {
-        if (pDevmmVaToHeapIdx = nullptr) {
+        if (pDevmmVaToHeapIdx == nullptr) {
             return UINT32_MAX;
         }
         return pDevmmVaToHeapIdx(mgmt, va);
