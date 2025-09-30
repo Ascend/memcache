@@ -28,6 +28,7 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
     smem_bm_config_t config;
     MMC_RETURN_ERROR(smem_bm_config_init(&config), "Failed to init smem bm config");
     config.flags = initConfig.flags;
+    config.startConfigStoreServer = false;
     config.hcomTlsConfig = initConfig.hcomTlsConfig;
     config.storeTlsConfig = initConfig.storeTlsConfig;
 

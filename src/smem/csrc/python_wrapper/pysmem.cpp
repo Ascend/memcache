@@ -250,7 +250,7 @@ func smem_bm_init timeout, default 120 second)")
 func smem_bm_create timeout, default 120 second)")
         .def_readwrite("operation_timeout", &smem_bm_config_t::controlOperationTimeout, R"(
 control operation timeout, default 120 second)")
-        .def_readwrite("start_store", &smem_bm_config_t::startConfigStore, R"(
+        .def_readwrite("start_store", &smem_bm_config_t::startConfigStoreServer, R"(
 whether to start config store, default true)")
         .def_readwrite("start_store_only", &smem_bm_config_t::startConfigStoreOnly, "only start the config store")
         .def_readwrite("dynamic_world_size", &smem_bm_config_t::dynamicWorldSize, "member cannot join dynamically")

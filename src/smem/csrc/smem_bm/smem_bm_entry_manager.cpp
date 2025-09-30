@@ -75,7 +75,7 @@ int32_t SmemBmEntryManager::PrepareStore()
                                                      worldSize_, static_cast<int>(config_.rankId));
         SM_ASSERT_RETURN(confStore_ != nullptr, StoreFactory::GetFailedReason());
     } else {
-        if (config_.startConfigStore) {
+        if (config_.startConfigStoreServer) {
             auto ret = RacingForStoreServer();
             SM_ASSERT_RETURN(ret == SM_OK, ret);
         }
@@ -98,7 +98,7 @@ int32_t SmemBmEntryManager::RacingForStoreServer()
         return SM_OK;
     }
 
-    confStore_ = StoreFactory::CreateStoreClient(storeUrlExtraction_.ip, storeUrlExtraction_.port, worldSize_);
+    confStore_ = StoreFactory::CreateStore(storeUrlExtraction_.ip, storeUrlExtraction_.port, true, worldSize_);
     if (confStore_ != nullptr || StoreFactory::GetFailedReason() == SM_RESOURCE_IN_USE) {
         return SM_OK;
     }

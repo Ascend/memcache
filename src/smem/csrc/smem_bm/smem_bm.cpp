@@ -25,7 +25,7 @@ SMEM_API int32_t smem_bm_config_init(smem_bm_config_t *config)
     config->initTimeout = SMEM_DEFAUT_WAIT_TIME;
     config->createTimeout = SMEM_DEFAUT_WAIT_TIME;
     config->controlOperationTimeout = SMEM_DEFAUT_WAIT_TIME;
-    config->startConfigStore = true;
+    config->startConfigStoreServer = true;
     config->startConfigStoreOnly = false;
     config->dynamicWorldSize = false;
     config->unifiedAddressSpace = true;

@@ -57,7 +57,7 @@ typedef struct {
     uint32_t initTimeout;             /* func smem_bm_init timeout, default 120 second */
     uint32_t createTimeout;           /* func smem_bm_create timeout, default 120 second */
     uint32_t controlOperationTimeout; /* control operation timeout, default 120 second */
-    bool startConfigStore;            /* whether to start config store, default true */
+    bool startConfigStoreServer;      /* whether to start config store server, default true, mmc should set false */
     bool startConfigStoreOnly;        /* only start the config store */
     bool dynamicWorldSize;            /* member cannot join dynamically */
     bool unifiedAddressSpace;         /* unified address with SVM */
