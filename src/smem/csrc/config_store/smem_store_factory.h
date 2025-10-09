@@ -40,6 +40,8 @@ public:
      */
     static void DestroyStore(const std::string &ip, uint16_t port) noexcept;
 
+    static void DestroyStoreAll(bool afterFork = false) noexcept;
+
     /**
      * @brief Encapsulate an existing store into a prefix store.
      * @param base existing store
@@ -49,10 +51,6 @@ public:
     static StorePtr PrefixStore(const StorePtr &base, const std::string &prefix) noexcept;
 
     static int GetFailedReason() noexcept;
-
-    static void SetExternalLogFunction(void (* func)(int, const char *)) noexcept;
-
-    static void SetLogLevel(int level) noexcept;
 
     static void SetTlsInfo(const tls_config& tlsOption) noexcept;
 

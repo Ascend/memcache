@@ -22,7 +22,7 @@ public:
     {
         smem_shm_config_t config2;
         (void)smem_shm_config_init(&config2);
-        config2.startConfigStore = false;
+        config2.startConfigStoreServer = false;
         auto ret = smem_shm_init(ipPort.c_str(), rkSize, rankId, deviceId, &config2);
         if (ret != 0) return ret;
 

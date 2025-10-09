@@ -1,69 +1,105 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
+#include <type_traits>
 #include <iomanip>
 #include "hybm_logger.h"
-#include "hybm_entity.h"
+#include "mf_num_util.h"
+#include "hybm_entity_factory.h"
 #include "hybm_data_op.h"
 
 using namespace ock::mf;
 
-HYBM_API int32_t hybm_data_copy(hybm_entity_t e, const void *src, void *dest, size_t count,
-                                hybm_data_copy_direction direction, void *stream, uint32_t flags)
+using hybm_check_enum = enum {
+    OP_CHECK_IDX = 0U,
+    OP_CHECK_SRC,
+    OP_CHECK_DEST,
+    OP_CHECK_BUTT
+};
+
+static uint32_t g_checkMap[HYBM_DATA_COPY_DIRECTION_BUTT][OP_CHECK_BUTT] = {
+    {HYBM_LOCAL_HOST_TO_GLOBAL_HOST, false, true},
+    {HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE, false, true},
+    {HYBM_LOCAL_DEVICE_TO_GLOBAL_HOST, false, true},
+    {HYBM_LOCAL_DEVICE_TO_GLOBAL_DEVICE, false, true},
+    {HYBM_GLOBAL_HOST_TO_GLOBAL_HOST, true, true},
+    {HYBM_GLOBAL_HOST_TO_GLOBAL_DEVICE, true, true},
+    {HYBM_GLOBAL_HOST_TO_LOCAL_HOST, true, false},
+    {HYBM_GLOBAL_HOST_TO_LOCAL_DEVICE, true, false},
+    {HYBM_GLOBAL_DEVICE_TO_GLOBAL_HOST, true, true},
+    {HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE, true, true},
+    {HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST, true, false},
+    {HYBM_GLOBAL_DEVICE_TO_LOCAL_DEVICE, true, false}
+};
+
+HYBM_API int32_t hybm_data_copy(hybm_entity_t e, hybm_copy_params *params, hybm_data_copy_direction direction,
+                                void *stream, uint32_t flags)
 {
-    if (e == nullptr || src == nullptr || dest == nullptr) {
-        BM_LOG_ERROR("input parameter invalid, e: 0x" << std::hex << e << ", src: 0x" << src << ", dest: 0x" << dest);
-        return BM_INVALID_PARAM;
-    }
+    BM_ASSERT_RETURN(e != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(params != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(params->src != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(params->dest != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(params->dataSize != 0, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(direction < HYBM_DATA_COPY_DIRECTION_BUTT, BM_INVALID_PARAM);
 
-    if (count == 0 || direction >= HYBM_DATA_COPY_DIRECTION_BUTT) {
-        BM_LOG_ERROR("input parameter invalid, count: " << count << ", direction: " << direction);
-        return BM_INVALID_PARAM;
-    }
-
-    auto entity = (MemEntity *)e;
-    return entity->CopyData(src, dest, count, direction, stream, flags);
-}
-
-HYBM_API int32_t hybm_data_copy_2d(hybm_entity_t e, const void *src, uint64_t spitch,
-                                   void *dest, uint64_t dpitch, uint64_t width, uint64_t height,
-                                   hybm_data_copy_direction direction, void *stream, uint32_t flags)
-{
-    if (e == nullptr || src == nullptr || dest == nullptr) {
-        BM_LOG_ERROR("input parameter invalid, e: 0x" << std::hex << e << ", src: 0x" << src << ", dest: 0x" << dest);
-        return BM_INVALID_PARAM;
-    }
-
-    if (spitch == 0 || spitch > TB || dpitch == 0 || dpitch > TB) {
-        BM_LOG_ERROR("input parameter invalid, spitch: " << spitch << " dpitch: " << dpitch);
-        return BM_INVALID_PARAM;
-    }
-
-    if (width == 0 || width > TB || height == 0 || height > HEIGHT_MAX || direction >= HYBM_DATA_COPY_DIRECTION_BUTT) {
-        BM_LOG_ERROR("input parameter invalid, width: " << width << " height: "
-                                                        << height << ", direction: " << direction);
-        return BM_INVALID_PARAM;
-    }
+    auto entity = MemEntityFactory::Instance().FindEngineByPtr(e);
+    BM_ASSERT_RETURN(entity != nullptr, BM_INVALID_PARAM);
 
     bool addressValid = true;
-    auto entity = static_cast<MemEntity *>(e);
-    if (direction == HYBM_LOCAL_DEVICE_TO_GLOBAL_DEVICE || direction == HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE ||
-        direction == HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE) {
-        addressValid = entity->CheckAddressInEntity(dest, dpitch * (height - 1) + width);
+    if (g_checkMap[direction][OP_CHECK_DEST]) {
+        addressValid = entity->CheckAddressInEntity(params->dest, params->dataSize);
     }
-    if (direction == HYBM_GLOBAL_DEVICE_TO_LOCAL_DEVICE || direction == HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST ||
-        direction == HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE) {
-        addressValid = (addressValid && entity->CheckAddressInEntity(src, spitch * (height - 1) + width));
+    if (g_checkMap[direction][OP_CHECK_SRC]) {
+        addressValid = (addressValid && entity->CheckAddressInEntity(params->src, params->dataSize));
     }
 
     if (!addressValid) {
-        BM_LOG_ERROR("input copy address(spitch: " << std::oct << spitch << ", dpitch: " << dpitch
-            << ", width: " << width << ", height: " << height << ") direction: " << direction
-            << ", not in entity range.");
+        BM_LOG_ERROR("input copy address out of entity range, size: " << std::oct << params->dataSize
+                                                                      << ", direction: " << direction);
         return BM_INVALID_PARAM;
     }
 
-    return entity->CopyData2d(src, spitch, dest, dpitch, width, height, direction, stream, flags);
+    return entity->CopyData(*params, direction, stream, flags);
+}
+
+HYBM_API int32_t hybm_data_copy_2d(hybm_entity_t e, hybm_copy_2d_params *params, hybm_data_copy_direction direction,
+                                   void *stream, uint32_t flags)
+{
+    BM_ASSERT_RETURN(e != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(params != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(params->src != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(params->dest != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(params->width != 0, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(params->height != 0, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(direction < HYBM_DATA_COPY_DIRECTION_BUTT, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(!NumUtil::IsOverflowCheck(params->dpitch, params->height - 1, UINT64_MAX, '*'), BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(!NumUtil::IsOverflowCheck(params->dpitch * (params->height - 1), params->width, UINT64_MAX, '+'),
+                     BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(!NumUtil::IsOverflowCheck(params->spitch, params->height - 1, UINT64_MAX, '*'), BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(!NumUtil::IsOverflowCheck(params->spitch * (params->height - 1), params->width, UINT64_MAX, '+'),
+                     BM_INVALID_PARAM);
+
+    auto entity = MemEntityFactory::Instance().FindEngineByPtr(e);
+    BM_ASSERT_RETURN(entity != nullptr, BM_INVALID_PARAM);
+
+    bool addressValid = true;
+    if (g_checkMap[direction][OP_CHECK_DEST]) {
+        addressValid = entity->CheckAddressInEntity(
+            params->dest, params->dpitch * (params->height - 1) + params->width);
+    }
+    if (g_checkMap[direction][OP_CHECK_SRC]) {
+        addressValid = addressValid && entity->CheckAddressInEntity(
+            params->src, params->spitch * (params->height - 1) + params->width);
+    }
+
+    if (!addressValid) {
+        BM_LOG_ERROR("input copy address out of entity range , spitch: " << std::oct << params->spitch << ", dpitch: "
+                     << params->dpitch << ", width: " << params->width << ", height: "
+                     << params->height << ") direction: " << direction);
+        return BM_INVALID_PARAM;
+    }
+
+    return entity->CopyData2d(*params, direction, stream, flags);
 }
 
 HYBM_API int32_t hybm_wait(hybm_entity_t e)
@@ -76,46 +112,32 @@ HYBM_API int32_t hybm_wait(hybm_entity_t e)
     return entity->Wait();
 }
 
-HYBM_API int32_t hybm_data_batch_copy(hybm_entity_t e,
-                                      hybm_batch_copy_params* params,
-                                      hybm_data_copy_direction direction,
-                                      void* stream,
-                                      uint32_t flags)
+HYBM_API int32_t hybm_data_batch_copy(hybm_entity_t e, hybm_batch_copy_params *params,
+                                      hybm_data_copy_direction direction, void *stream, uint32_t flags)
 {
-    if (e == nullptr || params == nullptr) {
-        BM_LOG_ERROR("input parameter invalid, e: 0x" << std::hex << e  << ", params: 0x" << params);
-        return BM_INVALID_PARAM;
-    }
-
-    if (params->sources == nullptr || params->destinations == nullptr ||
-        params->dataSizes == nullptr) {
-        BM_LOG_ERROR("input parameter invalid, e: 0x" << ", src array: 0x" << params->sources
-                                                      << ", dest array: 0x" << params->destinations
-                                                      << ", dataSizes array: 0x" << params->dataSizes);
-        return BM_INVALID_PARAM;
-    }
-
-    if (params->batchSize == 0 || direction >= HYBM_DATA_COPY_DIRECTION_BUTT) {
-        BM_LOG_ERROR("input parameter invalid, batchSize: " << params->batchSize
-                                                            << ", direction: " << direction);
-        return BM_INVALID_PARAM;
-    }
+    BM_ASSERT_RETURN(e != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(params != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(params->sources != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(params->destinations != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(params->dataSizes != nullptr, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(params->batchSize != 0, BM_INVALID_PARAM);
+    BM_ASSERT_RETURN(direction < HYBM_DATA_COPY_DIRECTION_BUTT, BM_INVALID_PARAM);
 
     bool addressValid = true;
-    auto entity = static_cast<MemEntity *>(e);
+    auto entity = (MemEntity *)e;
+    bool check_dst = g_checkMap[direction][OP_CHECK_DEST];
+    bool check_src = g_checkMap[direction][OP_CHECK_SRC];
     for (uint32_t i = 0; i < params->batchSize; i++) {
-        if (direction == HYBM_LOCAL_DEVICE_TO_GLOBAL_DEVICE || direction == HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE ||
-            direction == HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE) {
+        if (check_dst) {
             addressValid = entity->CheckAddressInEntity(params->destinations[i], params->dataSizes[i]);
         }
-        if (direction == HYBM_GLOBAL_DEVICE_TO_LOCAL_DEVICE || direction == HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST ||
-            direction == HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE) {
+        if (check_src) {
             addressValid = (addressValid && entity->CheckAddressInEntity(params->sources[i], params->dataSizes[i]));
         }
 
         if (!addressValid) {
-            BM_LOG_ERROR("input copy address out of entity range, size: "
-                                 << std::oct << params->dataSizes[i] << ", direction: " << direction);
+            BM_LOG_ERROR("input copy address out of entity range, size: " << std::oct << params->dataSizes[i]
+                                                                          << ", direction: " << direction);
             return BM_INVALID_PARAM;
         }
     }

@@ -1,11 +1,9 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
-#include <vector>
-#include "hybm.h"
+#include "smem_shm_entry_manager.h"
 #include "smem_net_common.h"
 #include "smem_store_factory.h"
-#include "smem_shm_entry_manager.h"
 
 namespace ock {
 namespace smem {
@@ -28,20 +26,20 @@ Result SmemShmEntryManager::Initialize(const char *configStoreIpPort, uint32_t w
         return SM_OK;
     }
 
-    SM_PARAM_VALIDATE(config == nullptr, "invalid param, config is NULL", SM_INVALID_PARAM);
-    SM_PARAM_VALIDATE(configStoreIpPort == nullptr, "invalid param, ipPort is NULL", SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(config != nullptr, "invalid param, config is NULL", SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(configStoreIpPort != nullptr, "invalid param, ipPort is NULL", SM_INVALID_PARAM);
 
     UrlExtraction option;
     std::string url(configStoreIpPort);
     SM_ASSERT_RETURN(option.ExtractIpPortFromUrl(url) == SM_OK, SM_INVALID_PARAM);
 
-    if (rankId == 0 && config->startConfigStore) {
+    if (rankId == 0 && config->startConfigStoreServer) {
         store_ = ock::smem::StoreFactory::CreateStore(option.ip, option.port, true, 0);
         ip_ = option.ip;
         port_ = option.port;
     } else {
-        store_ = ock::smem::StoreFactory::CreateStore(option.ip, option.port, false, static_cast<int32_t>(rankId),
-                                                      static_cast<int32_t>(config->shmInitTimeout));
+        store_ = ock::smem::StoreFactory::CreateStore(option.ip, option.port, false,
+            static_cast<int32_t>(rankId), static_cast<int32_t>(config->shmInitTimeout));
         ip_ = option.ip;
         port_ = option.port;
     }
@@ -91,7 +89,7 @@ Result SmemShmEntryManager::GetEntryByPtr(uintptr_t ptr, SmemShmEntryPtr &entry)
         return SM_OK;
     }
 
-    SM_LOG_DEBUG("not found shm entry with ptr " << ptr);
+    SM_LOG_DEBUG("not found shm entry");
     return SM_OBJECT_NOT_EXISTS;
 }
 
@@ -117,7 +115,7 @@ Result SmemShmEntryManager::RemoveEntryByPtr(uintptr_t ptr)
     SM_ASSERT_RETURN(inited_, SM_NOT_STARTED);
     auto iter = ptr2EntryMap_.find(ptr);
     if (iter == ptr2EntryMap_.end()) {
-        SM_LOG_DEBUG("not found shm entry with ptr " << ptr);
+        SM_LOG_DEBUG("not found shm entry");
         return SM_OBJECT_NOT_EXISTS;
     }
 
@@ -129,7 +127,7 @@ Result SmemShmEntryManager::RemoveEntryByPtr(uintptr_t ptr)
     SM_ASSERT_RETURN(entry != nullptr, SM_ERROR);
     entryIdMap_.erase(entry->Id());
 
-    SM_LOG_DEBUG("remove shm entry success, ptr: " << ptr << ", id: " << entry->Id());
+    SM_LOG_DEBUG("remove shm entry success, id: " << entry->Id());
 
     return SM_OK;
 }
@@ -143,8 +141,9 @@ struct TransportAddressExchange {
 
 void SmemShmEntryManager::Destroy()
 {
+    inited_ = false;
     store_ = nullptr;
     StoreFactory::DestroyStore(ip_, port_);
 }
-}
-}
+}  // namespace smem
+}  // namespace ock

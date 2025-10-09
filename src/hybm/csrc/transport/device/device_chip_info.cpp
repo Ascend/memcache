@@ -1,7 +1,6 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
-
 #include "dl_acl_api.h"
 #include "hybm_logger.h"
 #include "device_chip_info.h"
@@ -26,6 +25,7 @@ int DeviceChipInfo::Init() noexcept
         return BM_DL_FUNCTION_FAILED;
     }
     dieId_ = static_cast<uint32_t>(infoValue);
+
     chipDieOffset_ = 0x10000000000UL; // RT_ASCEND910B1_DIE_ADDR_OFFSET;
     chipOffset_ = 0x80000000000UL; // RT_ASCEND910B1_CHIP_ADDR_OFFSET;
     chipBaseAddr_ = 0UL;

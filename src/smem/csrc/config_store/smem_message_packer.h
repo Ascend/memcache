@@ -13,6 +13,10 @@ namespace ock {
 namespace smem {
 
 constexpr const char *WATCH_RANK_DOWN_KEY = "WATCH_RANK_DOWN_KEY";
+const uint64_t MAX_KEY_COUNT = 10ULL;
+const uint64_t MAX_KEY_SIZE = 2048ULL;
+const uint64_t MAX_VALUE_COUNT = 10ULL;
+const uint64_t MAX_VALUE_SIZE = 64 * 1024 * 1024ULL;
 
 enum MessageType : int16_t { SET, GET, ADD, REMOVE, APPEND, CAS, WATCH_RANK_STATE, INVALID_MSG };
 
@@ -64,11 +68,11 @@ class SmemMessagePacker {
 public:
     static std::vector<uint8_t> Pack(const SmemMessage &message) noexcept;
 
-    static bool Full(const std::vector<uint8_t> &buffer) noexcept;
+    static bool Full(const uint8_t* buffer, const uint64_t bufferLen) noexcept;
 
     static int64_t MessageSize(const std::vector<uint8_t> &buffer) noexcept;
 
-    static int64_t Unpack(const std::vector<uint8_t> &buffer, SmemMessage &message) noexcept;
+    static int64_t Unpack(const uint8_t* buffer, const uint64_t bufferLen, SmemMessage &message) noexcept;
 
     template <class T>
     static std::vector<uint8_t> PackPod(const T &v) noexcept

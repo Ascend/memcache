@@ -13,14 +13,14 @@ set_target_properties(test_mmc_fuzz PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJEC
 target_link_options(test_mmc_fuzz PRIVATE -lgcov --coverage -fsanitize-coverage=trace-pc -fsanitize=address -fno-omit-frame-pointer)
 target_compile_options(test_mmc_fuzz PRIVATE -D_GNU_SOURCE -g -O0 -lgcov --coverage -fsanitize-coverage=trace-pc -fsanitize=address -fno-omit-frame-pointer)
 target_link_directories(test_mmc_fuzz PRIVATE
-        ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/lib
+        ${PROJECT_OUTPUT_PATH}/acc_links/lib64/
         ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib
         ${PROJECT_OUTPUT_PATH}/memcache/lib64
         ${PROJECT_OUTPUT_PATH}/smem/lib64
         ${ASCEND_CANN_PACKAGE_PATH}/aarch64-linux/lib64
         ${GTEST_BUILD_LIB_DIR}/lib
 )
-target_link_libraries(test_mmc_fuzz dl rt gtest gcov pthread mmc_static smem_shared libacc_tcp_net.a mockcpp Secodefuzz)
+target_link_libraries(test_mmc_fuzz dl rt gtest gcov pthread mmc_static smem_shared acc_tcp_net_static mockcpp Secodefuzz)
 target_include_directories(test_mmc_fuzz PRIVATE
         ${PROJECT_SMEM_SRC_BASE}/include/host
         ${PROJECT_SMEM_SRC_BASE}/csrc

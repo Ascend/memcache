@@ -10,9 +10,15 @@
 #include "hybm_common_include.h"
 #include "hybm_mem_common.h"
 #include "hybm_mem_slice.h"
+#include "hybm_transport_common.h"
 
 namespace ock {
 namespace mf {
+struct TransportExtraInfo {
+    uint32_t rankId;
+    transport::TransportMemoryKey memKey;
+};
+
 class MemSegment;
 using MemSegmentPtr = std::shared_ptr<MemSegment>;
 
@@ -28,6 +34,7 @@ public:
 
 public:
     explicit MemSegment(const MemSegmentOptions &options, int eid) : options_{options}, entityId_{eid} {}
+    virtual ~MemSegment() = default;
 
     /*
      * Validate options
@@ -46,6 +53,18 @@ public:
     virtual Result AllocLocalMemory(uint64_t size, std::shared_ptr<MemSlice> &slice) noexcept = 0;
 
     /*
+     * register memory according to segType
+     * @return 0 if successful
+     */
+    virtual Result RegisterMemory(const void *addr, uint64_t size, std::shared_ptr<MemSlice> &slice) noexcept = 0;
+
+    /*
+     * release one slice
+     * @return 0 if successful
+     */
+    virtual Result ReleaseSliceMemory(const std::shared_ptr<MemSlice> &slice) noexcept = 0;
+
+    /*
      * Export exchange info according to infoExType
      * @return exchange info
      */
@@ -53,11 +72,13 @@ public:
 
     virtual Result Export(const std::shared_ptr<MemSlice> &slice, std::string &exInfo) noexcept = 0;
 
+    virtual Result GetExportSliceSize(size_t &size) noexcept = 0;
+
     /*
      * Import exchange info and translate it into data structure
      * @param allExInfo
      */
-    virtual Result Import(const std::vector<std::string> &allExInfo) noexcept = 0;
+    virtual Result Import(const std::vector<std::string> &allExInfo, void *addresses[]) noexcept = 0;
 
     /*
      * delete imported memory area according to rankid
@@ -88,8 +109,8 @@ public:
     /*
      * check memery area in this segment
      * @return true if in range
-     */
-    virtual uint32_t GetRankIdByAddr(const void *addr, uint64_t size) const noexcept = 0;
+    */
+    virtual void GetRankIdByAddr(const void *addr, uint64_t size, uint32_t &rankId) const noexcept = 0;
 
     /*
      * get memory type

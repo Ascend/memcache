@@ -5,7 +5,7 @@
 #define __MEMFABRIC_SMEM_BM_DEF_H__
 
 #include <stdint.h>
-#include <stdbool.h>
+#include <stddef.h>
 
 #include "mf_tls_def.h"
 
@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 typedef void *smem_bm_t;
-
+#define SMEM_BM_TIMEOUT_MAX     UINT32_MAX /* all timeout must <= UINT32_MAX */
 #define ASYNC_COPY_FLAG (1UL << (0))
 /**
 * @brief Smem memory type
@@ -54,10 +54,10 @@ typedef enum {
 #define SMEM_BM_INIT_GVM_FLAG (1ULL << 1ULL) // Init the GVM module, enable to use Host DRAM
 
 typedef struct {
-    uint32_t initTimeout;             /* func smem_bm_init timeout, default 120 second */
-    uint32_t createTimeout;           /* func smem_bm_create timeout, default 120 second */
-    uint32_t controlOperationTimeout; /* control operation timeout, default 120 second */
-    bool startConfigStoreServer;      /* whether to start config store server, default true, mmc should set false */
+    uint32_t initTimeout;             /* func smem_bm_init timeout, default 120s (min=1, max=SMEM_BM_TIMEOUT_MAX) */
+    uint32_t createTimeout;           /* func smem_bm_create timeout, default 120s (min=1, max=SMEM_BM_TIMEOUT_MAX) */
+    uint32_t controlOperationTimeout; /* control operation timeout, default 120s (min=1, max=SMEM_BM_TIMEOUT_MAX) */
+    bool startConfigStoreServer;      /* whether to start config store, default true */
     bool startConfigStoreOnly;        /* only start the config store */
     bool dynamicWorldSize;            /* member cannot join dynamically */
     bool unifiedAddressSpace;         /* unified address with SVM */
@@ -70,9 +70,24 @@ typedef struct {
 } smem_bm_config_t;
 
 typedef struct {
-    const void** sources;
+    void *src;
+    uint64_t spitch;
+    void *dest;
+    uint64_t dpitch;
+    uint64_t width;
+    uint64_t height;
+} smem_copy_2d_params;
+
+typedef struct {
+    const void *src;
+    void *dest;
+    size_t dataSize;
+} smem_copy_params;
+
+typedef struct {
+    void** sources;
     void** destinations;
-    const uint32_t *dataSizes;
+    const uint64_t *dataSizes;
     uint32_t batchSize;
 } smem_batch_copy_params;
 

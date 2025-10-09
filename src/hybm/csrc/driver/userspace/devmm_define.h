@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 
 #ifndef MEM_FABRIC_HYBRID_DEVMM_DEFINE_H
@@ -7,13 +7,16 @@
 
 #include <cstdint>
 
-constexpr size_t DEVMM_MAP_ALIGN_SIZE = 0x200000U; /* 2M */
-constexpr size_t DEVMM_HEAP_SIZE = 1UL << 30UL; /* 1G */
-constexpr size_t DEVMM_SVM_MEM_SIZE = 1UL << 43UL; /* 8T */
+constexpr uint64_t DEVMM_MAP_ALIGN_SIZE = 0x200000U;
+constexpr uint64_t DEVMM_HEAP_SIZE = 1UL << 30UL;
+constexpr size_t DEVMM_SVM_MEM_SIZE = 1UL << 43UL;
 constexpr uint64_t DEVMM_SVM_MEM_START = 0x100000000000ULL;
+constexpr uint32_t DEVMM_MAX_HEAP_NUM = DEVMM_SVM_MEM_SIZE >> 30;
 
+constexpr uint32_t DV_ADVISE_DDR = 0x0001;
 constexpr uint32_t DV_ADVISE_HBM = 0x0002;
 constexpr uint32_t DV_ADVISE_HUGEPAGE = 0x0004;
+constexpr uint32_t DV_ADVISE_GIANTPAGE = 0x8000;
 constexpr uint32_t DV_ADVISE_POPULATE = 0x0008;
 constexpr uint32_t DV_ADVISE_LOCK_DEV = 0x0080;
 constexpr uint32_t DV_ADVISE_MODULE_ID_BIT = 24;
@@ -21,11 +24,16 @@ constexpr uint32_t DV_ADVISE_MODULE_ID_MASK = 0xff;
 constexpr uint32_t HCCL_HAL_MODULE_ID = 3;
 constexpr uint32_t APP_MODULE_ID = 33;
 
-constexpr uint32_t DEVMM_DDR_MEM = 1;
-constexpr uint32_t DEVMM_HEAP_HUGE_PAGE = 0xEFEF0002UL;
-constexpr uint32_t DEVMM_HEAP_CHUNK_PAGE = 0xEFEF0003UL;   // page_size is exchanged svm page_size
+constexpr uint32_t DEVMM_NODE_MAPPED_BIT = 1;
+constexpr uint32_t DEVMM_NODE_MEMTYPE_SHIFT = 2;
+constexpr uint32_t DEVMM_NODE_MEMTYPE_WID = 4;
 
-constexpr int DEVMM_MAX_PHY_DEVICE_NUM = 64;
+constexpr uint32_t DEVMM_NODE_MAPPED_FLG = 1UL << DEVMM_NODE_MAPPED_BIT;
+constexpr uint32_t DEVMM_HEAP_HUGE_PAGE = 0xEFEF0002UL;
+constexpr uint32_t DEVMM_HEAP_CHUNK_PAGE = 0xEFEF0003UL;
+
+constexpr uint32_t DEVMM_MAX_PHY_DEVICE_NUM = 64;
+constexpr uint32_t SVM_MAX_AGENT_NUM = 65;
 
 #ifndef ALIGN_DOWN
 #define ALIGN_DOWN(val, al) ((val) & ~((al) - 1))
@@ -35,15 +43,17 @@ constexpr int DEVMM_MAX_PHY_DEVICE_NUM = 64;
 #define ALIGN_UP(val, al) (((val) + ((al) - 1)) & ~((al) - 1))
 #endif
 
-constexpr uint32_t MEM_SVM_VAL = 0x0;
-constexpr uint32_t MEM_DEV_VAL = 0x1;
-constexpr uint32_t MEM_HOST_VAL = 0x2;
-constexpr uint32_t MEM_DVPP_VAL = 0x3;
-constexpr uint32_t MEM_HOST_AGENT_VAL = 0x4;
-constexpr uint32_t MEM_RESERVE_VAL = 0x5;
-constexpr uint32_t MEM_MAX_VAL = 0x6;
+enum MemVal {
+    MEM_SVM_VAL          = 0X0,
+    MEM_DEV_VAL          = 0X1,
+    MEM_HOST_VAL         = 0X2,
+    MEM_DVPP_VAL         = 0X3,
+    MEM_HOST_AGENT_VAL   = 0X4,
+    MEM_RESERVE_VAL      = 0X5,
+    MEM_MAX_VAL          = 0X6
+};
 
-enum devmm_heap_sub_type {
+enum DevHeapSubType {
     SUB_SVM_TYPE = 0x0,     /* user mode page is same as kernel page, huge or chunk. the same as MEM_SVM_VAL */
     SUB_DEVICE_TYPE = 0x1,  /* user mode page is same as kernel page, just huge. the same as MEM_DEV_VAL */
     SUB_HOST_TYPE = 0x2,   /* user mode page is same as kernel page just chunk. the same as MEM_HOST_VAL */
@@ -54,13 +64,22 @@ enum devmm_heap_sub_type {
     SUB_MAX_TYPE
 };
 
-enum devmm_page_type {
+enum DevMemType {
+    DEVMM_HBM_MEM = 0x0,
+    DEVMM_DDR_MEM,
+    DEVMM_P2P_HBM_MEM,
+    DEVMM_P2P_DDR_MEM,
+    DEVMM_TS_DDR_MEM,
+    DEVMM_MEM_TYPE_MAX
+};
+
+enum DevPageType {
     DEVMM_NORMAL_PAGE_TYPE = 0x0,
     DEVMM_HUGE_PAGE_TYPE,
     DEVMM_PAGE_TYPE_MAX
 };
 
-enum devmm_heap_list_type {
+enum DevHeapListType {
     SVM_LIST,
     HOST_LIST,
     DEVICE_AGENT0_LIST,
@@ -70,105 +89,105 @@ enum devmm_heap_list_type {
     HEAP_MAX_LIST,
 };
 
-struct devmm_virt_heap_type {
+struct DevVirtHeapType {
     uint32_t heap_type;
     uint32_t heap_list_type;
     uint32_t heap_sub_type;
-    uint32_t heap_mem_type; /* A heap belongs to only one physical memory type. --devmm_mem_type */
+    uint32_t heap_mem_type; /* A heap belongs to only one physical memory type. --DevMemType */
 };
 
-struct svm_mem_stats_type {
+struct MemStatsType {
     uint32_t mem_val;
     uint32_t page_type;
     uint32_t phy_memtype;
 };
 
-enum devmm_memtype {
+enum DMemType {
     DEVMM_MEM_NORMAL = 0,
     DEVMM_MEM_RDONLY,
     DEVMM_MEMTYPE_MAX,
 };
 
-struct devmm_virt_com_heap;
+struct DevVirtComHeap;
 
-struct devmm_com_heap_ops {
-    unsigned long (*heap_alloc)(struct devmm_virt_com_heap *heap, unsigned long va, size_t size, uint32_t advise);
-    int32_t (*heap_free)(struct devmm_virt_com_heap *heap, unsigned long ptr);
+struct DComHeapOps {
+    uint64_t (*heap_alloc)(struct DevVirtComHeap *heap, uint64_t va, size_t size, uint32_t advise);
+    int32_t (*heap_free)(struct DevVirtComHeap *heap, uint64_t ptr);
 };
 
-struct devmm_virt_list_head {
-    struct devmm_virt_list_head *next, *prev;
+struct DVirtListHead {
+    struct DVirtListHead *next, *prev;
 };
 
-enum devmm_mapped_rbtree_type {
+enum DMappedRbtreeType {
     DEVMM_MAPPED_RW_TREE = 0,
     DEVMM_MAPPED_RDONLY_TREE,
     DEVMM_MAPPED_TREE_TYPE_MAX
 };
 
-struct list_node {
-    struct list_node *next;
-    struct list_node *prev;
+struct ListNode {
+    struct ListNode *next;
+    struct ListNode *prev;
 };
 
-struct devmm_node_data {
+struct DevNodeData {
     uint64_t va;
     uint64_t size;
     uint64_t total;
     uint32_t flag;
 };
 
-struct rbtree_node {
+struct RbtreeNode {
     unsigned long rbtree_parent_color;
-    struct rbtree_node *rbtree_right;
-    struct rbtree_node *rbtree_left;
+    struct RbtreeNode *rbtree_right;
+    struct RbtreeNode *rbtree_left;
 };
 
-struct rbtree_root {
-    struct rbtree_node *rbtree_node;
+struct RbtreeRoot {
+    struct RbtreeNode *RbtreeNode;
     uint64_t rbtree_len;
 };
 
-struct rb_node {
-    struct rbtree_node rbtree_node;
+struct RbNode {
+    struct RbtreeNode RbtreeNode;
     uint64_t key;
 };
 
-struct multi_rb_node {
-    struct rb_node multi_rbtree_node;
-    struct list_node list;
+struct MultiRbNode {
+    struct RbNode multi_rbtree_node;
+    struct ListNode list;
     uint8_t is_list_first;
 };
 
-struct devmm_rbtree_node {
-    struct multi_rb_node va_node;
-    struct multi_rb_node size_node;
-    struct multi_rb_node cache_node;
-    struct devmm_node_data data;
+struct DevRbtreeNode {
+    struct MultiRbNode va_node;
+    struct MultiRbNode size_node;
+    struct MultiRbNode cache_node;
+    struct DevNodeData data;
 };
 
-struct devmm_cache_list {
-    struct devmm_rbtree_node cache;
-    struct list_node list;
+struct DCacheList {
+    struct DevRbtreeNode cache;
+    struct ListNode list;
     uint8_t is_new;
 };
 
-struct devmm_heap_rbtree {
-    struct rbtree_root *alloced_tree;
-    struct rbtree_root *idle_size_tree;
-    struct rbtree_root *idle_va_tree;
-    struct rbtree_root *idle_mapped_cache_tree[DEVMM_MAPPED_TREE_TYPE_MAX];
-    struct devmm_cache_list *head;
+struct DevHeapRbtree {
+    struct RbtreeRoot *alloced_tree;
+    struct RbtreeRoot *idle_size_tree;
+    struct RbtreeRoot *idle_va_tree;
+    struct RbtreeRoot *idle_mapped_cache_tree[DEVMM_MAPPED_TREE_TYPE_MAX];
+    struct DCacheList *head;
     uint32_t devmm_cache_numsize;
 };
 
-struct devmm_heap_list {
+struct DevHeapList {
     int heap_cnt;
     pthread_rwlock_t list_lock;
-    struct devmm_virt_list_head heap_list;
+    struct DVirtListHead heap_list;
 };
 
-struct devmm_virt_com_heap {
+struct DevVirtComHeap {
     uint32_t inited;
     uint32_t heap_type;
     uint32_t heap_sub_type;
@@ -188,8 +207,8 @@ struct devmm_virt_com_heap {
     bool is_cache;      /* true: follow the cache rule, devmm_get_free_threshold_by_type, used by normal heap.
                            false: no cache, free the heap immediately, used by specified va alloc. For example,
                                   alloc 2M success, free 2M success, alloc 2G will fail because of cache heap. */
-    unsigned long start;
-    unsigned long end;
+    uint64_t start;
+    uint64_t end;
 
     uint32_t module_id;     /* used for large heap (>=512M) */
     uint32_t side;          /* used for large heap (>=512M) */
@@ -201,7 +220,7 @@ struct devmm_virt_com_heap {
     uint32_t map_size;
     uint64_t heap_size;
 
-    struct devmm_com_heap_ops *ops;
+    struct DComHeapOps *ops;
     pthread_mutex_t tree_lock;
     pthread_rwlock_t heap_rw_lock;
     uint64_t sys_mem_alloced;
@@ -209,8 +228,81 @@ struct devmm_virt_com_heap {
     uint64_t sys_mem_alloced_num;
     uint64_t sys_mem_freed_num;
 
-    struct devmm_virt_list_head list;       /* associated to base heap's devmm_heap_list */
-    struct devmm_heap_rbtree rbtree_queue;
+    struct DVirtListHead list;       /* associated to base heap's DevHeapList */
+    struct DevHeapRbtree rbtree_queue;
+};
+
+struct DHeapQueue {
+    struct DevVirtComHeap base_heap; /* use for manage 32T heap, heap range 1g */
+    struct DevVirtComHeap *heaps[DEVMM_MAX_HEAP_NUM];
+};
+
+struct DevVirtHeapMgmt {
+    uint32_t inited;
+    pid_t pid;
+
+    uint64_t max_conti_size; /* eq heap size */
+
+    uint64_t start; /* svm page_size aligned */
+    uint64_t end;   /* svm page_size aligned */
+
+    uint64_t dvpp_start;  /* dvpp vaddr start */
+    uint64_t dvpp_end;    /* dvpp vaddr end */
+    uint64_t dvpp_mem_size[DEVMM_MAX_PHY_DEVICE_NUM];
+
+    uint64_t read_only_start;  /* read vaddr start */
+    uint64_t read_only_end;    /* read vaddr end */
+
+    uint32_t svm_page_size;
+    uint32_t local_page_size;
+    uint32_t huge_page_size;
+    bool support_bar_mem[DEVMM_MAX_PHY_DEVICE_NUM];
+    bool support_dev_read_only[DEVMM_MAX_PHY_DEVICE_NUM];
+    bool support_dev_mem_map_host[DEVMM_MAX_PHY_DEVICE_NUM];
+    bool support_bar_huge_mem[DEVMM_MAX_PHY_DEVICE_NUM];
+    bool host_support_pin_user_pages_interface;
+    bool support_host_rw_dev_ro;
+    uint64_t double_pgtable_offset[DEVMM_MAX_PHY_DEVICE_NUM];
+
+    struct DHeapQueue heap_queue;
+    struct DevHeapList huge_list[HEAP_MAX_LIST][SUB_MAX_TYPE][DEVMM_MEM_TYPE_MAX];
+    struct DevHeapList normal_list[HEAP_MAX_LIST][SUB_MAX_TYPE][DEVMM_MEM_TYPE_MAX];
+};
+
+struct DevVirtHeapMgmtV2 {
+    uint32_t inited;
+    pid_t pid;
+
+    uint64_t max_conti_size; /* eq heap size */
+
+    uint64_t start; /* svm page_size aligned */
+    uint64_t end;   /* svm page_size aligned */
+
+    uint64_t dvpp_start;  /* dvpp vaddr start */
+    uint64_t dvpp_end;    /* dvpp vaddr end */
+    uint64_t dvpp_mem_size[DEVMM_MAX_PHY_DEVICE_NUM];
+
+    uint64_t read_only_start;  /* read vaddr start */
+    uint64_t read_only_end;    /* read vaddr end */
+
+    uint32_t svm_page_size;
+    uint32_t local_page_size;
+    uint32_t huge_page_size;
+    bool support_bar_mem[DEVMM_MAX_PHY_DEVICE_NUM];
+    bool support_dev_read_only[DEVMM_MAX_PHY_DEVICE_NUM];
+    bool support_dev_mem_map_host[DEVMM_MAX_PHY_DEVICE_NUM];
+    bool support_bar_huge_mem[DEVMM_MAX_PHY_DEVICE_NUM];
+    bool host_support_pin_user_pages_interface;
+    bool support_host_rw_dev_ro;
+    uint64_t double_pgtable_offset[DEVMM_MAX_PHY_DEVICE_NUM];
+
+    bool support_host_pin_pre_register;
+    bool support_host_mem_pool;
+    bool is_dev_inited[SVM_MAX_AGENT_NUM];
+
+    struct DHeapQueue heap_queue;
+    struct DevHeapList huge_list[HEAP_MAX_LIST][SUB_MAX_TYPE][DEVMM_MEM_TYPE_MAX];
+    struct DevHeapList normal_list[HEAP_MAX_LIST][SUB_MAX_TYPE][DEVMM_MEM_TYPE_MAX];
 };
 
 #endif // MEM_FABRIC_HYBRID_DEVMM_DEFINE_H

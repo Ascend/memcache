@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 #include "hybm_transport_manager.h"
 
@@ -30,4 +30,27 @@ const void *TransportManager::GetQpInfo() const
 {
     BM_LOG_DEBUG("Not Implement GetQpInfo()");
     return nullptr;
+}
+
+Result TransportManager::ConnectWithOptions(const HybmTransPrepareOptions &options)
+{
+    BM_LOG_DEBUG("ConnectWithOptions now connected=" << connected_);
+    if (!connected_) {
+        auto ret = Prepare(options);
+        if (ret != BM_OK) {
+            BM_LOG_ERROR("prepare connection failed: " << ret);
+            return ret;
+        }
+
+        ret = Connect();
+        if (ret != BM_OK) {
+            BM_LOG_ERROR("connect failed: " << ret);
+            return ret;
+        }
+
+        connected_ = true;
+        return BM_OK;
+    }
+
+    return UpdateRankOptions(options);
 }

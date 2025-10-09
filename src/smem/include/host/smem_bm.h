@@ -4,7 +4,8 @@
 #ifndef __MEMFABRIC_SMEM_BM_H__
 #define __MEMFABRIC_SMEM_BM_H__
 
-#include <smem_bm_def.h>
+#include "smem.h"
+#include "smem_bm_def.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,10 +79,9 @@ void smem_bm_destroy(smem_bm_t handle);
  *
  * @param handle           [in] Big Memory object handle created by <i>smem_bm_create</i>
  * @param flags            [in] optional flags
- * @param localGvaAddress  [out] local part of the global virtual memory space
  * @return 0 if successful
  */
-int32_t smem_bm_join(smem_bm_t handle, uint32_t flags, void **localGvaAddress);
+int32_t smem_bm_join(smem_bm_t handle, uint32_t flags);
 
 /**
  * @brief Leave the global Big Memory space actively, after this, we cannot operate on the global space anymore
@@ -91,23 +91,6 @@ int32_t smem_bm_join(smem_bm_t handle, uint32_t flags, void **localGvaAddress);
  * @return 0 if successful
  */
 int32_t smem_bm_leave(smem_bm_t handle, uint32_t flags);
-
-/**
- * @brief Get size of local memory segment that contributed to global space
- *
- * @param handle           [in] Big Memory object handle created by <i>smem_bm_create</i>
- * @return local memory size in bytes
- */
-uint64_t smem_bm_get_local_mem_size(smem_bm_t handle);
-
-/**
- * @brief Get peer gva of peer memory segment by rank id
- *
- * @param handle           [in] Big Memory object handle created by <i>smem_bm_create</i>
- * @param peerRankId       [in] rank id of peer
- * @return ptr of peer gva
- */
-void *smem_bm_ptr(smem_bm_t handle, uint16_t peerRankId);
 
 /**
  *
@@ -152,19 +135,17 @@ int32_t smem_bm_copy(smem_bm_t handle, const void *src, void *dest, uint64_t siz
  * H2G: host memory to global space
  *
  * @param handle           [in] Big Memory object handle created by <i>smem_bm_create</i>
- * @param src              [in] source gva of data
- * @param spitch           [in] pitch of source memory
- * @param dest             [in] target gva of data
- * @param dpitch           [in] pitch of destination memory
- * @param width            [in] width of matrix transfer
- * @param heigth           [in] height of matrix transfer
+ * @param params.src       [in] source gva of data
+ * @param params.spitch    [in] pitch of source memory
+ * @param params.dest      [in] target gva of data
+ * @param params.dpitch    [in] pitch of destination memory
+ * @param params.width     [in] width of matrix transfer
+ * @param params.heigth    [in] height of matrix transfer
  * @param t                [in] copy type, L2G, G2L, G2H, H2G
  * @param flags            [in] optional flags
  * @return 0 if successful
  */
-int32_t smem_bm_copy_2d(smem_bm_t handle, const void *src, uint64_t spitch,
-                        void *dest, uint64_t dpitch, uint64_t width, uint64_t heigth,
-                        smem_bm_copy_type t, uint32_t flags);
+int32_t smem_bm_copy_2d(smem_bm_t handle, smem_copy_2d_params *params, smem_bm_copy_type t, uint32_t flags);
 
 
 int32_t smem_bm_copy_batch(smem_bm_t handle, smem_batch_copy_params *params, smem_bm_copy_type t, uint32_t flags);

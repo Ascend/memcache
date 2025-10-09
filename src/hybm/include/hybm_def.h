@@ -5,7 +5,7 @@
 #define MEM_FABRIC_HYBRID_HYBRID_BIG_MEM_DL_H
 
 #include <stdint.h>
-
+#include <stdbool.h>
 #include "mf_tls_def.h"
 
 #ifndef __cplusplus
@@ -16,39 +16,52 @@ typedef void *hybm_entity_t;
 typedef void *hybm_mem_slice_t;
 
 #define HYBM_FREE_SINGLE_SLICE 0x00
-#define HYBM_FREE_ALL_SLICE 0x01
+#define HYBM_FREE_ALL_SLICE    0x01
 
 #define HYBM_EXPORT_PARTIAL_SLICE 0x00
-#define HYBM_EXPORT_ALL_SLICE 0x01
+#define HYBM_EXPORT_ALL_SLICE     0x01
 
-typedef enum { HYBM_TYPE_AI_CORE_INITIATE = 0, HYBM_TYPE_HOST_INITIATE, HYBM_TYPE_BUTT } hybm_type;
+#define HYBM_IMPORT_WITH_ADDRESS 0x01U
 
+/**
+ * @brief Determine whether the IO initiator is on the host or the device.
+ */
 typedef enum {
-    HYBM_DOP_TYPE_MTE = 1 << 0,
-    HYBM_DOP_TYPE_SDMA = 1 << 1,
-    HYBM_DOP_TYPE_DEVICE_RDMA = 1 << 2,
-    HYBM_DOP_TYPE_HOST_RDMA = 1 << 3,
-    HYBM_DOP_TYPE_HOST_TCP = 1 << 4,
+    HYBM_TYPE_AI_CORE_INITIATE = 0, // AI core
+    HYBM_TYPE_HOST_INITIATE,        // Host
+    HYBM_TYPE_BUTT
+} hybm_type;
+
+/**
+ * @brief data copy type
+ */
+typedef enum {
+    HYBM_DOP_TYPE_DEFAULT = 0U,
+    HYBM_DOP_TYPE_MTE = 1U << 0,
+    HYBM_DOP_TYPE_SDMA = 1U << 1,
+    HYBM_DOP_TYPE_DEVICE_RDMA = 1U << 2,
+    HYBM_DOP_TYPE_HOST_RDMA = 1U << 3,
+    HYBM_DOP_TYPE_HOST_TCP = 1U << 4,
 
     HYBM_DOP_TYPE_BUTT
 } hybm_data_op_type;
 
 typedef enum {
-    HYBM_SCOPE_IN_NODE = 0,
+    HYBM_SCOPE_IN_NODE = 0U,
     HYBM_SCOPE_CROSS_NODE,
 
     HYBM_SCOPE_BUTT
 } hybm_scope;
 
 typedef enum {
-    HYBM_MEM_TYPE_DEVICE = 1 << 0,
-    HYBM_MEM_TYPE_HOST = 1 << 1,
+    HYBM_MEM_TYPE_DEVICE = 1U << 0,
+    HYBM_MEM_TYPE_HOST = 1U << 1,
 
     HYBM_MEM_TYPE_BUTT
 } hybm_mem_type;
 
 typedef enum {
-    HYBM_ROLE_PEER = 0,  // peer to peer connect
+    HYBM_ROLE_PEER = 0, // peer to peer connect
     HYBM_ROLE_SENDER,
     HYBM_ROLE_RECEIVER,
     HYBM_ROLE_BUTT
@@ -67,7 +80,6 @@ typedef struct {
     uint16_t rankCount;
     uint16_t rankId;
     uint16_t devId;
-    uint64_t singleRankVASpace;
     uint64_t deviceVASpace;
     uint64_t hostVASpace;
     uint64_t preferredGVA;
@@ -97,9 +109,24 @@ typedef enum {
 } hybm_data_copy_direction;
 
 typedef struct {
-    const void** sources;
+    void *src;
+    uint64_t spitch;
+    void *dest;
+    uint64_t dpitch;
+    uint64_t width;
+    uint64_t height;
+} hybm_copy_2d_params;
+
+typedef struct {
+    void *src;
+    void *dest;
+    uint64_t dataSize;
+} hybm_copy_params;
+
+typedef struct {
+    void** sources;
     void** destinations;
-    const uint32_t *dataSizes;
+    const uint64_t *dataSizes;
     uint32_t batchSize;
 } hybm_batch_copy_params;
 
@@ -107,4 +134,4 @@ typedef struct {
 }
 #endif
 
-#endif  // MEM_FABRIC_HYBRID_HYBRID_BIG_MEM_DL_H
+#endif // MEM_FABRIC_HYBRID_HYBRID_BIG_MEM_DL_H

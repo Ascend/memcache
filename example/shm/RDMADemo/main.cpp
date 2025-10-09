@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2022-2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  * This file constains code of cpu debug and npu code.We read data from bin file
  * and write result to file.
  */
@@ -153,7 +153,6 @@ int32_t main(int32_t argc, char* argv[])
     CHECK_ACL(aclrtCreateStream(&stream));
 
     smem_set_log_level(0);
-    smem_set_conf_store_tls(0, "", 0);
 
     auto ret = smem_init(0);
     if (ret != 0) {

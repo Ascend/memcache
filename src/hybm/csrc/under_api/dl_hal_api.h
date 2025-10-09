@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 
 #ifndef MF_HYBM_CORE_DL_HAL_API_H
@@ -8,23 +8,36 @@
 #include <cstddef>
 #include <mutex>
 
+#include "hybm_common_include.h"
 #include "dl_hal_api_def.h"
 #include "hybm_types.h"
 
 namespace ock {
 namespace mf {
 using halSvmModuleAllocedSizeIncFunc = void (*)(void *, uint32_t, uint32_t, uint64_t);
-using halDevmmVirtAllocMemFromBaseFunc = uint64_t (*)(void *, size_t, uint32_t, uint64_t);
-using halDevmmIoctlEnableHeapFunc = int32_t (*)(uint32_t, uint32_t, uint32_t, uint64_t, uint32_t);
-using halDevmmGetHeapListByTypeFunc = int32_t (*)(void *, void *, void *);
-using halDevmmVirtSetHeapIdleFunc = int32_t (*)(void *, void *);
-using halDevmmVirtDestroyHeapFunc = int32_t (*)(void *, void *, bool);
-using halDevmmVirtGetHeapMgmtFunc = void *(*)(void);
-using halDevmmIoctlFreePagesFunc = int32_t (*)(uint64_t);
-using halDevmmVaToHeapIdxFunc = uint32_t (*)(const void *, uint64_t);
-using halDevmmVirtGetHeapFromQueueFunc = void *(*)(void *, uint32_t, size_t);
-using halDevmmVirtNormalHeapUpdateInfoFunc = void (*)(void *, void *, void *, void *, uint64_t);
-using halDevmmVaToHeapFunc = void *(*)(uint64_t);
+using halVirtAllocMemFromBaseFunc = uint64_t (*)(void *, size_t, uint32_t, uint64_t);
+using halIoctlEnableHeapFunc = int32_t (*)(uint32_t, uint32_t, uint32_t, uint64_t, uint32_t);
+using halGetHeapListByTypeFunc = int32_t (*)(void *, void *, void *);
+using halVirtSetHeapIdleFunc = int32_t (*)(void *, void *);
+using halVirtDestroyHeapV1Func = int32_t (*)(void *, void *);
+using halVirtDestroyHeapV2Func = int32_t (*)(void *, void *, bool);
+using halVirtGetHeapMgmtFunc = void *(*)(void);
+using halIoctlFreePagesFunc = int32_t (*)(uint64_t);
+using halVaToHeapIdxFunc = uint32_t (*)(const void *, uint64_t);
+using halVirtGetHeapFromQueueFunc = void *(*)(void *, uint32_t, size_t);
+using halVirtNormalHeapUpdateInfoFunc = void (*)(void *, void *, void *, void *, uint64_t);
+using halVaToHeapFunc = void *(*)(uint64_t);
+
+using halAssignNodeDataFunc = void (*)(uint64_t, uint64_t, uint64_t, uint32_t, void *RbtreeNode);
+using halInsertIdleSizeTreeFunc = int32_t (*)(void *RbtreeNode, void *rbtree_queue);
+using halInsertIdleVaTreeFunc = int32_t (*)(void *RbtreeNode, void *rbtree_queue);
+using halAllocRbtreeNodeFunc = void *(*)(void *rbtree_queue);
+using halEraseIdleVaTreeFunc = int32_t (*)(void *RbtreeNode, void *rbtree_queue);
+using halEraseIdleSizeTreeFunc = int32_t (*)(void *RbtreeNode, void *rbtree_queue);
+using halGetAllocedNodeInRangeFunc = void *(*)(uint64_t va, void *rbtree_queue);
+using halGetIdleVaNodeInRangeFunc = void *(*)(uint64_t va, void *rbtree_queue);
+using halInsertAllocedTreeFunc = int32_t (*)(void *RbtreeNode, void *rbtree_queue);
+using halFreeRbtreeNodeFunc = void (*)(void *RbNode, void *rbtree_queue);
 
 using halSqTaskSendFunc = int (*)(uint32_t, halTaskSendInfo *);
 using halCqReportRecvFunc = int (*)(uint32_t, halReportRecvInfo *);
@@ -52,101 +65,186 @@ public:
         return pSvmModuleAllocedSizeInc(type, devid, moduleId, size);
     }
 
-    static inline uint64_t HalDevmmVirtAllocMemFromBase(void *mgmt, size_t size, uint32_t advise, uint64_t allocPtr)
+    static inline uint64_t HalVirtAllocMemFromBase(void *mgmt, size_t size, uint32_t advise, uint64_t allocPtr)
     {
-        if (pDevmmVirtAllocMemFromBase == nullptr) {
-            return 0;
+        if (pVirtAllocMemFromBase == nullptr) {
+            return BM_UNDER_API_UNLOAD;
         }
-        return pDevmmVirtAllocMemFromBase(mgmt, size, advise, allocPtr);
+        return pVirtAllocMemFromBase(mgmt, size, advise, allocPtr);
     }
 
-    static inline Result HalDevmmIoctlEnableHeap(uint32_t heapIdx, uint32_t heapType, uint32_t subType,
+    static inline Result HalIoctlEnableHeap(uint32_t heapIdx, uint32_t heapType, uint32_t subType,
                                                  uint64_t heapSize, uint32_t heapListType)
     {
-        if (pDevmmIoctlEnableHeap == nullptr) {
+        if (pIoctlEnableHeap == nullptr) {
             return BM_UNDER_API_UNLOAD;
         }
-        return pDevmmIoctlEnableHeap(heapIdx, heapType, subType, heapSize, heapListType);
+        return pIoctlEnableHeap(heapIdx, heapType, subType, heapSize, heapListType);
     }
 
-    static inline Result HalDevmmGetHeapListByType(void *mgmt, void *heapType, void *heapList)
+    static inline Result HalGetHeapListByType(void *mgmt, void *heapType, void *heapList)
     {
-        if (pDevmmGetHeapListByType == nullptr) {
+        if (pGetHeapListByType == nullptr) {
             return BM_UNDER_API_UNLOAD;
         }
-        return pDevmmGetHeapListByType(mgmt, heapType, heapList);
+        return pGetHeapListByType(mgmt, heapType, heapList);
     }
 
-    static inline Result HalDevmmVirtSetHeapIdle(void *mgmt, void *heap)
+    static inline Result HalVirtSetHeapIdle(void *mgmt, void *heap)
     {
-        if (pDevmmVirtSetHeapIdle == nullptr) {
+        if (pVirtSetHeapIdle == nullptr) {
             return BM_UNDER_API_UNLOAD;
         }
-        return pDevmmVirtSetHeapIdle(mgmt, heap);
+        return pVirtSetHeapIdle(mgmt, heap);
     }
 
-    static inline Result HalDevmmVirtDestroyHeap(void *mgmt, void *heap, bool needDec)
+    static inline Result HalVirtDestroyHeapV1(void *mgmt, void *heap)
     {
-        if (pDevmmVirtDestroyHeap == nullptr) {
+        if (pVirtDestroyHeapV1 == nullptr) {
             return BM_UNDER_API_UNLOAD;
         }
-        return pDevmmVirtDestroyHeap(mgmt, heap, needDec);
+        return pVirtDestroyHeapV1(mgmt, heap);
     }
 
-    static inline void *HalDevmmVirtGetHeapMgmt(void)
+    static inline Result HalVirtDestroyHeapV2(void *mgmt, void *heap, bool needDec)
     {
-        if (pDevmmVirtGetHeapMgmt == nullptr) {
+        if (pVirtDestroyHeapV2 == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pVirtDestroyHeapV2(mgmt, heap, needDec);
+    }
+
+    static inline void *HalVirtGetHeapMgmt(void)
+    {
+        if (pVirtGetHeapMgmt == nullptr) {
             return nullptr;
         }
-        return pDevmmVirtGetHeapMgmt();
+        return pVirtGetHeapMgmt();
     }
 
-    static inline Result HalDevmmIoctlFreePages(uint64_t ptr)
+    static inline Result HalIoctlFreePages(uint64_t ptr)
     {
-        if (pDevmmIoctlFreePages == nullptr) {
+        if (pIoctlFreePages == nullptr) {
             return BM_UNDER_API_UNLOAD;
         }
-        return pDevmmIoctlFreePages(ptr);
+        return pIoctlFreePages(ptr);
     }
 
-    static inline uint32_t HalDevmmVaToHeapIdx(void *mgmt, uint64_t va)
+    static inline uint32_t HalVaToHeapIdx(void *mgmt, uint64_t va)
     {
-        if (pDevmmVaToHeapIdx == nullptr) {
-            return UINT32_MAX;
+        if (pVaToHeapIdx == nullptr) {
+            return BM_UNDER_API_UNLOAD;
         }
-        return pDevmmVaToHeapIdx(mgmt, va);
+        return pVaToHeapIdx(mgmt, va);
     }
 
-    static inline void *HalDevmmVirtGetHeapFromQueue(void *mgmt, uint32_t heapIdx, size_t heapSize)
+    static inline void *HalVirtGetHeapFromQueue(void *mgmt, uint32_t heapIdx, size_t heapSize)
     {
-        if (pDevmmVirtGetHeapFromQueue == nullptr) {
+        if (pVirtGetHeapFromQueue == nullptr) {
             return nullptr;
         }
-        return pDevmmVirtGetHeapFromQueue(mgmt, heapIdx, heapSize);
+        return pVirtGetHeapFromQueue(mgmt, heapIdx, heapSize);
     }
 
-    static inline void HalDevmmVirtNormalHeapUpdateInfo(void *mgmt, void *heap, void *type, void *ops, uint64_t size)
+    static inline void HalVirtNormalHeapUpdateInfo(void *mgmt, void *heap, void *type, void *ops, uint64_t size)
     {
-        if (pDevmmVirtNormalHeapUpdateInfo == nullptr) {
+        if (pVirtNormalHeapUpdateInfo == nullptr) {
             return;
         }
-        return pDevmmVirtNormalHeapUpdateInfo(mgmt, heap, type, ops, size);
+        return pVirtNormalHeapUpdateInfo(mgmt, heap, type, ops, size);
     }
 
-    static inline void *HalDevmmVaToHeap(uint64_t ptr)
+    static inline void *HalVaToHeap(uint64_t ptr)
     {
-        if (pDevmmVaToHeap == nullptr) {
+        if (pVaToHeap == nullptr) {
             return nullptr;
         }
-        return pDevmmVaToHeap(ptr);
+        return pVaToHeap(ptr);
     }
 
-    static inline int32_t GetDevmmFd(void)
+    static inline int32_t GetFd(void)
     {
-        if (pHalDevmmFd == nullptr) {
+        return *pHalFd;
+    }
+
+    static inline void HalAssignNodeData(uint64_t va, uint64_t size, uint64_t total, uint32_t flag, void *RbtreeNode)
+    {
+        if (pAssignNodeData == nullptr) {
+            return;
+        }
+        return pAssignNodeData(va, size, total, flag, RbtreeNode);
+    }
+
+    static inline int32_t HalInsertIdleSizeTree(void *RbtreeNode, void *rbtree_queue)
+    {
+        if (pInsertIdleSizeTree == nullptr) {
             return BM_UNDER_API_UNLOAD;
         }
-        return *pHalDevmmFd;
+        return pInsertIdleSizeTree(RbtreeNode, rbtree_queue);
+    }
+
+    static inline int32_t HalInsertIdleVaTree(void *RbtreeNode, void *rbtree_queue)
+    {
+        if (pInsertIdleVaTree == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pInsertIdleVaTree(RbtreeNode, rbtree_queue);
+    }
+
+    static inline void *HalAllocRbtreeNode(void *rbtree_queue)
+    {
+        if (pAllocRbtreeNode == nullptr) {
+            return nullptr;
+        }
+        return pAllocRbtreeNode(rbtree_queue);
+    }
+
+    static inline int32_t HalEraseIdleVaTree(void *RbtreeNode, void *rbtree_queue)
+    {
+        if (pEraseIdleVaTree == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pEraseIdleVaTree(RbtreeNode, rbtree_queue);
+    }
+
+    static inline int32_t HalEraseIdleSizeTree(void *RbtreeNode, void *rbtree_queue)
+    {
+        if (pEraseIdleSizeTree == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pEraseIdleSizeTree(RbtreeNode, rbtree_queue);
+    }
+
+    static inline void *HalGetAllocedNodeInRange(uint64_t va, void *rbtree_queue)
+    {
+        if (pGetAllocedNodeInRange == nullptr) {
+            return nullptr;
+        }
+        return pGetAllocedNodeInRange(va, rbtree_queue);
+    }
+
+    static inline void *HalGetIdleVaNodeInRange(uint64_t va, void *rbtree_queue)
+    {
+        if (pGetIdleVaNodeInRange == nullptr) {
+            return nullptr;
+        }
+        return pGetIdleVaNodeInRange(va, rbtree_queue);
+    }
+
+    static inline int32_t HalInsertAllocedTree(void *RbtreeNode, void *rbtree_queue)
+    {
+        if (pInsertAllocedTree == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pInsertAllocedTree(RbtreeNode, rbtree_queue);
+    }
+
+    static inline void HalFreeRbtreeNode(void *RbtreeNode, void *rbtree_queue)
+    {
+        if (pFreeRbtreeNode == nullptr) {
+            return;
+        }
+        return pFreeRbtreeNode(RbtreeNode, rbtree_queue);
     }
 
     static inline int HalSqTaskSend(uint32_t devId, struct halTaskSendInfo *info)
@@ -248,24 +346,39 @@ public:
     }
 
 private:
+    static Result LoadHybmV1V2Library();
+
+private:
     static std::mutex gMutex;
     static bool gLoaded;
     static void *halHandle;
     static const char *gAscendHalLibName;
 
     static halSvmModuleAllocedSizeIncFunc pSvmModuleAllocedSizeInc;
-    static halDevmmVirtAllocMemFromBaseFunc pDevmmVirtAllocMemFromBase;
-    static halDevmmIoctlEnableHeapFunc pDevmmIoctlEnableHeap;
-    static halDevmmGetHeapListByTypeFunc pDevmmGetHeapListByType;
-    static halDevmmVirtSetHeapIdleFunc pDevmmVirtSetHeapIdle;
-    static halDevmmVirtDestroyHeapFunc pDevmmVirtDestroyHeap;
-    static halDevmmVirtGetHeapMgmtFunc pDevmmVirtGetHeapMgmt;
-    static halDevmmIoctlFreePagesFunc pDevmmIoctlFreePages;
-    static halDevmmVaToHeapIdxFunc pDevmmVaToHeapIdx;
-    static halDevmmVirtGetHeapFromQueueFunc pDevmmVirtGetHeapFromQueue;
-    static halDevmmVirtNormalHeapUpdateInfoFunc pDevmmVirtNormalHeapUpdateInfo;
-    static halDevmmVaToHeapFunc pDevmmVaToHeap;
-    static int *pHalDevmmFd;
+    static halVirtAllocMemFromBaseFunc pVirtAllocMemFromBase;
+    static halIoctlEnableHeapFunc pIoctlEnableHeap;
+    static halGetHeapListByTypeFunc pGetHeapListByType;
+    static halVirtSetHeapIdleFunc pVirtSetHeapIdle;
+    static halVirtDestroyHeapV1Func pVirtDestroyHeapV1;
+    static halVirtDestroyHeapV2Func pVirtDestroyHeapV2;
+    static halVirtGetHeapMgmtFunc pVirtGetHeapMgmt;
+    static halIoctlFreePagesFunc pIoctlFreePages;
+    static halVaToHeapIdxFunc pVaToHeapIdx;
+    static halVirtGetHeapFromQueueFunc pVirtGetHeapFromQueue;
+    static halVirtNormalHeapUpdateInfoFunc pVirtNormalHeapUpdateInfo;
+    static halVaToHeapFunc pVaToHeap;
+    static int *pHalFd;
+
+    static halAssignNodeDataFunc pAssignNodeData;
+    static halInsertIdleSizeTreeFunc pInsertIdleSizeTree;
+    static halInsertIdleVaTreeFunc pInsertIdleVaTree;
+    static halAllocRbtreeNodeFunc pAllocRbtreeNode;
+    static halEraseIdleVaTreeFunc pEraseIdleVaTree;
+    static halEraseIdleSizeTreeFunc pEraseIdleSizeTree;
+    static halGetAllocedNodeInRangeFunc pGetAllocedNodeInRange;
+    static halGetIdleVaNodeInRangeFunc pGetIdleVaNodeInRange;
+    static halInsertAllocedTreeFunc pInsertAllocedTree;
+    static halFreeRbtreeNodeFunc pFreeRbtreeNode;
 
     static halSqTaskSendFunc pHalSqTaskSend;
     static halCqReportRecvFunc pHalCqReportRecv;
@@ -281,7 +394,7 @@ private:
     static drvNotifyIdAddrOffsetFunc pDrvNotifyIdAddrOffset;
 };
 
-}
-}
+} // namespace mf
+} // namespace ock
 
 #endif // MF_HYBM_CORE_DL_HAL_API_H

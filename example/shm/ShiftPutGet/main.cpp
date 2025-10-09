@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2022-2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  * This file constains code of cpu debug and npu code.We read data from bin file
  * and write result to file.
  */
@@ -94,13 +94,7 @@ int32_t main(int32_t argc, char* argv[])
     aclrtStream stream = nullptr;
     CHECK_ACL(aclrtCreateStream(&stream));
 
-    auto ret = smem_set_conf_store_tls(false, nullptr, 0);
-    if (ret != 0) {
-        ERROR_LOG("[TEST] smem set tls info failed, ret:%d, rank:%d", ret, rankId);
-        return -1;
-    }
-
-    ret = smem_init(0);
+    auto ret = smem_init(0);
     if (ret != 0) {
         ERROR_LOG("[TEST] smem init failed, ret:%d, rank:%d", ret, rankId);
         return -1;

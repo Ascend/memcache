@@ -4,7 +4,9 @@
 #include "hybm_device_mem_segment.h"
 
 #include <cstring>
-
+#include <iomanip>
+#include "dl_api.h"
+#include "dl_hal_api.h"
 #include "devmm_svm_gva.h"
 #include "dl_acl_api.h"
 #include "hybm_common_include.h"
@@ -15,9 +17,6 @@
 
 namespace ock {
 namespace mf {
-static constexpr uint32_t invalidSuperPodId = 0xFFFFFFFFU;
-static constexpr uint32_t invalidServerId = 0x3FFU;
-
 int MemSegmentDevice::deviceId_{-1};
 int MemSegmentDevice::logicDeviceId_{-1};
 int MemSegmentDevice::pid_{-1};
@@ -27,7 +26,8 @@ uint32_t MemSegmentDevice::superPodId_{0};
 
 Result MemSegmentDevice::ValidateOptions() noexcept
 {
-    if (options_.segType != HYBM_MST_HBM || options_.size == 0 || (options_.size % DEVICE_LARGE_PAGE_SIZE) != 0) {
+    if (options_.segType != HYBM_MST_HBM || options_.size == 0 || options_.devId < 0 ||
+        (options_.size % DEVICE_LARGE_PAGE_SIZE) != 0) {
         BM_LOG_ERROR("Invalid options segType:" << options_.segType << " size:" << options_.size);
         return BM_INVALID_PARAM;
     }
@@ -100,6 +100,38 @@ Result MemSegmentDevice::AllocLocalMemory(uint64_t size, std::shared_ptr<MemSlic
     return BM_OK;
 }
 
+Result MemSegmentDevice::RegisterMemory(const void *addr, uint64_t size, std::shared_ptr<MemSlice> &slice) noexcept
+{
+    BM_LOG_ERROR("MemSegmentDevice NOT SUPPORT RegisterMemory");
+    return BM_NOT_SUPPORTED;
+}
+
+Result MemSegmentDevice::ReleaseSliceMemory(const std::shared_ptr<MemSlice> &slice) noexcept
+{
+    if (slice == nullptr) {
+        BM_LOG_ERROR("input slice is nullptr");
+        return BM_INVALID_PARAM;
+    }
+
+    auto pos = slices_.find(slice->index_);
+    if (pos == slices_.end()) {
+        BM_LOG_ERROR("input slice(idx:" << slice->index_ << ") not exist.");
+        return BM_INVALID_PARAM;
+    }
+
+    if (pos->second.slice != slice) {
+        BM_LOG_ERROR("input slice(magic:" << std::hex << slice->magic_ << ") not match.");
+        return BM_INVALID_PARAM;
+    }
+
+    auto res = drv::HalGvaFree(slice->vAddress_, slice->size_);
+    BM_LOG_INFO("free slice(idx:" << slice->index_ << "), size: " << slice->size_ << " return:" << res);
+
+    slices_.erase(pos);
+    return BM_OK;
+}
+
+
 Result MemSegmentDevice::Export(std::string &exInfo) noexcept
 {
     return BM_OK;
@@ -127,14 +159,12 @@ Result MemSegmentDevice::Export(const std::shared_ptr<MemSlice> &slice, std::str
         return BM_OK;
     }
 
-    HbmExportInfo info;
+    HbmExportInfo info{};
     auto ret = DlAclApi::RtIpcSetMemoryName((void *)(ptrdiff_t)slice->vAddress_, slice->size_, info.shmName,
                                             sizeof(info.shmName));
-    if (ret != 0) {
-        BM_LOG_ERROR("set memory name failed: " << ret);
-        return BM_DL_FUNCTION_FAILED;
-    }
+    BM_LOG_ERROR_RETURN_IT_IF_NOT_OK(ret, "set memory name failed: " << ret);
 
+    BM_LOG_ERROR_RETURN_IT_IF_NOT_OK(SetDeviceInfo(options_.devId), "get device info failed.");
     info.mappingOffset =
         slice->vAddress_ - (uint64_t)(ptrdiff_t)(globalVirtualAddress_ + options_.size * options_.rankId);
     info.sliceIndex = static_cast<uint32_t>(slice->index_);
@@ -161,8 +191,15 @@ Result MemSegmentDevice::Export(const std::shared_ptr<MemSlice> &slice, std::str
     return BM_OK;
 }
 
+Result MemSegmentDevice::GetExportSliceSize(size_t &size) noexcept
+{
+    size = sizeof(HbmExportInfo);
+    return BM_OK;
+}
+
+
 // import可重入
-Result MemSegmentDevice::Import(const std::vector<std::string> &allExInfo) noexcept
+Result MemSegmentDevice::Import(const std::vector<std::string> &allExInfo, void *addresses[]) noexcept
 {
     std::map<uint16_t, HbmExportInfo> importMap;
     LiteralExInfoTranslater<HbmExportInfo> translator;
@@ -324,31 +361,6 @@ bool MemSegmentDevice::MemoryInRange(const void *begin, uint64_t size) const noe
     return true;
 }
 
-Result MemSegmentDevice::ReleaseSliceMemory(const std::shared_ptr<MemSlice> &slice) noexcept
-{
-    if (slice == nullptr) {
-        BM_LOG_ERROR("input slice is nullptr");
-        return BM_INVALID_PARAM;
-    }
-
-    auto pos = slices_.find(slice->index_);
-    if (pos == slices_.end()) {
-        BM_LOG_ERROR("input slice(idx:" << slice->index_ << ") not exist.");
-        return BM_INVALID_PARAM;
-    }
-
-    if (pos->second.slice != slice) {
-        BM_LOG_ERROR("input slice(magic:" << std::hex << slice->magic_ << ") not match.");
-        return BM_INVALID_PARAM;
-    }
-
-    auto res = drv::HalGvaFree(slice->vAddress_, slice->size_);
-    BM_LOG_INFO("free slice(idx:" << slice->index_ << ") size: " << slice->size_ << " return:" << res);
-
-    slices_.erase(pos);
-    return BM_OK;
-}
-
 void MemSegmentDevice::FreeMemory() noexcept
 {
     while (!slices_.empty()) {
@@ -359,7 +371,7 @@ void MemSegmentDevice::FreeMemory() noexcept
     allocatedSize_ = 0;
     sliceCount_ = 0;
     if (globalVirtualAddress_ != nullptr) {
-        auto ret = drv::HalGvaUnreserveMemory();
+        auto ret = drv::HalGvaUnreserveMemory((uint64_t)globalVirtualAddress_);
         if (ret != 0) {
             BM_LOG_ERROR("HalGvaUnreserveMemory failed: " << ret);
         }
@@ -367,7 +379,19 @@ void MemSegmentDevice::FreeMemory() noexcept
     }
 }
 
-int MemSegmentDevice::GetDeviceId(int deviceId) noexcept
+Result MemSegmentDevice::GetDeviceInfo() noexcept
+{
+    if (options_.devId < 0) {
+        return BM_INVALID_PARAM;
+    }
+
+    if (InitDeviceInfo() != BM_OK) {
+        return BM_ERROR;
+    }
+    return BM_OK;
+}
+
+int MemSegmentDevice::SetDeviceInfo(int deviceId) noexcept
 {
     if (deviceId < 0) {
         return BM_INVALID_PARAM;
@@ -403,18 +427,6 @@ int MemSegmentDevice::GetDeviceId(int deviceId) noexcept
         return ret;
     }
 
-    return BM_OK;
-}
-
-Result MemSegmentDevice::GetDeviceInfo() noexcept
-{
-    if (options_.segId < 0) {
-        return BM_INVALID_PARAM;
-    }
-
-    if (InitDeviceInfo() != BM_OK) {
-        return BM_ERROR;
-    }
     return BM_OK;
 }
 
@@ -462,26 +474,39 @@ int MemSegmentDevice::FillDeviceSuperPodInfo() noexcept
 
 bool MemSegmentDevice::CanMapRemote(const HbmExportInfo &rmi) noexcept
 {
-    if (rmi.serverId == serverId_) {
-        BM_LOG_DEBUG("map from rank(" << rmi.rankId << ") on sample host, can map.");
+    return CanSdmaReaches(rmi.superPodId, rmi.serverId);
+}
+
+bool MemSegmentDevice::CanSdmaReaches(uint32_t superPodId, uint32_t serverId) noexcept
+{
+    if (serverId == serverId_) {
+        BM_LOG_DEBUG("on sample host, can reach.");
         return true;
     }
 
-    if (rmi.superPodId == invalidSuperPodId || superPodId_ == invalidSuperPodId) {
-        BM_LOG_INFO("map from rank(" << rmi.rankId << ") spid: " << rmi.superPodId << ", local: " << superPodId_
-                                     << " cannot map.");
+    if (superPodId == invalidSuperPodId || superPodId_ == invalidSuperPodId) {
+        BM_LOG_INFO("spid: " << superPodId << ", local: " << superPodId_ << " cannot reach.");
         return false;
     }
 
-    return rmi.superPodId == superPodId_;
+    return superPodId == superPodId_;
 }
 
-uint32_t MemSegmentDevice::GetRankIdByAddr(const void *addr, uint64_t size) const noexcept
+void MemSegmentDevice::GetDeviceInfo(uint32_t &sdId, uint32_t &serverId, uint32_t &superPodId) noexcept
+{
+    sdId = sdid_;
+    serverId = serverId_;
+    superPodId = superPodId_;
+}
+
+void MemSegmentDevice::GetRankIdByAddr(const void *addr, uint64_t size, uint32_t &rankId) const noexcept
 {
     if (!MemoryInRange(addr, size)) {
-        return UINT32_MAX;
+        rankId = options_.rankId;
+    } else {
+        auto offset = static_cast<const uint8_t *>(addr) - static_cast<const uint8_t *>(globalVirtualAddress_);
+        rankId = offset / options_.size;
     }
-    return (reinterpret_cast<uint64_t>(addr) - reinterpret_cast<uint64_t>(globalVirtualAddress_)) / options_.size;
 }
 
 bool MemSegmentDevice::CheckSmdaReaches(uint32_t rankId) const noexcept

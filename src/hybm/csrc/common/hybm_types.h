@@ -22,7 +22,8 @@ enum BErrorCode : int32_t {
     BM_TIMEOUT = -7,
     BM_UNDER_API_UNLOAD = -8,
     BM_NOT_INITIALIZED = -9,
-    BM_NOT_SUPPORT_FUNC = -10
+    BM_NOT_SUPPORT_FUNC = -10,
+    BM_NOT_SUPPORTED = -100,
 };
 
 constexpr uint32_t UN40 = 40;

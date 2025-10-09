@@ -2,10 +2,11 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
  */
 
+#include "smem_tcp_config_store.h"
 #include "config_store_log.h"
 #include "smem_message_packer.h"
 #include "smem_tcp_config_store_ssl_helper.h"
-#include "smem_tcp_config_store.h"
+#include "mf_str_util.h"
 
 namespace ock {
 namespace smem {
@@ -78,10 +79,9 @@ public:
             STORE_LOG_ERROR("data is nullptr.");
             return;
         }
-        auto packedResponse = std::vector<uint8_t>(data, data + response.DataLen());
 
         SmemMessage responseBody;
-        auto ret = SmemMessagePacker::Unpack(packedResponse, responseBody);
+        auto ret = SmemMessagePacker::Unpack(data, response.DataLen(), responseBody);
         if (ret < 0) {
             STORE_LOG_ERROR("unpack response body failed, result: " << ret);
             notify_(IO_ERROR, std::vector<uint8_t>{});
@@ -209,17 +209,21 @@ Result TcpConfigStore::ServerStart(const tls_config& tlsConfig, int reconnectRet
     return result;
 }
 
-void TcpConfigStore::Shutdown() noexcept
+void TcpConfigStore::Shutdown(bool afterFork) noexcept
 {
     accClientLink_ = nullptr;
 
     if (accClient_ != nullptr) {
-        accClient_->Stop();
+        if (afterFork) {
+            accClient_->StopAfterFork();
+        } else {
+            accClient_->Stop();
+        }
         accClient_ = nullptr;
     }
 
     if (accServer_ != nullptr) {
-        accServer_->Shutdown();
+        accServer_->Shutdown(afterFork);
         accServer_ = nullptr;
     }
 }
@@ -276,9 +280,8 @@ Result TcpConfigStore::GetReal(const std::string &key, std::vector<uint8_t> &val
 
     auto data = reinterpret_cast<const uint8_t *>(response->DataPtr());
     STORE_ASSERT_RETURN(data != nullptr, SM_MALLOC_FAILED);
-    auto packedResponse = std::vector<uint8_t>(data, data + response->DataLen());
     SmemMessage responseBody;
-    auto ret = SmemMessagePacker::Unpack(packedResponse, responseBody);
+    auto ret = SmemMessagePacker::Unpack(data, response->DataLen(), responseBody);
     if (ret < 0) {
         STORE_LOG_ERROR("unpack response body failed, result: " << ret);
         return -1;
@@ -319,18 +322,18 @@ Result TcpConfigStore::Add(const std::string &key, int64_t increment, int64_t &v
     }
     STORE_ASSERT_RETURN(response->DataPtr() != nullptr, IO_ERROR);
     std::string data(reinterpret_cast<char *>(response->DataPtr()), response->DataLen());
-    errno = 0;
-    char *remain = nullptr;
-    value = strtol(data.c_str(), &remain, DECIMAL_BASE);
+
+    value = 0;
+    auto ret = mf::StrUtil::String2Int<int64_t>(data, value);
     STORE_ASSERT_RETURN(errno != ERANGE, IO_ERROR);
-    if ((value == 0 && data != "0") || remain == nullptr || strlen(remain) > 0 || errno == ERANGE) {
+    if ((value == 0 && data != "0") || !ret) {
         STORE_LOG_ERROR("data=" << data);
         return StoreErrorCode::ERROR;
     }
     return StoreErrorCode::SUCCESS;
 }
 
-Result TcpConfigStore::Remove(const std::string &key) noexcept
+Result TcpConfigStore::Remove(const std::string &key, bool printKeyNotExist) noexcept
 {
     if (key.empty() || key.length() > MAX_KEY_LEN_CLIENT) {
         STORE_LOG_ERROR("key length is invalid");
@@ -348,9 +351,13 @@ Result TcpConfigStore::Remove(const std::string &key) noexcept
     }
 
     auto responseCode = response->Header().result;
-    if (responseCode != 0) {
+    if (responseCode == StoreErrorCode::NOT_EXIST) {
+        if (printKeyNotExist) {
+            // Do not need to print ERROR message when sending remove key which is already not exist.
+            STORE_LOG_INFO("send remove for key: " << key << ", is already not exist");
+        }
+    } else if (responseCode != 0) {
         STORE_LOG_ERROR("send remove for key: " << key << ", get response code: " << responseCode);
-        return responseCode;
     }
 
     return responseCode;
@@ -381,9 +388,12 @@ Result TcpConfigStore::Append(const std::string &key, const std::vector<uint8_t>
     }
     STORE_ASSERT_RETURN(response->DataPtr() != nullptr, IO_ERROR);
     std::string data(reinterpret_cast<char *>(response->DataPtr()), response->DataLen());
-    errno = 0;
-    newSize = strtoull(data.c_str(), nullptr, DECIMAL_BASE);
-    STORE_ASSERT_RETURN(errno != ERANGE, IO_ERROR);
+
+    long tmpValue = 0;
+    STORE_VALIDATE_RETURN(mf::StrUtil::String2Int<long>(data, tmpValue), "convert string to long failed.",
+                          StoreErrorCode::ERROR);
+    newSize = static_cast<uint64_t>(tmpValue);
+
     return StoreErrorCode::SUCCESS;
 }
 
@@ -415,9 +425,8 @@ Result TcpConfigStore::Cas(const std::string &key, const std::vector<uint8_t> &e
 
     auto data = reinterpret_cast<const uint8_t *>(response->DataPtr());
     STORE_ASSERT_RETURN(data != nullptr, SM_MALLOC_FAILED);
-    auto packedResponse = std::vector<uint8_t>(data, data + response->DataLen());
     SmemMessage responseBody;
-    auto ret = SmemMessagePacker::Unpack(packedResponse, responseBody);
+    auto ret = SmemMessagePacker::Unpack(data, response->DataLen(), responseBody);
     if (ret < 0) {
         STORE_LOG_ERROR("unpack response body failed, result: " << ret);
         return -1;

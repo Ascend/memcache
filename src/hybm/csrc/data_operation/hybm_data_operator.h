@@ -22,19 +22,17 @@ public:
     virtual int32_t Initialize() noexcept = 0;
     virtual void UnInitialize() noexcept = 0;
 
-    virtual int32_t DataCopy(const void *srcVA, void *destVA, uint64_t length, hybm_data_copy_direction direction,
+    virtual int32_t DataCopy(hybm_copy_params &params, hybm_data_copy_direction direction,
                              const ExtOptions &options) noexcept = 0;
-    virtual int32_t DataCopy2d(const void *srcVA, uint64_t spitch, void *destVA, uint64_t dpitch, uint64_t width,
-                               uint64_t height, hybm_data_copy_direction direction,
+    virtual int32_t DataCopy2d(hybm_copy_2d_params &params, hybm_data_copy_direction direction,
                                const ExtOptions &options) noexcept = 0;
     virtual int32_t BatchDataCopy(hybm_batch_copy_params &params, hybm_data_copy_direction direction,
                                   const ExtOptions &options) noexcept = 0;
-
     /*
      * 异步data copy
      * @return 0 if successful, > 0 is wait id, < 0 is error
      */
-    virtual int32_t DataCopyAsync(const void* srcVA, void* destVA, uint64_t length, hybm_data_copy_direction direction,
+    virtual int32_t DataCopyAsync(hybm_copy_params &params, hybm_data_copy_direction direction,
                                   const ExtOptions &options) noexcept = 0;
 
     virtual int32_t Wait(int32_t waitId) noexcept = 0;

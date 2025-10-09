@@ -39,15 +39,13 @@ constexpr int RT_STARS_SQE_TYPE_INVALID = 63;
 constexpr unsigned long RT_ASCEND910B1_ROCEE_BASE_ADDR = 0x2000000000UL;
 constexpr unsigned long RT_ASCEND910B1_ROCEE_VF_DB_CFG0_REG = 0x230UL;
 
+thread_local HybmStreamPtr RdmaTransportManager::stream_ = nullptr;
+thread_local HybmStreamNotifyPtr RdmaTransportManager::notify_ = nullptr;
+thread_local RdmaNotifyInfo RdmaTransportManager::notifyInfo_{};
+
 RdmaTransportManager::~RdmaTransportManager()
 {
     ClearAllRegisterMRs();
-
-    if (notifyInfo_.srcAddr != 0U) {
-        DlAclApi::AclrtFree(reinterpret_cast<void *>(notifyInfo_.srcAddr));
-        notifyInfo_.srcAddr = 0;
-        notifyInfo_.srcRkey = 0;
-    }
 }
 
 Result RdmaTransportManager::OpenDevice(const TransportOptions &options)
@@ -96,17 +94,12 @@ Result RdmaTransportManager::OpenDevice(const TransportOptions &options)
                                                                role_ == HYBM_ROLE_RECEIVER);
     }
 
-    stream_ = HybmStreamManager::CreateStream(deviceId_, 0, 0);
-    ret = stream_->Initialize();
-    BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "HybmStream init failed: " << ret, ret);
-
     deviceChipInfo_ = std::make_shared<DeviceChipInfo>(userId);
     ret = deviceChipInfo_->Init();
     BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "device info init failed: " << ret, ret);
 
-    ret = InitStreamNotify();
-    BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "init notify failed.", ret);
-
+    ret = InitStreamNotifyBuf();
+    BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "notify init failed: " << ret, ret);
     ranksMRs_.resize(rankCount_);
     BM_LOG_INFO("open device with " << options << " success.");
     return BM_OK;
@@ -399,6 +392,8 @@ Result RdmaTransportManager::WriteRemote(uint32_t rankId, uint64_t lAddr, uint64
 
 Result RdmaTransportManager::ReadRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size)
 {
+    BM_LOG_DEBUG(
+        "ReadRemoteAsync rk:" << rankId << " lAddr:" << std::hex << lAddr << " rAddr:" << rAddr << " size:" << size);
     auto ret = RemoteIO(rankId, lAddr, rAddr, size, false, false);
     if (ret != BM_OK) {
         BM_LOG_ERROR("ReadRemoteAsync() failed: " << ret);
@@ -411,6 +406,8 @@ Result RdmaTransportManager::ReadRemoteAsync(uint32_t rankId, uint64_t lAddr, ui
 
 Result RdmaTransportManager::WriteRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size)
 {
+    BM_LOG_DEBUG(
+        "WriteRemoteAsync rk:" << rankId << " lAddr:" << std::hex << lAddr << " rAddr:" << rAddr << " size:" << size);
     auto ret = RemoteIO(rankId, lAddr, rAddr, size, true, false);
     if (ret != BM_OK) {
         BM_LOG_ERROR("WriteRemoteAsync() failed: " << ret);
@@ -580,6 +577,28 @@ bool RdmaTransportManager::RaRdevInit(uint32_t deviceId, in_addr deviceIp, void 
     return true;
 }
 
+int RdmaTransportManager::PrepareThreadLocalStream()
+{
+    if (stream_ != nullptr) {
+        return BM_OK;
+    }
+
+    stream_ = HybmStreamManager::CreateStream(deviceId_, 0, 0);
+    auto ret = stream_->Initialize();
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("HybmStream init failed: " << ret);
+        stream_ = nullptr;
+        return ret;
+    }
+
+    notify_ = std::make_shared<HybmStreamNotify>(stream_);
+    BM_ASSERT_LOG_AND_RETURN(notify_ != nullptr, "notify create failed.", BM_ERROR);
+
+    ret = notify_->Init();
+    BM_ASSERT_LOG_AND_RETURN(ret == 0, "notify init failed.", ret);
+    return BM_OK;
+}
+
 void RdmaTransportManager::ClearAllRegisterMRs()
 {
     WriteGuard lockGuard(lock_);
@@ -622,7 +641,7 @@ int RdmaTransportManager::CheckPrepareOptions(const ock::mf::transport::HybmTran
 int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size,
                                    bool write, bool sync)
 {
-    if (qpManager_ == nullptr || stream_ == nullptr) {
+    if (qpManager_ == nullptr) {
         BM_LOG_ERROR("ReadRemote(): connection manager not created.");
         return BM_ERROR;
     }
@@ -630,6 +649,12 @@ int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAd
     if (qp == nullptr) {
         BM_LOG_ERROR("no qp to rankId: " << rankId);
         return BM_ERROR;
+    }
+
+    auto ret = PrepareThreadLocalStream();
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("prepare stream error rankId: " << rankId);
+        return ret;
     }
 
     struct send_wr_v2 wr = {};
@@ -640,7 +665,7 @@ int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAd
     wr.op = write ? 0 : 4; /* RDMA_WRITE: 0  RDMA_READ: 4 */
     wr.send_flag = RA_SEND_SIGNALED;
     wr.wr_id = wrIdx_.fetch_add(1U);
-    auto ret = CorrectHostRegWr(rankId, lAddr, rAddr, size, wr);
+    ret = CorrectHostRegWr(rankId, lAddr, rAddr, size, wr);
     if (ret != BM_OK) {
         BM_LOG_ERROR("CorrectHostRegWr failed : " << ret);
         qpManager_->PutQpHandle(qp);
@@ -815,7 +840,7 @@ uint64_t RdmaTransportManager::GetRoceDbAddrForRdmaDbSendTask()
     return dbAddr;
 }
 
-int32_t RdmaTransportManager::InitStreamNotify()
+int32_t RdmaTransportManager::InitStreamNotifyBuf()
 {
     uint32_t notifySize = 4U;
     uint32_t notifyVal = 1U;
@@ -824,12 +849,6 @@ int32_t RdmaTransportManager::InitStreamNotify()
     void *ptr;
     auto ret = DlHccpApi::RaGetNotifyBaseAddr(rdmaHandle_, &va, &size);
     BM_ASSERT_LOG_AND_RETURN(ret == 0, "RaGetNotifyBaseAddr failed.", ret);
-
-    notify_ = std::make_shared<HybmStreamNotify>(stream_);
-    BM_ASSERT_LOG_AND_RETURN(notify_ != nullptr, "notify create failed.", BM_ERROR);
-
-    ret = notify_->Init();
-    BM_ASSERT_LOG_AND_RETURN(ret == 0, "notify init failed.", ret);
 
     HccpMrInfo info;
     ret = DlHccpApi::RaGetNotifyMrInfo(rdmaHandle_, &info);
@@ -850,7 +869,7 @@ int32_t RdmaTransportManager::InitStreamNotify()
         return BM_DL_FUNCTION_FAILED;
     }
 
-    notifyInfo_.notifyAddr = va + notify_->GetOffset();
+    notifyInfo_.notifyAddr = va;
     notifyInfo_.len = notifySize;
     notifyInfo_.notifyLkey = info.lkey;
     notifyInfo_.srcAddr = reinterpret_cast<uint64_t>(ptr);
@@ -860,7 +879,6 @@ int32_t RdmaTransportManager::InitStreamNotify()
     for (uint32_t i = 0; i < rankCount_; i++) {
         notifyRemoteInfo_[i] = std::make_pair(0U, 0U);
     }
-    BM_LOG_INFO("init notify, offset:" << notify_->GetOffset() << " len:" << size);
     return BM_OK;
 }
 
@@ -872,7 +890,11 @@ int32_t RdmaTransportManager::Synchronize(void *qpHandle, uint32_t rankId)
     BM_ASSERT_LOG_AND_RETURN(remoteMr.second != 0, "remote notify not set! rank:" << rankId, BM_ERROR);
 
     struct send_wr_v2 wr = {};
-    struct sg_list sgList = {.addr = notifyInfo_.notifyAddr, .len = notifyInfo_.len, .lkey = notifyInfo_.notifyLkey};
+    struct sg_list sgList = {
+        .addr = notifyInfo_.notifyAddr + notify_->GetOffset(),
+        .len = notifyInfo_.len,
+        .lkey = notifyInfo_.notifyLkey
+    };
     wr.wr_id = wrIdx_.fetch_add(1U);
     wr.buf_list = &sgList;
     wr.buf_num = 1;  // 此处list只有一个，设置为1

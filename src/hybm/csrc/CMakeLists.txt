@@ -1,3 +1,11 @@
+# Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+# This file is a part of the CANN Open Software.
+# Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+# Please refer to the License for details. You may not use this file except in compliance with the License.
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+# See LICENSE in the root of the software repository for the full text of the License.
+
 include_directories(
         ${PROJECT_HYBM_SRC_BASE}/include
         ${PROJECT_HYBM_SRC_BASE}/csrc/common
@@ -15,45 +23,21 @@ include_directories(
         ${PROJECT_HYBM_SRC_BASE}/csrc/ts_engine
         ${PROJECT_HYBM_SRC_BASE}/csrc/under_api
         ${PROJECT_DRIVER_BASE}/userspace/include
+        ${PROJECT_DRIVER_BASE}/hybm/userspace
         ${PROJECT_UTIL_SRC_BASE}/ptracer/include
-        ${PROJECT_UTIL_SRC_BASE}
 )
 
 set(HYBM_PUBLIC_INCLUDE_DIR "${PROJECT_HYBM_SRC_BASE}/include")
 
 ## add files into src variables
-aux_source_directory(common SRC_FILES_COMMON)
-aux_source_directory(data_operation SRC_FILES_DATA_OP)
-aux_source_directory(data_operation/host SRC_FILES_DATA_OP)
-aux_source_directory(driver/userspace SRC_FILES_DRIVER)
-aux_source_directory(entity SRC_FILES_ENTITY)
-aux_source_directory(mm SRC_FILES_MEM_MANAGER)
-aux_source_directory(transport SRC_FILES_TRANSPORT)
-aux_source_directory(transport/compose SRC_FILES_TRANSPORT)
-aux_source_directory(transport/device SRC_FILES_TRANSPORT)
-aux_source_directory(transport/host SRC_FILES_TRANSPORT)
-aux_source_directory(transport/utils SRC_FILES_TRANSPORT)
-aux_source_directory(ts_engine SRC_FILES_TS_ENGINE)
-aux_source_directory(under_api SRC_FILES_CANN)
-
-# set whole source for hybmm src files
-set(HYBMM_SRC_FILES
-        ${SRC_FILES_COMMON}
-        ${SRC_FILES_DATA_OP}
-        ${SRC_FILES_DRIVER}
-        ${SRC_FILES_ENTITY}
-        ${SRC_FILES_CANN}
-        ${SRC_FILES_MEM_MANAGER}
-        ${SRC_FILES_TRANSPORT}
-        ${SRC_FILES_TS_ENGINE}
-        hybm_entry.cpp
-        hybm_big_mem_entry.cpp
-        hybm_data_op_entry.cpp
+file(GLOB_RECURSE HYBMM_SRC_FILES
+        ${PROJECT_HYBM_SRC_BASE}/csrc/*.cpp
 )
 
 ## build the static and shared library
 add_library(hybmm_objects OBJECT ${HYBMM_SRC_FILES})
 target_compile_options(hybmm_objects PRIVATE -fPIC)
+target_include_directories(hybmm_objects INTERFACE ${HYBM_PUBLIC_INCLUDE_DIR})
 
 add_library(hybmm_static STATIC $<TARGET_OBJECTS:hybmm_objects> $<TARGET_OBJECTS:ptracer_object>)
 set_target_properties(hybmm_static PROPERTIES OUTPUT_NAME "mf_hybm_core")
@@ -75,6 +59,6 @@ install(
 ## install library
 install(
         TARGETS hybmm_static hybmm_shared
-        DESTINATION ${PROJECT_HYBM_OUTPUT}/lib
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ WORLD_READ
+        DESTINATION ${PROJECT_HYBM_OUTPUT}/lib64
+        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 )

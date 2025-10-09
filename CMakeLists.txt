@@ -3,39 +3,35 @@ project(MF_HYBRID VERSION 1.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 11)
 
-option(BUILD_EXAMPLE "build example or not" ON)
+option(ENABLE_TRACE_LOG "Enable trace log" OFF)
 option(BUILD_TESTS "build test or not" OFF)
 option(BUILD_OPEN_ABI "build open _GLIBCXX_USE_CXX11_ABI" ON)
 option(ENABLE_CPU_MONOTONIC "enable monotonic time using cpu hard instruction" OFF)
 option(BUILD_GIT_COMMIT "build library version with commit" ON)
 option(BUILD_GIT_COMMIT_GEN_FILE "generate commit log file" ON)
-option(INSTALL_HIGH_LEVEL_API "add device high level api into pkg" ON)
 option(BUILD_PYTHON "build python file" ON)
-option(BUILD_ASAN "build python file" OFF)
 option(ENABLE_PTRACER "build ptracer" OFF)
 
-message(STATUS "BUILD_EXAMPLE = ${BUILD_EXAMPLE}")
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE RELEASE)
+endif ()
+
 message(STATUS "BUILD_TESTS = ${BUILD_TESTS}")
 message(STATUS "BUILD_USE_CXX11_ABI = ${BUILD_OPEN_ABI}")
 message(STATUS "ENABLE_CPU_MONOTONIC = ${ENABLE_CPU_MONOTONIC}")
 message(STATUS "BUILD_GIT_COMMIT = ${BUILD_GIT_COMMIT}")
 message(STATUS "BUILD_GIT_COMMIT_GEN_FILE = ${BUILD_GIT_COMMIT_GEN_FILE}")
 message(STATUS "BUILD_PYTHON = ${BUILD_PYTHON}")
-message(STATUS "BUILD_ASAN = ${BUILD_ASAN}")
 message(STATUS "ENABLE_PTRACER = ${ENABLE_PTRACER}")
+message(STATUS "CMAKE_COMPILER = ${CMAKE_COMPILER}")
 message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
-#set(CMAKE_VERBOSE_MAKEFILE ON)
-
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE RELEASE)
-endif()
-
 add_compile_options(-Wunused-variable -Wunused-value -Wcast-align)
+add_compile_options(-fpermissive -Wno-error)
 add_compile_options(-Wcast-qual -Winvalid-pch -Wwrite-strings -Wsign-compare -Wfloat-equal -Wextra)
 
 if (${CMAKE_BUILD_TYPE} MATCHES "RELEASE")
-    # add_compile_options(-fvisibility=hidden -fvisibility-inlines-hidden)
+    #add_compile_options(-fvisibility=hidden -fvisibility-inlines-hidden)
     add_compile_options(-fstack-protector-strong)
     add_compile_options(-Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now -fPIE -fPIC -ftrapv -s)
     add_compile_options(-D_FORTIFY_SOURCE=2 -O2)
@@ -44,31 +40,33 @@ if (${CMAKE_BUILD_TYPE} MATCHES "RELEASE")
     set(CMAKE_SKIP_RPATH TRUE)
     message(STATUS "build type set to RELEASE")
 else ()
-    add_compile_options(-g -rdynamic)
+    add_compile_options(-g -rdynamic -fPIC)
 endif ()
 
-if (${BUILD_ASAN} STREQUAL "ON")
-    if (${CMAKE_BUILD_TYPE} MATCHES "RELEASE")
-        message(FATAL_ERROR "BUILD_ASAN is ON, but CMAKE_BUILD_TYPE is RELEASE. "
-                            "ASan should not be used in RELEASE builds. ")
-    endif()
-    add_compile_options(-fsanitize=address -g -fno-omit-frame-pointer -O0)
-    add_link_options(-fsanitize=address)
-endif()
+if (${CMAKE_BUILD_TYPE} MATCHES "ASAN")
+    # 开启多种 sanitizer   "address,undefined,pointer-compare,pointer-subtract,alignment"
+    set(SANITIZERS "address,undefined,pointer-compare,pointer-subtract,alignment")
+    # 编译选项
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=${SANITIZERS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${SANITIZERS}")
+    # 链接选项
+    add_link_options(-fsanitize=${SANITIZERS})
+endif ()
 
-if(BUILD_TESTS STREQUAL "ON")
+if (BUILD_TESTS STREQUAL "ON")
+    add_definitions(-DUT_ENABLED)
     add_compile_options(-fprofile-arcs -ftest-coverage)
     add_link_options(-lgcov --coverage)
     set(BUILD_OPEN_ABI "ON")
-endif()
+endif ()
 
 if (ENABLE_PTRACER STREQUAL "ON")
     add_definitions(-DENABLE_PTRACER=ON)
 endif ()
 
-if(NOT BUILD_OPEN_ABI STREQUAL "ON")
+if (NOT BUILD_OPEN_ABI STREQUAL "ON")
     add_compile_options(-D_GLIBCXX_USE_CXX11_ABI=0)
-endif()
+endif ()
 
 if (ENABLE_CPU_MONOTONIC STREQUAL "ON")
     add_compile_options(-DENABLE_CPU_MONOTONIC)
@@ -76,49 +74,32 @@ endif ()
 
 # set log commit into compile definition
 if (BUILD_GIT_COMMIT STREQUAL "ON")
-    if (BUILD_GIT_COMMIT_GEN_FILE STREQUAL "ON")
-        # find dos2unix command
-        find_program(DOS2UNIX_CMD dos2unix)
-        if (NOT EXISTS ${DOS2UNIX_CMD})
-            message(FATAL_ERROR "no dos2unix found, please install")
-        else ()
-            message(STATUS "dos2unix found at ${DOS2UNIX_CMD}")
+    find_program(GIT_EXECUTABLE NAMES git)
+    if (EXISTS ${GIT_EXECUTABLE})
+        # get commit id from file
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+            RESULT_VARIABLE GIT_COMMIT_RESULT
+            OUTPUT_VARIABLE GIT_LAST_COMMIT
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if (${GIT_COMMIT_RESULT} EQUAL 1)
+            set(GIT_LAST_COMMIT "empty")
         endif ()
-
-        # covert file from dos format to unix format
-        set(COMMIT_GEN_FILE ${PROJECT_SOURCE_DIR}/script/gen_last_git_commit.sh)
-        execute_process(COMMAND ${DOS2UNIX_CMD} ${COMMIT_GEN_FILE}
-                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-                RESULT_VARIABLE DOS2UNIX_RESULT)
-        if (${DOS2UNIX_RESULT} EQUAL 1)
-            message(FATAL_ERROR "failed to dos2unix script file ${COMMIT_GEN_FILE}")
-        endif ()
-
-        # generate file
-        execute_process(COMMAND sh ${COMMIT_GEN_FILE}
-                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-                RESULT_VARIABLE GET_GEN_COMMIT_RESULT)
-        if (${GET_GEN_COMMIT_RESULT} EQUAL 1)
-            message(FATAL_ERROR "generate last commit file failed")
-        endif ()
+        add_definitions(-DGIT_LAST_COMMIT=${GIT_LAST_COMMIT})
+        message(STATUS "add definition for last commit: ${GIT_LAST_COMMIT}")
+    else ()
+        add_definitions(-DGIT_LAST_COMMIT=empty)
+        message(STATUS "Failed to find git command, not GIT_LAST_COMMIT will be set")
     endif ()
-
-    # get commit id from file
-    execute_process(COMMAND head -n 1 ${PROJECT_SOURCE_DIR}/script/git_last_commit.txt
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-            RESULT_VARIABLE GET_COMMIT_RESULT
-            OUTPUT_VARIABLE GIT_LAST_COMMIT)
-    if (${GET_COMMIT_RESULT} EQUAL 1)
-        set(GIT_LAST_COMMIT "empty")
-    endif ()
-    add_definitions(-DGIT_LAST_COMMIT=${GIT_LAST_COMMIT})
-    message(STATUS "add gcc definition for last commit: ${GIT_LAST_COMMIT}")
 else ()
     add_definitions(-DGIT_LAST_COMMIT=empty)
-    message(STATUS "add gcc definition for last commit: empty")
+    message(STATUS "add definition for last commit: empty")
 endif ()
 
-#set(PROJECT_BUILD_PATH ${PROJECT_SOURCE_DIR}/build)
+if (ENABLE_TRACE_L0G)
+    add_definitions(-DLOG_TRACE_INFO_ENABLED)
+endif ()
+
 set(PROJECT_BUILD_PATH ${PROJECT_BINARY_DIR})
 set(PROJECT_3RDPARTY_SRC_DIR ${PROJECT_SOURCE_DIR}/3rdparty)
 set(PROJECT_3RDPARTY_BIN_DIR ${PROJECT_SOURCE_DIR}/output/3rdparty)
@@ -143,6 +124,14 @@ set(PROJECT_HYBM_OUTPUT ${PROJECT_SOURCE_DIR}/output/hybm)
 set(PROJECT_DRIVER_BASE ${PROJECT_SOURCE_DIR}/src/driver)
 set(PROJECT_DRIVER_OUTPUT ${PROJECT_SOURCE_DIR}/output/driver)
 
+# set src base dir and output dir of adapter
+set(PROJECT_ADAPTER_SRC_BASE ${PROJECT_SOURCE_DIR}/src/mooncake_adapter)
+set(PROJECT_ADAPTER_OUTPUT ${PROJECT_SOURCE_DIR}/output/mooncake_adapter)
+
+# set src base dir and output dir of acc_links
+set(PROJECT_ACCLINKS_SRC_BASE ${PROJECT_SOURCE_DIR}/src/acc_links)
+set(PROJECT_ACCLINKS_OUTPUT ${PROJECT_SOURCE_DIR}/output/acc_links)
+
 # set install target top dir
 message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
 if (${CMAKE_INSTALL_PREFIX} MATCHES "/usr/local")
@@ -153,9 +142,6 @@ else ()
     set(TARGET_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/)
 endif ()
 message(STATUS "install dir ${TARGET_INSTALL_DIR}")
-
-#set(PROJECT_PLATFORM_SRC_BASE ${PROJECT_SOURCE_DIR}/src/platform)
-#set(PROJECT_PLATFORM_OUTPUT ${PROJECT_SOURCE_DIR}/output/platform)
 
 if(BUILD_PYTHON STREQUAL "ON")
     # 获取Python头文件路径
@@ -203,6 +189,7 @@ include_directories(
         ${PROJECT_SMEM_SRC_BASE}/include/host
         ${PROJECT_SOURCE_DIR}/include/hybm
         ${PROJECT_SOURCE_DIR}/src/util/include
+        ${PROJECT_UTIL_SRC_BASE}
 )
 
 add_subdirectory(3rdparty)

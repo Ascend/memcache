@@ -17,7 +17,9 @@
 
 #include "mf_tls_def.h"
 #include "acc_tcp_server.h"
+#include "smem_config_store.h"
 #include "smem_message_packer.h"
+#include "smem_ref.h"
 
 namespace ock {
 namespace smem {
@@ -70,7 +72,7 @@ public:
     ~AccStoreServer() override = default;
 
     Result Startup(const tls_config& tlsConfig) noexcept;
-    void Shutdown() noexcept;
+    void Shutdown(bool afterFork = false) noexcept;
 
 private:
     Result ReceiveMessageHandler(const ock::acc::AccTcpRequestContext &context) noexcept;

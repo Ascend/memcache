@@ -1,6 +1,8 @@
+add_subdirectory(acc_links/csrc)
 add_subdirectory(util/csrc/ptracer)
 add_subdirectory(smem/csrc/config_store)
 add_subdirectory(smem/csrc)
 add_subdirectory(hybm/csrc)
 add_subdirectory(memcache/csrc)
+add_subdirectory(mooncake_adapter/csrc)
 add_subdirectory(driver)

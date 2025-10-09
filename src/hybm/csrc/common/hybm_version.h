@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 
 #ifndef MEM_FABRIC_HYBRID_HYBM_VERSION_H
@@ -11,7 +11,7 @@
 #define VERSION_FIX 0
 
 /* second level marco define 'CON' to get string */
-#define CONCAT(x, y, z) x.##y.##z
+#define CONCAT(x, y, z) (x).##y.##z
 #define STR(x) #x
 #define CONCAT2(x, y, z) CONCAT(x, y, z)
 #define STR2(x) STR(x)

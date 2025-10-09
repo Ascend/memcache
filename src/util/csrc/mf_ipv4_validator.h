@@ -47,8 +47,7 @@ public:
             return true;
         }
 
-        std::vector<std::string> ipPortVec;
-        StrUtil::Split(value, ":", ipPortVec);
+        std::vector<std::string> ipPortVec = StrUtil::Split(value, ':');
         if (ipPortVec.size() != DG_2) {
             errMsg_ = "Invalid value for <" + name_ + ">, it should be between ip mask like <ip>:<port>";
             return false;
@@ -56,7 +55,7 @@ public:
 
         /* check port value which should be 0~63535 */
         long tmp = 0;
-        if (!StrUtil::StrToLong(ipPortVec[DG_1], tmp)) {
+        if (!StrUtil::String2Uint<long>(ipPortVec[DG_1], tmp)) {
             errMsg_ = "Invalid value for <" + name_ + ">, it should be between ip mask like <ip>:<port>";
             return false;
         }
@@ -69,8 +68,7 @@ public:
         covertedPort_ = static_cast<uint16_t>(tmp);
 
         /* split ip and check each seg */
-        std::vector<std::string> ip;
-        StrUtil::Split(ipPortVec[0], ".", ip);
+        std::vector<std::string> ip = StrUtil::Split(ipPortVec[0], '.');
         if (ip.size() != DG_4 || Ip2UInt(ipPortVec[0]) == 0) { // 禁止全0 ip
             errMsg_ = "Invalid value for <" + name_ + ">, it should be between ip mask like <ip>:<port>";
             return false;
@@ -79,7 +77,7 @@ public:
         for (auto &item : ip) {
             /* check mask value which should be 0~32 */
             tmp = 0;
-            if (!StrUtil::StrToLong(item, tmp)) {
+            if (!StrUtil::String2Uint<long>(item, tmp)) {
                 errMsg_ = "Invalid value for <" + name_ + ">, it should be between ip mask like <ip>:<port>";
                 return false;
             }

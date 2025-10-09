@@ -1,10 +1,13 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
+#include "smem_bm_entry.h"
+
 #include "hybm_big_mem.h"
 #include "hybm_data_op.h"
 #include "smem_store_factory.h"
-#include "smem_bm_entry.h"
+
+#include "mf_num_util.h"
 
 namespace ock {
 namespace smem {
@@ -181,7 +184,7 @@ Result SmemBmEntry::ExchangeSliceForJoin(const hybm_exchange_info &sliceInfo)
         return SM_ERROR;
     }
 
-    ret = hybm_import(entity_, allExInfo.data(), globalGroup_->GetRankSize(), 0);
+    ret = hybm_import(entity_, allExInfo.data(), globalGroup_->GetRankSize(), nullptr, 0);
     if (ret != 0) {
         SM_LOG_ERROR("hybm import failed, result: " << ret);
         return SM_ERROR;
@@ -220,19 +223,11 @@ Result SmemBmEntry::ExchangeEntityForJoin()
     return SM_OK;
 }
 
-Result SmemBmEntry::Join(uint32_t flags, void **localGvaAddress)
+Result SmemBmEntry::Join(uint32_t flags)
 {
     SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
     auto ret = globalGroup_->GroupJoin();
     SM_LOG_ERROR_RETURN_IT_IF_NOT_OK(ret, "join failed, ret: " << ret);
-
-    if (localGvaAddress == nullptr) {
-        SM_LOG_ERROR("the input localGvaAddress is nullptr.");
-        return SM_INVALID_PARAM;
-    }
-
-    *localGvaAddress =
-        (void *)(reinterpret_cast<uint64_t>(deviceGva_) + coreOptions_.singleRankVASpace * options_.rank);
     return SM_OK;
 }
 
@@ -288,10 +283,10 @@ hybm_data_copy_direction SmemBmEntry::TransToHybmDirection(const smem_bm_copy_ty
 
 Result SmemBmEntry::DataCopy(const void *src, void *dest, uint64_t size, smem_bm_copy_type t, uint32_t flags)
 {
-    SM_PARAM_VALIDATE(src == nullptr, "invalid param, src is NULL", SM_INVALID_PARAM);
-    SM_PARAM_VALIDATE(dest == nullptr, "invalid param, dest is NULL", SM_INVALID_PARAM);
-    SM_PARAM_VALIDATE(size == 0, "invalid param, size is 0", SM_INVALID_PARAM);
-    SM_PARAM_VALIDATE(t >= SMEMB_COPY_BUTT, "invalid param, type invalid: " << t, SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(src != nullptr, "invalid param, src is NULL", SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(dest != nullptr, "invalid param, dest is NULL", SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(size != 0, "invalid param, size is 0", SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(t < SMEMB_COPY_BUTT, "invalid param, type invalid: " << t, SM_INVALID_PARAM);
     SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
 
     auto direct = TransToHybmDirection(t, src, size, dest, size);
@@ -299,26 +294,36 @@ Result SmemBmEntry::DataCopy(const void *src, void *dest, uint64_t size, smem_bm
         SM_LOG_ERROR("Failed to trans to hybm direct, smem direct: " << t << " src: " << src << " dest: " << dest);
         return SM_INVALID_PARAM;
     }
-    return hybm_data_copy(entity_, src, dest, size, direct, nullptr, flags);
+
+    hybm_copy_params copyParams = {const_cast<void *>(src), dest, size};
+    return hybm_data_copy(entity_, &copyParams, direct, nullptr, flags);
 }
 
-Result SmemBmEntry::DataCopy2d(const void *src, uint64_t spitch, void *dest, uint64_t dpitch, uint64_t width,
-                               uint64_t height, smem_bm_copy_type t, uint32_t flags)
+Result SmemBmEntry::DataCopy2d(smem_copy_2d_params *params, smem_bm_copy_type t, uint32_t flags)
 {
-    SM_PARAM_VALIDATE(src == nullptr, "invalid param, src is NULL", SM_INVALID_PARAM);
-    SM_PARAM_VALIDATE(dest == nullptr, "invalid param, dest is NULL", SM_INVALID_PARAM);
-    SM_PARAM_VALIDATE(width == 0, "invalid param, width is 0", SM_INVALID_PARAM);
-    SM_PARAM_VALIDATE(height == 0, "invalid param, height is 0", SM_INVALID_PARAM);
-    SM_PARAM_VALIDATE(t >= SMEMB_COPY_BUTT, "invalid param, type invalid: " << t, SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(params->src != nullptr, "invalid param, src is NULL", SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(params->dest != nullptr, "invalid param, dest is NULL", SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(params->width != 0, "invalid param, width is 0", SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(params->height != 0, "invalid param, height is 0", SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(t < SMEMB_COPY_BUTT, "invalid param, type invalid: " << t, SM_INVALID_PARAM);
     SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
 
-    auto direct = TransToHybmDirection(t, src, spitch * height, dest, dpitch * height);
+    SM_ASSERT_RETURN(!mf::NumUtil::IsOverflowCheck(params->dpitch, params->height, UINT64_MAX, '*'), SM_INVALID_PARAM);
+    auto direct = TransToHybmDirection(t, params->src, params->spitch * params->height,
+                                       params->dest, params->dpitch * params->height);
     if (direct == HYBM_DATA_COPY_DIRECTION_BUTT) {
-        SM_LOG_ERROR("Failed to trans to hybm direct, smem direct: " << t << " src: " << src << " dest: " << dest);
+        SM_LOG_ERROR("Failed to trans to hybm direct, smem direct: " << t << " src: " << params->src
+            << " dest: " << params->dest);
         return SM_INVALID_PARAM;
     }
 
-    return hybm_data_copy_2d(entity_, src, spitch, dest, dpitch, width, height, direct, nullptr, flags);
+    hybm_copy_2d_params copy2dparams = {.src = params->src,
+                                        .spitch = params->spitch,
+                                        .dest = params->dest,
+                                        .dpitch = params->dpitch,
+                                        .width = params->width,
+                                        .height = params->height};
+    return hybm_data_copy_2d(entity_, &copy2dparams, direct, nullptr, flags);
 }
 
 Result SmemBmEntry::Wait()
@@ -333,22 +338,22 @@ Result SmemBmEntry::RegisterMem(uint64_t addr, uint64_t size)
     return hybm_register_user_mem(entity_, addr, size);
 }
 
-Result SmemBmEntry::DataCopyBatch(const void **src, void **dest, const uint32_t *size, uint32_t count,
-                                  smem_bm_copy_type t, uint32_t flags)
+Result SmemBmEntry::DataCopyBatch(smem_batch_copy_params *params, smem_bm_copy_type t, uint32_t flags)
 {
-    SM_PARAM_VALIDATE(src == nullptr, "invalid param, src is NULL", SM_INVALID_PARAM);
-    SM_PARAM_VALIDATE(dest == nullptr, "invalid param, dest is NULL", SM_INVALID_PARAM);
-    SM_PARAM_VALIDATE(count == 0, "invalid param, size is 0", SM_INVALID_PARAM);
-    SM_PARAM_VALIDATE(t >= SMEMB_COPY_BUTT, "invalid param, type invalid: " << t, SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(params->sources != nullptr, "invalid param, src is NULL", SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(params->destinations != nullptr, "invalid param, dest is NULL", SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(params->batchSize != 0, "invalid param, size is 0", SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(t < SMEMB_COPY_BUTT, "invalid param, type invalid: " << t, SM_INVALID_PARAM);
     SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
 
-    auto direct = TransToHybmDirection(t, src[0], size[0], dest[0], size[0]);
+    auto direct = TransToHybmDirection(t, params->sources[0], params->dataSizes[0],
+                                       params->destinations[0], params->dataSizes[0]);
     if (direct == HYBM_DATA_COPY_DIRECTION_BUTT) {
-        SM_LOG_ERROR("Failed to trans to hybm direct, smem direct: " << t << " src: " << src[0]
-                                                                     << " dest: " << dest[0]);
+        SM_LOG_ERROR("Failed to trans to hybm direct, smem direct: " << t << " src: " << params->sources[0]
+                                                                     << " dest: " << params->destinations[0]);
         return SM_INVALID_PARAM;
     }
-    hybm_batch_copy_params copyParams = {src, dest, size, count};
+    hybm_batch_copy_params copyParams = {params->sources, params->destinations, params->dataSizes, params->batchSize};
     return hybm_data_batch_copy(entity_, &copyParams, direct, nullptr, flags);
 }
 

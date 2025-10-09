@@ -1,13 +1,15 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
  */
+#include "smem_tcp_config_store_server.h"
+
 #include <algorithm>
 #include "acc_tcp_server.h"
 #include "config_store_log.h"
 #include "smem_message_packer.h"
 #include "smem_config_store.h"
 #include "smem_tcp_config_store_ssl_helper.h"
-#include "smem_tcp_config_store_server.h"
+#include "mf_str_util.h"
 
 namespace ock {
 namespace smem {
@@ -79,27 +81,40 @@ Result AccStoreServer::Startup(const tls_config& tlsConfig) noexcept
     return SM_OK;
 }
 
-void AccStoreServer::Shutdown() noexcept
+void AccStoreServer::Shutdown(bool afterFork) noexcept
 {
     STORE_LOG_INFO("start to shutdown Acc Store Server");
     if (accTcpServer_ == nullptr) {
         return;
     }
 
-    accTcpServer_->Stop();
-    accTcpServer_ = nullptr;
-
-    std::unique_lock<std::mutex> lockGuard{storeMutex_};
-    running_ = false;
-    lockGuard.unlock();
-    if (timerThread_.joinable()) {
+    if (afterFork) {
+        accTcpServer_->StopAfterFork();
+        running_ = false;
+        if (timerThread_.joinable()) {
+            timerThread_.detach();
+        }
+    } else {
+        accTcpServer_->Stop();
+        std::unique_lock<std::mutex> lockGuard{storeMutex_};
+        running_ = false;
+        lockGuard.unlock();
         storeCond_.notify_one();
-        timerThread_.join();
+
+        if (timerThread_.joinable()) {
+            try {
+                timerThread_.join();
+            } catch (const std::system_error& e) {
+                STORE_LOG_ERROR("thread join failed: " << e.what());
+            }
+        }
     }
+
     if (rankStateThread_.joinable()) {
         rankStateTaskCondition_.notify_one();
         rankStateThread_.join();
     }
+    accTcpServer_ = nullptr;
     STORE_LOG_INFO("finished shutdown Acc Store Server");
 }
 
@@ -112,9 +127,8 @@ Result AccStoreServer::ReceiveMessageHandler(const ock::acc::AccTcpRequestContex
         return SM_INVALID_PARAM;
     }
 
-    std::vector<uint8_t> body(data, data + context.DataLen());
     SmemMessage requestMessage;
-    auto size = SmemMessagePacker::Unpack(body, requestMessage);
+    auto size = SmemMessagePacker::Unpack(data, context.DataLen(), requestMessage);
     if (size < 0) {
         STORE_LOG_ERROR("request(" << context.SeqNo() << ") handle invalid body");
         ReplyWithMessage(context, StoreErrorCode::INVALID_MESSAGE, "invalid request");
@@ -224,11 +238,7 @@ Result AccStoreServer::SetHandler(const ock::acc::AccTcpRequestContext &context,
     if (pos == kvStore_.end()) {
         auto wPos = keyWaiters_.find(key);
         if (wPos != keyWaiters_.end()) {
-            std::unordered_set<uint64_t> ids;
-            for (auto id : wPos->second) {
-                ids.emplace(id);
-            }
-            wakeupWaiters = GetOutWaitersInLock(ids);
+            wakeupWaiters = GetOutWaitersInLock(wPos->second);
             reqVal = value;
             keyWaiters_.erase(wPos);
         }
@@ -379,7 +389,10 @@ Result AccStoreServer::AddHandler(const ock::acc::AccTcpRequestContext &context,
 
     std::string valueStr{value.begin(), value.end()};
     STORE_LOG_DEBUG("ADD REQUEST(" << context.SeqNo() << ") for key(" << key << ") value(" << valueStr << ") start.");
-    auto valueNum = strtol(valueStr.c_str(), nullptr, 10);
+
+    long valueNum;
+    STORE_VALIDATE_RETURN(mf::StrUtil::String2Int<long>(valueStr, valueNum), "convert string to long failed.",
+                          SM_ERROR);
     if (valueStr != std::to_string(valueNum)) {
         STORE_LOG_ERROR("request(" << context.SeqNo() << ") add for key(" << key << ") value is not a number");
         ReplyWithMessage(context, StoreErrorCode::INVALID_MESSAGE, "invalid request: value should be a number.");
@@ -394,25 +407,22 @@ Result AccStoreServer::AddHandler(const ock::acc::AccTcpRequestContext &context,
     if (pos == kvStore_.end()) {
         auto wPos = keyWaiters_.find(key);
         if (wPos != keyWaiters_.end()) {
-            std::unordered_set<uint64_t> ids;
-            for (auto id : wPos->second) {
-                ids.emplace(id);
-            }
-            wakeupWaiters = GetOutWaitersInLock(ids);
+            wakeupWaiters = GetOutWaitersInLock(wPos->second);
             reqVal = value;
             keyWaiters_.erase(wPos);
         }
         kvStore_.emplace(key, std::move(value));
     } else {
         std::string oldValueStr{pos->second.begin(), pos->second.end()};
-        char *remain = nullptr;
-        auto storedValueNum = strtol(oldValueStr.c_str(), &remain, 10);
-        if ((storedValueNum == 0 && oldValueStr != "0") || remain == nullptr || strlen(remain) > 0 || errno == ERANGE) {
+        long storedValueNum = 0;
+        auto ret = mf::StrUtil::String2Int<long>(oldValueStr, storedValueNum);
+        if ((storedValueNum == 0 && oldValueStr != "0") || !ret) {
             lockGuard.unlock();
             STORE_LOG_ERROR("oldValueStr is " << oldValueStr);
             ReplyWithMessage(context, StoreErrorCode::INVALID_MESSAGE, "oldValueStr should be a number.");
             return SM_ERROR;
         }
+
         storedValueNum += valueNum;
         auto storedValueStr = std::to_string(storedValueNum);
         pos->second = std::vector<uint8_t>(storedValueStr.begin(), storedValueStr.end());
@@ -485,11 +495,7 @@ Result AccStoreServer::AppendHandler(const ock::acc::AccTcpRequestContext &conte
         newSize = value.size();
         auto wPos = keyWaiters_.find(key);
         if (wPos != keyWaiters_.end()) {
-            std::unordered_set<uint64_t> ids;
-            for (auto id : wPos->second) {
-                ids.emplace(id);
-            }
-            wakeupWaiters = GetOutWaitersInLock(ids);
+            wakeupWaiters = GetOutWaitersInLock(wPos->second);
             reqVal = value;
             keyWaiters_.erase(wPos);
         }
@@ -544,11 +550,7 @@ Result AccStoreServer::CasHandler(const ock::acc::AccTcpRequestContext &context,
             kvStore_.emplace(key, std::move(exchange));
             auto wPos = keyWaiters_.find(key);
             if (wPos != keyWaiters_.end()) {
-                std::unordered_set<uint64_t> ids;
-                for (auto id : wPos->second) {
-                    ids.emplace(id);
-                }
-                wakeupWaiters = GetOutWaitersInLock(ids);
+                wakeupWaiters = GetOutWaitersInLock(wPos->second);
                 keyWaiters_.erase(wPos);
             }
         }
@@ -591,7 +593,6 @@ AccStoreServer::GetOutWaitersInLock(const std::unordered_set<uint64_t> &ids) noe
 {
     std::list<ock::acc::AccTcpRequestContext> reqCtx;
     for (auto id : ids) {
-        STORE_LOG_DEBUG("GetOutWaitersInLock id:" << id);
         auto it = waitCtx_.find(id);
         if (it != waitCtx_.end()) {
             reqCtx.emplace_back(std::move(it->second.ReqCtx()));

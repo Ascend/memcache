@@ -43,12 +43,12 @@ Result KVParser::FromFile(const std::string &filePath)
         return MMC_ERROR;
     }
     /* open file to read */
-    std::ifstream inConfFile(path);
-    if (!mf::FileUtil::CheckFileSize(inConfFile, MAX_CONF_FILE_SIZE)) {
-        inConfFile.close();
+    if (!mf::FileUtil::CheckFileSize(path, MAX_CONF_FILE_SIZE)) {
         MMC_LOG_ERROR("Config file size exceeds 10 MB");
         return MMC_ERROR;
     }
+
+    std::ifstream inConfFile(path);
     std::string strLine;
     Result res = MMC_OK;
     while (getline(inConfFile, strLine)) {

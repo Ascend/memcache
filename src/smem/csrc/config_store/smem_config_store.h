@@ -92,7 +92,16 @@ public:
      * @param key          [in] key to be removed
      * @return 0 if successfully done
      */
-    virtual Result Remove(const std::string &key) noexcept = 0;
+    Result Remove(const std::string &key) noexcept;
+
+    /**
+     * @brief Remove a key
+     *
+     * @param key               [in] key to be removed
+     * @param printKeyNotExist  [in] whether to print non exist key
+     * @return 0 if successfully done
+     */
+    virtual Result Remove(const std::string &key, bool printKeyNotExist) noexcept = 0;
 
     /**
      * @brief Append string to a key with string value
@@ -226,6 +235,11 @@ inline Result ConfigStore::Get(const std::string &key, std::vector<uint8_t> &val
     return GetReal(key, value, timeoutMs);
 }
 
+inline Result ConfigStore::Remove(const std::string &key) noexcept
+{
+    return Remove(key, false);
+}
+
 inline Result ConfigStore::Append(const std::string &key, const std::string &value, uint64_t &newSize) noexcept
 {
     std::vector<uint8_t> u8val(value.begin(), value.end());
@@ -263,14 +277,22 @@ ConfigStore::Watch(const std::string &key,
 inline const char *ConfigStore::ErrStr(int16_t errCode)
 {
     switch (errCode) {
-        case SUCCESS: return "success";
-        case ERROR: return "error";
-        case INVALID_MESSAGE: return "invalid message";
-        case INVALID_KEY: return "invalid key";
-        case NOT_EXIST: return "key not exists";
-        case TIMEOUT: return "timeout";
-        case IO_ERROR: return "socket error";
-        default: return "unknown error";
+        case SUCCESS:
+            return "success";
+        case ERROR:
+            return "error";
+        case INVALID_MESSAGE:
+            return "invalid message";
+        case INVALID_KEY:
+            return "invalid key";
+        case NOT_EXIST:
+            return "key not exists";
+        case TIMEOUT:
+            return "timeout";
+        case IO_ERROR:
+            return "socket error";
+        default:
+            return "unknown error";
     }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 
 #ifndef MF_HYBRID_DEVICE_RDMA_TRANSPORT_MANAGER_H
@@ -56,6 +56,7 @@ private:
     static bool RaInit(uint32_t deviceId);
     static bool RetireDeviceIp(uint32_t deviceId, in_addr &deviceIp);
     static bool RaRdevInit(uint32_t deviceId, in_addr deviceIp, void *&rdmaHandle);
+    int PrepareThreadLocalStream();
     void ClearAllRegisterMRs();
     int CheckPrepareOptions(const HybmTransPrepareOptions &options);
     int RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size, bool write, bool sync);
@@ -69,10 +70,13 @@ private:
 private: // RDMA HOST STARS
     void ConstructSqeNoSinkModeForRdmaDbSendTask(const send_wr_rsp &rspInfo, rtStarsSqe_t &command);
     uint64_t GetRoceDbAddrForRdmaDbSendTask();
-    int32_t InitStreamNotify();
+    int32_t InitStreamNotifyBuf();
     int32_t Synchronize(void *qpHandle, uint32_t rankId);
 
 private:
+    static thread_local HybmStreamPtr stream_;
+    static thread_local HybmStreamNotifyPtr notify_;
+    static thread_local RdmaNotifyInfo notifyInfo_;
     bool started_{false};
     uint32_t rankId_{0};
     uint32_t rankCount_{1};
@@ -85,9 +89,6 @@ private:
     MemoryRegionMap registerMRS_;
     std::vector<MemoryRegionMap> ranksMRs_;
     std::shared_ptr<DeviceQpManager> qpManager_;
-    HybmStreamPtr stream_;
-    HybmStreamNotifyPtr notify_;
-    RdmaNotifyInfo notifyInfo_ = {};
     std::vector<std::pair<uint64_t, uint32_t>> notifyRemoteInfo_;
     std::shared_ptr<DeviceChipInfo> deviceChipInfo_;
     std::atomic<uint64_t> wrIdx_{0};

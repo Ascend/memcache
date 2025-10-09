@@ -5,6 +5,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
 #include <cstdint>
+#include <mutex>
 #include <new>
 #include "smem.h"
 #include "smem_shm.h"
@@ -97,14 +98,12 @@ public:
         smem_bm_destroy(handle_);
     }
 
-    uint64_t Join(uint32_t flags)
+    void Join(uint32_t flags)
     {
-        void *address;
-        auto ret = smem_bm_join(handle_, flags, &address);
+        auto ret = smem_bm_join(handle_, flags);
         if (ret != 0) {
             throw std::runtime_error(std::string("join bm failed:").append(std::to_string(ret)));
         }
-        return static_cast<uint64_t>(reinterpret_cast<ptrdiff_t>(address));
     }
 
     void Leave(uint32_t flags)
@@ -128,6 +127,12 @@ public:
         }
 
         return (uint64_t)(ptrdiff_t)ptr;
+    }
+
+    void Destroy()
+    {
+        smem_bm_destroy(handle_);
+        handle_ = nullptr;
     }
 
     void CopyData(uint64_t src, uint64_t dest, uint64_t size, smem_bm_copy_type type, uint32_t flags)
@@ -166,12 +171,37 @@ public:
         return new (std::nothrow) BigMemory{hd};
     }
 
+    int RegisterMem(uint64_t addr, uint64_t size) noexcept
+    {
+        return smem_bm_register_user_mem(handle_, addr, size);
+    }
+
 private:
     smem_bm_t handle_;
     static uint32_t worldSize_;
 };
 
 uint32_t BigMemory::worldSize_;
+struct LoggerState {
+    static std::mutex mutex;
+    static std::shared_ptr<py::function> py_logger;
+};
+
+std::mutex LoggerState::mutex;
+std::shared_ptr<py::function> LoggerState::py_logger;
+
+static void cpp_logger_adapter(int level, const char* msg) {
+    std::lock_guard<std::mutex> lock(LoggerState::mutex);
+
+    if (!LoggerState::py_logger) {
+        return;
+    }
+
+    py::gil_scoped_acquire acquire;
+    if (Py_IsInitialized()) {
+        (*(LoggerState::py_logger))(level, msg ? msg : "");
+    }
+}
 
 void DefineSmemFunctions(py::module_ &m)
 {
@@ -192,7 +222,53 @@ set log print level.
 
 Arguments:
     level(int): log level, 0:debug 1:info 2:warn 3:error)");
+    m.def(
+        "set_extern_logger",
+        [](py::function log_fn) {
+            if (!log_fn || log_fn.is_none()) {
+                std::lock_guard<std::mutex> lock(LoggerState::mutex);
+                LoggerState::py_logger.reset();
+                auto ret = smem_set_extern_logger(nullptr);
+                return ret;
+            }
 
+            {
+                std::lock_guard<std::mutex> lock(LoggerState::mutex);
+                LoggerState::py_logger = std::make_shared<py::function>(log_fn);
+            }
+
+            auto ret = smem_set_extern_logger(cpp_logger_adapter);
+            if (ret != 0) {
+                throw std::runtime_error("Failed to set logger");
+            }
+            return ret;
+        },
+        py::call_guard<py::gil_scoped_release>(), py::arg("log_fn"), R"(
+Set external logger callback function
+
+Parameters:
+    log_fn (callable): Python function that accepts (int level, str message)
+        level: log level
+        message: log content
+Returns:
+    0 if successful
+)");
+
+    m.add_object("_cleanup_capsule", py::capsule([]() {
+        LoggerState::py_logger.reset();
+    }));
+
+    m.def("get_last_err_msg", &smem_get_last_err_msg, py::call_guard<py::gil_scoped_release>(), R"(
+Get last error message.
+Returns:
+    error message string
+)");
+
+    m.def("get_and_clear_last_err_msg", &smem_get_and_clear_last_err_msg, py::call_guard<py::gil_scoped_release>(), R"(
+Get and clear all error message.
+Returns:
+    error message string
+)");
     m.doc() = LIB_VERSION;
 }
 
@@ -211,7 +287,7 @@ func smem_shm_init timeout, default 120 second.)")
 func smem_shm_create timeout, default 120 second)")
         .def_readwrite("operation_timeout", &smem_shm_config_t::controlOperationTimeout, R"(
 control operation timeout, i.e. barrier, allgather, topology_can_reach etc, default 120 second)")
-        .def_readwrite("start_store", &smem_shm_config_t::startConfigStore, R"(
+        .def_readwrite("start_store", &smem_shm_config_t::startConfigStoreServer, R"(
 whether to start config store, default true)")
         .def_readwrite("flags", &smem_shm_config_t::flags, "other flags, default 0");
 }
@@ -265,63 +341,6 @@ automatically allocate rank IDs, default is false)")
                 strncpy(config.hcomUrl, nic.c_str(), sizeof(config.hcomUrl));
             },
             py::call_guard<py::gil_scoped_release>(), py::arg("nic"));
-}
-
-void DefineShmClass(py::module_ &m)
-{
-    py::enum_<smem_shm_data_op_type>(m, "ShmDataOpType")
-        .value("MTE", SMEMS_DATA_OP_MTE)
-        .value("SDMA", SMEMS_DATA_OP_SDMA)
-        .value("ROCE", SMEMS_DATA_OP_RDMA);
-
-    m.def("initialize", &ShareMemory::Initialize, py::call_guard<py::gil_scoped_release>(), py::arg("store_url"),
-          py::arg("world_size"), py::arg("rank_id"), py::arg("device_id"), py::arg("config"));
-    m.def("uninitialize", &ShareMemory::UnInitialize, py::call_guard<py::gil_scoped_release>(), py::arg("flags") = 0);
-    m.def("create", &ShareMemory::Create, py::call_guard<py::gil_scoped_release>(), py::arg("id"), py::arg("rank_size"),
-          py::arg("rank_id"), py::arg("local_mem_size"), py::arg("data_op_type") = SMEMS_DATA_OP_MTE,
-          py::arg("flags") = 0);
-
-    py::class_<ShareMemory>(m, "ShareMemory")
-        .def(
-        "set_context",
-            [](ShareMemory &shm, py::bytes data) {
-                auto str = py::bytes(data).cast<std::string>();
-                shm.SetExternContext(str.data(), str.size());
-            },
-            py::call_guard<py::gil_scoped_release>(), py::arg("context"), R"(
-Set user extra context of shm object.
-
-Arguments:
-    context(bytes): extra context
-Returns:
-    0 if successful)")
-        .def_property_readonly("local_rank", &ShareMemory::LocalRank, py::call_guard<py::gil_scoped_release>(), R"(
-Get local rank of a shm object)")
-        .def_property_readonly("rank_size", &ShareMemory::RankSize, py::call_guard<py::gil_scoped_release>(), R"(
-Get rank size of a shm object)")
-        .def("barrier", &ShareMemory::Barrier, py::call_guard<py::gil_scoped_release>(), R"(
-Do barrier on a shm object, using control network.)")
-        .def(
-        "all_gather",
-            [](ShareMemory &shm, py::bytes data) {
-                auto str = py::bytes(data).cast<std::string>();
-                auto outputSize = str.size() * shm.RankSize();
-                std::string output;
-                output.resize(outputSize);
-                shm.AllGather(str.c_str(), str.size(), output.data(), outputSize);
-                return py::bytes(output.c_str(), outputSize);
-            },
-            py::call_guard<py::gil_scoped_release>(), py::arg("local_data"), R"(
-Do all gather on a shm object, using control network
-
-Arguments:
-    local_data(bytes): input data
-Returns:
-    output data)")
-        .def_property_readonly(
-        "gva", [](const ShareMemory &shm) { return (uint64_t)(ptrdiff_t)shm.Address(); },
-            py::call_guard<py::gil_scoped_release>(), R"(
-get global virtual address created, it can be passed to kernel to data operations)");
 }
 
 void DefineBmClass(py::module_ &m)
@@ -398,6 +417,11 @@ Arguments:
     mem_type(BmMemType): memory type, DEVICE or HOST, default is DEVICE
 Returns:
     ptr of peer gva)")
+        .def("destroy", &BigMemory::Destroy, py::call_guard<py::gil_scoped_release>(), R"(
+Destroy the big memory handle.)")
+        .def("register", &BigMemory::RegisterMem, py::call_guard<py::gil_scoped_release>(), py::arg("addr"),
+             py::arg("size"), R"(
+register user mem.)")
         .def("copy_data", &BigMemory::CopyData, py::call_guard<py::gil_scoped_release>(), py::arg("src_ptr"),
              py::arg("dst_ptr"), py::arg("size"), py::arg("type"), py::arg("flags") = 0, R"(
 Data operation on Big Memory object.
@@ -417,11 +441,7 @@ PYBIND11_MODULE(_pymf_smem, m)
 {
     DefineSmemFunctions(m);
 
-    auto shm = m.def_submodule("shm", "Share Memory Module.");
     auto bm = m.def_submodule("bm", "Big Memory Module.");
-
-    DefineShmConfig(shm);
-    DefineShmClass(shm);
 
     DefineBmConfig(bm);
     DefineBmClass(bm);

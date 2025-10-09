@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 #include <dlfcn.h>
 #include "dl_acl_api.h"
@@ -31,6 +31,8 @@ rtGetDeviceInfoFunc DlAclApi::pRtGetDeviceInfo = nullptr;
 rtSetIpcMemorySuperPodPidFunc DlAclApi::pRtSetIpcMemorySuperPodPid = nullptr;
 rtIpcDestroyMemoryNameFunc DlAclApi::pRtIpcDestroyMemoryName = nullptr;
 rtIpcSetMemoryNameFunc DlAclApi::pRtIpcSetMemoryName = nullptr;
+rtIpcOpenMemoryFunc DlAclApi::pRtIpcOpenMemory = nullptr;
+rtIpcCloseMemoryFunc DlAclApi::pRtIpcCloseMemory = nullptr;
 rtEnableP2PFunc DlAclApi::pRtEnableP2P = nullptr;
 rtDisableP2PFunc DlAclApi::pRtDisableP2P = nullptr;
 rtGetLogicDevIdByUserDevIdFunc DlAclApi::pRtGetLogicDevIdByUserDevId = nullptr;
@@ -77,6 +79,8 @@ Result DlAclApi::LoadLibrary(const std::string &libDirPath)
     DL_LOAD_SYM(pRtSetIpcMemorySuperPodPid, rtSetIpcMemorySuperPodPidFunc, rtHandle, "rtSetIpcMemorySuperPodPid");
     DL_LOAD_SYM(pRtIpcSetMemoryName, rtIpcSetMemoryNameFunc, rtHandle, "rtIpcSetMemoryName");
     DL_LOAD_SYM(pRtIpcDestroyMemoryName, rtIpcDestroyMemoryNameFunc, rtHandle, "rtIpcDestroyMemoryName");
+    DL_LOAD_SYM(pRtIpcOpenMemory, rtIpcOpenMemoryFunc, rtHandle, "rtIpcOpenMemory");
+    DL_LOAD_SYM(pRtIpcCloseMemory, rtIpcCloseMemoryFunc, rtHandle, "rtIpcCloseMemory");
     DL_LOAD_SYM(pRtEnableP2P, rtEnableP2PFunc, rtHandle, "rtEnableP2P");
     DL_LOAD_SYM(pRtDisableP2P, rtDisableP2PFunc, rtHandle, "rtDisableP2P");
     DL_LOAD_SYM(pRtGetLogicDevIdByUserDevId, rtGetLogicDevIdByUserDevIdFunc, rtHandle, "rtGetLogicDevIdByUserDevId");

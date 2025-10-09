@@ -21,10 +21,8 @@ include_directories(
         ${PROJECT_SMEM_SRC_BASE}/include/host
         ${PROJECT_SMEM_SRC_BASE}/csrc/common
         ${PROJECT_SMEM_SRC_BASE}/csrc/config_store
-        ${PROJECT_UTIL_SRC_BASE}
         ${PROJECT_UTIL_SRC_BASE}/ptracer/include
-        ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/include/
-        ${PROJECT_SOURCE_DIR}/3rdparty/net/acc_links/src/net/include
+        ${PROJECT_ACCLINKS_SRC_BASE}/include
         ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/include/
         ${PROJECT_SOURCE_DIR}/3rdparty/log/spdlog/include/
 )
@@ -85,8 +83,7 @@ target_compile_options(mmc_objects PRIVATE -fPIC -Wno-float-equal)
 
 add_library(mmc_static STATIC $<TARGET_OBJECTS:mmc_objects>)
 set_target_properties(mmc_static PROPERTIES OUTPUT_NAME "mf_memcache")
-target_link_directories(mmc_static PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/lib)
-target_link_libraries(mmc_static PUBLIC pthread libacc_tcp_net.a)
+target_link_libraries(mmc_static PUBLIC pthread acc_tcp_net_static)
 target_link_directories(mmc_static PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib)
 target_link_directories(mmc_static PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib64)
 if(BUILD_PYTHON STREQUAL "ON")
@@ -101,8 +98,7 @@ endif ()
 
 add_library(mmc_shared SHARED $<TARGET_OBJECTS:mmc_objects>)
 set_target_properties(mmc_shared PROPERTIES OUTPUT_NAME "mf_memcache")
-target_link_directories(mmc_shared PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/acc_links/lib)
-target_link_libraries(mmc_shared PUBLIC smem_shared pthread libacc_tcp_net.a)
+target_link_libraries(mmc_shared PUBLIC smem_shared pthread acc_tcp_net_static)
 target_link_directories(mmc_shared PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib)
 target_link_directories(mmc_shared PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib64)
 if (x${CMAKE_BUILD_TYPE} STREQUAL "xDEBUG")

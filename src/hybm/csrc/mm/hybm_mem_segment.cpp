@@ -4,7 +4,9 @@
 #include "hybm_mem_segment.h"
 
 #include "dl_acl_api.h"
+#include "hybm_device_user_mem_seg.h"
 #include "hybm_device_mem_segment.h"
+#include "hybm_types.h"
 #include "hybm_host_mem_segment.h"
 #include "hybm_sdma_mem_segment.h"
 #include "hybm_types.h"
@@ -24,6 +26,12 @@ MemSegmentPtr MemSegment::Create(const MemSegmentOptions &options, int entityId)
         return nullptr;
     }
 
+    auto ret = MemSegmentDevice::SetDeviceInfo(options.devId);
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("MemSegmentDevice::GetDeviceId with devId: " << options.devId << " failed: " << ret);
+        return nullptr;
+    }
+
     MemSegmentPtr tmpSeg;
     switch (options.segType) {
         case HYBM_MST_HBM:
@@ -35,6 +43,9 @@ MemSegmentPtr MemSegment::Create(const MemSegmentOptions &options, int entityId)
             } else {
                 tmpSeg = std::make_shared<MemSegmentHost>(options, entityId);
             }
+            break;
+        case HYBM_MST_HBM_USER:
+            tmpSeg = std::make_shared<MemSegmentDeviceUseMem>(options, entityId);
             break;
         default:
             BM_LOG_ERROR("Invalid memory seg type " << int(options.segType));

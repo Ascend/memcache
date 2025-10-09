@@ -25,7 +25,7 @@ struct HostExportInfo {
 class MemSegmentHost : public MemSegment {
 public:
     explicit MemSegmentHost(const MemSegmentOptions &options, int eid) : MemSegment{options, eid} {}
-    ~MemSegmentHost()
+    ~MemSegmentHost() override
     {
         FreeMemory();
     }
@@ -36,13 +36,16 @@ public:
     Result AllocLocalMemory(uint64_t size, std::shared_ptr<MemSlice> &slice) noexcept override;
     Result Export(std::string &exInfo) noexcept override;
     Result Export(const std::shared_ptr<MemSlice> &slice, std::string &exInfo) noexcept override;
-    Result Import(const std::vector<std::string> &allExInfo) noexcept override;
+    Result Import(const std::vector<std::string> &allExInfo, void *addresses[]) noexcept override;
     Result Mmap() noexcept override;
     Result Unmap() noexcept override;
     std::shared_ptr<MemSlice> GetMemSlice(hybm_mem_slice_t slice) const noexcept override;
     bool MemoryInRange(const void *begin, uint64_t size) const noexcept override;
-    uint32_t GetRankIdByAddr(const void *addr, uint64_t size) const noexcept override;
+    void GetRankIdByAddr(const void *addr, uint64_t size, uint32_t &rankId) const noexcept override;
     Result RemoveImported(const std::vector<uint32_t> &ranks) noexcept override;
+    Result RegisterMemory(const void *addr, uint64_t size, std::shared_ptr<MemSlice> &slice) noexcept override;
+    Result ReleaseSliceMemory(const std::shared_ptr<MemSlice> &slice) noexcept override;
+    Result GetExportSliceSize(size_t &size) noexcept override;
     hybm_mem_type GetMemoryType() const noexcept override
     {
         return HYBM_MEM_TYPE_HOST;

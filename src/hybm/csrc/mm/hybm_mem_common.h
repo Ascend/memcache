@@ -42,6 +42,7 @@ enum MemAddrType : uint8_t {
 enum MemSegType : uint8_t {
     HYBM_MST_HBM = 0,
     HYBM_MST_DRAM,
+    HYBM_MST_HBM_USER,
 
     HYBM_MST_BUTT
 };
@@ -55,7 +56,9 @@ enum MemSegInfoExchangeType : uint8_t {
 };
 
 struct MemSegmentOptions {
-    int32_t segId = 0;
+    int32_t devId = 0;
+    hybm_role_type role = HYBM_ROLE_PEER;
+    hybm_data_op_type dataOpType = HYBM_DOP_TYPE_SDMA;
     MemSegType segType = HYBM_MST_HBM;
     MemSegInfoExchangeType infoExType = HYBM_INFO_EXG_IN_NODE;
     bool shared = true;

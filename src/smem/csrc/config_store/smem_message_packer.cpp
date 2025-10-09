@@ -2,6 +2,7 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
  */
 
+#include "smem_logger.h"
 #include "smem_message_packer.h"
 
 namespace ock {
@@ -37,14 +38,15 @@ std::vector<uint8_t> SmemMessagePacker::Pack(const SmemMessage &message) noexcep
     return result;
 }
 
-bool SmemMessagePacker::Full(const std::vector<uint8_t> &buffer) noexcept
+bool SmemMessagePacker::Full(const uint8_t* buffer, const uint64_t bufferLen) noexcept
 {
-    if (buffer.size() < 4U * sizeof(uint64_t) + sizeof(MessageType)) {
+    constexpr uint64_t baseSize = 4U * sizeof(uint64_t) + sizeof(MessageType);
+    if (bufferLen < baseSize) {
         return false;
     }
 
-    auto totalSize = *reinterpret_cast<const uint64_t *>(buffer.data());
-    return buffer.size() >= totalSize;
+    auto totalSize = *reinterpret_cast<const uint64_t *>(buffer);
+    return bufferLen >= totalSize;
 }
 
 int64_t SmemMessagePacker::MessageSize(const std::vector<uint8_t> &buffer) noexcept
@@ -56,42 +58,56 @@ int64_t SmemMessagePacker::MessageSize(const std::vector<uint8_t> &buffer) noexc
     return *reinterpret_cast<const int64_t *>(buffer.data());
 }
 
-int64_t SmemMessagePacker::Unpack(const std::vector<uint8_t> &buffer, SmemMessage &message) noexcept
+int64_t SmemMessagePacker::Unpack(const uint8_t* buffer, const uint64_t bufferLen, SmemMessage &message) noexcept
 {
-    if (!Full(buffer)) {
-        return -1;
-    }
+    SM_CHECK_CONDITION_RET(buffer == nullptr, -1);
+    SM_CHECK_CONDITION_RET(!Full(buffer, bufferLen), -1);
 
-    auto ptr = buffer.data();
-    auto totalSize = *reinterpret_cast<const uint64_t *>(ptr);
-    ptr += sizeof(uint64_t);
+    uint64_t length = 0ULL;
+    auto totalSize = *reinterpret_cast<const uint64_t *>(buffer + length);
+    length += sizeof(uint64_t);
 
-    message.userDef = *reinterpret_cast<const int64_t *>(ptr);
-    ptr += sizeof(int64_t);
+    message.userDef = *reinterpret_cast<const int64_t *>(buffer + length);
+    length += sizeof(int64_t);
 
-    message.mt = *reinterpret_cast<const MessageType *>(ptr);
-    ptr += sizeof(MessageType);
+    message.mt = *reinterpret_cast<const MessageType *>(buffer + length);
+    length += sizeof(MessageType);
+    SM_CHECK_CONDITION_RET(message.mt < MessageType::SET || message.mt > MessageType::INVALID_MSG, -1);
 
-    auto keyCount = *reinterpret_cast<const uint64_t *>(ptr);
-    ptr += sizeof(uint64_t);
+    uint64_t keyCount = 0;
+    std::copy_n(reinterpret_cast<const uint64_t *>(buffer + length), 1, &keyCount);
+    SM_CHECK_CONDITION_RET(keyCount > MAX_KEY_COUNT, -1);
+
+    length += sizeof(uint64_t);
     message.keys.reserve(keyCount);
+
     for (auto i = 0UL; i < keyCount; i++) {
-        auto keySize = *reinterpret_cast<const uint64_t *>(ptr);
-        ptr += sizeof(uint64_t);
-        message.keys.emplace_back(reinterpret_cast<const char *>(ptr), keySize);
-        ptr += keySize;
+        uint64_t keySize = 0;
+        std::copy_n(reinterpret_cast<const uint64_t *>(buffer + length), 1, &keySize);
+        length += sizeof(uint64_t);
+
+        SM_CHECK_CONDITION_RET(keySize > MAX_KEY_SIZE || length + keySize > bufferLen, -1);
+        message.keys.emplace_back(reinterpret_cast<const char *>(buffer + length), keySize);
+        length += keySize;
     }
 
-    auto valueCount = *reinterpret_cast<const uint64_t *>(ptr);
-    ptr += sizeof(uint64_t);
+    uint64_t valueCount = 0;
+    std::copy_n(reinterpret_cast<const uint64_t *>(buffer + length), 1, &valueCount);
+    SM_CHECK_CONDITION_RET(valueCount > MAX_VALUE_COUNT, -1);
+
+    length += sizeof(uint64_t);
     message.values.reserve(valueCount);
-    for (auto i = 0UL; i < valueCount; i++) {
-        auto valueSize = *reinterpret_cast<const uint64_t *>(ptr);
-        ptr += sizeof(uint64_t);
-        message.values.emplace_back(ptr, ptr + valueSize);
-        ptr += valueSize;
-    }
 
+    for (auto i = 0UL; i < valueCount; i++) {
+        uint64_t valueSize = 0;
+        std::copy_n(reinterpret_cast<const uint64_t *>(buffer + length), 1, &valueSize);
+        length += sizeof(uint64_t);
+        SM_CHECK_CONDITION_RET(valueSize > MAX_VALUE_SIZE || length + valueSize > bufferLen, -1);
+
+        message.values.emplace_back(buffer + length, buffer + length + valueSize);
+        length += valueSize;
+    }
+    SM_CHECK_CONDITION_RET(totalSize != length, -1);
     return static_cast<int64_t>(totalSize);
 }
 

@@ -32,10 +32,10 @@ public:
         return baseStore_->Add(std::string(keyPrefix_).append(key), increment, value);
     }
 
-    Result Remove(const std::string &key) noexcept override
+    Result Remove(const std::string &key, bool printKeyNotExist) noexcept override
     {
         STORE_ASSERT_RETURN(baseStore_ != nullptr, SM_MALLOC_FAILED);
-        return baseStore_->Remove(std::string(keyPrefix_).append(key));
+        return baseStore_->Remove(std::string(keyPrefix_).append(key), printKeyNotExist);
     }
 
     Result Append(const std::string &key, const std::vector<uint8_t> &value, uint64_t &newSize) noexcept override

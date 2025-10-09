@@ -40,17 +40,15 @@ public:
 
     void UnInitalize();
 
-    Result Join(uint32_t flags, void **localGvaAddress);
+    Result Join(uint32_t flags);
 
     Result Leave(uint32_t flags);
 
     Result DataCopy(const void *src, void *dest, uint64_t size, smem_bm_copy_type t, uint32_t flags);
 
-    Result DataCopy2d(const void *src, uint64_t spitch, void *dest, uint64_t dpitch, uint64_t width, uint64_t height,
-                      smem_bm_copy_type t, uint32_t flags);
+    Result DataCopy2d(smem_copy_2d_params *params, smem_bm_copy_type t, uint32_t flags);
 
-    Result DataCopyBatch(const void **src, void **dest, const uint32_t *size,
-                         uint32_t count, smem_bm_copy_type t, uint32_t flags);
+    Result DataCopyBatch(smem_batch_copy_params *params, smem_bm_copy_type t, uint32_t flags);
 
     Result Wait();
 

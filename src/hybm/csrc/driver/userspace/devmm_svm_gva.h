@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 
 #ifndef MEM_FABRIC_HYBRID_DEVMM_SVM_GVA_H
@@ -11,9 +11,11 @@ namespace ock {
 namespace mf {
 namespace drv {
 
+const uint64_t GVA_GIANT_FLAG = (1ULL << 0);
+
 int32_t HalGvaReserveMemory(uint64_t *address, size_t size, int32_t deviceId, uint64_t flags);
 
-int32_t HalGvaUnreserveMemory(void);
+int32_t HalGvaUnreserveMemory(uint64_t address);
 
 int32_t HalGvaAlloc(uint64_t address, size_t size, uint64_t flags);
 

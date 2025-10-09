@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 
 #ifndef MF_HYBRID_DEVICE_QP_MANAGER_H
@@ -67,8 +67,8 @@ protected:
     const uint32_t deviceId_;
     const uint32_t rankId_;
     const uint32_t rankCount_;
-    const sockaddr_in deviceAddress_;
     const hybm_role_type rankRole_;
+    sockaddr_in deviceAddress_;
     void *serverSocketHandle_{nullptr};
 };
 }  // namespace device

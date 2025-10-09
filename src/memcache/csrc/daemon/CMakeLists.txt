@@ -4,7 +4,7 @@ add_executable(mmc_meta_service ${DAEMON_SRCS} $<TARGET_OBJECTS:ptracer_object> 
 
 target_compile_options(mmc_meta_service PRIVATE -fPIC -Wno-float-equal)
 
-target_link_libraries(mmc_meta_service PUBLIC mmc_shared pthread libacc_tcp_net.a)
+target_link_libraries(mmc_meta_service PUBLIC mmc_shared pthread acc_tcp_net_static)
 
 if(BUILD_PYTHON STREQUAL "ON")
     target_link_libraries(mmc_meta_service PRIVATE pybind11::module Python3::Python)

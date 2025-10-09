@@ -27,11 +27,6 @@ Result NetEngineAcc::Start(const NetEngineOptions &options)
         return MMC_OK;
     }
 
-    MMC_RETURN_ERROR(AccSetLogLevel(options.logLevel), "NetEngineAcc " << options.name << " set log level error");
-    if (options.logFunc != nullptr) {
-        MMC_RETURN_ERROR(AccSetExternalLog(options.logFunc), "NetEngineAcc " << options.name << " set log func error");
-    }
-
     /* verify */
     MMC_RETURN_ERROR(VerifyOptions(options), "NetEngineAcc " << options.name << " option set error");
 

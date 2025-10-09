@@ -4,8 +4,8 @@
 #ifndef __MEMFABRIC_SMEM_SHM_H__
 #define __MEMFABRIC_SMEM_SHM_H__
 
-#include "smem_shm_def.h"
 #include "smem.h"
+#include "smem_shm_def.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,7 +26,7 @@ int32_t smem_shm_config_init(smem_shm_config_t *config);
  * this function will finish when all processes connected or timeout;
  * the global config store will be used to exchange information about shm object and team
  *
- * @param configStoreIpPort[in] ipPort of config store, e.g. tcp:://ip:port
+ * @param configStoreIpPort[in] ipPort of config store, e.g. tcp://ip:port
  * @param worldSize        [in] size of processes
  * @param rankId           [in] local rank id in world size
  * @param deviceId         [in] device npu id
@@ -87,7 +87,7 @@ int32_t smem_shm_set_extra_context(smem_shm_t handle, const void *context, uint3
  * @brief Get local rank of a shm object
  *
  * @param handle            [in] the shm object
- * @return local rank in the input object
+ * @return local rank in the input object, return UINT32_MAX if error
  */
 uint32_t smem_shm_get_global_rank(smem_shm_t handle);
 
@@ -95,7 +95,7 @@ uint32_t smem_shm_get_global_rank(smem_shm_t handle);
  * @brief Get rank size of a shm object
  *
  * @param handle            [in] the shm object
- * @return rank size in the input object
+ * @return rank size in the input object, return UINT32_MAX if error
  */
 uint32_t smem_shm_get_global_rank_size(smem_shm_t handle);
 
@@ -129,6 +129,23 @@ int32_t smem_shm_control_allgather(smem_shm_t handle, const char *sendBuf, uint3
  * @return 0 if successful
  */
 int32_t smem_shm_topology_can_reach(smem_shm_t handle, uint32_t remoteRank, uint32_t *reachInfo);
+
+/**
+ * @brief Register function of exit.
+ *
+ * @param exit         [in] global exit option, every rank will apply this function
+ *                          to complete global exit
+ * @param handle       [in] shm object
+ * @return 0 if successful
+ */
+int32_t smem_shm_register_exit(smem_shm_t handle, void (*exit)(int));
+
+/**
+ * @brief all rank exit.
+ * @param handle       [in] shm object
+ * @param status       [in] int
+ */
+void smem_shm_global_exit(smem_shm_t handle, int status);
 
 #ifdef __cplusplus
 }

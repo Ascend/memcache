@@ -4,157 +4,126 @@
 #ifndef MEMFABRIC_HYBRID_STR_UTIL_H
 #define MEMFABRIC_HYBRID_STR_UTIL_H
 
-/*
- * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
- * Author: bao
- */
-#ifndef KVS_STR_COMP_H
-#define KVS_STR_COMP_H
-
-#include <cmath>
-#include <cstring>
 #include <string>
 #include <vector>
-#include <set>
-#include <regex>
+#include <sstream>
+#include <limits>
 
 namespace ock {
 namespace mf {
 class StrUtil {
 public:
-    static bool StartWith(const std::string &src, const std::string &start);
-    static bool EndWith(const std::string &src, const std::string &end);
-
-    static bool StrToLong(const std::string &src, long &value);
-    static bool StrToUInt(const std::string &src, uint32_t &value);
-    static bool StrToULong(const std::string &src, uint64_t &value);
-    static bool StrToFloat(const std::string &src, float &value);
-
-    static void Split(const std::string &src, const std::string &sep, std::vector<std::string> &out);
-    static void Split(const std::string &src, const std::string &sep, std::set<std::string> &out);
-
-    static void StrTrim(std::string &src);
-
-    static void Replace(std::string &src, const std::string &regex, const std::string &replaced);
+    static std::string StrTrim(const std::string &str);
+    static inline std::vector<std::string> Split(const std::string &str, char delimiter);
+    static inline bool StartWith(const std::string &str, const std::string &prefix);
+    template <typename UIntType>
+    static inline bool String2Uint(const std::string& str, UIntType& val);
+    template <typename IntType>
+    static inline bool String2Int(const std::string& str, IntType& val);
 };
 
-inline bool StrUtil::StartWith(const std::string &src, const std::string &start)
+inline std::string StrUtil::StrTrim(const std::string &input)
 {
-    return src.compare(0, start.size(), start) == 0;
+    if (input.empty()) {
+        return "";
+    }
+    auto start = input.begin();
+    while (start != input.end() && std::isspace(*start)) {
+        start++;
+    }
+
+    auto end = input.end();
+    do {
+        end--;
+    } while (std::distance(start, end) > 0 && std::isspace(*end));
+
+    return std::string(start, end + 1);
 }
 
-inline bool StrUtil::EndWith(const std::string &src, const std::string &end)
+inline std::vector<std::string> StrUtil::Split(const std::string &str, char delimiter)
 {
-    return src.size() >= end.length() && src.compare(src.size() - end.size(), end.size(), end) == 0;
+    std::vector<std::string> result;
+    std::stringstream ss(str);
+    std::string item;
+
+    while (std::getline(ss, item, delimiter)) {
+        result.push_back(item);
+    }
+
+    return result;
 }
 
-inline bool StrUtil::StrToLong(const std::string &src, long &value)
+inline bool StrUtil::StartWith(const std::string &str, const std::string &prefix)
 {
-    char *remain = nullptr;
-    errno = 0;
-    value = std::strtol(src.c_str(), &remain, 10L); // 10 is decimal digits
-    if ((value == 0 && src != "0") || remain == nullptr || strlen(remain) > 0 || errno == ERANGE) {
+    return str.length() >= prefix.length() && str.compare(0, prefix.length(), prefix) == 0;
+}
+
+template <typename UIntType>
+inline bool StrUtil::String2Uint(const std::string& str, UIntType& val)
+{
+    if (str.empty()) {
         return false;
     }
+
+    if (str[0] == '-') {
+        return false;
+    }
+
+    char* end = nullptr;
+    errno = 0;
+
+    unsigned long long result = std::strtoull(str.c_str(), &end, 10);
+
+    if (end == str.c_str()) {
+        return false;
+    }
+
+    while (*end != '\0' && std::isspace(*end)) {
+        ++end;
+    }
+    if (*end != '\0') {
+        return false;
+    }
+
+    if (errno == ERANGE || result > static_cast<unsigned long long>(std::numeric_limits<UIntType>::max())) {
+        return false;
+    }
+
+    val = static_cast<UIntType>(result);
     return true;
 }
 
-inline bool StrUtil::StrToUInt(const std::string &src, uint32_t &value)
+template <typename IntType>
+inline bool StrUtil::String2Int(const std::string& str, IntType& val)
 {
-    char *remain = nullptr;
-    errno = 0;
-    value = std::strtoul(src.c_str(), &remain, 10L); // 10 is decimal digits
-    if ((value == 0 && src != "0") || remain == nullptr || strlen(remain) > 0 || errno == ERANGE) {
+    if (str.empty()) {
         return false;
     }
-    return true;
-}
 
-inline bool StrUtil::StrToULong(const std::string &src, uint64_t &value)
-{
-    char *remain = nullptr;
+    char* end = nullptr;
     errno = 0;
-    value = std::strtoul(src.c_str(), &remain, 10L); // 10 is decimal digits
-    if ((value == 0 && src != "0") || remain == nullptr || strlen(remain) > 0 || errno == ERANGE) {
+
+    int64_t result = std::strtoll(str.c_str(), &end, 10);
+
+    if (end == str.c_str()) {
         return false;
     }
-    return true;
-}
 
-inline bool StrUtil::StrToFloat(const std::string &src, float &value)
-{
-    constexpr float epsinon = 0.000001;
-
-    char *remain = nullptr;
-    errno = 0;
-    value = std::strtof(src.c_str(), &remain);
-    if (remain == nullptr || strlen(remain) > 0 ||
-        ((value - HUGE_VALF) >= -epsinon && (value - HUGE_VALF) <= epsinon && errno == ERANGE)) {
+    while (*end != '\0' && std::isspace(*end)) {
+        ++end;
+    }
+    if (*end != '\0') {
         return false;
-        } else if ((value >= -epsinon && value <= epsinon) && (src != "0.0")) {
-            return false;
-        }
+    }
+
+    if (errno == ERANGE || result > static_cast<int64_t>(std::numeric_limits<IntType>::max())) {
+        return false;
+    }
+
+    val = static_cast<IntType>(result);
     return true;
 }
-
-inline void StrUtil::Split(const std::string &src, const std::string &sep, std::vector<std::string> &out)
-{
-    std::string::size_type pos1 = 0;
-    std::string::size_type pos2 = src.find(sep);
-
-    std::string tmpStr;
-    while (pos2 != std::string::npos) {
-        tmpStr = src.substr(pos1, pos2 - pos1);
-        out.emplace_back(tmpStr);
-        pos1 = pos2 + sep.size();
-        pos2 = src.find(sep, pos1);
-    }
-
-    if (pos1 != src.length()) {
-        tmpStr = src.substr(pos1);
-        out.emplace_back(tmpStr);
-    }
-}
-
-inline void StrUtil::Split(const std::string &src, const std::string &sep, std::set<std::string> &out)
-{
-    std::string::size_type pos1 = 0;
-    std::string::size_type pos2 = src.find(sep);
-
-    std::string tmpStr;
-    while (pos2 != std::string::npos) {
-        tmpStr = src.substr(pos1, pos2 - pos1);
-        out.insert(tmpStr);
-        pos1 = pos2 + sep.size();
-        pos2 = src.find(sep, pos1);
-    }
-
-    if (pos1 != src.length()) {
-        tmpStr = src.substr(pos1);
-        out.insert(tmpStr);
-    }
-}
-
-inline void StrUtil::StrTrim(std::string &src)
-{
-    if (src.empty()) {
-        return;
-    }
-
-    src.erase(0, src.find_first_not_of(' '));
-    src.erase(src.find_last_not_of(' ') + 1);
-}
-
-inline void StrUtil::Replace(std::string &src, const std::string &regex, const std::string &replaced)
-{
-    src = std::regex_replace(src, std::regex(regex), replaced);
-    if (src.rfind(replaced) == src.length() - 1) {
-        src = src.substr(0, src.length() - 1);
-    }
-}
-}
-}
-
-#endif // KVS_STR_COMP_H
+}  // namespace mf
+}  // namespace ock
 
 #endif // MEMFABRIC_HYBRID_STR_UTIL_H

@@ -28,19 +28,17 @@ public:
     {
     }
 
-    ~MemSegmentHostSDMA()
+    ~MemSegmentHostSDMA() override
     {
         FreeMemory();
     }
 
     Result ValidateOptions() noexcept override;
     Result ReserveMemorySpace(void **address) noexcept override;
-    // Result UnreserveMemorySpace() noexcept override;
     Result AllocLocalMemory(uint64_t size, std::shared_ptr<MemSlice> &slice) noexcept override;
-    // Result ReleaseSliceMemory(const std::shared_ptr<MemSlice> &slice) noexcept override;
     Result Export(std::string &exInfo) noexcept override;
     Result Export(const std::shared_ptr<MemSlice> &slice, std::string &exInfo) noexcept override;
-    Result Import(const std::vector<std::string> &allExInfo) noexcept override;
+    Result Import(const std::vector<std::string> &allExInfo, void *addresses[]) noexcept override;
     Result RemoveImported(const std::vector<uint32_t> &ranks) noexcept override;
     Result Mmap() noexcept override;
     Result Unmap() noexcept override;

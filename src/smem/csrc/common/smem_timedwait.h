@@ -10,6 +10,8 @@
 #include "smem_types.h"
 
 constexpr uint64_t SECOND_TO_MILLSEC = 1000U;
+constexpr uint64_t MILLSEC_TO_NANOSSEC = 1000000U;
+constexpr uint64_t SECOND_TO_NANOSSEC = 1000000000U;
 
 namespace ock {
 namespace smem {
@@ -25,10 +27,26 @@ public:
         }
         signalFlag = false;
         int32_t attrInitRet = pthread_condattr_init(&cattr_);
-        int32_t setLockRet = pthread_condattr_setclock(&cattr_, CLOCK_MONOTONIC);
+        if (attrInitRet != 0) {
+            return SM_ERROR;
+        }
+
+        int32_t setClockRet = pthread_condattr_setclock(&cattr_, CLOCK_MONOTONIC);
+        if (setClockRet != 0) {
+            pthread_condattr_destroy(&cattr_);
+            return SM_ERROR;
+        }
+
         int32_t condInitRet = pthread_cond_init(&condTimeChecker_, &cattr_);
+        if (condInitRet != 0) {
+            pthread_condattr_destroy(&cattr_);
+            return SM_ERROR;
+        }
+
         int32_t mutexInitRet = pthread_mutex_init(&timeCheckerMutex_, nullptr);
-        if (attrInitRet || setLockRet || condInitRet || mutexInitRet) {
+        if (mutexInitRet != 0) {
+            pthread_cond_destroy(&condTimeChecker_);
+            pthread_condattr_destroy(&cattr_);
             return SM_ERROR;
         }
         inited_ = true;

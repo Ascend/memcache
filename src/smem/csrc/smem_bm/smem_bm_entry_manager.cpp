@@ -45,7 +45,7 @@ Result SmemBmEntryManager::Initialize(const std::string &storeURL, uint32_t worl
         return SM_OK;
     }
 
-    SM_PARAM_VALIDATE(worldSize == 0, "invalid param, worldSize is 0", SM_INVALID_PARAM);
+    SM_VALIDATE_RETURN(worldSize != 0, "invalid param, worldSize is 0", SM_INVALID_PARAM);
 
     storeURL_ = storeURL;
     worldSize_ = worldSize;
@@ -71,8 +71,8 @@ int32_t SmemBmEntryManager::PrepareStore()
     StoreFactory::SetTlsInfo(config_.storeTlsConfig);
     if (!config_.autoRanking) {
         SM_ASSERT_RETURN(config_.rankId < worldSize_, SM_INVALID_PARAM);
-        confStore_ = StoreFactory::CreateStoreClient(storeUrlExtraction_.ip, storeUrlExtraction_.port,
-                                                     worldSize_, static_cast<int>(config_.rankId));
+        confStore_ = StoreFactory::CreateStore(storeUrlExtraction_.ip, storeUrlExtraction_.port,
+            (config_.rankId == 0 && config_.startConfigStoreServer), worldSize_, static_cast<int>(config_.rankId));
         SM_ASSERT_RETURN(confStore_ != nullptr, StoreFactory::GetFailedReason());
     } else {
         if (config_.startConfigStoreServer) {
@@ -94,7 +94,8 @@ int32_t SmemBmEntryManager::RacingForStoreServer()
     uint32_t localIpv4;
     std::string localIp;
     auto ret = GetLocalIpWithTarget(storeUrlExtraction_.ip, localIp, localIpv4);
-    if (ret != SM_OK || localIp != storeUrlExtraction_.ip) {
+    SM_ASSERT_RETURN(ret == SM_OK, SM_ERROR);
+    if (localIp != storeUrlExtraction_.ip) {
         return SM_OK;
     }
 
@@ -175,7 +176,7 @@ Result SmemBmEntryManager::GetEntryByPtr(uintptr_t ptr, SmemBmEntryPtr &entry)
         return SM_OK;
     }
 
-    SM_LOG_DEBUG("not found bm entry with ptr " << ptr);
+    SM_LOG_DEBUG("not found bm entry");
     return SM_OBJECT_NOT_EXISTS;
 }
 
@@ -201,7 +202,7 @@ Result SmemBmEntryManager::RemoveEntryByPtr(uintptr_t ptr)
     SM_ASSERT_RETURN(inited_, SM_NOT_STARTED);
     auto iter = ptr2EntryMap_.find(ptr);
     if (iter == ptr2EntryMap_.end()) {
-        SM_LOG_DEBUG("not found bm entry with ptr " << ptr);
+        SM_LOG_DEBUG("not found bm entry");
         return SM_OBJECT_NOT_EXISTS;
     }
 
@@ -213,7 +214,7 @@ Result SmemBmEntryManager::RemoveEntryByPtr(uintptr_t ptr)
     SM_ASSERT_RETURN(entry != nullptr, SM_ERROR);
     entryIdMap_.erase(entry->Id());
 
-    SM_LOG_DEBUG("remove bm entry success, ptr: " << ptr << ", id: " << entry->Id());
+    SM_LOG_DEBUG("remove bm entry success, id: " << entry->Id());
 
     return SM_OK;
 }
@@ -226,5 +227,5 @@ void SmemBmEntryManager::Destroy()
     StoreFactory::DestroyStore(storeUrlExtraction_.ip, storeUrlExtraction_.port);
 }
 
-} // namespace smem
-} // namespace ock
+}  // namespace smem
+}  // namespace ock

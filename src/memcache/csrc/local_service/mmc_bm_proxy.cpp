@@ -53,8 +53,8 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
         smem_uninit();
         return ret;
     }
-    void* tmpGva = nullptr;
-    if (smem_bm_join(handle_, 0, &tmpGva) != 0) {
+
+    if (smem_bm_join(handle_, 0) != 0) {
         MMC_LOG_ERROR("Failed to join smem bm");
         smem_bm_destroy(handle_);
         smem_bm_uninit(0);
@@ -179,10 +179,12 @@ Result MmcBmProxy::Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
             return MMC_ERROR;
         }
         if (buf->twoDim.dpitch >= buf->twoDim.width) {
+            smem_copy_2d_params params = {(void*)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
+                                          buf->twoDim.dpitch, (void*)bmAddr, buf->twoDim.width, buf->twoDim.width,
+                                          buf->twoDim.layerNum};
+
             TP_TRACE_BEGIN(TP_SMEM_BM_PUT_2D);
-            auto ret = smem_bm_copy_2d(handle_, (void*)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
-                                       buf->twoDim.dpitch, (void*)bmAddr, buf->twoDim.width, buf->twoDim.width,
-                                       buf->twoDim.layerNum, type, 0);
+            auto ret = smem_bm_copy_2d(handle_, &params, type, 0);
             TP_TRACE_END(TP_SMEM_BM_PUT_2D, ret);
             return ret;
         } else {
@@ -235,10 +237,12 @@ Result MmcBmProxy::Get(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
             TP_TRACE_END(TP_SMEM_BM_GET, ret);
             return ret;
         } else if (buf->twoDim.dpitch > buf->twoDim.width) {
+            smem_copy_2d_params params = {(void*)bmAddr, buf->twoDim.width,
+                                          (void*)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
+                                          buf->twoDim.dpitch, buf->twoDim.width, buf->twoDim.layerNum};
+
             TP_TRACE_BEGIN(TP_SMEM_BM_GET_2D);
-            auto ret = smem_bm_copy_2d(handle_, (void*)bmAddr, buf->twoDim.width,
-                                       (void*)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
-                                       buf->twoDim.dpitch, buf->twoDim.width, buf->twoDim.layerNum, type, 0);
+            auto ret = smem_bm_copy_2d(handle_, &params, type, 0);
             TP_TRACE_END(TP_SMEM_BM_GET_2D, ret);
             return ret;
         } else {
@@ -313,9 +317,9 @@ Result MmcBmProxy::BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
     }
     size_t shift = 0;
     uint32_t count = bufArr.Buffers().size();
-    const void *sources[count];
+    void *sources[count];
     void *destinations[count];
-    uint32_t dataSizes[count];
+    uint64_t dataSizes[count];
     smem_bm_copy_type type = bufArr.Buffers()[0].type == 0 ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
     for (size_t i = 0; i < count; ++i) {
         auto buf = &bufArr.Buffers()[i];
@@ -349,9 +353,9 @@ Result MmcBmProxy::BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
     }
     size_t shift = 0;
     uint32_t count = bufArr.Buffers().size();
-    const void *sources[count];
+    void *sources[count];
     void *destinations[count];
-    uint32_t dataSizes[count];
+    uint64_t dataSizes[count];
     smem_bm_copy_type type = bufArr.Buffers()[0].type == 0 ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
     for (size_t i = 0; i < count; ++i) {
         auto buf = &bufArr.Buffers()[i];

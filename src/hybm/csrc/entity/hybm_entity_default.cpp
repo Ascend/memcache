@@ -6,10 +6,10 @@
 #include <algorithm>
 
 #include "dl_acl_api.h"
-#include "hybm_data_operator_rdma.h"
+#include "hybm_data_op_host_rdma.h"
 #include "hybm_device_mem_segment.h"
-#include "hybm_data_operator_sdma.h"
-#include "hybm_dp_device_rdma.h"
+#include "hybm_data_op_sdma.h"
+#include "hybm_data_op_device_rdma.h"
 #include "hybm_device_mem_segment.h"
 #include "hybm_ex_info_transfer.h"
 #include "hybm_logger.h"
@@ -18,28 +18,28 @@
 namespace ock {
 namespace mf {
 
+thread_local bool MemEntityDefault::isSetDevice_ = false;
+
 MemEntityDefault::MemEntityDefault(int id) noexcept : id_(id), initialized(false) {}
 
-MemEntityDefault::~MemEntityDefault() = default;
+MemEntityDefault::~MemEntityDefault()
+{
+    ReleaseResources();
+}
 
 int32_t MemEntityDefault::Initialize(const hybm_options *options) noexcept
 {
     if (initialized) {
-        BM_LOG_WARN("the object is already initialized.");
+        BM_LOG_WARN("The MemEntity has already been initialized, no action needs.");
         return BM_OK;
     }
 
-    if (id_ < 0 || (uint32_t)(id_) >= HYBM_ENTITY_NUM_MAX) {
-        BM_LOG_ERROR("input entity id is invalid, input: " << id_ << " must be less than: " << HYBM_ENTITY_NUM_MAX);
-        return BM_INVALID_PARAM;
-    }
+    BM_VALIDATE_RETURN((id_ >= 0 && (uint32_t)(id_) < HYBM_ENTITY_NUM_MAX),
+                       "input entity id is invalid, input: " << id_ << " must be less than: " << HYBM_ENTITY_NUM_MAX,
+                       BM_INVALID_PARAM);
+    BM_LOG_ERROR_RETURN_IT_IF_NOT_OK(CheckOptions(options), "check options failed.");
 
-    auto ret = CheckOptions(options);
-    if (ret != BM_OK) {
-        return ret;
-    }
-
-    ret = DlAclApi::AclrtCreateStream(&stream_);
+    auto ret = DlAclApi::AclrtCreateStream(&stream_);
     if (ret != 0) {
         BM_LOG_ERROR("create stream failed: " << ret);
         return BM_DL_FUNCTION_FAILED;
@@ -75,22 +75,7 @@ int32_t MemEntityDefault::Initialize(const hybm_options *options) noexcept
 
 void MemEntityDefault::UnInitialize() noexcept
 {
-    if (!initialized) {
-        return;
-    }
-    UnReserveMemorySpace();
-    hbmSegment_.reset();
-    dramSegment_.reset();
-    sdmaDataOperator_.reset();
-    devRdmaDataOperator_.reset();
-    hostRdmaDataOperator_.reset();
-    if (transportManager_ != nullptr) {
-        transportManager_->CloseDevice();
-        transportManager_.reset();
-    }
-    DlAclApi::AclrtDestroyStream(stream_);
-    stream_ = nullptr;
-    initialized = false;
+    ReleaseResources();
 }
 
 int32_t MemEntityDefault::ReserveMemorySpace() noexcept
@@ -122,6 +107,11 @@ int32_t MemEntityDefault::ReserveMemorySpace() noexcept
 
 int32_t MemEntityDefault::UnReserveMemorySpace() noexcept
 {
+    if (!initialized) {
+        BM_LOG_ERROR("the object is not initialized, please check whether Initialize is called.");
+        return BM_NOT_INITIALIZED;
+    }
+
     if (hbmSegment_ != nullptr) {
         hbmSegment_->UnReserveMemorySpace();
     }
@@ -174,7 +164,68 @@ int32_t MemEntityDefault::AllocLocalMemory(uint64_t size, hybm_mem_type mType, u
     return UpdateHybmDeviceInfo(0);
 }
 
-void MemEntityDefault::FreeLocalMemory(hybm_mem_slice_t slice, uint32_t flags) noexcept {}
+int32_t MemEntityDefault::RegisterLocalMemory(const void *ptr, uint64_t size, uint32_t flags,
+                                              hybm_mem_slice_t &slice) noexcept
+{
+    if (ptr == nullptr || size == 0) {
+        BM_LOG_ERROR("input ptr or size(" << size << ") is invalid");
+        return BM_INVALID_PARAM;
+    }
+
+    auto addr = static_cast<uint64_t>(reinterpret_cast<ptrdiff_t>(ptr));
+    std::shared_ptr<MemSegment> segment = nullptr;
+    if (addr >= HYBM_HBM_START_ADDR && addr < HYBM_HOST_REG_START_ADDR) {
+        segment = hbmSegment_;
+    } else {
+        segment = dramSegment_;
+    }
+    BM_VALIDATE_RETURN(segment != nullptr, "address for segment is null.", BM_INVALID_PARAM);
+
+    std::shared_ptr<MemSlice> realSlice;
+    auto ret = segment->RegisterMemory(ptr, size, realSlice);
+    if (ret != 0) {
+        BM_LOG_ERROR("segment register slice with size: " << size << " failed: " << ret);
+        return ret;
+    }
+
+    if (transportManager_ != nullptr) {
+        transport::TransportMemoryRegion mr;
+        mr.addr = (uint64_t)(ptrdiff_t)ptr;
+        mr.size = size;
+        ret = transportManager_->RegisterMemoryRegion(mr);
+        if (ret != 0) {
+            BM_LOG_ERROR("register MR: " << mr << " to transport failed: " << ret);
+            return ret;
+        }
+    }
+
+    slice = realSlice->ConvertToId();
+    return BM_OK;
+}
+
+int32_t MemEntityDefault::FreeLocalMemory(hybm_mem_slice_t slice, uint32_t flags) noexcept
+{
+    if (!initialized) {
+        BM_LOG_ERROR("the object is not initialized, please check whether Initialize is called.");
+        return BM_INVALID_PARAM;
+    }
+
+    std::shared_ptr<MemSlice> memSlice;
+    if (hbmSegment_ != nullptr && (memSlice = hbmSegment_->GetMemSlice(slice)) != nullptr) {
+        hbmSegment_->ReleaseSliceMemory(memSlice);
+    }
+    if (dramSegment_ != nullptr && (memSlice = dramSegment_->GetMemSlice(slice)) != nullptr) {
+        dramSegment_->ReleaseSliceMemory(memSlice);
+    }
+
+    if (transportManager_ != nullptr) {
+        auto ret = transportManager_->UnregisterMemoryRegion(memSlice->vAddress_);
+        if (ret != BM_OK) {
+            BM_LOG_ERROR("UnregisterMemoryRegion failed, please check input slice.");
+        }
+    }
+    return BM_OK;
+}
 
 int32_t MemEntityDefault::ExportExchangeInfo(ExchangeInfoWriter &desc, uint32_t flags) noexcept
 {
@@ -267,14 +318,20 @@ int32_t MemEntityDefault::ExportExchangeInfo(hybm_mem_slice_t slice, ExchangeInf
     return BM_OK;
 }
 
-int32_t MemEntityDefault::ImportExchangeInfo(const ExchangeInfoReader desc[], uint32_t count, uint32_t flags) noexcept
+int32_t MemEntityDefault::ImportExchangeInfo(const ExchangeInfoReader desc[], uint32_t count, void *addresses[],
+                                             uint32_t flags) noexcept
 {
     if (!initialized) {
         BM_LOG_ERROR("the object is not initialized, please check whether Initialize is called.");
         return BM_NOT_INITIALIZED;
     }
 
-    auto ret = DlAclApi::AclrtSetDevice(HybmGetInitDeviceId());
+    auto ret = SetThreadAclDevice();
+    if (ret != BM_OK) {
+        return BM_ERROR;
+    }
+
+    ret = DlAclApi::AclrtSetDevice(HybmGetInitDeviceId());
     if (ret != BM_OK) {
         BM_LOG_ERROR("set device id to be " << HybmGetInitDeviceId() << " failed: " << ret);
         return BM_ERROR;
@@ -308,7 +365,7 @@ int32_t MemEntityDefault::ImportExchangeInfo(const ExchangeInfoReader desc[], ui
         infos.emplace_back(desc[i].LeftToString());
     }
 
-    ret = currentSegment->Import(infos);
+    ret = currentSegment->Import(infos, addresses);
     if (ret != BM_OK) {
         BM_LOG_ERROR("segment import infos failed: " << ret);
         return ret;
@@ -473,25 +530,48 @@ int32_t MemEntityDefault::RemoveImported(const std::vector<uint32_t> &ranks) noe
     return BM_OK;
 }
 
-int32_t MemEntityDefault::CopyData(const void *src, void *dest, uint64_t length, hybm_data_copy_direction direction,
-                                   void *stream, uint32_t flags) noexcept
+int32_t MemEntityDefault::GetExportSliceInfoSize(size_t &size) noexcept
+{
+    size_t exportSize = 0;
+    auto segment = hbmSegment_ == nullptr ? dramSegment_ : hbmSegment_;
+    if (segment == nullptr) {
+        BM_LOG_ERROR("segment is null.");
+        return BM_ERROR;
+    }
+
+    auto ret = segment->GetExportSliceSize(exportSize);
+    if (ret != 0) {
+        BM_LOG_ERROR("GetExportSliceSize for segment failed: " << ret);
+        return ret;
+    }
+
+    if (transportManager_ != nullptr) {
+        exportSize += sizeof(SliceExportTransportKey);
+    }
+    size = exportSize;
+    return BM_OK;
+}
+
+int32_t MemEntityDefault::CopyData(hybm_copy_params &params, hybm_data_copy_direction direction, void *stream,
+                                   uint32_t flags) noexcept
 {
     if (!initialized) {
         BM_LOG_ERROR("the object is not initialized, please check whether Initialize is called.");
         return BM_NOT_INITIALIZED;
     }
 
-    ExtOptions options{};
-    options.flags = flags;
-    options.stream = stream;
-    auto ret = GenCopyExtOption(src, dest, length, options);
+    auto ret = SetThreadAclDevice();
     if (ret != BM_OK) {
-        BM_LOG_ERROR("generate copy ext options failed: " << ret);
         return ret;
     }
 
+    ExtOptions options{};
+    options.flags = flags;
+    options.stream = stream;
+    GenCopyExtOption(params.src, params.dest, params.dataSize, options);
+
     if ((options_.bmDataOpType & HYBM_DOP_TYPE_SDMA) != 0 && sdmaDataOperator_ != nullptr) {
-        ret = sdmaDataOperator_->DataCopy(src, dest, length, direction, options);
+        ret = sdmaDataOperator_->DataCopy(params, direction, options);
         if (ret == BM_OK) {
             return BM_OK;
         }
@@ -500,7 +580,7 @@ int32_t MemEntityDefault::CopyData(const void *src, void *dest, uint64_t length,
     }
 
     if (devRdmaDataOperator_ != nullptr) {
-        ret = devRdmaDataOperator_->DataCopy(src, dest, length, direction, options);
+        ret = devRdmaDataOperator_->DataCopy(params, direction, options);
         if (ret == BM_OK) {
             return BM_OK;
         }
@@ -508,7 +588,7 @@ int32_t MemEntityDefault::CopyData(const void *src, void *dest, uint64_t length,
     }
 
     if (hostRdmaDataOperator_ != nullptr) {
-        ret = hostRdmaDataOperator_->DataCopy(src, dest, length, direction, options);
+        ret = hostRdmaDataOperator_->DataCopy(params, direction, options);
         if (ret == BM_OK) {
             return BM_OK;
         }
@@ -519,25 +599,26 @@ int32_t MemEntityDefault::CopyData(const void *src, void *dest, uint64_t length,
     return BM_ERROR;
 }
 
-int32_t MemEntityDefault::CopyData2d(const void *src, uint64_t spitch, void *dest, uint64_t dpitch, uint64_t width,
-                                     uint64_t height, hybm_data_copy_direction direction, void *stream,
-                                     uint32_t flags) noexcept
+int32_t MemEntityDefault::CopyData2d(hybm_copy_2d_params &params, hybm_data_copy_direction direction,
+                                     void *stream, uint32_t flags) noexcept
 {
     if (!initialized) {
         BM_LOG_ERROR("the object is not initialized, please check whether Initialize is called.");
         return BM_NOT_INITIALIZED;
     }
-    ExtOptions options{};
-    options.flags = flags;
-    options.stream = stream;
-    auto ret = GenCopyExtOption(src, dest, spitch * height, options);
+
+    auto ret = SetThreadAclDevice();
     if (ret != BM_OK) {
-        BM_LOG_ERROR("generate copy ext options failed: " << ret);
         return ret;
     }
 
+    ExtOptions options{};
+    options.flags = flags;
+    options.stream = stream;
+    GenCopyExtOption(params.src, params.dest, params.spitch * params.height, options);
+
     if ((options_.bmDataOpType & HYBM_DOP_TYPE_SDMA) != 0 && sdmaDataOperator_ != nullptr) {
-        ret = sdmaDataOperator_->DataCopy2d(src, spitch, dest, dpitch, width, height, direction, options);
+        ret = sdmaDataOperator_->DataCopy2d(params, direction, options);
         if (ret == BM_OK) {
             return BM_OK;
         }
@@ -546,7 +627,7 @@ int32_t MemEntityDefault::CopyData2d(const void *src, uint64_t spitch, void *des
     }
 
     if (devRdmaDataOperator_ != nullptr) {
-        ret = devRdmaDataOperator_->DataCopy2d(src, spitch, dest, dpitch, width, height, direction, options);
+        ret = devRdmaDataOperator_->DataCopy2d(params, direction, options);
         if (ret == BM_OK) {
             return BM_OK;
         }
@@ -554,7 +635,7 @@ int32_t MemEntityDefault::CopyData2d(const void *src, uint64_t spitch, void *des
     }
 
     if (hostRdmaDataOperator_ != nullptr) {
-        ret = hostRdmaDataOperator_->DataCopy2d(src, spitch, dest, dpitch, width, height, direction, options);
+        ret = hostRdmaDataOperator_->DataCopy2d(params, direction, options);
         if (ret == BM_OK) {
             return BM_OK;
         }
@@ -571,15 +652,16 @@ int32_t MemEntityDefault::BatchCopyData(hybm_batch_copy_params &params, hybm_dat
         BM_LOG_ERROR("the object is not initialized, please check whether Initialize is called.");
         return BM_NOT_INITIALIZED;
     }
-    int32_t ret = BM_ERROR;
+
+    auto ret = SetThreadAclDevice();
+    if (ret != BM_OK) {
+        return ret;
+    }
+
     ExtOptions options{};
     options.flags = flags;
     options.stream = stream;
-    ret = GenCopyExtOption(params.sources[0], params.destinations[0], params.dataSizes[0], options);
-    if (ret != BM_OK) {
-        BM_LOG_ERROR("generate copy ext options failed: " << ret);
-        return ret;
-    }
+    GenCopyExtOption(params.sources[0], params.destinations[0], params.dataSizes[0], options);
 
     if ((options_.bmDataOpType & HYBM_DOP_TYPE_SDMA) != 0 && sdmaDataOperator_ != nullptr) {
         ret = sdmaDataOperator_->BatchDataCopy(params, direction, options);
@@ -658,12 +740,6 @@ int MemEntityDefault::CheckOptions(const hybm_options *options) noexcept
         return BM_INVALID_PARAM;
     }
 
-    if (options->singleRankVASpace == 0UL || (options->singleRankVASpace % DEVICE_LARGE_PAGE_SIZE) != 0UL) {
-        BM_LOG_ERROR("invalid local memory size(" << options->singleRankVASpace << ") should be times of "
-                                                  << DEVICE_LARGE_PAGE_SIZE);
-        return BM_INVALID_PARAM;
-    }
-
     return BM_OK;
 }
 
@@ -692,7 +768,7 @@ void MemEntityDefault::SetHybmDeviceInfo(HybmDeviceMeta &info)
     info.entityId = id_;
     info.rankId = options_.rankId;
     info.rankSize = options_.rankCount;
-    info.symmetricSize = options_.singleRankVASpace;
+    info.symmetricSize = options_.deviceVASpace;
     info.extraContextSize = 0;
     if (transportManager_ != nullptr) {
         info.qpInfoAddress = (uint64_t)(ptrdiff_t)transportManager_->GetQpInfo();
@@ -717,42 +793,39 @@ int MemEntityDefault::ImportForTransport(const ExchangeInfoReader desc[], uint32
     return BM_OK;
 }
 
-int MemEntityDefault::GenCopyExtOption(const void *src, void *dest, uint64_t length, ExtOptions &options) noexcept
+void MemEntityDefault::GenCopyExtOption(void* &src, void* &dest, uint64_t length, ExtOptions &options) noexcept
 {
-    if ((uint64_t)(ptrdiff_t)src >= HYBM_HOST_GVA_START_ADDR) {
+    void *real = Valid48BitsAddress(src);
+    if ((uint64_t)(ptrdiff_t)real >= HYBM_HOST_GVA_START_ADDR) {
         if (dramSegment_ == nullptr) {
             options.srcRankId = options_.rankId;
         } else {
-            options.srcRankId = dramSegment_->GetRankIdByAddr(src, length);
+            dramSegment_->GetRankIdByAddr(src, length, options.srcRankId);
         }
     } else {
         if (hbmSegment_ == nullptr) {
             options.srcRankId = options_.rankId;
         } else {
-            options.srcRankId = hbmSegment_->GetRankIdByAddr(src, length);
+            hbmSegment_->GetRankIdByAddr(src, length, options.srcRankId);
         }
     }
-    if (options.srcRankId == UINT32_MAX) {
-        options.srcRankId = options_.rankId;
-    }
+    src = real;
 
-    if ((uint64_t)(ptrdiff_t)dest >= HYBM_HOST_GVA_START_ADDR) {
+    real = Valid48BitsAddress(dest);
+    if ((uint64_t)(ptrdiff_t)real >= HYBM_HOST_GVA_START_ADDR) {
         if (dramSegment_ == nullptr) {
             options.destRankId = options_.rankId;
         } else {
-            options.destRankId = dramSegment_->GetRankIdByAddr(dest, length);
+            dramSegment_->GetRankIdByAddr(dest, length, options.destRankId);
         }
     } else {
         if (hbmSegment_ == nullptr) {
             options.destRankId = options_.rankId;
         } else {
-            options.destRankId = hbmSegment_->GetRankIdByAddr(dest, length);
+            hbmSegment_->GetRankIdByAddr(dest, length, options.destRankId);
         }
     }
-    if (options.destRankId == UINT32_MAX) {
-        options.destRankId = options_.rankId;
-    }
-    return BM_OK;
+    dest = real;
 }
 
 Result MemEntityDefault::InitSegment()
@@ -786,7 +859,7 @@ Result MemEntityDefault::InitHbmSegment()
 
     MemSegmentOptions segmentOptions;
     segmentOptions.size = options_.deviceVASpace;
-    segmentOptions.segId = HybmGetInitDeviceId();
+    segmentOptions.devId = HybmGetInitDeviceId();
     segmentOptions.segType = HYBM_MST_HBM;
     segmentOptions.rankId = options_.rankId;
     segmentOptions.rankCnt = options_.rankCount;
@@ -795,7 +868,7 @@ Result MemEntityDefault::InitHbmSegment()
         BM_LOG_ERROR("Failed to create hbm segment");
         return BM_ERROR;
     }
-    return MemSegmentDevice::GetDeviceId(HybmGetInitDeviceId());
+    return MemSegmentDevice::SetDeviceInfo(HybmGetInitDeviceId());
 }
 
 Result MemEntityDefault::InitDramSegment()
@@ -807,7 +880,7 @@ Result MemEntityDefault::InitDramSegment()
 
     MemSegmentOptions segmentOptions;
     segmentOptions.size = options_.hostVASpace;
-    segmentOptions.segId = HybmGetInitDeviceId();
+    segmentOptions.devId = HybmGetInitDeviceId();
     segmentOptions.segType = HYBM_MST_DRAM;
     segmentOptions.rankId = options_.rankId;
     segmentOptions.rankCnt = options_.rankCount;
@@ -820,7 +893,7 @@ Result MemEntityDefault::InitDramSegment()
         return BM_ERROR;
     }
 
-    return MemSegmentDevice::GetDeviceId(HybmGetInitDeviceId());
+    return MemSegmentDevice::SetDeviceInfo(HybmGetInitDeviceId());
 }
 
 Result MemEntityDefault::InitTransManager()
@@ -973,5 +1046,38 @@ int32_t MemEntityDefault::RegisterMem(uint64_t addr, uint64_t size) noexcept
     return hybm_gvm_mem_register(addr, size);
 }
 
-}  // namespace mf
-}  // namespace ock
+int32_t MemEntityDefault::SetThreadAclDevice()
+{
+    if (isSetDevice_) {
+        return BM_OK;
+    }
+    auto ret = DlAclApi::AclrtSetDevice(HybmGetInitDeviceId());
+    if (ret != BM_OK) {
+        BM_LOG_ERROR("Set device id to be " << HybmGetInitDeviceId() << " failed: " << ret);
+        return ret;
+    }
+    isSetDevice_ = true;
+    BM_LOG_DEBUG("Set device id to be " << HybmGetInitDeviceId() << " success.");
+    return BM_OK;
+}
+
+void MemEntityDefault::ReleaseResources()
+{
+    if (!initialized) {
+        return;
+    }
+    hbmSegment_.reset();
+    dramSegment_.reset();
+    sdmaDataOperator_.reset();
+    devRdmaDataOperator_.reset();
+    hostRdmaDataOperator_.reset();
+    if (transportManager_ != nullptr) {
+        transportManager_->CloseDevice();
+        transportManager_.reset();
+    }
+    DlAclApi::AclrtDestroyStream(stream_);
+    stream_ = nullptr;
+    initialized = false;
+}
+} // namespace mf
+} // namespace ock

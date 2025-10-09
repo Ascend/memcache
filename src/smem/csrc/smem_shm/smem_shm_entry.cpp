@@ -12,7 +12,7 @@
 namespace ock {
 namespace smem {
 
-SmemShmEntry::SmemShmEntry(uint32_t id) : id_{id}, entity_{nullptr}, gva_{nullptr}, options_{}
+SmemShmEntry::SmemShmEntry(uint32_t id) : id_{id}, entity_{nullptr}, gva_{nullptr}
 {
     (void)smem_shm_config_init(&extraConfig_);
 
@@ -40,7 +40,13 @@ SmemShmEntry::SmemShmEntry(uint32_t id) : id_{id}, entity_{nullptr}, gva_{nullpt
 SmemShmEntry::~SmemShmEntry()
 {
     if (globalGroup_ != nullptr) {
+        globalGroup_->GroupSnClean();
         globalGroup_ = nullptr;
+    }
+
+    uint32_t flags = 0;
+    if (entity_ != nullptr && slice_ != nullptr) {
+        hybm_free_local_memory(entity_, slice_, 1, flags);
     }
 
     if (entity_ != nullptr && gva_ != nullptr) {
@@ -51,6 +57,22 @@ SmemShmEntry::~SmemShmEntry()
     if (entity_ != nullptr) {
         hybm_destroy_entity(entity_, 0);
         entity_ = nullptr;
+    }
+}
+
+static void ReleaseAfterFailed(hybm_entity_t entity, hybm_mem_slice_t slice, void *reservedMem)
+{
+    uint32_t flags = 0;
+    if (entity != nullptr && slice != 0) {
+        hybm_free_local_memory(entity, slice, 1, flags);
+    }
+
+    if (entity != nullptr) {
+        hybm_unreserve_mem_space(entity, flags);
+    }
+
+    if (entity != nullptr) {
+        hybm_destroy_entity(entity, flags);
     }
 }
 
@@ -137,18 +159,20 @@ void SmemShmEntry::InitStepDestroyEntity()
 
 int32_t SmemShmEntry::InitStepReserveMemory()
 {
-    auto ret = hybm_reserve_mem_space(entity_, 0);
-    if (ret != 0) {
+    void *reservedMem = nullptr;
+    auto ret = hybm_reserve_mem_space(entity_, 0, &reservedMem);
+    if (ret != 0 || reservedMem == nullptr) {
         SM_LOG_ERROR("reserve mem failed, result: " << ret);
         return SM_ERROR;
     }
 
-    gva_ = hybm_get_memory_ptr(entity_, HYBM_MEM_TYPE_DEVICE);
+    gva_ = reservedMem;
     return SM_OK;
 }
 
 void SmemShmEntry::InitStepUnreserveMemory()
 {
+    auto reservedMem = gva_;
     auto ret = hybm_unreserve_mem_space(entity_, 0);
     if (ret != 0) {
         SM_LOG_WARN("unreserve mem space failed: " << ret);
@@ -196,7 +220,7 @@ int32_t SmemShmEntry::InitStepExchangeSlice()
         return ret;
     }
 
-    ret = hybm_import(entity_, allExInfo, options_.rankCount, 0);
+    ret = hybm_import(entity_, allExInfo, options_.rankCount, nullptr, 0);
     if (ret != 0) {
         SM_LOG_ERROR("hybm import failed, result: " << ret);
         return ret;
@@ -215,10 +239,14 @@ int32_t SmemShmEntry::InitStepExchangeEntity()
 {
     hybm_exchange_info exInfo;
     bzero(&exInfo, sizeof(exInfo));
-    auto ret = hybm_entity_export(entity_, 0, &exInfo);
+    auto ret = hybm_export(entity_, nullptr, 0, &exInfo);
     if (ret != 0) {
         SM_LOG_ERROR("hybm export entity failed, result: " << ret);
         return ret;
+    }
+
+    if (exInfo.descLen == 0) {
+        return SM_OK;
     }
 
     hybm_exchange_info allExInfo[options_.rankCount];
@@ -229,7 +257,7 @@ int32_t SmemShmEntry::InitStepExchangeEntity()
         return ret;
     }
 
-    ret = hybm_entity_import(entity_, allExInfo, options_.rankCount, 0);
+    ret = hybm_import(entity_, allExInfo, options_.rankCount, nullptr, 0);
     if (ret != 0) {
         SM_LOG_ERROR("hybm import entity failed, result: " << ret);
         return ret;
@@ -274,11 +302,11 @@ Result SmemShmEntry::GetReachInfo(uint32_t remoteRank, uint32_t &reachInfo) cons
     }
 
     if (reachesTypes & HYBM_DOP_TYPE_SDMA) {
-        reachInfo |= SMEMS_DATA_OP_RDMA;
+        reachInfo |= SMEMS_DATA_OP_SDMA;
     }
 
     if (reachesTypes & HYBM_DOP_TYPE_DEVICE_RDMA) {
-        reachInfo |= SMEMS_DATA_OP_SDMA;
+        reachInfo |= SMEMS_DATA_OP_RDMA;
     }
 
     return SM_OK;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 
 #ifndef MF_HYBM_CORE_DL_ACL_API_H
@@ -33,6 +33,8 @@ using rtIpcDestroyMemoryNameFunc = int32_t (*)(const char *);
 using rtEnableP2PFunc = int32_t (*)(uint32_t, uint32_t, uint32_t);
 using rtDisableP2PFunc = int32_t (*)(uint32_t, uint32_t);
 using rtGetLogicDevIdByUserDevIdFunc = int32_t (*)(const int32_t, int32_t *const);
+using rtIpcOpenMemoryFunc = int32_t (*)(void **, const char *);
+using rtIpcCloseMemoryFunc = int32_t (*)(const void *);
 
 class DlAclApi {
 public:
@@ -210,6 +212,22 @@ public:
         return pRtIpcDestroyMemoryName(name);
     }
 
+    static inline Result RtIpcOpenMemory(void **ptr, const char *name)
+    {
+        if (pRtIpcOpenMemory == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pRtIpcOpenMemory(ptr, name);
+    }
+
+    static inline Result RtIpcCloseMemory(const void *ptr)
+    {
+        if (pRtIpcCloseMemory == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pRtIpcCloseMemory(ptr);
+    }
+
     static inline Result RtEnableP2P(uint32_t devIdDes, uint32_t phyIdSrc, uint32_t flag)
     {
         if (pRtEnableP2P == nullptr) {
@@ -260,6 +278,8 @@ private:
     static rtSetIpcMemorySuperPodPidFunc pRtSetIpcMemorySuperPodPid;
     static rtIpcSetMemoryNameFunc pRtIpcSetMemoryName;
     static rtIpcDestroyMemoryNameFunc pRtIpcDestroyMemoryName;
+    static rtIpcOpenMemoryFunc pRtIpcOpenMemory;
+    static rtIpcCloseMemoryFunc pRtIpcCloseMemory;
     static rtEnableP2PFunc pRtEnableP2P;
     static rtDisableP2PFunc pRtDisableP2P;
     static rtGetLogicDevIdByUserDevIdFunc pRtGetLogicDevIdByUserDevId;

@@ -7,7 +7,8 @@
 #include "smem_shm_aicore_base_define.h"
 
 template<typename T>
-SMEM_SHM_INLINE_AICORE void smem_shm_copy_ub2gm(__gm__ T* dstGva, __ubuf__ T* srcUb, uint32_t size)
+SMEM_SHM_INLINE_AICORE void smem_shm_copy_ub2gm(__gm__ T* dstGva, __ubuf__ T* srcUb,
+    uint32_t size, bool enableL2 = true)
 {
     ASCENDC_ASSERT((dstGva != nullptr), "input gva is null");
 
@@ -17,6 +18,9 @@ SMEM_SHM_INLINE_AICORE void smem_shm_copy_ub2gm(__gm__ T* dstGva, __ubuf__ T* sr
     ubTensor.address_.logicPos = static_cast<uint8_t>(AscendC::TPosition::VECIN);
     ubTensor.address_.bufferAddr = reinterpret_cast<uint64_t>(srcUb);
     gmTensor.SetGlobalBuffer(reinterpret_cast<__gm__ T*>(dstGva));
+    if (!enableL2) {
+        gmTensor.SetL2CacheHint(AscendC::CacheMode::CACHE_MODE_DISABLE);
+    }
     AscendC::DataCopyPad(gmTensor, ubTensor, dataCopyParams);
 }
 
@@ -30,7 +34,7 @@ SMEM_SHM_INLINE_AICORE void smem_shm_copy_ub2gm(const AscendC::GlobalTensor<T> &
 
 template<typename T>
 SMEM_SHM_INLINE_AICORE void smem_shm_copy_ub2gm(__gm__ T* dstGva, __ubuf__ T* srcUb,
-                                                AscendC::DataCopyExtParams &copyParams)
+    AscendC::DataCopyExtParams &copyParams)
 {
     ASCENDC_ASSERT((dstGva != nullptr), "input gva is null");
 
@@ -50,7 +54,8 @@ SMEM_SHM_INLINE_AICORE void smem_shm_copy_ub2gm(const AscendC::GlobalTensor<T> &
 }
 
 template<typename T>
-SMEM_SHM_INLINE_AICORE void smem_shm_copy_gm2ub(__ubuf__ T* dstUb, __gm__ T* srcGva, uint32_t size)
+SMEM_SHM_INLINE_AICORE void smem_shm_copy_gm2ub(__ubuf__ T* dstUb, __gm__ T* srcGva,
+    uint32_t size, bool enableL2 = true)
 {
     ASCENDC_ASSERT((srcGva != nullptr), "input gva is null");
     AscendC::LocalTensor<T> ubTensor;
@@ -59,6 +64,9 @@ SMEM_SHM_INLINE_AICORE void smem_shm_copy_gm2ub(__ubuf__ T* dstUb, __gm__ T* src
     ubTensor.address_.logicPos = static_cast<uint8_t>(AscendC::TPosition::VECIN);
     ubTensor.address_.bufferAddr = reinterpret_cast<uint64_t>(dstUb);
     gmTensor.SetGlobalBuffer(reinterpret_cast<__gm__ T*>(srcGva));
+    if (!enableL2) {
+        gmTensor.SetL2CacheHint(AscendC::CacheMode::CACHE_MODE_DISABLE);
+    }
     AscendC::DataCopyPadExtParams<T> padParams;
     AscendC::DataCopyPad(ubTensor, gmTensor, dataCopyParams, padParams);
 }
@@ -74,7 +82,7 @@ SMEM_SHM_INLINE_AICORE void smem_shm_copy_gm2ub(const AscendC::LocalTensor<T> &d
 
 template<typename T>
 SMEM_SHM_INLINE_AICORE void smem_shm_copy_gm2ub(__ubuf__ T* dstUb, __gm__ T* srcGva,
-                                                AscendC::DataCopyExtParams &copyParams)
+    AscendC::DataCopyExtParams &copyParams)
 {
     ASCENDC_ASSERT((srcGva != nullptr), "input gva is null");
     AscendC::LocalTensor<T> ubTensor;

@@ -6,6 +6,7 @@
 
 #include <netinet/in.h>
 #include <cstdint>
+#include <cstddef>
 
 namespace ock {
 namespace mf {
@@ -18,17 +19,20 @@ constexpr uint64_t TB = GB * 1024ULL;
 constexpr uint64_t HEIGHT_MAX = 256ULL;
 constexpr uint32_t RANK_MAX = 1024UL;
 
-constexpr uint64_t DEVICE_LARGE_PAGE_SIZE = 2UL * 1024UL * 1024UL;  // 大页的size, 2M
-constexpr uint64_t SVM_END_ADDR = 0x100000000000ULL + 0x80000000000ULL; // svm的结尾虚拟地址
-constexpr uint64_t HYBM_DEVICE_PRE_META_SIZE = 128UL; // 128B
-constexpr uint64_t HYBM_DEVICE_GLOBAL_META_SIZE = HYBM_DEVICE_PRE_META_SIZE; // 128B
-constexpr uint64_t HYBM_ENTITY_NUM_MAX = 511UL; // entity最大数量
-constexpr uint64_t HYBM_DEVICE_META_SIZE = HYBM_DEVICE_PRE_META_SIZE * HYBM_ENTITY_NUM_MAX
-    + HYBM_DEVICE_GLOBAL_META_SIZE; // 64K
+constexpr uint64_t DEVICE_LARGE_PAGE_SIZE = 2UL * 1024UL * 1024UL; // 大页的size, 2M
+constexpr uint64_t HYBM_DEVICE_VA_START = 0x100000000000UL;        // NPU上的地址空间起始: 16T
+constexpr uint64_t HYBM_DEVICE_VA_SIZE = 0x80000000000UL;          // NPU上的地址空间范围: 8T
+constexpr uint64_t SVM_END_ADDR = HYBM_DEVICE_VA_START + HYBM_DEVICE_VA_SIZE - (1UL << 30UL); // svm的结尾虚拟地址
+constexpr uint64_t HYBM_DEVICE_PRE_META_SIZE = 128UL;                                         // 128B
+constexpr uint64_t HYBM_DEVICE_GLOBAL_META_SIZE = HYBM_DEVICE_PRE_META_SIZE;                  // 128B
+constexpr uint64_t HYBM_ENTITY_NUM_MAX = 511UL;                                               // entity最大数量
+constexpr uint64_t HYBM_DEVICE_META_SIZE =
+    HYBM_DEVICE_PRE_META_SIZE * HYBM_ENTITY_NUM_MAX + HYBM_DEVICE_GLOBAL_META_SIZE; // 64K
 
 constexpr uint64_t HYBM_DEVICE_USER_CONTEXT_PRE_SIZE = 64UL * 1024UL; // 64K
-constexpr uint64_t HYBM_DEVICE_INFO_SIZE = HYBM_DEVICE_USER_CONTEXT_PRE_SIZE * HYBM_ENTITY_NUM_MAX
-    + HYBM_DEVICE_META_SIZE; // 元数据+用户context,总大小32M, 对齐DEVICE_LARGE_PAGE_SIZE
+constexpr uint64_t HYBM_DEVICE_INFO_SIZE =
+    HYBM_DEVICE_USER_CONTEXT_PRE_SIZE * HYBM_ENTITY_NUM_MAX +
+    HYBM_DEVICE_META_SIZE; // 元数据+用户context,总大小32M, 对齐DEVICE_LARGE_PAGE_SIZE
 constexpr uint64_t HYBM_DEVICE_META_ADDR = SVM_END_ADDR - HYBM_DEVICE_INFO_SIZE;
 constexpr uint64_t HYBM_DEVICE_USER_CONTEXT_ADDR = HYBM_DEVICE_META_ADDR + HYBM_DEVICE_META_SIZE;
 constexpr uint32_t ACL_MEMCPY_HOST_TO_HOST = 0;
@@ -36,21 +40,48 @@ constexpr uint32_t ACL_MEMCPY_HOST_TO_DEVICE = 1;
 constexpr uint32_t ACL_MEMCPY_DEVICE_TO_HOST = 2;
 constexpr uint32_t ACL_MEMCPY_DEVICE_TO_DEVICE = 3;
 
-constexpr uint32_t HCCL_ROOT_INFO_BYTES = 256;  // 4108: root info length
+constexpr uint32_t HCCL_ROOT_INFO_BYTES = 256; // 4108: root info length
 constexpr uint32_t HCCP_SOCK_CONN_TAG_SIZE = 192;
 constexpr uint32_t HCCP_MAX_INTERFACE_NAME_LEN = 256;
 
-constexpr uint64_t HYBM_HBM_START_ADDR      = 0x0000100000000000UL;
+constexpr uint64_t HYBM_HBM_START_ADDR = 0x0000100000000000UL;
 constexpr uint64_t HYBM_HOST_REG_START_ADDR = 0x0000180000000000UL;
 constexpr uint64_t HYBM_HOST_GVA_START_ADDR = 0x0000200000000000UL; // 32T
-constexpr uint64_t HYBM_GVM_START_ADDR      = 0x0000700000000000UL; // 112T
-constexpr uint64_t HYBM_GVM_END_ADDR        = 0x0000A00000000000UL; // 160T
+constexpr uint64_t HYBM_GVM_START_ADDR = 0x0000700000000000UL;      // 112T
+constexpr uint64_t HYBM_GVM_END_ADDR = 0x0000A00000000000UL;        // 160T
 
 constexpr uint64_t ENTITY_EXPORT_INFO_MAGIC = 0xAABB1234FFFFEE00UL;
 constexpr uint64_t HBM_SLICE_EXPORT_INFO_MAGIC = 0xAABB1234FFFFEE01UL;
 constexpr uint64_t DRAM_SLICE_EXPORT_INFO_MAGIC = 0xAABB1234FFFFEE02UL;
 constexpr uint64_t SDMA_SLICE_EXPORT_INFO_MAGIC = 0xAABB1234FFFFEE03UL;
 constexpr uint64_t EXPORT_INFO_VERSION = 0x1UL;
+
+inline bool IsVirtualAddressNpu(uint64_t address)
+{
+    return (address >= HYBM_DEVICE_VA_START && address < (HYBM_DEVICE_VA_START + HYBM_DEVICE_VA_SIZE));
+}
+
+inline bool IsVirtualAddressNpu(const void *address)
+{
+    return IsVirtualAddressNpu(static_cast<uint64_t>(reinterpret_cast<uintptr_t>(address)));
+}
+
+inline uint64_t Valid48BitsAddress(uint64_t address)
+{
+    return address & 0xffffffffffffUL;
+}
+
+inline const void *Valid48BitsAddress(const void *address)
+{
+    uint64_t addr = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(address));
+    return reinterpret_cast<const void *>(static_cast<uintptr_t>(Valid48BitsAddress(addr)));
+}
+
+inline void *Valid48BitsAddress(void *address)
+{
+    uint64_t addr = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(address));
+    return reinterpret_cast<void *>(static_cast<uintptr_t>(Valid48BitsAddress(addr)));
+}
 
 enum DeviceSystemInfoType {
     INFO_TYPE_VERSION = 1,
@@ -75,7 +106,7 @@ struct HybmDeviceMeta {
     uint32_t extraContextSize;
     uint64_t symmetricSize;
     uint64_t qpInfoAddress;
-    uint64_t reserved[12];  // total 128B, equal HYBM_DEVICE_PRE_META_SIZE
+    uint64_t reserved[12]; // total 128B, equal HYBM_DEVICE_PRE_META_SIZE
 };
 
 /**
@@ -86,9 +117,9 @@ struct HcclRootInfo {
 };
 
 struct HccpRaInitConfig {
-    uint32_t phyId;       /**< physical device id */
-    uint32_t nicPosition; /**< reference to HccpNetworkMode */
-    int hdcType;          /**< reference to drvHdcServiceType */
+    uint32_t phyId;        /**< physical device id */
+    uint32_t nicPosition;  /**< reference to HccpNetworkMode */
+    int hdcType;           /**< reference to drvHdcServiceType */
     bool enable_hdc_async; /**< true will init an extra HDC session for async APIs */
 };
 
@@ -127,7 +158,7 @@ enum HccpMrAccessFlags {
     RA_ACCESS_LOCAL_WRITE = 1,         /**< mr local write access */
     RA_ACCESS_REMOTE_WRITE = (1 << 1), /**< mr remote write access */
     RA_ACCESS_REMOTE_READ = (1 << 2),  /**< mr remote read access */
-    RA_ACCESS_NORMAL = 7, // RA_ACCESS_LOCAL_WRITE | RA_ACCESS_REMOTE_WRITE | RA_ACCESS_REMOTE_READ
+    RA_ACCESS_NORMAL = 7,              // RA_ACCESS_LOCAL_WRITE | RA_ACCESS_REMOTE_WRITE | RA_ACCESS_REMOTE_READ
     RA_ACCESS_REDUCE = (1 << 8),
 };
 
@@ -316,7 +347,7 @@ struct ibv_qp_init_attr {
 
 union ai_data_plane_cstm_flag {
     struct {
-        uint32_t cq_cstm : 1;  // 0: hccp poll cq; 1: caller poll cq
+        uint32_t cq_cstm : 1; // 0: hccp poll cq; 1: caller poll cq
         uint32_t reserved : 31;
     } bs;
     uint32_t value;
@@ -330,9 +361,9 @@ struct HccpQpExtAttrs {
     struct ibv_qp_init_attr qp_attr;
     // version control and reserved
     int version;
-    int mem_align;  // 0,1:4KB, 2:2MB
+    int mem_align; // 0,1:4KB, 2:2MB
     uint32_t udp_sport;
-    union ai_data_plane_cstm_flag data_plane_flag;  // only valid in ra_ai_qp_create
+    union ai_data_plane_cstm_flag data_plane_flag; // only valid in ra_ai_qp_create
     uint32_t reserved[29];
 };
 
@@ -369,13 +400,13 @@ struct ai_data_plane_info {
 };
 
 struct HccpAiQpInfo {
-    unsigned long long aiQpAddr;  // refer to struct ibv_qp *
-    unsigned int sqIndex;         // index of sq
-    unsigned int dbIndex;         // index of db
+    unsigned long long aiQpAddr; // refer to struct ibv_qp *
+    unsigned int sqIndex;        // index of sq
+    unsigned int dbIndex;        // index of db
 
     // below cq related info valid when data_plane_flag.bs.cq_cstm was 1
-    unsigned long long ai_scq_addr;  // refer to struct ibv_cq *scq
-    unsigned long long ai_rcq_addr;  // refer to struct ibv_cq *rcq
+    unsigned long long ai_scq_addr; // refer to struct ibv_cq *scq
+    unsigned long long ai_rcq_addr; // refer to struct ibv_cq *rcq
     struct ai_data_plane_info data_plane_info;
 };
 
@@ -388,7 +419,7 @@ struct AiQpRMAWQ {
     uint32_t depth{0};
     uint64_t headAddr{0};
     uint64_t tailAddr{0};
-    DBMode dbMode{DBMode::INVALID_DB};  // 0-hw/1-sw
+    DBMode dbMode{DBMode::INVALID_DB}; // 0-hw/1-sw
     uint64_t dbAddr{0};
     uint32_t sl{0};
 };
@@ -400,15 +431,15 @@ struct AiQpRMACQ {
     uint32_t depth{0};
     uint64_t headAddr{0};
     uint64_t tailAddr{0};
-    DBMode dbMode{DBMode::INVALID_DB};  // 0-hw/1-sw
+    DBMode dbMode{DBMode::INVALID_DB}; // 0-hw/1-sw
     uint64_t dbAddr{0};
 };
 
 struct RdmaMemRegionInfo {
-    uint64_t size{0};  // size of the memory region
-    uint64_t addr{0};  // start address of the memory region
+    uint64_t size{0}; // size of the memory region
+    uint64_t addr{0}; // start address of the memory region
     uint32_t lkey{0};
-    uint32_t rkey{0};   // key of the memory region
+    uint32_t rkey{0}; // key of the memory region
 };
 
 struct AiQpRMAQueueInfo {
@@ -455,13 +486,13 @@ struct wr_ext_info {
 };
 
 struct send_wr_v2 {
-    uint64_t wr_id; /**< user assigned work request ID */
+    uint64_t wr_id;           /**< user assigned work request ID */
     struct sg_list *buf_list; /**< list of sg */
-    uint16_t buf_num; /**< num of buf_list */
-    uint64_t dst_addr; /**< destination address */
-    uint32_t rkey;     /**< remote address access key */
-    uint32_t op; /**< operations of RDMA supported:RDMA_WRITE:0 */
-    int send_flag; /**< reference to ra_send_flags */
+    uint16_t buf_num;         /**< num of buf_list */
+    uint64_t dst_addr;        /**< destination address */
+    uint32_t rkey;            /**< remote address access key */
+    uint32_t op;              /**< operations of RDMA supported:RDMA_WRITE:0 */
+    int send_flag;            /**< reference to ra_send_flags */
     union {
         struct wr_aux_info aux; /**< aux info */
         struct wr_ext_info ext; /**< ext info */
@@ -505,7 +536,7 @@ struct send_wr_rsp {
 /**
  * @brief handle to HCCL communicator
  */
-using HcclComm = void*;
+using HcclComm = void *;
 
 // macro for gcc optimization for prediction of if/else
 #ifndef LIKELY
@@ -518,17 +549,25 @@ using HcclComm = void*;
 
 #define HYBM_API __attribute__((visibility("default")))
 
-#define DL_LOAD_SYM(TARGET_FUNC_VAR, TARGET_FUNC_TYPE, FILE_HANDLE, SYMBOL_NAME)          \
-    do {                                                                                  \
-        TARGET_FUNC_VAR = (TARGET_FUNC_TYPE)dlsym(FILE_HANDLE, SYMBOL_NAME);              \
-        if (TARGET_FUNC_VAR == nullptr) {                                                 \
-            BM_LOG_ERROR("Failed to call dlsym to load SYMBOL_NAME, error" << dlerror()); \
-            dlclose(FILE_HANDLE);                                                         \
-            FILE_HANDLE = nullptr;                                                        \
-            return BM_DL_FUNCTION_FAILED;                                                 \
-        }                                                                                 \
+#define DL_LOAD_SYM(TARGET_FUNC_VAR, TARGET_FUNC_TYPE, FILE_HANDLE, SYMBOL_NAME)                      \
+    do {                                                                                              \
+        TARGET_FUNC_VAR = (TARGET_FUNC_TYPE)dlsym(FILE_HANDLE, SYMBOL_NAME);                          \
+        if ((TARGET_FUNC_VAR) == nullptr) {                                                           \
+            BM_LOG_ERROR("Failed to call dlsym to load " << (SYMBOL_NAME) << ", error" << dlerror()); \
+            dlclose(FILE_HANDLE);                                                                     \
+            FILE_HANDLE = nullptr;                                                                    \
+            return BM_DL_FUNCTION_FAILED;                                                             \
+        }                                                                                             \
     } while (0)
+
+enum HybmGvaVersion : uint32_t {
+    HYBM_GVA_V1 = 0,
+    HYBM_GVA_V2 = 1,
+    HYBM_GVA_V3 = 2,
+    HYBM_GVA_UNKNOWN
+};
+
 }  // namespace mf
 }  // namespace ock
 
-#endif  // MEM_FABRIC_HYBRID_HYBM_DEFINE_H
+#endif // MEM_FABRIC_HYBRID_HYBM_DEFINE_H

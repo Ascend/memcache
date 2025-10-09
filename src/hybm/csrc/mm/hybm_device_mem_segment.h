@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 #ifndef MEM_FABRIC_HYBRID_HYBM_DEVICE_MEM_SEGMENT_H
 #define MEM_FABRIC_HYBRID_HYBM_DEVICE_MEM_SEGMENT_H
@@ -13,6 +13,9 @@
 
 namespace ock {
 namespace mf {
+constexpr uint32_t invalidSuperPodId = 0xFFFFFFFFU;
+constexpr uint32_t invalidServerId = 0x3FFU;
+
 struct HbmExportInfo {
     uint64_t magic{HBM_SLICE_EXPORT_INFO_MAGIC};
     uint64_t version{EXPORT_INFO_VERSION};
@@ -36,8 +39,7 @@ struct HbmExportInfo {
 class MemSegmentDevice : public MemSegment {
 public:
     explicit MemSegmentDevice(const MemSegmentOptions &options, int eid) : MemSegment{options, eid} {}
-
-    ~MemSegmentDevice()
+    ~MemSegmentDevice() override
     {
         FreeMemory();
     }
@@ -46,16 +48,18 @@ public:
     Result ReserveMemorySpace(void **address) noexcept override;
     Result UnReserveMemorySpace() noexcept override;
     Result AllocLocalMemory(uint64_t size, std::shared_ptr<MemSlice> &slice) noexcept override;
+    Result RegisterMemory(const void *addr, uint64_t size, std::shared_ptr<MemSlice> &slice) noexcept override;
+    Result ReleaseSliceMemory(const std::shared_ptr<MemSlice> &slice) noexcept override;
     Result Export(std::string &exInfo) noexcept override;
     Result Export(const std::shared_ptr<MemSlice> &slice, std::string &exInfo) noexcept override;
-    Result Import(const std::vector<std::string> &allExInfo) noexcept override;
+    Result GetExportSliceSize(size_t &size) noexcept override;
+    Result Import(const std::vector<std::string> &allExInfo, void *addresses[]) noexcept override;
     Result RemoveImported(const std::vector<uint32_t> &ranks) noexcept override;
     Result Mmap() noexcept override;
     Result Unmap() noexcept override;
     std::shared_ptr<MemSlice> GetMemSlice(hybm_mem_slice_t slice) const noexcept override;
     bool MemoryInRange(const void *begin, uint64_t size) const noexcept override;
-    uint32_t GetRankIdByAddr(const void *addr, uint64_t size) const noexcept override;
-
+    void GetRankIdByAddr(const void *addr, uint64_t size, uint32_t &rankId) const noexcept override;
     hybm_mem_type GetMemoryType() const noexcept override
     {
         return HYBM_MEM_TYPE_DEVICE;
@@ -64,14 +68,15 @@ public:
     bool CheckSmdaReaches(uint32_t rankId) const noexcept override;
 
 public:
-    static int GetDeviceId(int deviceId) noexcept;
+    static int SetDeviceInfo(int deviceId) noexcept;
     static int FillDeviceSuperPodInfo() noexcept;
     static bool CanMapRemote(const HbmExportInfo &rmi) noexcept;
+    static bool CanSdmaReaches(uint32_t superPodId, uint32_t serverId) noexcept;
+    static void GetDeviceInfo(uint32_t &sdId, uint32_t &serverId, uint32_t &superPodId) noexcept;
 
 protected:
     Result GetDeviceInfo() noexcept;
     void FreeMemory() noexcept;
-    Result ReleaseSliceMemory(const std::shared_ptr<MemSlice> &slice) noexcept;
 
 protected:
     uint8_t *globalVirtualAddress_{nullptr};
@@ -79,6 +84,7 @@ protected:
     uint64_t allocatedSize_{0UL};
     uint16_t sliceCount_{0};
     std::map<uint16_t, MemSliceStatus> slices_;
+    std::map<uint16_t, MemSliceStatus> regSlices_;
     std::map<uint16_t, std::string> exportMap_;
     std::set<uint64_t> mappedMem_;
     std::vector<HbmExportInfo> imports_;
@@ -92,7 +98,7 @@ protected:
     static uint32_t serverId_;
     static uint32_t superPodId_;
 };
-}
-}
+} // namespace mf
+} // namespace ock
 
 #endif // MEM_FABRIC_HYBRID_HYBM_DEVICE_MEM_SEGMENT_H

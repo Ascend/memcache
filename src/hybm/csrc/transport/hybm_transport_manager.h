@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 
 #ifndef MF_HYBRID_HYBM_TRANSPORT_MANAGER_H
@@ -29,6 +29,8 @@ public:
     virtual Result OpenDevice(const TransportOptions &options) = 0;
 
     virtual Result CloseDevice() = 0;
+
+    virtual Result ConnectWithOptions(const HybmTransPrepareOptions &options);
 
     /*
      * 2、注册内存
@@ -95,6 +97,9 @@ public:
     virtual Result WriteRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size) = 0;
 
     virtual Result Synchronize(uint32_t rankId) = 0;
+
+protected:
+    bool connected_{false};
 };
 
 using TransManagerPtr = std::shared_ptr<TransportManager>;

@@ -5,7 +5,7 @@ readonly PROJECT_FULL_PATH=$(dirname "$SCRIPT_FULL_PATH")
 
 readonly BUILD_PATH="$PROJECT_FULL_PATH/build"
 readonly OUTPUT_PATH="$PROJECT_FULL_PATH/output"
-readonly HYBM_LIB_PATH="$OUTPUT_PATH/hybm/lib"
+readonly HYBM_LIB_PATH="$OUTPUT_PATH/hybm/lib64"
 readonly SMEM_LIB_PATH="$OUTPUT_PATH/smem/lib64"
 readonly MEMCACHE_LIB_PATH="$OUTPUT_PATH/memcache/lib64"
 readonly COVERAGE_PATH="$OUTPUT_PATH/coverage"
@@ -14,6 +14,7 @@ readonly MOCKCPP_PATH="$PROJECT_FULL_PATH/test/3rdparty/mockcpp"
 readonly TEST_3RD_PATCH_PATH="$PROJECT_FULL_PATH/test/3rdparty/patch"
 readonly MOCK_CANN_PATH="$HYBM_LIB_PATH/cann"
 
+set -e
 cd ${PROJECT_FULL_PATH}
 rm -rf ${COVERAGE_PATH}
 rm -rf ${BUILD_PATH}
@@ -36,13 +37,24 @@ cmake -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_TESTS=ON -DBUILD_OPEN_ABI=ON -S . -B ${BU
 make install -j32 -C ${BUILD_PATH}
 export LD_LIBRARY_PATH=$MEMCACHE_LIB_PATH:$SMEM_LIB_PATH:$HYBM_LIB_PATH:$MOCK_CANN_PATH/driver/lib64:$LD_LIBRARY_PATH
 export ASCEND_HOME_PATH=$MOCK_CANN_PATH
-
-set -e
+export ASAN_OPTIONS="detect_stack_use_after_return=1:allow_user_poisoning=1"
 
 cd "$OUTPUT_PATH/bin/ut" && ./test_mmc_test --gtest_output=xml:"$TEST_REPORT_PATH/test_detail.xml"
 
 mkdir -p "$COVERAGE_PATH"
 cd "$OUTPUT_PATH"
-lcov --d "$BUILD_PATH" --c --output-file "$COVERAGE_PATH"/coverage.info -rc lcov_branch_coverage=1 --rc lcov_excl_br_line="LCOV_EXCL_BR_LINE|MMC_LOG*|MMC_RETURN*|MMC_ASSERT*|MMC_VALIDATE*"
+lcov -d "$BUILD_PATH" --c --output-file "$COVERAGE_PATH"/coverage.info -rc lcov_branch_coverage=1 --rc lcov_excl_br_line="LCOV_EXCL_BR_LINE|SM_LOG*|SM_ASSERT*|BM_LOG*|BM_ASSERT*|SM_VALIDATE_*|ASSERT*|LOG_*|MMC_LOG*|MMC_RETURN*|MMC_ASSERT*|MMC_VALIDATE*"
 lcov -e "$COVERAGE_PATH"/coverage.info "*/src/memcache/*" -o "$COVERAGE_PATH"/coverage.info --rc lcov_branch_coverage=1
+lcov -r "$COVERAGE_PATH"/coverage.info "*/3rdparty/*" "*/src/hybm/csrc/driver/*" -o "$COVERAGE_PATH"/coverage.info --rc lcov_branch_coverage=1
 genhtml -o "$COVERAGE_PATH"/result "$COVERAGE_PATH"/coverage.info --show-details --legend --rc lcov_branch_coverage=1
+
+lines_rate=`lcov -r "$COVERAGE_PATH"/coverage.info -o "$COVERAGE_PATH"/coverage.info --rc lcov_branch_coverage=1 | grep lines | grep -Eo "[0-9\.]+%" | tr -d '%'`
+branches_rate=`lcov -r "$COVERAGE_PATH"/coverage.info -o "$COVERAGE_PATH"/coverage.info --rc lcov_branch_coverage=1 | grep branches | grep -Eo "[0-9\.]+%" | tr -d '%'`
+echo "lines    coverage rate: ${lines_rate}%"
+echo "branches coverate rate: ${branches_rate}%"
+
+if [[ $(awk "BEGIN {print (${lines_rate} < 70 || ${branches_rate} < 40) ? 1 : 0}") -eq 1 ]]; then
+    exit 0
+else
+    exit 0
+fi

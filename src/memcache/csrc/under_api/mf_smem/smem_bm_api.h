@@ -23,13 +23,12 @@ using smemBmUnInitFunc = void (*)(uint32_t);
 using smemBmGetRankIdFunc = uint32_t (*)();
 using smemBmCreateFunc = smem_bm_t (*)(uint32_t, uint32_t, smem_bm_data_op_type, uint64_t, uint64_t, uint32_t);
 using smemBmDestroyFunc = void (*)(smem_bm_t);
-using smemBmJoinFunc = int32_t (*)(smem_bm_t, uint32_t, void **);
+using smemBmJoinFunc = int32_t (*)(smem_bm_t, uint32_t);
 using smemBmLeaveFunc = int32_t (*)(smem_bm_t, uint32_t);
 using smemBmGetLocalMemSizeFunc = uint64_t (*)(smem_bm_t);
 using smemBmPtrFunc = void *(*)(smem_bm_t, uint16_t);
 using smemBmCopyFunc = int32_t (*)(smem_bm_t, const void *, void *, uint64_t, smem_bm_copy_type, uint32_t);
-using smemBmCopy2dFunc = int32_t (*)(smem_bm_t, const void *, uint64_t, void *, uint64_t,
-                                     uint64_t, uint64_t, smem_bm_copy_type, uint32_t);
+using smemBmCopy2dFunc = int32_t (*)(smem_bm_t, smem_copy_2d_params *, smem_bm_copy_type, uint32_t);
 
 class MFSmemApi {
 public:
@@ -188,12 +187,11 @@ public:
      *
      * @param handle           [in] Big Memory object handle created by <i>smem_bm_create</i>
      * @param flags            [in] optional flags
-     * @param localGvaAddress  [out] local part of the global virtual memory space
      * @return 0 if successful
      */
-    static int32_t SmemBmJoin(smem_bm_t handle, uint32_t flags, void **localGvaAddress)
+    static int32_t SmemBmJoin(smem_bm_t handle, uint32_t flags)
     {
-        return gSmemBmJoin(handle, flags, localGvaAddress);
+        return gSmemBmJoin(handle, flags);
     }
 
     /**
@@ -206,17 +204,6 @@ public:
     static int32_t SmemBmLeave(smem_bm_t handle, uint32_t flags)
     {
         return gSmemBmLeave(handle, flags);
-    }
-
-    /**
-     * @brief Get size of local memory segment that contributed to global space
-     *
-     * @param handle           [in] Big Memory object handle created by <i>SmemBmcreate</i>
-     * @return local memory size in bytes
-     */
-    static uint64_t SmemBmGetLocalMemSize(smem_bm_t handle)
-    {
-        return gSmemBmGetLocalMemSizeFunc(handle);
     }
 
     /**
@@ -270,11 +257,9 @@ public:
      * @param flags            [in] optional flags
      * @return 0 if successful
      */
-    int32_t smem_bm_copy_2d(smem_bm_t handle, const void *src, uint64_t spitch,
-                            void *dest, uint64_t dpitch, uint64_t width, uint64_t heigth,
-                            smem_bm_copy_type t, uint32_t flags)
+    int32_t smem_bm_copy_2d(smem_bm_t handle, smem_copy_2d_params *params, smem_bm_copy_type t, uint32_t flags)
     {
-        return gSmemBmCopy2d(handle, src, spitch, dest, dpitch, width, heigth, t, flags);
+        return gSmemBmCopy2d(handle, params, t, flags);
     }
 
 private:
@@ -301,7 +286,6 @@ private:
     static smemBmDestroyFunc gSmemBmDestroy;
     static smemBmJoinFunc gSmemBmJoin;
     static smemBmLeaveFunc gSmemBmLeave;
-    static smemBmGetLocalMemSizeFunc gSmemBmGetLocalMemSizeFunc;
     static smemBmPtrFunc gSmemBmPtr;
     static smemBmCopyFunc gSmemBmCopy;
     static smemBmCopy2dFunc gSmemBmCopy2d;

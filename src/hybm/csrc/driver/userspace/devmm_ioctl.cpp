@@ -1,10 +1,10 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-
+#include <algorithm>
 #include <cerrno>
 #include <cstring>
 
@@ -18,30 +18,14 @@ namespace mf {
 namespace drv {
 
 namespace {
-constexpr auto DAVINCI_SVM_SUB_MODULE_NAME = "SVM";
-constexpr auto DAVINCI_SVM_AGENT_SUB_MODULE_NAME = "SVM_AGENT";
-
-constexpr char DAVINCI_INTF_IOC_MAGIC = 'Z';
-constexpr auto DAVINCI_INTF_IOCTL_OPEN = _IO(DAVINCI_INTF_IOC_MAGIC, 0);
-constexpr auto DAVINCI_INTF_IOCTL_CLOSE = _IO(DAVINCI_INTF_IOC_MAGIC, 1);
-constexpr auto DAVINCI_INTF_IOCTL_STATUS = _IO(DAVINCI_INTF_IOC_MAGIC, 2);
-constexpr char DEVMM_SVM_MAGIC = 'M';
-
+const char DEVMM_SVM_MAGIC = 'M';
 #define DEVMM_SVM_IPC_MEM_OPEN      _IOW(DEVMM_SVM_MAGIC, 21, DevmmCommandMessage)
-#define DEVMM_SVM_TRANSLATE         _IOWR(DEVMM_SVM_MAGIC, 17, DevmmMemTranslateParam)
-#define DEVMM_SVM_ALLOC_PROC_STRUCT _IOW(DEVMM_SVM_MAGIC, 64, DevmmCommandMessage)
-#define DEVMM_SVM_DEV_SET_SIBLING   _IOW(DEVMM_SVM_MAGIC, 65, DevmmCommandMessage)
 #define DEVMM_SVM_PREFETCH          _IOW(DEVMM_SVM_MAGIC, 14, DevmmMemAdvisePara)
 #define DEVMM_SVM_IPC_MEM_QUERY     _IOWR(DEVMM_SVM_MAGIC, 29, DevmmMemQuerySizePara)
 #define DEVMM_SVM_ALLOC             _IOW(DEVMM_SVM_MAGIC, 3, DevmmCommandMessage)
 #define DEVMM_SVM_ADVISE            _IOW(DEVMM_SVM_MAGIC, 13, DevmmCommandMessage)
 #define DEVMM_SVM_FREE_PAGES        _IOW(DEVMM_SVM_MAGIC, 4, DevmmCommandMessage)
 #define DEVMM_SVM_IPC_MEM_CLOSE     _IOW(DEVMM_SVM_MAGIC, 22, DevmmCommandMessage)
-
-struct OpenCloseArgs {
-    char moduleName[DAVINIC_MODULE_NAME_MAX];
-    int deviceId;
-};
 
 int gDeviceId = -1;
 int gDeviceFd = -1;
@@ -62,7 +46,11 @@ int HybmMapShareMemory(const char *name, void *expectAddr, uint64_t size, uint64
 
     DevmmCommandMessage arg{};
     arg.head.devId = static_cast<uint32_t>(gDeviceId);
-    memcpy(arg.data.queryParam.name, name, DEVMM_MAX_NAME_SIZE);
+    if (strlen(name) > DEVMM_MAX_NAME_SIZE) {
+        BM_LOG_ERROR("name is too long:" << strlen(name) << ", max is " << DEVMM_MAX_NAME_SIZE);
+        return -1;
+    }
+    std::copy_n(name, strlen(name), arg.data.queryParam.name);
 
     auto ret = ioctl(gDeviceFd, DEVMM_SVM_IPC_MEM_QUERY, &arg);
     if (ret != 0) {
@@ -72,11 +60,11 @@ int HybmMapShareMemory(const char *name, void *expectAddr, uint64_t size, uint64
 
     BM_LOG_INFO("shm(" << name << ") size=" << arg.data.queryParam.len << ", isHuge=" << arg.data.queryParam.isHuge);
 
-    memset(&arg.data, 0, sizeof(arg.data));
-    arg.data.openParam.vptr = (uint64_t)(ptrdiff_t)expectAddr;
+    std::fill_n(reinterpret_cast<char *>(&arg.data), sizeof(arg.data), 0);
+    arg.data.openParam.vptr = reinterpret_cast<uint64_t>(expectAddr);
     BM_LOG_DEBUG("before map share memory: " << name);
 
-    strcpy(arg.data.openParam.name, name);
+    std::copy_n(name, strlen(name), arg.data.openParam.name);
     ret = ioctl(gDeviceFd, DEVMM_SVM_IPC_MEM_OPEN, &arg);
     if (ret != 0) {
         BM_LOG_ERROR("open share memory failed:" << ret << " : " << errno << " : " << SafeStrError(errno)
@@ -84,8 +72,8 @@ int HybmMapShareMemory(const char *name, void *expectAddr, uint64_t size, uint64
         return -1;
     }
 
-    memset(&arg.data, 0, sizeof(arg.data));
-    arg.data.prefetchParam.ptr = (uint64_t)(ptrdiff_t)expectAddr;
+    std::fill_n(reinterpret_cast<char *>(&arg.data), sizeof(arg.data), 0);
+    arg.data.prefetchParam.ptr = reinterpret_cast<uint64_t>(expectAddr);
     arg.data.prefetchParam.count = size;
     ret = ioctl(gDeviceFd, DEVMM_SVM_PREFETCH, &arg);
     if (ret != 0) {
@@ -142,29 +130,6 @@ int HybmIoctlAllocAnddAdvice(uint64_t ptr, size_t size, uint32_t devid, uint32_t
     return 0;
 }
 
-int HybmTranslateAddress(uint64_t va, uint64_t &pa, uint32_t &da) noexcept
-{
-    if (gDeviceId == -1 || gDeviceFd == -1) {
-        BM_LOG_ERROR("deviceId or fd not set! id:" << gDeviceId << " fd:" << gDeviceFd);
-        return -1;
-    }
-
-    DevmmCommandMessage arg{};
-    arg.head.devId = static_cast<uint32_t>(gDeviceId);
-    arg.data.translateParam.vptr = va;
-
-    auto ret = ioctl(gDeviceFd, DEVMM_SVM_TRANSLATE, &arg);
-    if (ret != 0) {
-        BM_LOG_ERROR("translate memory failed:" << ret << " : " << errno << " : " << SafeStrError(errno)
-                                                << ", va = " << reinterpret_cast<uintptr_t>((void *)(ptrdiff_t)va));
-        return -1;
-    }
-
-    pa = arg.data.translateParam.pptr;
-    da = arg.data.translateParam.addrInDevice;
-
-    return 0;
 }
-} // namespace drv
-} // namespace mf
-} // namespace ock
+}
+}

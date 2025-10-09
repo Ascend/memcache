@@ -117,9 +117,24 @@ void StoreFactory::DestroyStore(const std::string &ip, uint16_t port) noexcept
     storesMap_.erase(storeKey);
 }
 
+void StoreFactory::DestroyStoreAll(bool afterFork) noexcept
+{
+    if (afterFork) {
+        for (auto &e : storesMap_) {
+            Convert<ConfigStore, TcpConfigStore>(e.second)->Shutdown(afterFork);
+        }
+    } else {
+        std::unique_lock<std::mutex> lockGuard{storesMutex_};
+        for (auto &e: storesMap_) {
+            Convert<ConfigStore, TcpConfigStore>(e.second)->Shutdown(afterFork);
+        }
+    }
+    storesMap_.clear();
+}
+
 StorePtr StoreFactory::PrefixStore(const ock::smem::StorePtr &base, const std::string &prefix) noexcept
 {
-    STORE_PARAM_VALIDATE(base == nullptr, "invalid param, base is nullptr", nullptr);
+    STORE_VALIDATE_RETURN(base != nullptr, "invalid param, base is nullptr", nullptr);
 
     auto store = SmMakeRef<PrefixConfigStore>(base, prefix);
     STORE_ASSERT_RETURN(store != nullptr, nullptr);
@@ -130,16 +145,6 @@ StorePtr StoreFactory::PrefixStore(const ock::smem::StorePtr &base, const std::s
 int StoreFactory::GetFailedReason() noexcept
 {
     return failedReason_;
-}
-
-void StoreFactory::SetExternalLogFunction(void (*func)(int, const char *)) noexcept
-{
-    ock::smem::StoreOutLogger::Instance().SetExternalLogFunction(func);
-}
-
-void StoreFactory::SetLogLevel(int level) noexcept
-{
-    ock::smem::StoreOutLogger::Instance().SetLogLevel(static_cast<LogLevel>(level));
 }
 
 void StoreFactory::SetTlsInfo(const tls_config& tlsOption) noexcept

@@ -10,6 +10,10 @@
 
 using namespace ock::mf;
 
+namespace {
+constexpr uint64_t HYBM_HOST_GVA_START_ADDR = 0x0000200000000000UL;
+}
+
 Result MemSegmentHost::ValidateOptions() noexcept
 {
     if (options_.segType != HYBM_MST_DRAM || options_.size == 0 || (options_.size % DEVICE_LARGE_PAGE_SIZE) != 0) {
@@ -26,7 +30,7 @@ Result MemSegmentHost::ReserveMemorySpace(void **address) noexcept
     BM_ASSERT_LOG_AND_RETURN(globalVirtualAddress_ == nullptr, "Already prepare virtual memory.", BM_NOT_INITIALIZED);
     BM_ASSERT_LOG_AND_RETURN(address != nullptr, "Invalid param, address is NULL.", BM_INVALID_PARAM);
 
-    void *startAddr = (void *) HYBM_HOST_GVA_START_ADDR;
+    void *startAddr = reinterpret_cast<void *>(HYBM_HOST_GVA_START_ADDR);
     uint64_t totalSize = options_.rankCnt * options_.size;
     void *mapped = mmap(startAddr, totalSize, PROT_READ | PROT_WRITE,
                         MAP_FIXED | MAP_ANONYMOUS | MAP_NORESERVE | MAP_PRIVATE, -1, 0);
@@ -53,7 +57,7 @@ Result MemSegmentHost::UnReserveMemorySpace() noexcept
 void MemSegmentHost::LvaShmReservePhysicalMemory(void *mappedAddress, uint64_t size) noexcept
 {
     BM_ASSERT_RET_VOID(mappedAddress != nullptr);
-    auto *pos = reinterpret_cast<uint8_t *>(mappedAddress);
+    auto *pos = static_cast<uint8_t *>(mappedAddress);
     uint64_t setLength = 0;
     while (setLength < size) {
         *pos = 0;
@@ -61,7 +65,7 @@ void MemSegmentHost::LvaShmReservePhysicalMemory(void *mappedAddress, uint64_t s
         pos += DEVICE_LARGE_PAGE_SIZE;
     }
 
-    pos = reinterpret_cast<uint8_t *>(mappedAddress) + (size - 1L);
+    pos = static_cast<uint8_t *>(mappedAddress) + (size - 1L);
     *pos = 0;
 }
 
@@ -137,7 +141,7 @@ Result MemSegmentHost::Export(const std::shared_ptr<MemSlice> &slice, std::strin
     return BM_OK;
 }
 
-Result MemSegmentHost::Import(const std::vector<std::string> &allExInfo) noexcept
+Result MemSegmentHost::Import(const std::vector<std::string> &allExInfo, void *addresses[]) noexcept
 {
     LiteralExInfoTranslater<HostExportInfo> translator;
     std::vector<HostExportInfo> deserializedInfos{allExInfo.size()};
@@ -213,12 +217,13 @@ bool MemSegmentHost::MemoryInRange(const void *begin, uint64_t size) const noexc
     return true;
 }
 
-uint32_t MemSegmentHost::GetRankIdByAddr(const void *addr, uint64_t size) const noexcept
+void MemSegmentHost::GetRankIdByAddr(const void *addr, uint64_t size, uint32_t &rankId) const noexcept
 {
     if (!MemoryInRange(addr, size)) {
-        return UINT32_MAX;
+        rankId = options_.rankId;
+    } else {
+        rankId = (reinterpret_cast<uint64_t>(addr) - reinterpret_cast<uint64_t>(globalVirtualAddress_)) / options_.size;
     }
-    return (reinterpret_cast<uint64_t>(addr) - reinterpret_cast<uint64_t>(globalVirtualAddress_)) / options_.size;
 }
 
 void MemSegmentHost::FreeMemory() noexcept
@@ -240,4 +245,19 @@ void MemSegmentHost::FreeMemory() noexcept
 Result MemSegmentHost::RemoveImported(const std::vector<uint32_t> &ranks) noexcept
 {
     return 0;
+}
+
+Result MemSegmentHost::RegisterMemory(const void *addr, uint64_t size, std::shared_ptr<MemSlice> &slice) noexcept
+{
+    return BM_OK;
+}
+
+Result MemSegmentHost::ReleaseSliceMemory(const std::shared_ptr<MemSlice> &slice) noexcept
+{
+    return BM_OK;
+}
+
+Result MemSegmentHost::GetExportSliceSize(size_t &size) noexcept
+{
+    return BM_OK;
 }

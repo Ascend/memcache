@@ -5,6 +5,7 @@
 #define MEM_FABRIC_MMC_NET_ENGINE_H
 
 #include <functional>
+#include <algorithm>
 
 #include "mmc_common_includes.h"
 #include "mmc_net_common.h"

@@ -91,7 +91,7 @@ inline Result NetEngineOptions::ExtractIpPortFromUrl(const std::string &url, Net
 
     /* covert port */
     long tmpPort = 0;
-    if (!StrUtil::StrToLong(portStr, tmpPort)) {
+    if (!StrUtil::String2Uint<long>(portStr, tmpPort)) {
         MMC_LOG_ERROR("Failed to extract url");
         return MMC_INVALID_PARAM;
     }
@@ -130,8 +130,7 @@ inline Result NetEngineOptions::ExtractTcpURL(const std::string &url, NetProtoco
     std::string tmpUrl = url.substr(PROTOCOL_TCP.length(), url.length() - PROTOCOL_TCP.length());
 
     /* split */
-    std::vector<std::string> splits;
-    StrUtil::Split(tmpUrl, ":", splits);
+    std::vector<std::string> splits = StrUtil::Split(tmpUrl, ':');
     if (splits.size() != UN2) {
         return MMC_INVALID_PARAM;
     }
@@ -146,7 +145,7 @@ inline Result NetEngineOptions::ExtractTcpURL(const std::string &url, NetProtoco
 
     /* get ip mask */
     tmpUrl = splits[0];
-    StrUtil::Split(tmpUrl, "/", splits);
+    splits = StrUtil::Split(tmpUrl, '/');
     if (splits.size() != UN2) {
         MMC_LOG_ERROR("Get mismatched splits' size (" << splits.size() << "), should get size (" << UN2 << ").");
         return MMC_INVALID_PARAM;

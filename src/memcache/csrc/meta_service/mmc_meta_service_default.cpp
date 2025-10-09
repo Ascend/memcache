@@ -52,8 +52,6 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
 
     NetEngineOptions configStoreOpt{};
     NetEngineOptions::ExtractIpPortFromUrl(options_.configStoreURL, configStoreOpt);
-    smem::StoreFactory::SetLogLevel(options_.logLevel);
-    smem::StoreFactory::SetExternalLogFunction(SPDLOG_LogMessage);
     smem::StoreFactory::SetTlsInfo(options_.configStoreTlsConfig);
     confStore_ = smem::StoreFactory::CreateStoreServer(configStoreOpt.ip, configStoreOpt.port,
                                                        std::numeric_limits<uint32_t>::max());

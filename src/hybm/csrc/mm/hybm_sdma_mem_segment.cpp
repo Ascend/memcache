@@ -132,7 +132,7 @@ Result MemSegmentHostSDMA::Export(const std::shared_ptr<MemSlice> &slice, std::s
     return BM_OK;
 }
 
-Result MemSegmentHostSDMA::Import(const std::vector<std::string> &allExInfo) noexcept
+Result MemSegmentHostSDMA::Import(const std::vector<std::string> &allExInfo, void *addresses[]) noexcept
 {
     BM_ASSERT_LOG_AND_RETURN(options_.shared, "hybm_gvm_set_whitelist requires shared memory", BM_OK);
     LiteralExInfoTranslater<HostSdmaExportInfo> translator;
