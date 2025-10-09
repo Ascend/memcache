@@ -976,6 +976,7 @@ int HostDataOpSDMA::BatchCopyLD2GH(void **gvaAddrs, void **deviceAddrs, const ui
     uint64_t totalSize = 0;
     for (size_t i = 0; i < batchSize; ++i) {
         totalSize += counts[i];
+        BM_ASSERT_RETURN(totalSize <= HBM_SWAP_SPACE_SIZE, BM_INVALID_PARAM);
     }
     auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(totalSize);
     void *tmpHbm = tmpSdmaMemory.Address();
@@ -1023,6 +1024,7 @@ int HostDataOpSDMA::BatchCopyGH2LD(void **deviceAddrs, void **gvaAddrs, const ui
     uint64_t totalSize = 0;
     for (size_t i = 0; i < batchSize; ++i) {
         totalSize += counts[i];
+        BM_ASSERT_RETURN(totalSize <= HBM_SWAP_SPACE_SIZE, BM_INVALID_PARAM);
     }
     auto tmpSdmaMemory = sdmaSwapMemoryAllocator_->Allocate(totalSize);
     void *tmpHbm = tmpSdmaMemory.Address();

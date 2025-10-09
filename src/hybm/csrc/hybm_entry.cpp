@@ -331,12 +331,14 @@ HYBM_API int32_t hybm_init(uint16_t deviceId, uint64_t flags)
     ptracer_config_t config{.tracerType = 1, .dumpFilePath = "/var/log/mxc/memfabric_hybrid"};
     auto ret = ptracer_init(&config);
     if (ret != BM_OK) {
+        DlApi::CleanupLibrary();
         BM_LOG_ERROR("init ptracer module failed, result: " << ret);
         return ret;
     }
 
     ret = hybm_init_hbm_gva(deviceId, flags);
     if (ret != BM_OK) {
+        ptracer_uninit();
         DlApi::CleanupLibrary();
         BM_LOG_ERROR("set device id to be " << deviceId << " failed: " << ret);
         return BM_ERROR;

@@ -177,7 +177,7 @@ public:
                                             Service_CipherSuite cipherSuite, Hcom_TlsGetCertCb certCb,
                                             Hcom_TlsGetPrivateKeyCb priKeyCb, Hcom_TlsGetCACb caCb)
     {
-        BM_ASSERT_RET_VOID(gServiceSetConnectLBPolicy != nullptr);
+        BM_ASSERT_RET_VOID(gServiceSetTlsOptions != nullptr);
         gServiceSetTlsOptions(service, enableTls, version, cipherSuite, certCb, priKeyCb, caCb);
     }
 

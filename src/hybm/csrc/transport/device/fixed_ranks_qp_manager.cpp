@@ -565,14 +565,6 @@ void FixedRanksQpManager::CloseConnections(std::unordered_map<uint32_t, AiCoreCo
             it->second.qpHandle = nullptr;
         }
 
-        if (it->second.qpHandle != nullptr) {
-            auto ret = DlHccpApi::RaQpDestroy(it->second.qpHandle);
-            if (ret != 0) {
-                BM_LOG_WARN("destroy stars QP to server: " << it->first << " failed: " << ret);
-            }
-            it->second.qpHandle = nullptr;
-        }
-
         if (it->second.socketFd != nullptr) {
             HccpSocketCloseInfo info;
             info.handle = it->second.socketHandle;

@@ -32,6 +32,10 @@ Result MemSegmentDevice::ValidateOptions() noexcept
         return BM_INVALID_PARAM;
     }
 
+    if (UINT64_MAX / options_.size < options_.rankCnt) {
+        BM_LOG_ERROR("Validate options error rankCnt(" << options_.rankCnt << ") size(" << options_.size);
+        return BM_INVALID_PARAM;
+    }
     return BM_OK;
 }
 

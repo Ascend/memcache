@@ -128,6 +128,10 @@ HYBM_API int32_t hybm_data_batch_copy(hybm_entity_t e, hybm_batch_copy_params *p
     bool check_dst = g_checkMap[direction][OP_CHECK_DEST];
     bool check_src = g_checkMap[direction][OP_CHECK_SRC];
     for (uint32_t i = 0; i < params->batchSize; i++) {
+        if (params->sources[i] == nullptr || params->destinations[i] == nullptr) {
+            BM_LOG_ERROR("input copy address is invalid, source or dest is nullptr, index:" << i);
+            return BM_INVALID_PARAM;
+        }
         if (check_dst) {
             addressValid = entity->CheckAddressInEntity(params->destinations[i], params->dataSizes[i]);
         }

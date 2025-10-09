@@ -800,7 +800,7 @@ int MemEntityDefault::ImportForTransport(const ExchangeInfoReader desc[], uint32
 void MemEntityDefault::GenCopyExtOption(void* &src, void* &dest, uint64_t length, ExtOptions &options) noexcept
 {
     void *real = Valid48BitsAddress(src);
-    if ((uint64_t)(ptrdiff_t)real >= HYBM_HOST_GVA_START_ADDR) {
+    if (reinterpret_cast<uintptr_t>(src) >= HYBM_HOST_GVA_START_ADDR) {
         if (dramSegment_ == nullptr) {
             options.srcRankId = options_.rankId;
         } else {
@@ -816,7 +816,7 @@ void MemEntityDefault::GenCopyExtOption(void* &src, void* &dest, uint64_t length
     src = real;
 
     real = Valid48BitsAddress(dest);
-    if ((uint64_t)(ptrdiff_t)real >= HYBM_HOST_GVA_START_ADDR) {
+    if (reinterpret_cast<uintptr_t>(dest) >= HYBM_HOST_GVA_START_ADDR) {
         if (dramSegment_ == nullptr) {
             options.destRankId = options_.rankId;
         } else {

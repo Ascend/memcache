@@ -484,6 +484,7 @@ int HostDataOpRDMA::BatchCopyLD2GH(void **gvaAddrs, void **deviceAddrs, const ui
     uint64_t totalSize = 0;
     for (size_t i = 0; i < batchSize; ++i) {
         totalSize += counts[i];
+        BM_ASSERT_RETURN(totalSize <= RDMA_SWAP_SPACE_SIZE, BM_INVALID_PARAM);
     }
     auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(totalSize);
     void *tmpHost = tmpRdmaMemory.Address();
@@ -520,6 +521,7 @@ int HostDataOpRDMA::BatchCopyGH2LD(void **deviceAddrs, void **gvaAddrs, const ui
     uint64_t totalSize = 0;
     for (size_t i = 0; i < batchSize; ++i) {
         totalSize += counts[i];
+        BM_ASSERT_RETURN(totalSize <= RDMA_SWAP_SPACE_SIZE, BM_INVALID_PARAM);
     }
     auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(totalSize);
     void *tmpHost = tmpRdmaMemory.Address();
