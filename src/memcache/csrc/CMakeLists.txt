@@ -17,12 +17,13 @@ include_directories(
         ${PROJECT_MMC_SRC_BASE}/csrc/net
         ${PROJECT_MMC_SRC_BASE}/csrc/net/acc_links_impl
         ${PROJECT_MMC_SRC_BASE}/csrc/proto
-        ${PROJECT_MMC_SRC_BASE}/csrc/under_api/mf_smem
-        ${PROJECT_SMEM_SRC_BASE}/include/host
-        ${PROJECT_SMEM_SRC_BASE}/csrc/common
-        ${PROJECT_SMEM_SRC_BASE}/csrc/config_store
-        ${PROJECT_UTIL_SRC_BASE}/ptracer/include
-        ${PROJECT_ACCLINKS_SRC_BASE}/include
+        ${PROJECT_SOURCE_DIR}/3rdparty/memfabric_hybrid/src/smem/include/host
+        ${PROJECT_SOURCE_DIR}/3rdparty/memfabric_hybrid/src/smem/csrc/common
+        ${PROJECT_SOURCE_DIR}/3rdparty/memfabric_hybrid/src/smem/csrc/config_store
+        ${PROJECT_SOURCE_DIR}/3rdparty/memfabric_hybrid/src/util/include
+        ${PROJECT_SOURCE_DIR}/3rdparty/memfabric_hybrid/src/util/csrc/ptracer/include
+        ${PROJECT_SOURCE_DIR}/3rdparty/memfabric_hybrid/src/util/csrc
+        ${PROJECT_SOURCE_DIR}/3rdparty/memfabric_hybrid/src/acc_links/include
         ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/include/
         ${PROJECT_SOURCE_DIR}/3rdparty/log/spdlog/include/
 )
@@ -56,7 +57,6 @@ aux_source_directory(net MMC_SRC_NET)
 aux_source_directory(log MMC_SRC_LOG)
 aux_source_directory(net/acc_links_impl MMC_SRC_NET_ACC)
 aux_source_directory(proto MMC_SRC_PROTO)
-aux_source_directory(under_api/mf_smem MMC_SRC_UNDER_API_MF_SMEM)
 
 # set whole source for platform
 set(PLATFORM_SRC ${MMC_SRC_COMMON}
@@ -70,7 +70,6 @@ set(PLATFORM_SRC ${MMC_SRC_COMMON}
         ${MMC_SRC_LOG}
         ${MMC_SRC_NET_ACC}
         ${MMC_SRC_PROTO}
-        ${MMC_SRC_UNDER_API_MF_SMEM}
         mmc.cpp
         mmc_client.cpp
         mmcache_store.cpp
@@ -78,29 +77,37 @@ set(PLATFORM_SRC ${MMC_SRC_COMMON}
 
 ## build the static and shared library
 add_library(mmc_objects OBJECT ${PLATFORM_SRC})
-target_link_libraries(mmc_objects PUBLIC smem)
 target_compile_options(mmc_objects PRIVATE -fPIC -Wno-float-equal)
+
 
 add_library(mmc_static STATIC $<TARGET_OBJECTS:mmc_objects>)
 set_target_properties(mmc_static PROPERTIES OUTPUT_NAME "mf_memcache")
-target_link_libraries(mmc_static PUBLIC pthread acc_tcp_net_static)
+target_link_directories(mmc_static PUBLIC ${TARGET_INSTALL_DIR}/smem/lib64)
+target_link_directories(mmc_static PUBLIC ${TARGET_INSTALL_DIR}/acc_links/lib64)
+target_link_directories(mmc_static PUBLIC ${TARGET_INSTALL_DIR}/driver/lib64)
+target_link_directories(mmc_static PUBLIC ${TARGET_INSTALL_DIR}/hybm/lib64)
 target_link_directories(mmc_static PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib)
 target_link_directories(mmc_static PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib64)
+target_link_libraries(mmc_static PUBLIC libmf_smem.a libmf_hybm_core.a libhybm_gvm.a libacc_tcp_net.a pthread)
 if(BUILD_PYTHON STREQUAL "ON")
     target_link_libraries(mmc_static PRIVATE pybind11::module Python3::Python)
 endif()
 if (x${CMAKE_BUILD_TYPE} STREQUAL "xDEBUG")
     target_link_libraries(mmc_static PUBLIC pthread libspdlogd.a)
 else (
-    target_link_libraries(mmc_static PUBLIC pthread libspdlog.a)
+        target_link_libraries(mmc_static PUBLIC pthread libspdlog.a)
 )
 endif ()
 
 add_library(mmc_shared SHARED $<TARGET_OBJECTS:mmc_objects>)
 set_target_properties(mmc_shared PROPERTIES OUTPUT_NAME "mf_memcache")
-target_link_libraries(mmc_shared PUBLIC smem_shared pthread acc_tcp_net_static)
+target_link_directories(mmc_shared PUBLIC ${TARGET_INSTALL_DIR}/smem/lib64)
+target_link_directories(mmc_shared PUBLIC ${TARGET_INSTALL_DIR}/acc_links/lib64)
+target_link_directories(mmc_shared PUBLIC ${TARGET_INSTALL_DIR}/driver/lib64)
+target_link_directories(mmc_shared PUBLIC ${TARGET_INSTALL_DIR}/hybm/lib64)
 target_link_directories(mmc_shared PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib)
 target_link_directories(mmc_shared PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib64)
+target_link_libraries(mmc_shared PUBLIC mf_smem mf_hybm_core hybm_gvm pthread)
 if (x${CMAKE_BUILD_TYPE} STREQUAL "xDEBUG")
     target_link_libraries(mmc_shared PUBLIC pthread libspdlogd.a)
 else (

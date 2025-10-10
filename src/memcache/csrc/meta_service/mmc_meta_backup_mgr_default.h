@@ -61,8 +61,8 @@ public:
             return MMC_INVALID_PARAM;
         }
         metaNetServer_ = defaultPtr->serverPtr_;
-        backupThread_ = std::thread(std::bind(&MMCMetaBackUpMgrDefault::BackupThreadFunc, this));
         started_ = true;
+        backupThread_ = std::thread(std::bind(&MMCMetaBackUpMgrDefault::BackupThreadFunc, this));
         return MMC_OK;
     }
 

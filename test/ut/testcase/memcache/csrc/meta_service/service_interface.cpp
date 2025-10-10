@@ -76,7 +76,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     std::string bmUrl = "tcp://127.0.0.1:5882";
     std::string hcomUrl = "tcp://127.0.0.1:5883";
 
-    mmc_meta_service_config_t metaServiceConfig;
+    mmc_meta_service_config_t metaServiceConfig{};
     metaServiceConfig.logLevel = 0;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
@@ -160,7 +160,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     std::string bmUrl = "tcp://127.0.0.1:5882";
     std::string hcomUrl = "tcp://127.0.0.1:5883";
     std::string localUrl = "";
-    mmc_meta_service_config_t metaServiceConfig;
+    mmc_meta_service_config_t metaServiceConfig{};
     metaServiceConfig.logLevel = 0;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
