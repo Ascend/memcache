@@ -20,7 +20,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <cstring>
 
 #include "acl/acl.h"
 
@@ -44,12 +43,6 @@ typedef enum {
     BF16 = 27
 } printDataType;
 
-const int OUTPUT_WIDTH = 10U;
-
-#ifndef LOG_FILENAME_SHORT
-#define LOG_FILENAME_SHORT (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-#endif
-
 #define INFO_LOG(fmt, args...) fprintf(stdout, "[INFO]  " fmt "\n", ##args)
 #define WARN_LOG(fmt, args...) fprintf(stdout, "[WARN]  " fmt "\n", ##args)
 #define ERROR_LOG(fmt, args...) fprintf(stdout, "[ERROR]  " fmt "\n", ##args)
@@ -57,9 +50,9 @@ const int OUTPUT_WIDTH = 10U;
     do {                                                                                    \
         aclError __ret = x;                                                                 \
         if (__ret != ACL_ERROR_NONE) {                                                      \
-            std::cerr << LOG_FILENAME_SHORT << ":" << __LINE__ << " aclError:" << __ret << std::endl; \
+            std::cerr << __FILE__ << ":" << __LINE__ << " aclError:" << __ret << std::endl; \
         }                                                                                   \
-    } while (0);
+    } while (0)
 
 #define CHECK_ACL_RET(x, msg)                                              \
     do {                                                                   \
@@ -68,37 +61,14 @@ const int OUTPUT_WIDTH = 10U;
             std::cerr << msg << ":" << " aclError:" << __ret << std::endl; \
             return __ret;                                                  \
         }                                                                  \
-    } while (0);
+    } while (0)
 
-template <typename T> void DoPrintData(const T *data, size_t count, size_t elementsPerRow)
-{
-    ASSERT(elementsPerRow != 0);
-    for (size_t i = 0; i < count; ++i) {
-        std::cout << std::setw(OUTPUT_WIDTH) << data[i];
-        if (i % elementsPerRow == elementsPerRow - 1) {
-            std::cout << std::endl;
-        }
-    }
-}
+#define CHECK_EQUALS(x, y) \
+    do {                   \
+        if ((x) != (y)) {  \
+            std::cerr << __FILE__ << ":" << __LINE__ << " check not equal:" << (x) << " " << (y) << std::endl;  \
+        }   \
+    } while (0)
 
-/**
- * @brief Read data from file
- * @param [in] filePath: file path
- * @param [out] fileSize: file size
- * @return read result
- */
-bool ReadFile(const std::string &filePath, size_t &fileSize, void *buffer, size_t bufferSize);
-
-/**
- * @brief Write data to file
- * @param [in] filePath: file path
- * @param [in] buffer: data to write to file
- * @param [in] size: size to write
- * @return write result
- */
-bool WriteFile(const std::string &filePath, const void *buffer, size_t size);
-
-void DoPrintHalfData(const aclFloat16 *data, size_t count, size_t elementsPerRow);
-void PrintData(const void *data, size_t count, printDataType dataType, size_t elementsPerRow = 16);
 
 #endif // DATA_UTILS_H

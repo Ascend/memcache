@@ -11,9 +11,9 @@
 #include "smem_bm.h"
 #include "barrier_util.h"
 
-#define LOG_INFO(msg) std::cout << __FILE__ << ":" << __LINE__ << "[INFO]" << msg << std::endl;
-#define LOG_WARN(msg) std::cout << __FILE__ << ":" << __LINE__ << "[WARN]" << msg << std::endl;
-#define LOG_ERROR(msg) std::cout << __FILE__ << ":" << __LINE__ << "[ERR]" << msg << std::endl;
+#define LOG_INFO(msg) std::cout << __FILE__ << ":" << __LINE__ << "[INFO]" << msg << std::endl
+#define LOG_WARN(msg) std::cout << __FILE__ << ":" << __LINE__ << "[WARN]" << msg << std::endl
+#define LOG_ERROR(msg) std::cout << __FILE__ << ":" << __LINE__ << "[ERR]" << msg << std::endl
 
 #define CHECK_RET_ERR(x, msg)   \
 do {                            \
@@ -50,6 +50,9 @@ constexpr int AUTO_RANK_ARG_INDEX = 5;
 
 void GenerateData(void *ptr, int32_t rank)
 {
+    if (ptr == nullptr) {
+        return;
+    }
     int32_t *arr = (int32_t *)ptr;
     static int32_t mod = INT16_MAX;
     int32_t base = rank;
@@ -65,6 +68,9 @@ void GenerateData(void *ptr, int32_t rank)
 
 bool CheckData(void *base, void *ptr)
 {
+    if (base == nullptr || ptr == nullptr) {
+        return false;
+    }
     int32_t *arr1 = (int32_t *)base;
     int32_t *arr2 = (int32_t *)ptr;
     for (uint32_t i = 0; i < COPY_SIZE / sizeof(int); i++) {
@@ -75,7 +81,8 @@ bool CheckData(void *base, void *ptr)
     return true;
 }
 
-int32_t PreInit(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, std::string ipPort, int autoRank, aclrtStream *stream)
+int32_t PreInit(uint32_t deviceId, uint32_t rankId, uint32_t rkSize,
+    std::string ipPort, int autoRank, aclrtStream *stream)
 {
     auto ret = aclInit(nullptr);
     CHECK_RET_ERR(ret, "acl init failed, ret:" << ret << " rank:" << rankId);
@@ -100,7 +107,7 @@ int32_t PreInit(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, std::string
     ret = smem_bm_init(ipPort.c_str(), rkSize, deviceId, &config);
     CHECK_RET_ERR(ret, "smem bm init failed, ret:" << ret << " rank:" << rankId);
 
-    g_barrier = new BarrierUtil;
+    g_barrier = new (std::nothrow) BarrierUtil;
     CHECK_RET_ERR((g_barrier == nullptr), "malloc failed, rank:" << rankId);
     ret = g_barrier->Init(deviceId, rankId, rkSize, ipPort);
     CHECK_RET_ERR(ret, "barrier init failed, rank:" << rankId);
@@ -111,10 +118,14 @@ int32_t PreInit(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, std::string
 
 void FinalizeAll(aclrtStream *stream, uint32_t deviceId)
 {
-    delete g_barrier;
-    g_barrier = nullptr;
+    if (g_barrier != nullptr) {
+        delete g_barrier;
+        g_barrier = nullptr;
+    }
     smem_bm_uninit(0);
-    aclrtDestroyStream(stream);
+    if (stream != nullptr) {
+        aclrtDestroyStream(stream);
+    }
     aclrtResetDevice(deviceId);
     aclFinalize();
 }
@@ -123,7 +134,7 @@ void CheckSmemCopy(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, std::str
                    smem_bm_t handle, void *gva)
 {
     int ret = 0;
-    void *remote = smem_bm_ptr(handle, (rankId + 1) % rkSize);
+    void *remote = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_DEVICE, (rankId + 1) % rkSize);
     void *hostSrc = malloc(COPY_SIZE);
     void *hostDst = malloc(COPY_SIZE);
     CHECK_RET_VOID((hostSrc == nullptr || hostDst == nullptr), "malloc host failed, rank:" << rankId);
@@ -171,7 +182,7 @@ void CheckSmemCopy2D(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, std::s
                      smem_bm_t handle, void *gva)
 {
     int ret = 0;
-    void *remote = smem_bm_ptr(handle, (rankId + 1) % rkSize);
+    void *remote = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_DEVICE, (rankId + 1) % rkSize);
     void *hostSrc = malloc(COPY_2D_SIZE);
     void *hostDst = malloc(COPY_2D_SIZE);
     CHECK_RET_VOID((hostSrc == nullptr || hostDst == nullptr), "malloc host failed, rank:" << rankId);
@@ -184,12 +195,19 @@ void CheckSmemCopy2D(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, std::s
     ret = aclrtMemcpy(deviceSrc, COPY_2D_SIZE, hostSrc, COPY_2D_SIZE, ACL_MEMCPY_HOST_TO_DEVICE);
     CHECK_RET_VOID(ret, "copy host to device failed, ret:" << ret << " rank:" << rankId);
 
-    ret = smem_bm_copy_2d(handle, hostSrc, COPY_SIZE, remote, COPY_SIZE,
-                          COPY_SIZE, COPY_2D_HEIGHT, SMEMB_COPY_H2G, 0);
+    smem_copy_2d_params param;
+    param.src = hostSrc;
+    param.spitch = COPY_2D_SIZE;
+    param.dest = remote;
+    param.dpitch = COPY_2D_SIZE;
+    param.height = COPY_2D_HEIGHT;
+    param.width = COPY_SIZE;
+    ret = smem_bm_copy_2d(handle, &param, SMEMB_COPY_H2G, 0);
     CHECK_RET_VOID(ret, "copy2d host to gva failed, ret:" << ret << " rank:" << rankId);
 
-    ret = smem_bm_copy_2d(handle, deviceSrc, COPY_SIZE, (void *)((uint64_t)remote + COPY_2D_SIZE), COPY_SIZE,
-                          COPY_SIZE, COPY_2D_HEIGHT, SMEMB_COPY_L2G, 0);
+    param.src = deviceSrc;
+    param.dest = (void *)((uint64_t)remote + COPY_2D_SIZE);
+    ret = smem_bm_copy_2d(handle, &param, SMEMB_COPY_L2G, 0);
     CHECK_RET_VOID(ret, "copy2d hbm to gva failed, ret:" << ret << " rank:" << rankId);
 
     ret = g_barrier->Barrier();
@@ -197,13 +215,15 @@ void CheckSmemCopy2D(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, std::s
     LOG_INFO(" ==================== [TEST] bm copy ok, rank:" << rankId);
     // check
     GenerateData(hostDst, (rankId + rkSize - 1) % rkSize);
-    ret = smem_bm_copy_2d(handle, gva, COPY_SIZE, hostSrc, COPY_SIZE,
-                          COPY_SIZE, COPY_2D_HEIGHT, SMEMB_COPY_G2H, 0);
+    param.src = gva;
+    param.dest = hostSrc;
+    ret = smem_bm_copy_2d(handle, &param, SMEMB_COPY_G2H, 0);
     CHECK_RET_VOID(ret, "copy gva to host failed, ret:" << ret << " rank:" << rankId);
     CHECK_RET_VOID((!CheckData(hostDst, hostSrc)), "check copy2d G2H data failed, rank:" << rankId);
 
-    ret = smem_bm_copy_2d(handle, (void *)((uint64_t)gva + COPY_2D_SIZE), COPY_SIZE, deviceSrc, COPY_SIZE,
-                          COPY_SIZE, COPY_2D_HEIGHT, SMEMB_COPY_G2L, 0);
+    param.src = (void *)((uint64_t)gva + COPY_2D_SIZE);
+    param.dest = deviceSrc;
+    ret = smem_bm_copy_2d(handle, &param, SMEMB_COPY_G2L, 0);
     CHECK_RET_VOID(ret, "copy hbm to gva failed, ret:" << ret << " rank:" << rankId);
 
     ret = aclrtMemcpy(hostSrc, COPY_2D_HEIGHT, deviceSrc, COPY_2D_HEIGHT, ACL_MEMCPY_DEVICE_TO_HOST);

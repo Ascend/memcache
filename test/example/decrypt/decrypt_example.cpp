@@ -12,7 +12,7 @@ extern "C" {
 
 int DecryptPassword(const char* cipherText, const size_t cipherTextLen, char* plainText, const int32_t plainTextLen)
 {
-    if (plainText == nullptr) {
+    if (plainText == nullptr || cipherText == nullptr) {
         return -1;
     }
 

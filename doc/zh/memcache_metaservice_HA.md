@@ -43,10 +43,10 @@ nerdctl push <镜像仓地址:端口>/<镜像名>:<标签>
 
 ### 3. 采用新的镜像，创建Pod容器
 
-在`./script/k8s_deploy`存放了相关的测试验证主备高可用的yaml文件，
+在`./test/k8s_deploy`存放了相关的测试验证主备高可用的样例yaml文件，
 只需要修改meta-pods-demo.yaml和local-pods-demo.yaml文件内容，将containers:image和InitContarners:image改为第二步push的镜像即可。
 
-**注意：`./script/k8s_deploy`目录下所有的yaml文件，仅作样例参考，不能直接用于生产环境，用户可以基于样例进行修改定制**
+**注意：`./test`目录下所有的文件，仅作样例参考，存在安全风险，不能直接用于生产环境，用户可以参考样例进行修改定制**
 
 ```
 1.创建命名空间、服务账号、角色，并将服务账号和角色进行绑定授权

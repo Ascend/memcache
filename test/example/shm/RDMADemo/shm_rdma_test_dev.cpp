@@ -26,15 +26,18 @@ extern "C" __global__ __aicore__ void shm_rdma_pollcq_test(GM_ADDR gva, uint64_t
     AscendC::TBuf<AscendC::TPosition::VECOUT> buf;
     pipe.InitBuffer(buf, UB_ALIGN_SIZE * 2);
     AscendC::LocalTensor<uint32_t> ubLocal32 = buf.GetWithOffset<uint32_t>(UB_ALIGN_SIZE / sizeof(uint32_t), 0);
-    AscendC::LocalTensor<uint64_t> ubLocal64 = buf.GetWithOffset<uint64_t>(UB_ALIGN_SIZE / sizeof(uint64_t), UB_ALIGN_SIZE);
+    AscendC::LocalTensor<uint64_t> ubLocal64 =
+        buf.GetWithOffset<uint64_t>(UB_ALIGN_SIZE / sizeof(uint64_t), UB_ALIGN_SIZE);
     auto myRank = smem_shm_get_global_rank();
     auto totalRank = smem_shm_get_global_rank_size();
     for (int i = 0; i < totalRank; i++) {
         if (i == myRank) {
             continue;
         }
-        smem_shm_roce_pollcq_test(gva + myRank * heap_size + myRank * MESSAGE_SIZE, gva + i * heap_size + myRank * MESSAGE_SIZE, 
-                            i, 0, MESSAGE_SIZE, ubLocal64, ubLocal32, gva + myRank * heap_size + totalRank * MESSAGE_SIZE + i * DEBUG_PRINT_SIZE);
+        smem_shm_roce_pollcq_test(gva + myRank * heap_size + myRank * MESSAGE_SIZE,
+                                  gva + i * heap_size + myRank * MESSAGE_SIZE,
+                                  i, 0, MESSAGE_SIZE, ubLocal64, ubLocal32,
+                                  gva + myRank * heap_size + totalRank * MESSAGE_SIZE + i * DEBUG_PRINT_SIZE);
     }
 }
 
@@ -49,15 +52,16 @@ extern "C" __global__ __aicore__ void shm_rdma_read_test(GM_ADDR gva, uint64_t h
     AscendC::TBuf<AscendC::TPosition::VECOUT> buf;
     pipe.InitBuffer(buf, UB_ALIGN_SIZE * 2);
     AscendC::LocalTensor<uint32_t> ubLocal32 = buf.GetWithOffset<uint32_t>(UB_ALIGN_SIZE / sizeof(uint32_t), 0);
-    AscendC::LocalTensor<uint64_t> ubLocal64 = buf.GetWithOffset<uint64_t>(UB_ALIGN_SIZE / sizeof(uint64_t), UB_ALIGN_SIZE);
+    AscendC::LocalTensor<uint64_t> ubLocal64 =
+        buf.GetWithOffset<uint64_t>(UB_ALIGN_SIZE / sizeof(uint64_t), UB_ALIGN_SIZE);
     auto myRank = smem_shm_get_global_rank();
     auto totalRank = smem_shm_get_global_rank_size();
     for (int i = 0; i < totalRank; i++) {
         if (i == myRank) {
             continue;
         }
-        smem_shm_roce_read(gva + i * heap_size + myRank * MESSAGE_SIZE, 
-                            gva + myRank * heap_size + myRank * MESSAGE_SIZE, i, 0, MESSAGE_SIZE, ubLocal64, ubLocal32);
+        smem_shm_roce_read(gva + i * heap_size + myRank * MESSAGE_SIZE,
+                           gva + myRank * heap_size + myRank * MESSAGE_SIZE, i, 0, MESSAGE_SIZE, ubLocal64, ubLocal32);
     }
 }
 
@@ -72,7 +76,8 @@ extern "C" __global__ __aicore__ void shm_rdma_write_test(GM_ADDR gva, uint64_t 
     AscendC::TBuf<AscendC::TPosition::VECOUT> buf;
     pipe.InitBuffer(buf, UB_ALIGN_SIZE * 2);
     AscendC::LocalTensor<uint32_t> ubLocal32 = buf.GetWithOffset<uint32_t>(UB_ALIGN_SIZE / sizeof(uint32_t), 0);
-    AscendC::LocalTensor<uint64_t> ubLocal64 = buf.GetWithOffset<uint64_t>(UB_ALIGN_SIZE / sizeof(uint64_t), UB_ALIGN_SIZE);
+    AscendC::LocalTensor<uint64_t> ubLocal64 =
+        buf.GetWithOffset<uint64_t>(UB_ALIGN_SIZE / sizeof(uint64_t), UB_ALIGN_SIZE);
     auto myRank = smem_shm_get_global_rank();
     auto totalRank = smem_shm_get_global_rank_size();
     for (int i = 0; i < totalRank; i++) {
@@ -80,7 +85,7 @@ extern "C" __global__ __aicore__ void shm_rdma_write_test(GM_ADDR gva, uint64_t 
             continue;
         }
         for (uint32_t packetIdx = 0; packetIdx < PACKET_NUM; packetIdx++) {
-            smem_shm_roce_write(gva + myRank * heap_size + myRank * MESSAGE_SIZE, 
+            smem_shm_roce_write(gva + myRank * heap_size + myRank * MESSAGE_SIZE,
                                 gva + i * heap_size + myRank * MESSAGE_SIZE, i, 0, MESSAGE_SIZE, ubLocal64, ubLocal32);
         }
     }
