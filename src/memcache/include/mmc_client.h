@@ -108,15 +108,6 @@ int32_t mmcc_remove(const char *key, uint32_t flags);
 int32_t mmcc_batch_remove(const char **keys, uint32_t keys_count, int32_t *remove_results, uint32_t flags);
 
 /**
- * @brief Wait for async operation to object
- *
- * @param waitHandle       [in] handle created by data operation, i.e. mobsc_put, mobsc_get, mobsc_remove
- * @param timeoutSec       [in] timeout of wait, in seconds
- * @return 0 if successfully, 1 if timeout, positive value if error happens
- */
-int32_t mmcc_wait(int32_t waitHandle, int32_t timeoutSec);
-
-/**
  * @brief Determine whether the key is within the BM
  *
  * @param key              [in] key of data, less than 256

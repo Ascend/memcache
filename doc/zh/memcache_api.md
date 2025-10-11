@@ -254,21 +254,6 @@ int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffer *bufs,
 - `0`: 成功
 - 其他: 失败
 
-#### mmcc_wait
-```c
-int32_t mmcc_wait(int32_t waitHandle, int32_t timeoutSec);
-```
-**功能**: 等待异步操作完成。
-
-**参数**:
-- `waitHandle`: 由数据操作（如 mmcc_put、mmcc_get、mmcc_remove）创建的句柄
-- `timeoutSec`: 等待超时时间（秒）
-
-**返回值**:
-- `0`: 成功
-- `1`: 超时
-- 正值: 发生错误
-
 ### 4. 日志设置接口
 
 #### mmc_set_extern_logger
