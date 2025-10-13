@@ -12,7 +12,7 @@
 ### 1. 在容器内，编译安装memcache和memfabric
 在docker或containerd容器中，下载源码，并参考README内容，编译构建安装包并完成安装。
 
-* 如何创建containerd容器：`nerdctl run -d -i -v /home:/home:rw --name <容器名称> <镜像名称>`
+* 如何创建containerd容器：`nerdctl run -t -i -v /home:/home:rw --name <容器名称> <镜像名称>`
 * 列出所有containerd容器：`ctr containers ls`
 * 查看所有运行中的containerd容器：`ctr tasks ls`
 * 启动containerd容器：`ctr tasks start -d  <容器名或ID>`
@@ -22,8 +22,14 @@
 
 ### 2. 成功安装后，将容器提交为新的镜像
 
-需要准备一个镜像仓，本地启动一个镜像仓服务（使用 nerdctl）
+需要准备一个镜像仓，查看本地是否具有镜像仓服务：
+```
+nerdctl ps
+```
+如果有类似 registry:2 的容器，说明本地运行了一个镜像仓库服务（默认端口 5000），如果没有，则本地启动一个镜像仓服务（使用 nerdctl）
+```
 nerdctl run -d --name registry -p 5000:5000 -v /tmp/registry:/var/lib/registry registry:2
+```
 
 如果已有镜像仓，将命令中的 <镜像仓地址:端口> 改为用户自己的镜像仓地址
 
@@ -44,7 +50,8 @@ nerdctl push <镜像仓地址:端口>/<镜像名>:<标签>
 ### 3. 采用新的镜像，创建Pod容器
 
 在`./test/k8s_deploy`存放了相关的测试验证主备高可用的样例yaml文件，
-只需要修改meta-pods-demo.yaml和local-pods-demo.yaml文件内容，将containers:image和InitContarners:image改为第二步push的镜像即可。
+需要修改meta-pods-demo.yaml和local-pods-demo.yaml文件内容，将 **containers:image** 和 **InitContarners:image** 改为第二步push的镜像。
+修改 /home/meta/config/mmc-meta.conf 路径为使用配置文件的真实路径
 
 **注意：`./test`目录下所有的文件，仅作样例参考，存在安全风险，不能直接用于生产环境，用户可以参考样例进行修改定制**
 

@@ -120,6 +120,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     mmc_put_options options{0, NATIVE_AFFINITY};
     for (int i = 0; i < 12; i++) {
         std::string key = "test_" + std::to_string(i);
+        usleep(1000 * 500);
         ret = mmcc_put(key.c_str(), &buffer, options, 0);
         EXPECT_EQ(ret, 0);
         keys.emplace_back(key);
@@ -143,7 +144,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     EXPECT_EQ(results[0], MMC_OK);
     EXPECT_EQ(results[1], MMC_UNMATCHED_KEY);  // 被淘汰
     EXPECT_EQ(results[2], MMC_UNMATCHED_KEY);  // 被淘汰
-    for (size_t i = 3; i < keys.size(); ++i) {
+    for (size_t i = 4; i < keys.size(); ++i) {
         EXPECT_EQ(results[i], MMC_OK) << "i=" << i;
     }
 

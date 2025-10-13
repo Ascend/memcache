@@ -23,8 +23,6 @@ public:
     };
 
     virtual ~MmcMetaContainer() = default;
-    virtual std::unique_ptr<MetaIteratorBase> Begin() = 0;
-    virtual std::unique_ptr<MetaIteratorBase> End() = 0;
     virtual Result Insert(const Key &key, const Value &value) = 0;
     virtual Result Get(const Key &key, Value &value) = 0;
     virtual Result Erase(const Key &key) = 0;

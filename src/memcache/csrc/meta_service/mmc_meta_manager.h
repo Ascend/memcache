@@ -21,8 +21,8 @@
 namespace ock {
 namespace mmc {
 
-constexpr uint32_t META_MAMAGER_MTX_NUM = 29;
-constexpr int METAMGR_POOL_BASE = 4;
+constexpr uint32_t META_MAMAGER_MTX_NUM = 61;
+constexpr int METAMGR_POOL_BASE = 16;
 
 struct MmcMemMetaDesc {
     uint16_t prot_{0};
@@ -211,6 +211,7 @@ private:
 private:
     std::mutex mutex_;
     bool started_ = false;
+    std::atomic<bool> evictCheck_{false}; /* if the worker started */
 
     std::mutex metaItemMtxs_[META_MAMAGER_MTX_NUM];
     MmcRef<MmcMetaContainer<std::string, MmcMemObjMetaPtr>> metaContainer_;

@@ -10,6 +10,7 @@
 #include <unordered_map>
 
 #include "mmc_mem_obj_meta.h"
+#include "mf_rwlock.h"
 #include "mmc_meta_container.h"
 
 namespace ock {
@@ -23,7 +24,8 @@ private:
     };
     std::unordered_map<Key, ValueLruItem> metaMap_;
     std::list<Key> lruList_;
-    mutable std::mutex mutex_;
+    ock::mf::ReadWriteLock lruLock_;
+    ock::mf::ReadWriteLock metaLock_;
 
     using IterBase = typename MmcMetaContainer<Key, Value>::MetaIteratorBase;
 
@@ -53,21 +55,9 @@ private:
     };
 
 public:
-    std::unique_ptr<IterBase> Begin() override
-    {
-        std::lock_guard<std::mutex> guard(mutex_);
-        return std::unique_ptr<IterBase>(new (std::nothrow) MetaIterator(metaMap_.begin(), metaMap_.end()));
-    }
-
-    std::unique_ptr<IterBase> End() override
-    {
-        std::lock_guard<std::mutex> guard(mutex_);
-        return std::unique_ptr<IterBase>(new (std::nothrow) MetaIterator(metaMap_.end(), metaMap_.end()));
-    }
-
     Result Insert(const Key &key, const Value &value) override
     {
-        std::lock_guard<std::mutex> guard(mutex_);
+        ock::mf::WriteGuard lockGuard(metaLock_);
         auto iter = metaMap_.find(key);
         if (iter != metaMap_.end()) {
             MMC_LOG_WARN("Fail to insert "
@@ -76,6 +66,7 @@ public:
         }
 
         // insert into LRU and create lruItem
+        ock::mf::WriteGuard lrucLockGuard(lruLock_);
         lruList_.push_front(key);
         ValueLruItem lruItem{value, lruList_.begin()};
 
@@ -91,7 +82,7 @@ public:
 
     Result Get(const Key &key, Value &value) override
     {
-        std::lock_guard<std::mutex> guard(mutex_);
+        ock::mf::ReadGuard lockGuard(metaLock_);
         auto iter = metaMap_.find(key);
         if (iter != metaMap_.end()) {
             value = iter->second.value_;
@@ -109,7 +100,7 @@ public:
 
     Result Erase(const Key& key, Value& value) override
     {
-        std::lock_guard<std::mutex> guard(mutex_);
+        ock::mf::WriteGuard lockGuard(metaLock_);
         auto iter = metaMap_.find(key);
         if (iter == metaMap_.end()) {
             MMC_LOG_INFO("Key " << key << " not found in MmcMetaContainer. ErrCode: " << MMC_UNMATCHED_KEY);
@@ -118,6 +109,7 @@ public:
         auto lruIter = iter->second.lruIter_;
         value = iter->second.value_;
         if (metaMap_.erase(key) > 0) {
+            ock::mf::WriteGuard lockGuard(lruLock_);
             lruList_.erase(lruIter);
             return MMC_OK;
         }
@@ -127,9 +119,10 @@ public:
 
     void EraseIf(std::function<bool(const Key&, const Value&)> matchFunc) override
     {
-        std::lock_guard<std::mutex> guard(mutex_);
+        ock::mf::WriteGuard lockGuard(metaLock_);
         for (auto iter = metaMap_.begin(); iter != metaMap_.end();) {
             if (matchFunc(iter->first, iter->second.value_)) {
+                ock::mf::WriteGuard lockGuard(lruLock_);
                 lruList_.erase(iter->second.lruIter_);
                 iter = metaMap_.erase(iter);
             } else {
@@ -141,7 +134,7 @@ public:
     void IterateIf(std::function<bool(const Key&, const Value&)> matchFunc,
                    std::map<Key, Value>& matchedValues) override
     {
-        std::lock_guard<std::mutex> guard(mutex_);
+        ock::mf::ReadGuard lockGuard(metaLock_);
         for (auto iter = metaMap_.begin(); iter != metaMap_.end();) {
             if (matchFunc(iter->first, iter->second.value_)) {
                 matchedValues.emplace(std::make_pair(iter->first, iter->second.value_));
@@ -152,7 +145,7 @@ public:
 
     Result Promote(const Key &key)
     {
-        std::lock_guard<std::mutex> guard(mutex_);
+        ock::mf::ReadGuard lockGuard(metaLock_);
         auto iter = metaMap_.find(key);
         if (iter != metaMap_.end()) {
             UpdateLRU(iter->first, iter->second);
@@ -168,7 +161,7 @@ public:
             MMC_LOG_ERROR("Evict threshold invalid, high: " << evictThresholdHigh << ", low: " << evictThresholdLow);
             return {};
         }
-        std::lock_guard<std::mutex> guard(mutex_);
+        ock::mf::ReadGuard lockGuard(lruLock_);
 
         uint32_t numEvictObjs = std::max(std::min(
             lruList_.size() * (evictThresholdHigh - evictThresholdLow) / evictThresholdHigh,
@@ -184,41 +177,73 @@ public:
         return candidates;
     }
 
-    std::vector<Key> MultiLevelElimination(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow,
-                                           std::function<bool(const Key&, const Value&)> moveFunc)
+    bool EvictOneLeastRecentlyUsed(std::function<bool(const Key &, const Value &)> moveFunc, Key &key)
     {
-        std::lock_guard<std::mutex> guard(mutex_);
+        lruLock_.LockRead();
+        if (lruList_.empty()) {
+            lruLock_.UnLock();
+            return false;
+        }
+        auto iter = std::prev(lruList_.end());
+        key = *iter;
+        lruLock_.UnLock();
+
+        // 1、查找value
+        metaLock_.LockRead();
+        auto mapIter = metaMap_.find(key);
+        if (mapIter == metaMap_.end()) {
+            metaLock_.UnLock();
+
+            lruLock_.LockWrite();
+            lruList_.erase(iter);
+            lruLock_.UnLock();
+
+            MMC_LOG_INFO("Key " << key << " not found in MmcMetaContainer.");
+            return true;
+        }
+
+        // 2、删除map和lru
+        Value value = mapIter->second.value_;
+        metaLock_.UnLock();
+
+        // 3、回调处理key，value
+        if (moveFunc(key, value)) {
+            metaLock_.LockWrite();
+            metaMap_.erase(mapIter);
+            metaLock_.UnLock();
+
+            lruLock_.LockWrite();
+            lruList_.erase(iter);
+            lruLock_.UnLock();
+
+            MMC_LOG_INFO("Key " << key << " removed by evict.");
+            return true;
+        }
+        return false;
+    }
+
+    std::vector<Key> MultiLevelElimination(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow,
+                                           std::function<bool(const Key &, const Value &)> moveFunc)
+    {
+        lruLock_.LockRead();
         size_t oriNum = lruList_.size();
-        uint32_t numEvictObjs = std::max(std::min(
-            oriNum * (evictThresholdHigh - evictThresholdLow) / evictThresholdHigh,
-            oriNum), static_cast<size_t>(1));
+        lruLock_.UnLock();
+
+        uint32_t numEvictObjs =
+            std::max(std::min(oriNum * (evictThresholdHigh - evictThresholdLow) / evictThresholdHigh, oriNum),
+                     static_cast<size_t>(1));
         std::vector<Key> removed;
         removed.reserve(numEvictObjs);
-        auto iter = lruList_.end();
-        for (size_t i = 0; i < numEvictObjs && iter != lruList_.begin(); ++i) {
-            --iter; // iter前移
-            // 1、查找value
-            Key& key = *iter;
-            auto mapIter = metaMap_.find(key);
-            if (mapIter == metaMap_.end()) {
-                MMC_LOG_INFO("Key " << key << " not found in MmcMetaContainer.");
-                iter = lruList_.erase(iter);
-                continue;
-            }
-            // 2、删除map和lru
-            Value& value = mapIter->second.value_;
 
-            // 3、回调处理key，value
-            if (moveFunc(key, value)) {
-                MMC_LOG_INFO("Key " << key << " removed by evict.");
-                metaMap_.erase(mapIter);
-                iter = lruList_.erase(iter);
-                removed.push_back(key);
+        for (size_t i = 0; i < numEvictObjs; ++i) {
+            Key lastKey;
+            if (EvictOneLeastRecentlyUsed(moveFunc, lastKey)) {
+                removed.push_back(lastKey);
             }
         }
 
         if (!removed.empty()) {
-            MMC_LOG_INFO("evict items from " << oriNum << " to " << lruList_.size()
+            MMC_LOG_WARN("evict items from " << oriNum << " to " << lruList_.size()
                                              << ", evict size: " << removed.size());
         }
         return removed;
@@ -227,6 +252,7 @@ public:
 private:
     void UpdateLRU(const Key &key, ValueLruItem &lruItem)
     {
+        ock::mf::WriteGuard lockGuard(lruLock_);
         lruList_.erase(lruItem.lruIter_);
         lruList_.push_front(key);
         lruItem.lruIter_ = lruList_.begin();

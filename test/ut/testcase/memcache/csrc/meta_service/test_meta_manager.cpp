@@ -163,6 +163,7 @@ TEST_F(TestMmcMetaManager, LRU)
         string key = "testKey" + std::to_string(i);
         MetaNetServerPtr server;
         metaMng->CheckAndEvict();
+        usleep(1000 * 500);
         ret = metaMng->Alloc(key, allocReq, 1, objMeta);
         ASSERT_TRUE(ret == MMC_OK);
         memMetaObjs.push_back(objMeta);

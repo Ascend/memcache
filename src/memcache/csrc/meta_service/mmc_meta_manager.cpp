@@ -74,7 +74,10 @@ void MmcMetaManager::CheckAndEvict()
     if (!globalAllocator_->NeedEvict(evictThresholdHigh_)) {
         return;
     }
-
+    bool expected = false;
+    if (!evictCheck_.compare_exchange_strong(expected, true)) {
+        return;
+    }
     auto moveFunc = [this](const std::string& key, const MmcMemObjMetaPtr& objMeta) -> bool {
         std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(objMeta)]);
 
@@ -110,7 +113,16 @@ void MmcMetaManager::CheckAndEvict()
         return false;
     };
 
-    metaContainer_->MultiLevelElimination(evictThresholdHigh_, evictThresholdLow_, moveFunc);
+    auto evictFuture = threadPool_->Enqueue(
+        [&](std::function<bool(const std::string& key, const MmcMemObjMetaPtr& objMeta)> moveFuncL) {
+            metaContainer_->MultiLevelElimination(evictThresholdHigh_, evictThresholdLow_, moveFuncL);
+            bool expected = true;
+            evictCheck_.compare_exchange_strong(expected, false);
+        },
+        moveFunc);
+    if (!evictFuture.valid()) {
+        MMC_LOG_ERROR("submit evict task failed");
+    }
 }
 
 Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOpt, uint64_t operateId,

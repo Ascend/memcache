@@ -17,7 +17,7 @@
 namespace ock {
 namespace mmc {
 constexpr const int16_t NET_SERVER_MAGIC = 3867;
-constexpr const int NET_POOL_BASE = 4;
+constexpr const int NET_POOL_BASE = 16;
 
 Result NetEngineAcc::Start(const NetEngineOptions &options)
 {
