@@ -478,40 +478,36 @@ void Configuration::LoadConfigurations()
 void Configuration::GetAccTlsConfig(tls_config &tlsConfig)
 {
     tlsConfig.tlsEnable = GetBool(ConfConstant::OCK_MMC_TLS_ENABLE);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_TLS_CA_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.caPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_TLS_CRL_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.crlPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_TLS_CERT_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.certPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_TLS_KEY_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.keyPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_TLS_KEY_PASS_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.keyPassPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_TLS_PACKAGE_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.packagePath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_TLS_DECRYPTER_PATH).c_str(),
-        TLS_PATH_MAX_LEN, tlsConfig.decrypterLibPath);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_TLS_CA_PATH), tlsConfig.caPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_TLS_CRL_PATH), tlsConfig.crlPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_TLS_CERT_PATH), tlsConfig.certPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_TLS_KEY_PATH), tlsConfig.keyPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_TLS_KEY_PASS_PATH), tlsConfig.keyPassPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_TLS_PACKAGE_PATH), tlsConfig.packagePath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_TLS_DECRYPTER_PATH), tlsConfig.decrypterLibPath, TLS_PATH_SIZE);
 }
 
 void Configuration::GetHcomTlsConfig(tls_config &tlsConfig)
 {
     tlsConfig.tlsEnable = GetBool(ConfConstant::OCK_MMC_HCOM_TLS_ENABLE);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_HCOM_TLS_CA_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.caPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_HCOM_TLS_CRL_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.crlPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_HCOM_TLS_CERT_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.certPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_HCOM_TLS_KEY_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.keyPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_HCOM_TLS_KEY_PASS_PATH).c_str(),
-        TLS_PATH_MAX_LEN, tlsConfig.keyPassPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_HCOM_TLS_DECRYPTER_PATH).c_str(),
-        TLS_PATH_MAX_LEN, tlsConfig.decrypterLibPath);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_HCOM_TLS_CA_PATH), tlsConfig.caPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_HCOM_TLS_CRL_PATH), tlsConfig.crlPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_HCOM_TLS_CERT_PATH), tlsConfig.certPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_HCOM_TLS_KEY_PATH), tlsConfig.keyPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_HCOM_TLS_KEY_PASS_PATH), tlsConfig.keyPassPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_HCOM_TLS_DECRYPTER_PATH), tlsConfig.decrypterLibPath, TLS_PATH_SIZE);
 }
 
 void Configuration::GetConfigStoreTlsConfig(tls_config &tlsConfig)
 {
     tlsConfig.tlsEnable = GetBool(ConfConstant::OCK_MMC_CS_TLS_ENABLE);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_CS_TLS_CA_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.caPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_CS_TLS_CRL_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.crlPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_CS_TLS_CERT_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.certPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_CS_TLS_KEY_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.keyPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_CS_TLS_KEY_PASS_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.keyPassPath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_CS_TLS_PACKAGE_PATH).c_str(), TLS_PATH_MAX_LEN, tlsConfig.packagePath);
-    std::copy_n(GetString(ConfConstant::OCK_MMC_CS_TLS_DECRYPTER_PATH).c_str(),
-        TLS_PATH_MAX_LEN, tlsConfig.decrypterLibPath);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_CS_TLS_CA_PATH), tlsConfig.caPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_CS_TLS_CRL_PATH), tlsConfig.crlPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_CS_TLS_CERT_PATH), tlsConfig.certPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_CS_TLS_KEY_PATH), tlsConfig.keyPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_CS_TLS_KEY_PASS_PATH), tlsConfig.keyPassPath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_CS_TLS_PACKAGE_PATH), tlsConfig.packagePath, TLS_PATH_SIZE);
+    SafeCopy(GetString(ConfConstant::OCK_MMC_CS_TLS_DECRYPTER_PATH), tlsConfig.decrypterLibPath, TLS_PATH_SIZE);
 }
 
 int Configuration::ValidateTLSConfig(const tls_config &tlsConfig)

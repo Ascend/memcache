@@ -19,6 +19,7 @@
 #include "mmc_types.h"
 #include "mmc_last_error.h"
 #include "smem_bm_def.h"
+#include "common/mmc_functions.h"
 
 namespace ock {
 namespace mmc {
@@ -208,25 +209,17 @@ public:
 
     void GetMetaServiceConfig(mmc_meta_service_config_t &config)
     {
-        const auto discoveryURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_URL);
-        size_t copy_count = std::min(std::strlen(discoveryURL.c_str()), static_cast<size_t>(DISCOVERY_URL_SIZE - 1));
-        std::copy_n(discoveryURL.c_str(), copy_count, config.discoveryURL);
-        config.discoveryURL[copy_count] = '\0';
-
-        const auto configStoreURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_CONFIG_STORE_URL);
-        copy_count = std::min(std::strlen(configStoreURL.c_str()), static_cast<size_t>(DISCOVERY_URL_SIZE - 1));
-        std::copy_n(configStoreURL.c_str(), copy_count, config.configStoreURL);
-        config.configStoreURL[copy_count] = '\0';
+        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_URL),
+            config.discoveryURL, DISCOVERY_URL_SIZE);
+        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_CONFIG_STORE_URL),
+            config.configStoreURL, DISCOVERY_URL_SIZE);
 
         config.haEnable = GetBool(ConfConstant::OCK_MMC_META_HA_ENABLE);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         StringToLower(logLevelStr);
         config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
 
-        const auto logPath = GetLogPath(GetString(ConfConstant::OCK_MMC_LOG_PATH));
-        copy_count = std::min(std::strlen(logPath.c_str()), static_cast<size_t>(PATH_MAX_SIZE - 1));
-        std::copy_n(logPath.c_str(), copy_count, config.logPath);
-        config.logPath[copy_count] = '\0';
+        SafeCopy(GetLogPath(GetString(ConfConstant::OCK_MMC_LOG_PATH)), config.logPath, PATH_MAX_SIZE);
 
         config.evictThresholdHigh = GetInt(ConfConstant::OKC_MMC_EVICT_THRESHOLD_HIGH);
         config.evictThresholdLow = GetInt(ConfConstant::OKC_MMC_EVICT_THRESHOLD_LOW);
@@ -296,10 +289,7 @@ public:
 
     void GetLocalServiceConfig(mmc_local_service_config_t &config)
     {
-        const auto discoveryURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_URL);
-        size_t copy_count = std::min(std::strlen(discoveryURL.c_str()), static_cast<size_t>(DISCOVERY_URL_SIZE - 1));
-        std::copy_n(discoveryURL.c_str(), copy_count, config.discoveryURL);
-        config.discoveryURL[copy_count] = '\0';
+        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_URL), config.discoveryURL, DISCOVERY_URL_SIZE);
 
         config.worldSize = static_cast<uint32_t>(GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_WORLD_SIZE));
         config.bmIpPort = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_IP_PORT);
@@ -321,10 +311,7 @@ public:
 
     void GetClientConfig(mmc_client_config_t &config)
     {
-        const auto discoveryURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_URL);
-        size_t copy_count = std::min(std::strlen(discoveryURL.c_str()), static_cast<size_t>(DISCOVERY_URL_SIZE - 1));
-        std::copy_n(discoveryURL.c_str(), copy_count, config.discoveryURL);
-        config.discoveryURL[copy_count] = '\0';
+        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_URL), config.discoveryURL, DISCOVERY_URL_SIZE);
 
         config.rpcRetryTimeOut = static_cast<uint32_t>(GetInt(ConfConstant::OKC_MMC_CLIENT_RETRY_MILLISECONDS));
         config.timeOut = static_cast<uint32_t>(GetInt(ConfConstant::OCK_MMC_CLIENT_TIMEOUT_SECONDS));

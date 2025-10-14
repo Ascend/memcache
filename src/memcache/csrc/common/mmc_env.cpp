@@ -3,19 +3,9 @@
  */
 #include "mmc_env.h"
 
-#include <cstdlib>
 #include <string>
 
-namespace {
-std::string SafeGetEnv(const char *name) noexcept
-{
-    auto value = std::getenv(name);
-    if (value == nullptr) {
-        return "";
-    }
-    return value;
-}
-} // namespace
+#include "mmc_functions.h"
 
 namespace ock {
 namespace mmc {
