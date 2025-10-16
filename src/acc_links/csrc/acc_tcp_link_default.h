@@ -125,7 +125,7 @@ public:
                     return ACC_LINK_MSG_INVALID;
                 }
             }
-            data = reinterpret_cast<uint8_t *>(data) + result;
+            data = static_cast<uint8_t *>(data) + result;
             if (UNLIKELY(static_cast<ssize_t>(remain) < result)) {
                 remain = 0;
             } else {

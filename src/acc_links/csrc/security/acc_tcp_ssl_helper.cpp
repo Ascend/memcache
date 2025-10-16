@@ -320,9 +320,9 @@ static X509_CRL *LoadCertRevokeListFile(const char *crlFile)
         return nullptr;
     }
 
-    int result = OpenSslApiWrapper::BioCtrl(in, OpenSslApiWrapper::BIO_C_SET_FILENAME,
-                                            OpenSslApiWrapper::BIO_CLOSE | OpenSslApiWrapper::BIO_FP_READ,
-                                            const_cast<char *>(realCrlPath));
+    const long result = OpenSslApiWrapper::BioCtrl(in, OpenSslApiWrapper::BIO_C_SET_FILENAME,
+                                                   OpenSslApiWrapper::BIO_CLOSE | OpenSslApiWrapper::BIO_FP_READ,
+                                                   realCrlPath);
     if (result <= 0) {
         (void)OpenSslApiWrapper::BioFree(in);
         free(realCrlPath);
@@ -351,7 +351,7 @@ int AccTcpSslHelper::CaVerifyCallback(X509_STORE_CTX *x509ctx, void *arg)
         return 0;
     }
 
-    auto crlPath = reinterpret_cast<char*>(arg);
+    const auto crlPath = static_cast<char*>(arg);
     std::vector<std::string> paths;
     if (crlPath != nullptr) {
         std::string crlListStr(crlPath);
@@ -409,7 +409,7 @@ int AccTcpSslHelper::ProcessCrlAndVerifyCert(std::vector<std::string> paths, X50
     return checkSuccess;
 }
 
-AccResult AccTcpSslHelper::CertVerify(X509 *cert)
+AccResult AccTcpSslHelper::CertVerify(X509 *cert) const
 {
     if (cert == nullptr) {
         LOG_ERROR("get cert failed");
@@ -428,6 +428,10 @@ AccResult AccTcpSslHelper::CertVerify(X509 *cert)
 
     // The length of the private key of the verification certificate
     EVP_PKEY* pkey = OpenSslApiWrapper::X509GetPubkey(cert);
+    if (pkey == nullptr) {
+        LOG_ERROR("get public key failed.");
+        return ACC_ERROR;
+    }
     int keyLength = OpenSslApiWrapper::EvpPkeyBits(pkey);
     if (keyLength < MIN_PRIVATE_KEY_CONTENT_BIT_LEN) {
         LOG_ERROR("Certificate key length is too short, key length < " << MIN_PRIVATE_KEY_CONTENT_BIT_LEN);
@@ -521,7 +525,7 @@ void AccTcpSslHelper::StopCheckCertExpired(bool afterFork)
     }
 }
 
-AccResult AccTcpSslHelper::HandleCertExpiredCheck()
+AccResult AccTcpSslHelper::HandleCertExpiredCheck() const
 {
     auto certPath = tlsTopPath + tlsCert;
     auto ret = CertExpiredCheck(certPath, "cert");
@@ -572,36 +576,17 @@ AccResult AccTcpSslHelper::CertExpiredCheck(std::string path, std::string type)
         fclose(fp);
         return ACC_ERROR;
     }
-    ASN1_TIME *notAfter = OpenSslApiWrapper::X509GetNotAfter(cert);
 
-    time_t now = time(nullptr);
-    struct tm notAfterTm;
-    if (!OpenSslApiWrapper::Asn1Time2Tm(notAfter, &notAfterTm)) {
-        LOG_ERROR("failed to converting expiration time.");
-        fclose(fp);
+    if (OpenSslApiWrapper::X509CmpCurrentTime(OpenSslApiWrapper::X509GetNotAfter(cert)) < 0) {
+        LOG_ERROR("Certificate has expired! current time after cert time.");
         OpenSslApiWrapper::X509Free(cert);
+        fclose(fp);
         return ACC_ERROR;
     }
-    time_t notAfterTime = mktime(&notAfterTm);
-
-    double timeDiffDouble = difftime(notAfterTime, now);
-    if (timeDiffDouble > INT_MAX || timeDiffDouble < INT_MIN) {
-        LOG_ERROR("failed to converting difftime.");
-        fclose(fp);
+    if (OpenSslApiWrapper::X509CmpCurrentTime(OpenSslApiWrapper::X509GetNotBefore(cert)) > 0) {
+        LOG_ERROR("Certificate has expired! current time before cert time.");
         OpenSslApiWrapper::X509Free(cert);
-        return ACC_ERROR;
-    }
-    int timeDiff = static_cast<int>(timeDiffDouble);
-    int daysRemaining = (timeDiff + SECONDS_OF_ONE_DAY - 1) / SECONDS_OF_ONE_DAY;
-    if (daysRemaining > 0) {
-        LOG_INFO("check " << type << " expired success ");
-        if (daysRemaining <= this->certCheckAheadDays) {
-            LOG_WARN(type << " near expired, please update it in time");
-        }
-    } else {
-        LOG_ERROR("check " << type << " expired failed");
         fclose(fp);
-        OpenSslApiWrapper::X509Free(cert);
         return ACC_ERROR;
     }
 

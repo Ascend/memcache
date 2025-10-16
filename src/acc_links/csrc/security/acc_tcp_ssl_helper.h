@@ -48,12 +48,12 @@ private:
     AccResult LoadCaCert(SSL_CTX *sslCtx);
     AccResult LoadServerCert(SSL_CTX *sslCtx);
     AccResult LoadPrivateKey(SSL_CTX *sslCtx);
-    AccResult CertVerify(X509 *cert);
+    AccResult CertVerify(X509 *cert) const;
     AccResult CheckCertExpiredTask();
     AccResult StartCheckCertExpired();
     void StopCheckCertExpired(bool afterFork);
-    AccResult HandleCertExpiredCheck();
-    AccResult CertExpiredCheck(std::string path, std::string type);
+    AccResult HandleCertExpiredCheck() const;
+    static AccResult CertExpiredCheck(std::string path, std::string type);
     void ReadCheckCertParams();
     AccResult GetPkPass();
 

@@ -58,6 +58,14 @@
         }                                        \
     } while (0)
 
+#define VALIDATE_RETURN_VOID(ARGS, msg)          \
+    do {                                         \
+        if (__builtin_expect(!(ARGS), 0) != 0) { \
+            LOG_ERROR(msg);                      \
+            return;                              \
+        }                                        \
+    } while (0)
+
 #define LOG_ERROR_RETURN_IT_IF_NOT_OK(result, msg) \
     do {                                           \
         auto innerResult = (result);               \

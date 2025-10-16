@@ -22,10 +22,7 @@ Result AccTcpListener::Start() noexcept
         return ACC_OK;
     }
 
-    if (connHandler_ == nullptr) {
-        LOG_ERROR("Invalid connection handler");
-        return ACC_INVALID_PARAM;
-    }
+    VALIDATE_RETURN(connHandler_ != nullptr, "connection handler not initialized", ACC_ERROR);
 
     /* create socket */
     auto tmpFD = ::socket(AF_INET, SOCK_STREAM, 0);
@@ -68,8 +65,14 @@ Result AccTcpListener::Start() noexcept
 
     listenFd_ = tmpFD;
 
+    int retry_times = 10000;
     while (!threadStarted_.load()) {
         usleep(100L);
+        retry_times -= 1;
+        if (retry_times == 0) {
+            LOG_ERROR("Internal thread start timeout.");
+            return ACC_ERROR;
+        }
     }
 
     started_ = true;
