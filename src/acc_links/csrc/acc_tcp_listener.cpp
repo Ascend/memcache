@@ -202,7 +202,7 @@ void AccTcpListener::ProcessNewConnection(int fd, struct sockaddr_in addressIn) 
     if (newLink == nullptr) {
         LOG_ERROR("Failed to create listener tcp link object, probably out of memory");
         if (ssl != nullptr) {
-            if (AccCommonUtil::SslShutdownHelper(ssl) != ACC_OK) {
+            if (SslShutdownHelper(ssl) != ACC_OK) {
                 LOG_ERROR("shut down ssl failed!");
             }
             OpenSslApiWrapper::SslFree(ssl);

@@ -222,7 +222,7 @@ int32_t MemEntityDefault::FreeLocalMemory(hybm_mem_slice_t slice, uint32_t flags
         dramSegment_->ReleaseSliceMemory(memSlice);
     }
 
-    if (transportManager_ != nullptr) {
+    if (transportManager_ != nullptr && memSlice != nullptr) {
         auto ret = transportManager_->UnregisterMemoryRegion(memSlice->vAddress_);
         if (ret != BM_OK) {
             BM_LOG_ERROR("UnregisterMemoryRegion failed, please check input slice.");

@@ -47,8 +47,8 @@ public:
 
 public:
     explicit SmemTransEntry(const std::string &name, SmemStoreHelper helper)
-        : name_(name),
-          storeHelper_{std::move(helper)}
+        : storeHelper_{std::move(helper)},
+          name_(name)
     {
     }
 
@@ -79,8 +79,8 @@ private:
     hybm_options GenerateHybmOptions();
 
 private:
-    hybm_entity_t entity_ = nullptr;                     /* local hybm entity */
-    std::map<PeerEntryKey, PeerEntryValue> peerEntries_; /* peer transfer entry look up map */
+    hybm_entity_t entity_ = nullptr;                       /* local hybm entity */
+    std::map<PeerEntryKey, PeerEntryValue> peerEntries_{}; /* peer transfer entry look up map */
 
     uint16_t rankId_ = 0;
     uint16_t entityId_ = 0;
@@ -90,18 +90,18 @@ private:
     bool inited_ = false;
     const std::string name_;
     UrlExtraction storeUrlExtraction_;
-    smem_trans_config_t config_; /* config of transfer entry */
+    smem_trans_config_t config_{}; /* config of transfer entry */
     WorkerUniqueId workerUniqueId_;
     uint32_t sliceInfoSize_{0};
-    hybm_exchange_info deviceInfo_;
+    hybm_exchange_info deviceInfo_{};
     std::thread watchThread_;
     std::mutex watchMutex_;
     std::condition_variable watchCond_;
     bool watchRunning_{true};
 
     mf::ReadWriteLock remoteSliceRwMutex_;
-    std::unordered_map<uint64_t, std::map<const void *, LocalMapAddress, std::greater<const void *>>> remoteSlices_;
-    std::map<std::string, uint64_t> nameToWorkerId;     /* To accelerate name parsed */
+    std::unordered_map<uint64_t, std::map<const void *, LocalMapAddress, std::greater<const void *>>> remoteSlices_{};
+    std::map<std::string, uint64_t> nameToWorkerId{};     /* To accelerate name parsed */
 };
 
 inline const std::string &SmemTransEntry::Name() const

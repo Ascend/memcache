@@ -7,11 +7,10 @@
 #include <sys/uio.h>
 
 #include "acc_includes.h"
-#include "acc_common_util.h"
 #include "acc_tcp_common.h"
-#include "acc_tcp_shared_buf.h"
 #include "acc_tcp_ssl_helper.h"
 #include "openssl_api_wrapper.h"
+#include "openssl_util.h"
 
 namespace ock {
 namespace acc {
@@ -79,7 +78,7 @@ public:
     ~AccTcpLinkDefault() override
     {
         if (ssl_ != nullptr) {
-            if (AccCommonUtil::SslShutdownHelper(ssl_) != ACC_OK) {
+            if (SslShutdownHelper(ssl_) != ACC_OK) {
                 LOG_ERROR("shut down ssl failed!");
             }
             OpenSslApiWrapper::SslFree(ssl_);
@@ -323,7 +322,7 @@ public:
     {
         __sync_bool_compare_and_swap(&established_, 1, 0);
         if (ssl_ != nullptr) {
-            if (AccCommonUtil::SslShutdownHelper(ssl_) != ACC_OK) {
+            if (SslShutdownHelper(ssl_) != ACC_OK) {
                 LOG_ERROR("shut down ssl failed!");
             }
             OpenSslApiWrapper::SslFree(ssl_);

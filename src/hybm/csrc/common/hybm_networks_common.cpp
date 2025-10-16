@@ -62,7 +62,7 @@ std::vector<uint32_t> NetworkGetIpAddresses() noexcept
         return addresses;
     }
 
-    int32_t routeIp = 0;
+    uint32_t routeIp = 0;
     auto routeName = GetDefaultRouteNetwork();
     for (p = ifa; p != nullptr; p = p->ifa_next) {
         if (p->ifa_addr == nullptr) {

@@ -1,6 +1,9 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
+
+#include "mf_file_util.h"
+
 #include "acc_tcp_server.h"
 #include "acc_common_util.h"
 #include "acc_tcp_server_default.h"
@@ -571,7 +574,7 @@ Result AccTcpServerDefault::CreateSSLLink(SSL* &ssl, int &tmpFD)
 void AccTcpServerDefault::ValidateSSLLink(SSL* &ssl, int &tmpFD)
 {
     if (ssl != nullptr) {
-        if (AccCommonUtil::SslShutdownHelper(ssl) != ACC_OK) {
+        if (SslShutdownHelper(ssl) != ACC_OK) {
             LOG_ERROR("shut down ssl failed!");
         }
         OpenSslApiWrapper::SslFree(ssl);

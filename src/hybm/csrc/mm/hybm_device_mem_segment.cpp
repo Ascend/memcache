@@ -19,7 +19,7 @@ namespace ock {
 namespace mf {
 int MemSegmentDevice::deviceId_{-1};
 int MemSegmentDevice::logicDeviceId_{-1};
-int MemSegmentDevice::pid_{-1};
+uint32_t MemSegmentDevice::pid_{0};
 uint32_t MemSegmentDevice::sdid_{0};
 uint32_t MemSegmentDevice::serverId_{0};
 uint32_t MemSegmentDevice::superPodId_{0};
@@ -427,7 +427,7 @@ int MemSegmentDevice::SetDeviceInfo(int deviceId) noexcept
 
     deviceId_ = deviceId;
     logicDeviceId_ = logicDeviceId;
-    pid_ = static_cast<int>(tgid);
+    pid_ = tgid;
     ret = FillDeviceSuperPodInfo();
     if (ret != BM_OK) {
         BM_LOG_ERROR("FillDeviceSuperPodInfo() failed: " << ret);
@@ -491,7 +491,7 @@ void MemSegmentDevice::GetRankIdByAddr(const void *addr, uint64_t size, uint32_t
     if (!MemoryInRange(addr, size)) {
         rankId = options_.rankId;
     } else {
-        auto offset = static_cast<const uint8_t *>(addr) - static_cast<const uint8_t *>(globalVirtualAddress_);
+        uint32_t offset = static_cast<const uint8_t *>(addr) - static_cast<const uint8_t *>(globalVirtualAddress_);
         rankId = offset / options_.size;
     }
 }

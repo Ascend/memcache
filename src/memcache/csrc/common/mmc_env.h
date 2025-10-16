@@ -7,10 +7,10 @@
 
 namespace ock {
 namespace mmc {
-extern std::string MMC_META_CONF_PATH;
-extern std::string MMC_LOCAL_CONF_PATH;
-extern std::string META_POD_NAME;
-extern std::string META_NAMESPACE;
-extern std::string META_LEASE_NAME;
+extern const std::string MMC_META_CONF_PATH;
+extern const std::string MMC_LOCAL_CONF_PATH;
+extern const std::string META_POD_NAME;
+extern const std::string META_NAMESPACE;
+extern const std::string META_LEASE_NAME;
 }
 }

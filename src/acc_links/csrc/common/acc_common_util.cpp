@@ -2,8 +2,10 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
 #include <unistd.h>
+#include <regex>
 
 #include "mf_str_util.h"
+#include "mf_file_util.h"
 #include "acc_includes.h"
 #include "acc_common_util.h"
 
@@ -17,44 +19,6 @@ bool AccCommonUtil::IsValidIPv4(const std::string &ip)
     }
     std::regex ipv4Regex("^(?:(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)($|(?!\\.$)\\.)){4}$");
     return std::regex_match(ip, ipv4Regex);
-}
-
-Result AccCommonUtil::SslShutdownHelper(SSL *ssl)
-{
-    if (!ssl) {
-        LOG_ERROR("ssl ptr is nullptr");
-        return ACC_ERROR;
-    }
-
-    const int sslShutdownTimes = 5;
-    const int sslRetryInterval = 1;  // s
-    int ret = OpenSslApiWrapper::SslShutdown(ssl);
-    if (ret == 1) {
-        return ACC_OK;
-    } else if (ret < 0) {
-        ret = OpenSslApiWrapper::SslGetError(ssl, ret);
-        LOG_ERROR("ssl shutdown failed!, error code is:" << ret);
-        return ACC_ERROR;
-    } else if (ret != 0) {
-        LOG_ERROR("unknown ssl shutdown ret val!");
-        return ACC_ERROR;
-    }
-
-    for (int i = UNO_1; i <= sslShutdownTimes; ++i) {
-        sleep(sslRetryInterval);
-        LOG_INFO("ssl showdown retry times:" << i);
-        ret = OpenSslApiWrapper::SslShutdown(ssl);
-        if (ret == 1) {
-            return ACC_OK;
-        } else if (ret < 0) {
-            LOG_ERROR("ssl shutdown failed!, error code is:" << OpenSslApiWrapper::SslGetError(ssl, ret));
-            return ACC_ERROR;
-        } else if (ret != 0) {
-            LOG_ERROR("unknown ssl shutdown ret val!");
-            return ACC_ERROR;
-        }
-    }
-    return ACC_ERROR;
 }
 
 uint32_t AccCommonUtil::GetEnvValue2Uint32(const char *envName)

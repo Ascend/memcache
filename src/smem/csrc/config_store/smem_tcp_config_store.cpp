@@ -12,6 +12,7 @@ namespace ock {
 namespace smem {
 constexpr auto CONNECT_RETRY_MAX_TIMES = 60;
 constexpr int DECIMAL_BASE = 10;
+constexpr int WORLD_SIZE_SHIFT = 32;
 
 class ClientWaitContext : public ClientCommonContext {
 public:
@@ -181,8 +182,9 @@ Result TcpConfigStore::ClientStart(const tls_config& tlsConfig, int reconnectRet
     }
 
     ock::acc::AccConnReq connReq;
-    connReq.rankId = rankId_ >= 0 ? ((static_cast<uint64_t>(worldSize_) << 32) | rankId_)
-                                  : ((static_cast<uint64_t>(worldSize_) << 32) | std::numeric_limits<uint32_t>::max());
+    connReq.rankId = rankId_ >= 0 ?
+        ((static_cast<uint64_t>(worldSize_) << WORLD_SIZE_SHIFT) | static_cast<uint64_t>(rankId_)) :
+        ((static_cast<uint64_t>(worldSize_) << WORLD_SIZE_SHIFT) | std::numeric_limits<uint32_t>::max());
     result = accClient_->ConnectToPeerServer(serverIp_, serverPort_, connReq, retryMaxTimes, accClientLink_);
     if (result != 0) {
         STORE_LOG_ERROR("connect to server failed, result: " << result);
@@ -551,8 +553,9 @@ Result TcpConfigStore::LinkBrokenHandler(const ock::acc::AccTcpLinkComplexPtr &l
     }
     auto retryMaxTimes = CONNECT_RETRY_MAX_TIMES;
     ock::acc::AccConnReq connReq;
-    connReq.rankId = rankId_ >= 0 ? ((static_cast<uint64_t>(worldSize_) << 32) | rankId_)
-                                  : ((static_cast<uint64_t>(worldSize_) << 32) | std::numeric_limits<uint32_t>::max());
+    connReq.rankId = rankId_ >= 0 ?
+        ((static_cast<uint64_t>(worldSize_) << WORLD_SIZE_SHIFT) | static_cast<uint64_t>(rankId_)) :
+        ((static_cast<uint64_t>(worldSize_) << WORLD_SIZE_SHIFT) | std::numeric_limits<uint32_t>::max());
     STORE_LOG_DEBUG("reconnect to server req.rankId:" << std::hex << connReq.rankId);
     auto result = accClient_->ConnectToPeerServer(serverIp_, serverPort_, connReq, retryMaxTimes, accClientLink_);
     if (result != 0) {

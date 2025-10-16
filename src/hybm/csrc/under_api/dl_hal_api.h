@@ -5,10 +5,8 @@
 #ifndef MF_HYBM_CORE_DL_HAL_API_H
 #define MF_HYBM_CORE_DL_HAL_API_H
 
-#include <cstddef>
 #include <mutex>
 
-#include "hybm_common_include.h"
 #include "dl_hal_api_def.h"
 #include "hybm_types.h"
 
@@ -54,7 +52,7 @@ using drvNotifyIdAddrOffsetFunc = int (*)(uint32_t, struct drvNotifyInfo *);
 
 class DlHalApi {
 public:
-    static Result LoadLibrary();
+    static Result LoadLibrary(uint32_t gvaVersion);
     static void CleanupLibrary();
 
     static inline void HalSvmModuleAllocedSizeInc(void *type, uint32_t devid, uint32_t moduleId, uint64_t size)
@@ -346,7 +344,7 @@ public:
     }
 
 private:
-    static Result LoadHybmV1V2Library();
+    static Result LoadHybmV1V2Library(uint32_t gvaVersion);
 
 private:
     static std::mutex gMutex;

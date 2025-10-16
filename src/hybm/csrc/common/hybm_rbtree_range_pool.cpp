@@ -50,6 +50,7 @@ AllocatedElement RbtreeRangePool::Allocate(uint64_t size) noexcept
         return AllocatedElement{};
     }
     if (baseAddress == nullptr) {
+        pthread_spin_unlock(&lock);
         BM_LOG_ERROR("base is a null pointer.");
         return AllocatedElement{};
     }

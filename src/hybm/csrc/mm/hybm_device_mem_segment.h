@@ -91,7 +91,7 @@ protected:
 protected:
     static int deviceId_;
     static int logicDeviceId_;
-    static int pid_;
+    static uint32_t pid_;
     static uint32_t sdid_;
     static uint32_t serverId_;
     static uint32_t superPodId_;

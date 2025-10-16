@@ -4,7 +4,6 @@
 #include <dlfcn.h>
 #include <mutex>
 
-#include "hybm_common_include.h"
 #include "hybm_define.h"
 #include "hybm_logger.h"
 #include "dl_hal_api.h"
@@ -56,10 +55,10 @@ halHostRegisterFunc DlHalApi::pHalHostRegister = nullptr;
 halHostUnregisterFunc DlHalApi::pHalHostUnregister = nullptr;
 drvNotifyIdAddrOffsetFunc DlHalApi::pDrvNotifyIdAddrOffset = nullptr;
 
-Result DlHalApi::LoadHybmV1V2Library()
+Result DlHalApi::LoadHybmV1V2Library(uint32_t gvaVersion)
 {
-    if (HybmGetGvaVersion() == HYBM_GVA_V1 || HybmGetGvaVersion() == HYBM_GVA_V2) {
-        if (HybmGetGvaVersion() == HYBM_GVA_V1) {
+    if (gvaVersion == HYBM_GVA_V1 || gvaVersion == HYBM_GVA_V2) {
+        if (gvaVersion == HYBM_GVA_V1) {
             DL_LOAD_SYM(pVirtDestroyHeapV1, halVirtDestroyHeapV1Func, halHandle, "devmm_virt_destroy_heap");
         } else {
             DL_LOAD_SYM(pSvmModuleAllocedSizeInc, halSvmModuleAllocedSizeIncFunc, halHandle,
@@ -84,7 +83,7 @@ Result DlHalApi::LoadHybmV1V2Library()
     return BM_OK;
 }
 
-Result DlHalApi::LoadLibrary()
+Result DlHalApi::LoadLibrary(uint32_t gvaVersion)
 {
     std::lock_guard<std::mutex> guard(gMutex);
     if (gLoaded) {
@@ -101,7 +100,7 @@ Result DlHalApi::LoadLibrary()
         return BM_DL_FUNCTION_FAILED;
     }
 
-    BM_ASSERT_RETURN(HybmGetGvaVersion() != HYBM_GVA_UNKNOWN, BM_NOT_INITIALIZED);
+    BM_ASSERT_RETURN(gvaVersion != HYBM_GVA_UNKNOWN, BM_NOT_INITIALIZED);
     /* load sym */
     DL_LOAD_SYM(pHalFd, int *, halHandle, "g_devmm_mem_dev");
     DL_LOAD_SYM(pSvmModuleAllocedSizeInc, halSvmModuleAllocedSizeIncFunc, halHandle, "svm_module_alloced_size_inc");
@@ -117,7 +116,7 @@ Result DlHalApi::LoadLibrary()
                 "devmm_virt_normal_heap_update_info");
     DL_LOAD_SYM(pVaToHeap, halVaToHeapFunc, halHandle, "devmm_va_to_heap");
 
-    auto ret = DlHalApi::LoadHybmV1V2Library();
+    auto ret = LoadHybmV1V2Library(gvaVersion);
     if (ret != 0) {
         return ret;
     }

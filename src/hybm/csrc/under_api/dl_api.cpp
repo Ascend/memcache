@@ -10,14 +10,14 @@
 namespace ock {
 namespace mf {
 
-Result DlApi::LoadLibrary(const std::string &libDirPath)
+Result DlApi::LoadLibrary(const std::string &libDirPath, const uint32_t gvaVersion)
 {
     auto result = DlAclApi::LoadLibrary(libDirPath);
     if (result != BM_OK) {
         return result;
     }
 
-    result = DlHalApi::LoadLibrary();
+    result = DlHalApi::LoadLibrary(gvaVersion);
     if (result != BM_OK) {
         DlAclApi::CleanupLibrary();
         return result;

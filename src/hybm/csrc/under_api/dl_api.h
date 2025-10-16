@@ -12,7 +12,7 @@ namespace mf {
 
 class DlApi {
 public:
-    static Result LoadLibrary(const std::string &libDirPath);
+    static Result LoadLibrary(const std::string &libDirPath, uint32_t gvaVersion);
     static void CleanupLibrary();
 };
 }

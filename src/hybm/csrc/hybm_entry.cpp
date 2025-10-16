@@ -237,7 +237,7 @@ static inline int hybm_load_library()
         BM_LOG_ERROR("Environment ASCEND_HOME_PATH check failed.");
         return BM_ERROR;
     }
-    auto ret = DlApi::LoadLibrary(libPath);
+    auto ret = DlApi::LoadLibrary(libPath, HybmGetGvaVersion());
     BM_LOG_ERROR_RETURN_IT_IF_NOT_OK(ret, "load library from path failed: " << ret);
     return 0;
 }

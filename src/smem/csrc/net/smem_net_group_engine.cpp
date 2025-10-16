@@ -472,9 +472,10 @@ void SmemNetGroupEngine::RemoteRankLinkDownCb(uint32_t remoteRankId)
 {
     SM_LOG_DEBUG("[DEBUG]RemoteRankLinkDownCb rank id: " << remoteRankId);
     listenSignal_.OperateInLock([this, remoteRankId]() {
-        listenCtx_.ret = SM_OK;
-        listenCtx_.events.emplace_back(GroupEvent(remoteRankId));
-    }, true);
+                                    listenCtx_.ret = SM_OK;
+                                    listenCtx_.events.emplace_back(GroupEvent(remoteRankId));
+                                },
+                                true);
 }
 
 void SmemNetGroupEngine::ClearBitmapForRank(uint32_t rankId)
