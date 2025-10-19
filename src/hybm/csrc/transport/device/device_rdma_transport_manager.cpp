@@ -435,6 +435,18 @@ Result RdmaTransportManager::Synchronize(uint32_t rankId)
 bool RdmaTransportManager::PrepareOpenDevice(uint32_t userId, uint32_t device, uint32_t rankCount,
                                              in_addr &deviceIp, void *&rdmaHandle)
 {
+    // If can get rdmaHanle, maybe the device has beed opened, can try get rdmaHanle directly.
+    if (DlHccpApi::RaRdevGetHandle(device, rdmaHandle) == 0) {
+        if (rdmaHandle != nullptr) {
+            if (!RetireDeviceIp(device, deviceIp)) {
+                BM_LOG_ERROR("RetireDeviceIp failed.");
+                return false;
+            }
+            BM_LOG_INFO("Had prepared device and get rdmaHandle success.");
+            return true;
+        }
+        BM_LOG_INFO("Had prepared device, but RdmaHadle is null, need init again.");
+    }
     // OpenTsd need userDeviceId
     if (!OpenTsd(userId, rankCount)) {
         BM_LOG_ERROR("open tsd failed.");
