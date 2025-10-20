@@ -13,6 +13,8 @@
 #include "mmc_client.h"
 #include "mmc_types.h"
 #include "mmc_env.h"
+#include "mmc.h"
+#include "mmcache_store.h"
 
 using namespace testing;
 using namespace std;
@@ -101,6 +103,36 @@ static void UrlStringToChar(std::string &urlString, char *urlChar)
     urlChar[urlString.length()] = '\0';
 }
 
+static void TestStore(std::shared_ptr<ObjectStore> &store, const std::vector<void *> &buffers,
+                      const std::vector<size_t> &sizes)
+{
+    auto ret = store->PutFromLayers("k", buffers, sizes, 33);
+    EXPECT_NE(ret, 0);
+    ret = store->PutFromLayers("", buffers, sizes, 3);
+    EXPECT_NE(ret, 0);
+    ret = store->PutFromLayers("", {}, {}, 3);
+    EXPECT_NE(ret, 0);
+    uint32_t localServiceId = 0;
+    store->GetLocalServiceId(localServiceId);
+    EXPECT_EQ(localServiceId, 0);
+    store->RegisterBuffer(buffers[0], sizes[0]);
+    ret = store->PutFrom("k", buffers[0], sizes[0], 3);
+    EXPECT_EQ(ret, 0);
+    store->BatchIsExist({"k"});
+    auto info = store->GetKeyInfo("k");
+    EXPECT_NE(info.GetBlobNum(), 0);
+    store->BatchGetKeyInfo({"k"});
+    store->BatchRemove({"k"});
+    auto bret = store->BatchPutFrom({"k"}, buffers, sizes, 3);
+    EXPECT_EQ(!bret.empty(), true);
+    store->BatchGetInto({"k"}, buffers, sizes, 3);
+    store->BatchRemove({"k"});
+    bret = store->BatchPutFromLayers({"k"}, {buffers}, {sizes}, 3);
+    EXPECT_EQ(bret[0], 0);
+    store->BatchGetIntoLayers({"K"}, {buffers}, {sizes}, 2);
+    store->BatchRemove({"k"});
+}
+
 TEST_F(TestMmcacheStore, Init)
 {
     // 1、启动 meta
@@ -119,7 +151,8 @@ TEST_F(TestMmcacheStore, Init)
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
     ASSERT_TRUE(meta_service != nullptr);
-
+    mmc_set_extern_logger([](int level, const char *msg) { std::cerr << msg << std::endl; });
+    mmc_set_log_level(1);
     // 2、启动 local
     std::shared_ptr<ObjectStore> store = ObjectStore::CreateObjectStore();
     auto ret = GenerateLocalConf(confPath_);
@@ -139,6 +172,7 @@ TEST_F(TestMmcacheStore, Init)
     sizes.push_back(1024);
     buffers.push_back((void *)malloc(4096));
     sizes.push_back(4096);
+    TestStore(store, buffers, sizes);
     ret = store->PutFromLayers(key, buffers, sizes, 3);
     EXPECT_EQ(ret, 0);
     ret = store->IsExist(key);

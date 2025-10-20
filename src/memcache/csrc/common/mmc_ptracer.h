@@ -4,7 +4,11 @@
 #ifndef MEMFABRIC_HYBRID_MMC_PTRACER_H
 #define MEMFABRIC_HYBRID_MMC_PTRACER_H
 
+#ifdef UT_ENABLED
+#include "ut_ptracer.h"
+#else
 #include "ptracer.h"
+#endif
 
 enum TP_MMC_MOD {
     TP_MMC_START = PTRACER_ID(1, 0U),

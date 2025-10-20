@@ -81,6 +81,7 @@ public:
 
     inline void Log(int level, const std::ostringstream &oss)
     {
+#ifndef UT_ENABLED
         if (logFunc_ != nullptr) {
             logFunc_(level, oss.str().c_str());
             return;
@@ -103,6 +104,9 @@ public:
             std::cout << " Invalid time " << LogLevelDesc(level) << " " << syscall(SYS_gettid) << " " << oss.str()
                       << std::endl;
         }
+#else
+        std::cout << LogLevelDesc(level) << oss.str() << std::endl;
+#endif
     }
 
     inline void AuditLog(const std::ostringstream &oss)

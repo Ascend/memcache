@@ -26,6 +26,12 @@ include_directories(
         ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/include/
         ${PROJECT_SOURCE_DIR}/3rdparty/log/spdlog/include/
 )
+
+if (BUILD_TESTS STREQUAL "ON")
+    include_directories(
+            ${PROJECT_SOURCE_DIR}/test/ut/testcase/memcache/include)
+endif ()
+
 if(BUILD_PYTHON STREQUAL "ON")
     include_directories(
          ${PYTHON_INCLUDE_DIR}
