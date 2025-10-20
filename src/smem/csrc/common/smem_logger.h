@@ -4,15 +4,6 @@
 #ifndef MEMFABRIC_HYBRID_SMEM_LOGGER_H
 #define MEMFABRIC_HYBRID_SMEM_LOGGER_H
 
-#include <cstring>
-#include <ctime>
-#include <iomanip>
-#include <iostream>
-#include <mutex>
-#include <sstream>
-#include <sys/syscall.h>
-#include <sys/time.h>
-#include <unistd.h>
 #include "mf_out_logger.h"
 
 #define SM_LOG_DEBUG(ARGS) MF_OUT_LOG("[SMEM ", ock::mf::DEBUG_LEVEL, ARGS)

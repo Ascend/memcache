@@ -55,6 +55,7 @@ public:
     Result BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
     Result BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
     Result RegisterBuffer(uint64_t addr, uint64_t size);
+    Result RegisterLayerBuffer(const uint64_t *addrs, const uint64_t *sizes, uint64_t layer, uint64_t num);
 
     Result CopyWait();
 

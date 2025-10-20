@@ -12,11 +12,12 @@ endif()
 add_executable(bm_example ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 
 target_compile_options(bm_example PRIVATE
-        -O2 -D_GLIBCXX_USE_CXX11_ABI=0 -Wall -Werror
+        -O2 -D_GLIBCXX_USE_CXX11_ABI=0 -Wall -g
 )
 
 include_directories(
         ${MF_PATH}/aarch64-linux/include/smem/host
+        ${MF_PATH}/aarch64-linux/include/hybm
         ${ASCEND_CANN_PACKAGE_PATH}/aarch64-linux/include/
         ${MF_PATH}/aarch64-linux/include/util/
 )
@@ -27,6 +28,7 @@ target_link_directories(bm_example PUBLIC
 
 target_link_libraries(bm_example PRIVATE
         mf_smem
+        mf_hybm_core
         ascendcl
 )
 

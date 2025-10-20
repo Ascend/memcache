@@ -18,6 +18,7 @@ constexpr uint64_t TB = GB * 1024ULL;
 
 constexpr uint64_t HEIGHT_MAX = 256ULL;
 constexpr uint32_t RANK_MAX = 1024UL;
+constexpr uint64_t SMALL_PAGE_SIZE = 4U * KB;
 
 constexpr uint64_t DEVICE_LARGE_PAGE_SIZE = 2UL * 1024UL * 1024UL; // 大页的size, 2M
 constexpr uint64_t HYBM_DEVICE_VA_START = 0x100000000000UL;        // NPU上的地址空间起始: 16T
@@ -49,6 +50,9 @@ constexpr uint64_t HYBM_HOST_REG_START_ADDR = 0x0000180000000000UL;
 constexpr uint64_t HYBM_HOST_GVA_START_ADDR = 0x0000200000000000UL; // 32T
 constexpr uint64_t HYBM_GVM_START_ADDR = 0x0000700000000000UL;      // 112T
 constexpr uint64_t HYBM_GVM_END_ADDR = 0x0000A00000000000UL;        // 160T
+
+constexpr uint64_t HYBM_GVM_REGISTER_ADDR = HYBM_GVM_END_ADDR;
+constexpr uint64_t HYBM_GVM_REGISTER_LAYER_SIZE = 32U * GB;
 
 constexpr uint64_t ENTITY_EXPORT_INFO_MAGIC = 0xAABB1234FFFFEE00UL;
 constexpr uint64_t HBM_SLICE_EXPORT_INFO_MAGIC = 0xAABB1234FFFFEE01UL;

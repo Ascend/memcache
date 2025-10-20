@@ -679,7 +679,10 @@ void AccStoreServer::RankStateTask() noexcept
 {
     while (running_) {
         std::unique_lock<std::mutex> lock(rankStateMutex_);
-        rankStateTaskCondition_.wait(lock, [this] { return !rankStateTaskQueue_.empty(); });
+        rankStateTaskCondition_.wait(lock, [this] { return !rankStateTaskQueue_.empty() || !running_; });
+        if (!running_) {
+            return;
+        }
 
         union Transfer {
             uint32_t rankId;

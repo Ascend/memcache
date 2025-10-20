@@ -1047,7 +1047,7 @@ int32_t MemEntityDefault::RegisterMem(uint64_t addr, uint64_t size) noexcept
     }
 
     size = (size + DEVICE_LARGE_PAGE_SIZE - 1) / DEVICE_LARGE_PAGE_SIZE * DEVICE_LARGE_PAGE_SIZE;
-    return hybm_gvm_mem_register(addr, size);
+    return hybm_gvm_mem_register(addr, size, addr);
 }
 
 int32_t MemEntityDefault::SetThreadAclDevice()
