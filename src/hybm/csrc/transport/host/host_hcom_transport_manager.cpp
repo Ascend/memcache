@@ -86,7 +86,7 @@ Result HcomTransportManager::CloseDevice()
     for (uint32_t i = 0; i < rankCount_; ++i) {
         DisConnectHcomChannel(i, channels_[i]);
     }
-    DlHcomApi::ServiceDestroy(rpcService_, HCOM_RPC_SERVICE_NAME);
+
     mf::MfTlsUtil::CloseTlsLib();
     rpcService_ = 0;
     localNic_ = "";
