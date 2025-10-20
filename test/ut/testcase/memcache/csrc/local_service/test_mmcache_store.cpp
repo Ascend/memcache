@@ -151,3 +151,150 @@ TEST_F(TestMmcacheStore, Init)
     store->TearDown();
     mmcs_meta_service_stop(meta_service);
 }
+
+static mmc_meta_service_t StartMetaService()
+{
+    // 1、启动 meta
+    std::string metaUrl = "tcp://127.0.0.1:5869";
+    std::string bmUrl = "tcp://127.0.0.1:5882";
+
+    mmc_meta_service_config_t metaServiceConfig{};
+    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
+    metaServiceConfig.logRotationFileCount = 20;
+    metaServiceConfig.accTlsConfig.tlsEnable = false;
+    metaServiceConfig.evictThresholdHigh = 80;
+    metaServiceConfig.evictThresholdLow = 60;
+    metaServiceConfig.haEnable = false;
+    UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
+    UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
+    mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
+    return meta_service;
+}
+
+TEST_F(TestMmcacheStore, RegisterBufferTest)
+{
+    std::shared_ptr<ObjectStore> store = ObjectStore::CreateObjectStore();
+    void *nonPtr = nullptr;
+    int test = 1;
+    void *testPtr = &test;
+    auto ret = store->RegisterBuffer(nonPtr, 0);
+    EXPECT_NE(ret, 0);
+
+    ret = store->RegisterBuffer(testPtr, 0);
+    EXPECT_NE(ret, 0);
+
+    ret = store->RegisterBuffer(testPtr, 1024 * 1024 * 2);
+    EXPECT_NE(ret, 0);
+
+    auto meta_service = StartMetaService();
+    EXPECT_NE(meta_service, nullptr);
+    ret = GenerateLocalConf(confPath_);
+    ASSERT_EQ(ret, 0);
+    MMC_LOCAL_CONF_PATH = confPath_;
+    ret = store->Init(0);
+    ASSERT_EQ(ret, 0);
+
+    ret = store->RegisterBuffer(testPtr, 1024 * 1024 * 2);
+    EXPECT_EQ(ret, 0);
+
+    store->TearDown();
+    mmcs_meta_service_stop(meta_service);
+}
+
+TEST_F(TestMmcacheStore, RegisterLayerBufferTest)
+{
+    std::shared_ptr<ObjectStore> store = ObjectStore::CreateObjectStore();
+    std::vector<uintptr_t> buffers;
+    std::vector<uintptr_t> sizes;
+    int32_t nums = 0;
+
+    auto ret = store->RegisterLayerBuffer(buffers, sizes, nums);
+    EXPECT_NE(ret, 0);
+
+    auto meta_service = StartMetaService();
+    EXPECT_NE(meta_service, nullptr);
+    ret = GenerateLocalConf(confPath_);
+    ASSERT_EQ(ret, 0);
+    MMC_LOCAL_CONF_PATH = confPath_;
+    ret = store->Init(0);
+    ASSERT_EQ(ret, 0);
+    ret = store->RegisterLayerBuffer(buffers, sizes, nums);
+    EXPECT_NE(ret, 0);
+
+    buffers.push_back(1);
+    ret = store->RegisterLayerBuffer(buffers, sizes, nums);
+    EXPECT_NE(ret, 0);
+
+    sizes.push_back(1024 * 1024 * 2);
+    nums = 1;
+    ret = store->RegisterLayerBuffer(buffers, sizes, nums);
+    EXPECT_EQ(ret, 0);
+
+    store->TearDown();
+    mmcs_meta_service_stop(meta_service);
+}
+
+TEST_F(TestMmcacheStore, GetIntoTest)
+{
+    std::shared_ptr<ObjectStore> store = ObjectStore::CreateObjectStore();
+    auto ret = store->GetInto("test", nullptr, 0, 0);
+    EXPECT_NE(ret, 0);
+
+    ret = store->GetInto("test", nullptr, 0, 1);
+    EXPECT_NE(ret, 0);
+
+    ret = store->GetInto("test", nullptr, 0, 2);
+    EXPECT_NE(ret, 0);
+}
+
+TEST_F(TestMmcacheStore, PutFromTest)
+{
+    std::shared_ptr<ObjectStore> store = ObjectStore::CreateObjectStore();
+    auto ret = store->PutFrom("test", nullptr, 0, 0);
+    EXPECT_NE(ret, 0);
+
+    ret = store->PutFrom("test", nullptr, 0, 1);
+    EXPECT_NE(ret, 0);
+
+    ret = store->PutFrom("test", nullptr, 0, 2);
+    EXPECT_NE(ret, 0);
+}
+
+TEST_F(TestMmcacheStore, BatchRemoveTest)
+{
+    std::shared_ptr<ObjectStore> store = ObjectStore::CreateObjectStore();
+
+    std::vector<std::string> keys;
+    auto ret = store->BatchRemove(keys);
+    EXPECT_EQ(ret.size(), 0);
+
+    keys.emplace_back("test");
+    ret = store->BatchRemove(keys);
+    EXPECT_NE(ret[0], 0);
+
+    for (int i = 0; i < MAX_BATCH_OP_COUNT + 1; ++i) {
+        keys.push_back("test_" + std::to_string(i));
+    }
+    ret = store->BatchRemove(keys);
+    EXPECT_EQ(ret[0], MMC_INVALID_PARAM);
+}
+
+TEST_F(TestMmcacheStore, BatchIsExist)
+{
+    std::shared_ptr<ObjectStore> store = ObjectStore::CreateObjectStore();
+    std::vector<std::string> keys;
+
+    auto ret = store->BatchIsExist(keys);
+    EXPECT_EQ(ret.size(), 0);
+
+    keys.emplace_back("test");
+    ret = store->BatchIsExist(keys);
+    EXPECT_NE(ret[0], 0);
+
+    for (int i = 0; i < MAX_BATCH_OP_COUNT + 1; ++i) {
+        keys.push_back("test_" + std::to_string(i));
+    }
+    ret = store->BatchIsExist(keys);
+    EXPECT_EQ(ret[0], MMC_INVALID_PARAM);
+}

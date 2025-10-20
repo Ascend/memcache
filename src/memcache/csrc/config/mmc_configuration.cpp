@@ -132,50 +132,6 @@ uint64_t Configuration::GetUInt64(const char * key, uint64_t defaultValue)
     return defaultValue;
 }
 
-std::string Configuration::GetConvertedValue(const std::string &key)
-{
-    GUARD(&mLock, mLock);
-    auto iter = mValueTypes.find(key);
-    if (iter == mValueTypes.end()) {
-        return "";
-    }
-    ConfValueType valueType = iter->second;
-    std::string value = std::string();
-    switch (valueType) {
-        case ConfValueType::VSTRING: {
-            auto iterStr = mStrItems.find(key);
-            value = iterStr != mStrItems.end() ? iterStr->second : std::string();
-            break;
-        }
-        case ConfValueType::VBOOL: {
-            auto iterBool = mBoolItems.find(key);
-            value = iterBool != mBoolItems.end() ? std::to_string(iterBool->second) : std::string();
-            break;
-        }
-        case ConfValueType::VUINT64: {
-            auto iterUInt64 = mUInt64Items.find(key);
-            value = iterUInt64 != mUInt64Items.end() ? std::to_string(iterUInt64->second) : std::string();
-            break;
-        }
-        case ConfValueType::VINT: {
-            auto iterInt = mIntItems.find(key);
-            value = iterInt != mIntItems.end() ? std::to_string(iterInt->second) : std::string();
-            break;
-        }
-        case ConfValueType::VFLOAT: {
-            auto iterFloat = mFloatItems.find(key);
-            value = iterFloat != mFloatItems.end() ? std::to_string(iterFloat->second) : std::string();
-            break;
-        }
-        default:;
-    }
-    auto converterIter = mValueConverter.find(key);
-    if (converterIter == mValueConverter.end() || converterIter->second == nullptr) {
-        return value;
-    }
-    return converterIter->second->Convert(value);
-}
-
 void Configuration::Set(const std::string &key, int32_t value)
 {
     GUARD(&mLock, mLock);
@@ -333,28 +289,6 @@ void Configuration::AddUInt64Conf(const std::pair<std::string, uint64_t> &pair, 
     SetValidator(pair.first, validator, flag);
 }
 
-void Configuration::AddPathConf(const std::pair<std::string, std::string> &pair, const ValidatorPtr &validator,
-    uint32_t flag)
-{
-    AddStrConf(pair, validator, flag);
-    mPathConfs.push_back(pair.first);
-    SetValidator(pair.first, validator, flag);
-}
-
-void Configuration::AddConverter(const std::string &key, const ConverterPtr &converter)
-{
-    if (converter == nullptr) {
-        std::string errorInfo = "The converter of <" + key + "> create failed, maybe out of memory.";
-        mLoadDefaultErrors.push_back(errorInfo);
-        return;
-    }
-    if (mValueConverter.find(key) == mValueConverter.end()) {
-        mValueConverter.insert(std::make_pair(key, converter));
-    } else {
-        mValueConverter.at(key) = converter;
-    }
-}
-
 void Configuration::ValidateOneType(const std::string &key, const ValidatorPtr &validator,
     std::vector<std::string> &errors, ConfValueType &vType)
 {
@@ -400,32 +334,6 @@ void Configuration::ValidateOneType(const std::string &key, const ValidatorPtr &
             break;
         }
         default:;
-    }
-}
-
-void Configuration::ValidateOneValueMap(std::vector<std::string> &errors,
-    const std::map<std::string, ValidatorPtr> &valueValidator)
-{
-    for (auto &item : valueValidator) {
-        auto valueValidatorPtr = item.second.Get();
-        if (valueValidatorPtr == nullptr) {
-            errors.push_back("The validator of <" + item.first + "> is null, skip.");
-            continue;
-        }
-        // initialize, if failed then skip it
-        if (!(valueValidatorPtr->Initialize())) {
-            errors.push_back(valueValidatorPtr->ErrorMessage());
-            continue;
-        }
-
-        // firstly find the value type
-        auto typeIter = mValueTypes.find(item.first);
-        if (typeIter == mValueTypes.end()) {
-            errors.push_back("Failed to find <" + item.first + "> in type map, which should not happen.");
-            continue;
-        }
-
-        ValidateOneType(item.first, item.second, errors, typeIter->second);
     }
 }
 

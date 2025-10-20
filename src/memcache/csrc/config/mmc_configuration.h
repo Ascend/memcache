@@ -74,7 +74,6 @@ public:
     bool GetBool(const std::pair<const char *, bool> &item);
     uint64_t GetUInt64(const std::pair<const char *, uint64_t> &item);
     uint64_t GetUInt64(const char *key, uint64_t defaultValue);
-    std::string GetConvertedValue(const std::string &key);
 
     void Set(const std::string &key, int32_t value);
     void Set(const std::string &key, float value);
@@ -117,9 +116,6 @@ private:
     MemUnit ParseMemUnit(const std::string& unit);
 
     void SetValidator(const std::string &key, const ValidatorPtr &validator, uint32_t flag);
-
-    void ValidateOneValueMap(std::vector<std::string> &errors,
-        const std::map<std::string, ValidatorPtr> &valueValidator);
 
     template <class T>
     static void AddValidateError(const ValidatorPtr &validator, std::vector<std::string> &errors, const T &iter)
