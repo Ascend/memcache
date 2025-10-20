@@ -457,10 +457,17 @@ int JoinableRanksQpManager::GenerateWhiteList(const std::set<uint32_t> &newClien
         return BM_OK;
     }
 
-    auto ret = DlHccpApi::RaSocketWhiteListAdd(serverSocketHandle_, whitelist.data(), whitelist.size());
-    if (ret != 0) {
-        BM_LOG_ERROR("socket handle add white list failed: " << ret);
-        return BM_ERROR;
+    uint32_t batchSize = 16;
+    for (size_t i = 0; i < whitelist.size(); i += batchSize) {
+        size_t currentBatchSize = (whitelist.size() - i) >= batchSize ? batchSize : (whitelist.size() - i);
+        auto batchStart = whitelist.begin() + i;
+        auto batchEnd = batchStart + currentBatchSize;
+        std::vector<HccpSocketWhiteListInfo> currentBatch(batchStart, batchEnd);
+        auto ret = DlHccpApi::RaSocketWhiteListAdd(serverSocketHandle_, currentBatch.data(), currentBatch.size());
+        if (ret != 0) {
+            BM_LOG_ERROR("RaSocketWhiteListAdd() with size=" << currentBatch.size() << " failed: " << ret);
+            return BM_ERROR;
+        }
     }
 
     return BM_OK;
