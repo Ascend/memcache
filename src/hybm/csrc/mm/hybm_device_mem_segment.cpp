@@ -491,7 +491,7 @@ void MemSegmentDevice::GetRankIdByAddr(const void *addr, uint64_t size, uint32_t
     if (!MemoryInRange(addr, size)) {
         rankId = options_.rankId;
     } else {
-        uint32_t offset = static_cast<const uint8_t *>(addr) - static_cast<const uint8_t *>(globalVirtualAddress_);
+        uint64_t offset = static_cast<const uint8_t *>(addr) - static_cast<const uint8_t *>(globalVirtualAddress_);
         rankId = offset / options_.size;
     }
 }
