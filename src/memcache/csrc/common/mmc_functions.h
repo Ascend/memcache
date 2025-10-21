@@ -71,6 +71,7 @@ inline Result Func::LibraryRealPath(const std::string &libDirPath, const std::st
 {
     std::string tmpFullPath = libDirPath;
     if (!Realpath(tmpFullPath)) {
+        MMC_LOG_ERROR("directory is a symlink.");
         return MMC_INVALID_PARAM;
     }
 
@@ -79,6 +80,12 @@ inline Result Func::LibraryRealPath(const std::string &libDirPath, const std::st
     }
 
     tmpFullPath.append(libName);
+
+    if (!Realpath(tmpFullPath)) {
+        MMC_LOG_ERROR("library path is a symlink.");
+        return MMC_INVALID_PARAM;
+    }
+
     auto ret = ::access(tmpFullPath.c_str(), F_OK);
     if (ret != 0) {
         MMC_LOG_ERROR(tmpFullPath << " cannot be accessed, ret: " << ret);

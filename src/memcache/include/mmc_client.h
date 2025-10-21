@@ -4,6 +4,8 @@
 #ifndef __MEMFABRIC_MMC_CLIENT_H__
 #define __MEMFABRIC_MMC_CLIENT_H__
 
+#include <stddef.h>
+
 #include "mmc_def.h"
 
 #ifdef __cplusplus

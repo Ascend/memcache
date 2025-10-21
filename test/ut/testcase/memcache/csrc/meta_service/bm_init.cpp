@@ -63,10 +63,12 @@ TEST_F(TestBmInit, Init)
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
-    mmc_local_service_config_t localServiceConfig1 = {"", 0, 0, 1, bmUrl, hcomUrl, 0, "device_sdma", 0, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig1 = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
     localServiceConfig1.logLevel = 0;
     localServiceConfig1.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig1.discoveryURL);
+    UrlStringToChar(bmUrl, localServiceConfig1.bmIpPort);
+    UrlStringToChar(hcomUrl, localServiceConfig1.bmHcomUrl);
     auto localServiceDefault1 = MmcMakeRef<MmcLocalServiceDefault>("testLocalService1");
     MmcLocalServicePtr localServicePtr1 = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault1);
     ASSERT_TRUE(localServicePtr1->Start(localServiceConfig1) == MMC_OK);

@@ -133,7 +133,7 @@ std::shared_ptr<ObjectStore> ObjectStore::CreateObjectStore()
 int MmcacheStore::Init(const uint32_t deviceId)
 {
     mmc_init_config config{deviceId};
-    return mmc_init(config);
+    return mmc_init(&config);
 }
 
 int MmcacheStore::TearDown()
@@ -365,7 +365,7 @@ std::vector<KeyInfo> MmcacheStore::BatchGetKeyInfo(const std::vector<std::string
         }
 
         KeyInfo keyInfo{info.size, info.numBlobs};
-        for (int j = 0; j < info.numBlobs; j++) {
+        for (int j = 0; j < info.numBlobs && j < MAX_BLOB_COPIES; j++) {
             keyInfo.AddLoc(info.ranks[j]);
             keyInfo.AddType(info.types[j]);
         }

@@ -63,10 +63,12 @@ TEST_F(TestMmcMetaService, Init)
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, "device_sdma", 0, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
     localServiceConfig.logLevel = 0;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
+    UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
+    UrlStringToChar(hcomUrl, localServiceConfig.bmHcomUrl);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
     ASSERT_TRUE(localServicePtr->Start(localServiceConfig) == MMC_OK);
@@ -109,10 +111,12 @@ TEST_F(TestMmcMetaService, ExistRequest)
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, "device_sdma", 0, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
     localServiceConfig.logLevel = 0;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
+    UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
+    UrlStringToChar(hcomUrl, localServiceConfig.bmHcomUrl);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
     ASSERT_TRUE(localServicePtr->Start(localServiceConfig) == MMC_OK);
@@ -162,10 +166,12 @@ TEST_F(TestMmcMetaService, BatchExistRequest)
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, "device_sdma", 0, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
     localServiceConfig.logLevel = 0;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
+    UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
+    UrlStringToChar(hcomUrl, localServiceConfig.bmHcomUrl);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
     ASSERT_TRUE(localServicePtr->Start(localServiceConfig) == MMC_OK);
@@ -234,10 +240,12 @@ TEST_F(TestMmcMetaService, QueryRequest)
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, "device_sdma", 0, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
     localServiceConfig.logLevel = 0;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
+    UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
+    UrlStringToChar(hcomUrl, localServiceConfig.bmHcomUrl);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
     ASSERT_TRUE(localServicePtr->Start(localServiceConfig) == MMC_OK);
@@ -290,10 +298,12 @@ TEST_F(TestMmcMetaService, BatchQueryRequest)
     MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, "device_sdma", 0, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
     localServiceConfig.logLevel = 0;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
+    UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
+    UrlStringToChar(hcomUrl, localServiceConfig.bmHcomUrl);
     auto localServiceDefault = MmcMakeRef<MmcLocalServiceDefault>("testLocalService");
     MmcLocalServicePtr localServicePtr = Convert<MmcLocalServiceDefault, MmcLocalService>(localServiceDefault);
     ASSERT_TRUE(localServicePtr->Start(localServiceConfig) == MMC_OK);

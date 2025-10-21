@@ -24,7 +24,7 @@ bool AccCommonUtil::IsValidIPv4(const std::string &ip)
 uint32_t AccCommonUtil::GetEnvValue2Uint32(const char *envName)
 {
     // 0 should be illegal for this env variable
-    constexpr uint32_t maxUint32Len = 35;
+    constexpr uint32_t maxUint32Len = 10;
     const char *tmpEnvValue = std::getenv(envName);
     if (tmpEnvValue != nullptr && strlen(tmpEnvValue) <= maxUint32Len && IsAllDigits(tmpEnvValue)) {
         uint32_t envValue = 0;

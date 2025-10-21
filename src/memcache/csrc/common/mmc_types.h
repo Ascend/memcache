@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <atomic>
 #include <iostream>
+#include <vector>
 
 #include <mmc_def.h>
 

@@ -545,6 +545,10 @@ int32_t HalGvaReserveMemory(uint64_t *address, size_t size, int32_t deviceId, ui
 
     uint64_t va = (DEVMM_SVM_MEM_START + DEVMM_SVM_MEM_SIZE - DEVMM_HEAP_SIZE) - allocSize;
     if (g_gvaHeapMgr.inited) {
+        if (allocSize > g_gvaHeapMgr.start) {
+            BM_LOG_ERROR("invalid allocSize or g_gvaHeapMgr.start");
+            return -1;
+        }
         va = g_gvaHeapMgr.start - allocSize;
     }
 

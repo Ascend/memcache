@@ -5,13 +5,12 @@
 #define __MEMFABRIC_MMC_DEF_H__
 
 #include <stdint.h>
-#include <string>
-#include <vector>
 
 #include "mf_tls_def.h"
 
 #define DISCOVERY_URL_SIZE 1024
 #define PATH_MAX_SIZE 1024
+#define PROTOCOL_SIZE 64
 #define MAX_BATCH_OP_COUNT 16384
 
 #ifdef __cplusplus
@@ -44,10 +43,10 @@ typedef struct {
     uint32_t deviceId;
     uint32_t rankId;  // bmRankId: BM全局统一编号
     uint32_t worldSize;
-    std::string bmIpPort;
-    std::string bmHcomUrl;
+    char bmIpPort[DISCOVERY_URL_SIZE];
+    char bmHcomUrl[DISCOVERY_URL_SIZE];
     uint32_t createId;
-    std::string dataOpType;
+    char dataOpType[PROTOCOL_SIZE];
     uint64_t localDRAMSize;
     uint64_t localHBMSize;
     uint32_t flags;

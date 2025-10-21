@@ -447,14 +447,6 @@ Result NetEngineAcc::HandleLinkBroken(const TcpLinkPtr &link) const
     return ret;
 }
 
-/*
-Result NetEngineAcc::LoadDynamicLib(const std::string &dynLibPath)
-{
-    MMC_ASSERT_RETURN(server_ != nullptr, MMC_ERROR);
-    return server_->LoadDynamicLib(dynLibPath);
-}
-*/
-
 Result NetEngineAcc::ConnectToPeer(uint32_t peerId, const std::string &peerIp, uint16_t port, NetLinkPtr &newLink,
                                    bool isForce)
 {

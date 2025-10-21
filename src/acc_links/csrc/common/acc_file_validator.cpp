@@ -56,7 +56,11 @@ bool FileValidator::RegularFilePath(const std::string &filePath, const std::stri
         return false;
     }
 
-    char* path = new char[ock::mf::FileUtil::GetSafePathMax() + UNO_1];
+    char* path = new(std::nothrow) char[ock::mf::FileUtil::GetSafePathMax() + UNO_1];
+    if (path == nullptr) {
+        errMsg = "Memory allocation failed.";
+        return false;
+    }
     bzero(path, ock::mf::FileUtil::GetSafePathMax() + UNO_1);
 
     char* ret = realpath(filePath.c_str(), path);

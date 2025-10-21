@@ -91,11 +91,13 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
 
     uint64_t totalSize = SIZE_32K * 10;
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, "device_sdma",
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma",
                                                      totalSize, totalSize, 0};
     localServiceConfig.logLevel = 0;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
+    UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
+    UrlStringToChar(hcomUrl, localServiceConfig.bmHcomUrl);
     mmc_meta_service_t local_service = mmcs_local_service_start(&localServiceConfig);
     ASSERT_TRUE(local_service != nullptr);
 
@@ -175,11 +177,13 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
     ASSERT_TRUE(meta_service != nullptr);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, bmUrl, hcomUrl, 0, "device_sdma",
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma",
                                                      104857600, 104857600, 0};
     localServiceConfig.logLevel = 0;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
+    UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
+    UrlStringToChar(hcomUrl, localServiceConfig.bmHcomUrl);
     mmc_local_service_t local_service = mmcs_local_service_start(&localServiceConfig);
     ASSERT_TRUE(local_service != nullptr);
 

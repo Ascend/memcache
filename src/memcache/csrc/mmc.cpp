@@ -9,7 +9,6 @@
 #include "mmc_def.h"
 #include "mmc_env.h"
 #include "mmc_service.h"
-#include "mmc_ptracer.h"
 
 using namespace ock::mmc;
 static mmc_local_service_t g_localService;
@@ -17,10 +16,11 @@ static mmc_local_service_t g_localService;
 static std::mutex gMmcMutex;
 static bool mmcInit = false;
 
-MMC_API int32_t mmc_init(const mmc_init_config &config)
+MMC_API int32_t mmc_init(const mmc_init_config *config)
 {
-    MMC_VALIDATE_RETURN(config.deviceId <= MAX_DEVICE_ID, "Invalid param deviceId: "
-                        << config.deviceId, MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(config != nullptr, "config is null", MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(config->deviceId <= MAX_DEVICE_ID,
+        "Invalid param deviceId: " << config->deviceId, MMC_INVALID_PARAM);
     std::lock_guard<std::mutex> lock(gMmcMutex);
     if (mmcInit) {
         MMC_LOG_INFO("mmc is already init");
@@ -44,7 +44,7 @@ MMC_API int32_t mmc_init(const mmc_init_config &config)
 
     mmc_local_service_config_t localServiceConfig{};
     localServiceConfig.flags = 0;
-    localServiceConfig.deviceId = config.deviceId;
+    localServiceConfig.deviceId = config->deviceId;
     configManager.GetLocalServiceConfig(localServiceConfig);
     MMC_RETURN_ERROR(ock::mmc::MmcOutLogger::Instance().SetLogLevel(static_cast<LogLevel>(localServiceConfig.logLevel)),
                      "failed to set log level " << localServiceConfig.logLevel);

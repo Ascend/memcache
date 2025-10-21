@@ -19,7 +19,7 @@ typedef struct {
  * @param config              [in] init confid @mmc_init_config
  * @return 0 if successful,
  */
-int32_t mmc_init(const mmc_init_config &config);
+int32_t mmc_init(const mmc_init_config *config);
 
 /**
  * @brief Set external log function, user can set customized logger function,

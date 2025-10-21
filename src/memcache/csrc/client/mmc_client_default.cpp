@@ -557,7 +557,7 @@ Result MmcClientDefault::BatchQuery(const std::vector<std::string> &keys, std::v
             continue;
         }
 
-        for (int i = 0; i < info.numBlobs_; i++) {
+        for (int i = 0; i < info.numBlobs_ && i < MAX_BLOB_COPIES; i++) {
             outInfo.ranks[i] = info.blobRanks_[i];
             outInfo.types[i] = info.blobTypes_[i];
         }

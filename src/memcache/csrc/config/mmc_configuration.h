@@ -288,13 +288,14 @@ public:
         SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_URL), config.discoveryURL, DISCOVERY_URL_SIZE);
 
         config.worldSize = static_cast<uint32_t>(GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_WORLD_SIZE));
-        config.bmIpPort = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_IP_PORT);
-        config.bmHcomUrl = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL);
+        SafeCopy(GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_IP_PORT), config.bmIpPort, DISCOVERY_URL_SIZE);
+        SafeCopy(GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL), config.bmHcomUrl, DISCOVERY_URL_SIZE);
         config.createId = 0;
-        config.dataOpType = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_PROTOCOL);
+        SafeCopy(GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_PROTOCOL), config.dataOpType, PROTOCOL_SIZE);
         config.localDRAMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE.first, MEM_128MB_BYTES);
         config.localHBMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first, MEM_2MB_BYTES);
-        if (config.dataOpType == "device_sdma" || config.dataOpType == "device_rdma") {
+        auto protocol = std::string(config.dataOpType);
+        if (protocol == "device_sdma" || protocol == "device_rdma") {
             config.flags |= SMEM_BM_INIT_GVM_FLAG;
         }
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
