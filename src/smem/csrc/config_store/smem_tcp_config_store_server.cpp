@@ -77,7 +77,7 @@ Result AccStoreServer::Startup(const tls_config& tlsConfig) noexcept
 
     timerThread_ = std::thread{[this]() { TimerThreadTask(); }};
     rankStateThread_ = std::thread{[this]() { RankStateTask(); }};
-
+    STORE_LOG_DEBUG("startup acc tcp server on port: " << listenPort_);
     return SM_OK;
 }
 
