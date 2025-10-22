@@ -76,7 +76,7 @@ private: // RDMA HOST STARS
 private:
     static thread_local HybmStreamPtr stream_;
     static thread_local HybmStreamNotifyPtr notify_;
-    static thread_local RdmaNotifyInfo notifyInfo_;
+    RdmaNotifyInfo notifyInfo_;
     bool started_{false};
     uint32_t rankId_{0};
     uint32_t rankCount_{1};

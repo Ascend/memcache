@@ -41,7 +41,6 @@ constexpr unsigned long RT_ASCEND910B1_ROCEE_VF_DB_CFG0_REG = 0x230UL;
 
 thread_local HybmStreamPtr RdmaTransportManager::stream_ = nullptr;
 thread_local HybmStreamNotifyPtr RdmaTransportManager::notify_ = nullptr;
-thread_local RdmaNotifyInfo RdmaTransportManager::notifyInfo_{};
 
 RdmaTransportManager::~RdmaTransportManager()
 {

@@ -313,7 +313,7 @@ void SubProcessRuning(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, std::
     auto ret = PreInit(deviceId, rankId, rkSize, ipPort, autoRank, &stream);
     CHECK_RET_VOID(ret, "pre init failed, ret:" << ret << " rank:" << rankId);
 
-    smem_bm_t handle = smem_bm_create(0, 0, SMEMB_DATA_OP_SDMA, GVA_SIZE, GVA_SIZE, 0);
+    smem_bm_t handle = smem_bm_create(0, 0, SMEMB_DATA_OP_DEVICE_RDMA, GVA_SIZE, GVA_SIZE, 0);
     CHECK_RET_VOID((handle == nullptr), "smem_bm_create failed, rank:" << rankId);
 
     ret = smem_bm_join(handle, 0);
@@ -324,7 +324,7 @@ void SubProcessRuning(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, std::
     CHECK_RET_VOID(ret, "barrier failed after init, ret:" << ret << " rank:" << rankId);
     LOG_INFO(" ==================== [TEST] bm init ok, rank:" << rankId);
 
-    bool checkBatch = true;
+    bool checkBatch = false;
     if (rankId == 0) {
         if (checkBatch) {
             CheckBatchCopy(deviceId, rankId, rkSize, handle);
