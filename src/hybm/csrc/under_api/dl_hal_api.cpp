@@ -52,7 +52,7 @@ halGetSsidFunc DlHalApi::pHalGetSsid = nullptr;
 halResourceConfigFunc DlHalApi::pHalResourceConfig = nullptr;
 halSqCqQueryFunc DlHalApi::pHalSqCqQuery = nullptr;
 halHostRegisterFunc DlHalApi::pHalHostRegister = nullptr;
-halHostUnregisterFunc DlHalApi::pHalHostUnregister = nullptr;
+halHostUnregisterExFunc DlHalApi::pHalHostUnregisterEx = nullptr;
 drvNotifyIdAddrOffsetFunc DlHalApi::pDrvNotifyIdAddrOffset = nullptr;
 
 Result DlHalApi::LoadHybmV1V2Library(uint32_t gvaVersion)
@@ -131,7 +131,7 @@ Result DlHalApi::LoadLibrary(uint32_t gvaVersion)
     DL_LOAD_SYM(pHalResourceConfig, halResourceConfigFunc, halHandle, "halResourceConfig");
     DL_LOAD_SYM(pHalSqCqQuery, halSqCqQueryFunc, halHandle, "halSqCqQuery");
     DL_LOAD_SYM(pHalHostRegister, halHostRegisterFunc, halHandle, "halHostRegister");
-    DL_LOAD_SYM(pHalHostUnregister, halHostUnregisterFunc, halHandle, "halHostUnregister");
+    DL_LOAD_SYM(pHalHostUnregisterEx, halHostUnregisterExFunc, halHandle, "halHostUnregisterEx");
     DL_LOAD_SYM(pDrvNotifyIdAddrOffset, drvNotifyIdAddrOffsetFunc, halHandle, "drvNotifyIdAddrOffset");
 
     gLoaded = true;
@@ -181,7 +181,7 @@ void DlHalApi::CleanupLibrary()
     pHalResourceConfig = nullptr;
     pHalSqCqQuery = nullptr;
     pHalHostRegister = nullptr;
-    pHalHostUnregister = nullptr;
+    pHalHostUnregisterEx = nullptr;
 
     if (halHandle != nullptr) {
         dlclose(halHandle);

@@ -83,6 +83,31 @@ Result MemSegmentHostSDMA::AllocLocalMemory(uint64_t size, std::shared_ptr<MemSl
     return BM_OK;
 }
 
+Result MemSegmentHostSDMA::ReleaseSliceMemory(const std::shared_ptr<MemSlice> &slice) noexcept
+{
+    if (slice == nullptr) {
+        BM_LOG_ERROR("input slice is nullptr");
+        return BM_INVALID_PARAM;
+    }
+
+    auto pos = slices_.find(slice->index_);
+    if (pos == slices_.end()) {
+        BM_LOG_ERROR("input slice(idx:" << slice->index_ << ") not exist.");
+        return BM_INVALID_PARAM;
+    }
+
+    if (pos->second.slice != slice) {
+        BM_LOG_ERROR("input slice(magic:" << std::hex << slice->magic_ << ") not match.");
+        return BM_INVALID_PARAM;
+    }
+
+    auto res = hybm_gvm_mem_free(slice->vAddress_);
+    BM_LOG_INFO("free slice(idx:" << slice->index_ << "), size: " << slice->size_ << " return:" << res);
+
+    slices_.erase(pos);
+    return BM_OK;
+}
+
 Result MemSegmentHostSDMA::Export(std::string &exInfo) noexcept
 {
     return BM_OK;

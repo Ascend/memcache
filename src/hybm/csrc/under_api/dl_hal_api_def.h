@@ -17,6 +17,8 @@ extern "C" {
 #define RESOURCE_CONFIG_INFO_LENGTH 7
 #define RESOURCEID_RESV_LENGTH      8
 
+#define HOST_MEM_MAP_DEV            3
+
 typedef enum tagDrvSqCqType {
     DRV_NORMAL_TYPE = 0,
     DRV_CALLBACK_TYPE,

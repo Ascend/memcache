@@ -25,7 +25,6 @@ target_compile_options(bm_example PRIVATE
 
 include_directories(
         ${MF_PATH}/${TARGET_ARCH}-linux/include/smem/host
-        ${MF_PATH}/${TARGET_ARCH}-linux/include/hybm
         ${ASCEND_CANN_PACKAGE_PATH}/${TARGET_ARCH}-linux/include/
         ${MF_PATH}/${TARGET_ARCH}-linux/include/util/
 )

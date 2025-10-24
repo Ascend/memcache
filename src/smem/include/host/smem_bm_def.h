@@ -42,10 +42,10 @@ typedef enum {
 * @brief Data copy direction
 */
 typedef enum {
-    SMEMB_COPY_L2G = 0,              /* copy data from local space to global space */
-    SMEMB_COPY_G2L = 1,              /* copy data from global space to local space */
-    SMEMB_COPY_G2H = 2,              /* copy data from global space to host memory */
-    SMEMB_COPY_H2G = 3,              /* copy data from host memory to global space */
+    SMEMB_COPY_L2G = 0,              /* copy data from local hbm to global space */
+    SMEMB_COPY_G2L = 1,              /* copy data from global space to local hbm */
+    SMEMB_COPY_G2H = 2,              /* copy data from global space to local host dram */
+    SMEMB_COPY_H2G = 3,              /* copy data from local host dram to global space */
     SMEMB_COPY_G2G = 4,               /* copy data from global space to global space */
     /* add here */
     SMEMB_COPY_BUTT

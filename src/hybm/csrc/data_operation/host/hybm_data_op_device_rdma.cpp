@@ -38,7 +38,7 @@ int32_t DataOpDeviceRDMA::Initialize() noexcept
     input.size = RDMA_SWAP_SPACE_SIZE;
     input.flags = transport::REG_MR_FLAG_DRAM;
     if (transportManager_ != nullptr) {
-        auto ret = transportManager_->RegisterMemoryRegion(input);
+        ret = transportManager_->RegisterMemoryRegion(input);
         if (ret != BM_OK) {
             BM_LOG_ERROR("Failed to register rdma swap memory, size: " << RDMA_SWAP_SPACE_SIZE);
             FreeSwapMemory();
@@ -71,7 +71,11 @@ int32_t DataOpDeviceRDMA::AllocSwapMemory()
 void DataOpDeviceRDMA::FreeSwapMemory()
 {
     if (rdmaSwapBaseAddr_ != nullptr) {
-        auto ret = DlAclApi::AclrtFreeHost(rdmaSwapBaseAddr_);
+        auto ret = transportManager_->UnregisterMemoryRegion((uint64_t)rdmaSwapBaseAddr_);
+        if (ret != 0) {
+            BM_LOG_WARN("Failed to UnregisterMemoryRegion, ret: " << ret);
+        }
+        ret = DlAclApi::AclrtFreeHost(rdmaSwapBaseAddr_);
         if (ret != 0) {
             BM_LOG_ERROR("Failed to AclrtFreeHost swap memory, ret: " << ret);
         }

@@ -12,7 +12,6 @@
 #include "smem.h"
 #include "smem_bm.h"
 #include "barrier_util.h"
-#include "hybm_big_mem.h"
 
 #define LOG_INFO(msg) std::cout << __FILE__ << ":" << __LINE__ << "[INFO]" << msg << std::endl
 #define LOG_WARN(msg) std::cout << __FILE__ << ":" << __LINE__ << "[WARN]" << msg << std::endl
@@ -40,6 +39,7 @@ const uint64_t GVA_SIZE = 4 * 1024ULL * 1024 * 1024;
 const int32_t RANDOM_MULTIPLIER = 23;
 const int32_t RANDOM_INCREMENT = 17;
 const int32_t NEGATIVE_RATIO_DIVISOR = 3;
+const smem_bm_data_op_type OP_TYPE = SMEMB_DATA_OP_DEVICE_RDMA;
 BarrierUtil *g_barrier = nullptr;
 
 constexpr int RANK_SIZE_ARG_INDEX = 1;
@@ -155,10 +155,16 @@ void CheckBatchCopy(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, smem_bm
         CHECK_RET_VOID((ret != 0 || ptr == nullptr), "malloc device failed, ret:" << ret << " rank:" << rankId);
         rSrc[i] = reinterpret_cast<uint64_t>(ptr);
         rSize[i] = len;
+
+        if (OP_TYPE == SMEMB_DATA_OP_DEVICE_RDMA) {
+            smem_bm_register_user_mem(handle, rSrc[i], rSize[i]);
+        }
     }
 
-    ret = hybm_register_layer_mem(rSrc, rSize, BATCH_COPY_LAYER, LAYER_BLOCK_NUM);
-    CHECK_RET_VOID(ret, "register failed, ret:" << ret << " rank:" << rankId);
+    if (OP_TYPE != SMEMB_DATA_OP_DEVICE_RDMA) {
+        ret = smem_bm_register_layer_mem(rSrc, rSize, BATCH_COPY_LAYER, LAYER_BLOCK_NUM);
+        CHECK_RET_VOID(ret, "register failed, ret:" << ret << " rank:" << rankId);
+    }
 
     void* srcList[BATCH_COPY_ARR_LEN];
     void* dstList[BATCH_COPY_ARR_LEN];
@@ -207,10 +213,16 @@ void CheckBatchCopy2(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, smem_b
         CHECK_RET_VOID((ret != 0 || ptr == nullptr), "malloc device failed, ret:" << ret << " rank:" << rankId);
         rSrc[i] = reinterpret_cast<uint64_t>(ptr);
         rSize[i] = len;
+
+        if (OP_TYPE == SMEMB_DATA_OP_DEVICE_RDMA) {
+            smem_bm_register_user_mem(handle, rSrc[i], rSize[i]);
+        }
     }
 
-    ret = hybm_register_layer_mem(rSrc, rSize, BATCH_COPY_LAYER, LAYER_BLOCK_NUM);
-    CHECK_RET_VOID(ret, "register failed, ret:" << ret << " rank:" << rankId);
+    if (OP_TYPE != SMEMB_DATA_OP_DEVICE_RDMA) {
+        ret = smem_bm_register_layer_mem(rSrc, rSize, BATCH_COPY_LAYER, LAYER_BLOCK_NUM);
+        CHECK_RET_VOID(ret, "register failed, ret:" << ret << " rank:" << rankId);
+    }
 
     void* srcList[BATCH_COPY_ARR_LEN];
     void* dstList[BATCH_COPY_ARR_LEN];
@@ -253,6 +265,7 @@ void CheckBatchCopy2(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, smem_b
 }
 
 constexpr uint64_t bitCheckSize = 2 * 1024ULL * 1024 * 1024;
+constexpr int BIG_COPY_NUM = 2;
 void BigCopy(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, smem_bm_t handle)
 {
     void *remote_host = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_HOST, 1);
@@ -263,7 +276,7 @@ void BigCopy(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, smem_bm_t hand
     GenerateData(local_host, 0, bitCheckSize);
 
     int ret;
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < BIG_COPY_NUM; i++) {
         ret = smem_bm_copy(handle, local_host, remote_dev, bitCheckSize, SMEMB_COPY_G2G, 0);
         CHECK_RET_VOID(ret, "copy g2g failed, ret:" << ret << " rank:" << rankId <<
             " ptr:" << local_host << " " << remote_dev);
@@ -291,7 +304,7 @@ void BigCopyCheck(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, smem_bm_t
     void *local_dev = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_DEVICE, 1);
 
     int ret;
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < BIG_COPY_NUM; i++) {
         ret = smem_bm_copy(handle, remote_host, local_dev, bitCheckSize, SMEMB_COPY_G2G, 0);
         CHECK_RET_VOID(ret, "copy g2g failed, ret:" << ret << " rank:" << rankId);
         ret = smem_bm_copy(handle, remote_dev, local_host, bitCheckSize, SMEMB_COPY_G2G, 0);
@@ -313,7 +326,7 @@ void SubProcessRuning(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, std::
     auto ret = PreInit(deviceId, rankId, rkSize, ipPort, autoRank, &stream);
     CHECK_RET_VOID(ret, "pre init failed, ret:" << ret << " rank:" << rankId);
 
-    smem_bm_t handle = smem_bm_create(0, 0, SMEMB_DATA_OP_DEVICE_RDMA, GVA_SIZE, GVA_SIZE, 0);
+    smem_bm_t handle = smem_bm_create(0, 0, OP_TYPE, GVA_SIZE, GVA_SIZE, 0);
     CHECK_RET_VOID((handle == nullptr), "smem_bm_create failed, rank:" << rankId);
 
     ret = smem_bm_join(handle, 0);

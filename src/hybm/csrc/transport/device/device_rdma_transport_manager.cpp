@@ -152,6 +152,13 @@ Result RdmaTransportManager::UnregisterMemoryRegion(uint64_t addr)
         return BM_DL_FUNCTION_FAILED;
     }
 
+    if (pos->second.address != pos->second.regAddress) {
+        ret = DlHalApi::HalHostUnregisterEx((void *)(ptrdiff_t)pos->second.address, deviceId_, HOST_MEM_MAP_DEV);
+        if (ret != 0) {
+            BM_LOG_ERROR("HalHostUnregister failed: " << ret);
+        }
+    }
+
     registerMRS_.erase(pos);
     return BM_OK;
 }
@@ -753,7 +760,7 @@ int RdmaTransportManager::ConvertHccpMrInfo(const TransportMemoryRegion &mr, Hcc
     if ((mr.flags & REG_MR_FLAG_DRAM) && (addr < HYBM_GVM_START_ADDR || addr >= HYBM_GVM_END_ADDR)) {
         auto input = (void *)(ptrdiff_t)addr;
         void *output = nullptr;
-        auto ret = DlHalApi::HalHostRegister(input, mr.size, 3, deviceId_, &output);
+        auto ret = DlHalApi::HalHostRegister(input, mr.size, HOST_MEM_MAP_DEV, deviceId_, &output);
         if (ret != 0) {
             BM_LOG_ERROR("HalHostRegister failed: " << ret);
             return BM_DL_FUNCTION_FAILED;

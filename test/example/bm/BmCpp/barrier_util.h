@@ -126,7 +126,6 @@ private:
 
     int32_t ClientUp(uint32_t rkSize, std::string ip)
     {
-        sleep(1); // wait server start up
         int sock = 0;
         struct sockaddr_in serv_addr;
         if ((sock = ::socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -138,8 +137,12 @@ private:
         serv_addr.sin_addr.s_addr = inet_addr(ip.c_str());
         serv_addr.sin_port = htons(port_);
 
-        if (::connect(sock, reinterpret_cast<struct sockaddr *>(&serv_addr), sizeof(serv_addr)) < 0) {
-            return -11;
+        int32_t connT = 30U;
+        while (::connect(sock, reinterpret_cast<struct sockaddr *>(&serv_addr), sizeof(serv_addr)) < 0) {
+            if (--connT < 0) {
+                return -11;
+            }
+            sleep(1);
         }
         return SetTimeout(sock);
     }
