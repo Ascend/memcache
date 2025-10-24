@@ -33,20 +33,20 @@ do {                            \
     }                           \
 } while (0)
 
-const int32_t RANK_SIZE_MAX = 2;
+const int32_t RANK_SIZE_MAX = 16;
 const int32_t COPY_SIZE = 20 * 1024 * 1024;
 const uint64_t GVA_SIZE = 4 * 1024ULL * 1024 * 1024;
 const int32_t RANDOM_MULTIPLIER = 23;
 const int32_t RANDOM_INCREMENT = 17;
 const int32_t NEGATIVE_RATIO_DIVISOR = 3;
 const smem_bm_data_op_type OP_TYPE = SMEMB_DATA_OP_DEVICE_RDMA;
-BarrierUtil *g_barrier = nullptr;
+const int RUN_BATCH = 0;
 
+BarrierUtil *g_barrier = nullptr;
 constexpr int RANK_SIZE_ARG_INDEX = 1;
 constexpr int RANK_NUM_ARG_INDEX = 2;
 constexpr int RANK_START_ARG_INDEX = 3;
 constexpr int IPPORT_ARG_INDEX = 4;
-constexpr int AUTO_RANK_ARG_INDEX = 5;
 
 void GenerateData(void *ptr, int32_t rank, uint32_t len = COPY_SIZE)
 {
@@ -82,7 +82,7 @@ bool CheckData(void *base, void *ptr, uint32_t len = COPY_SIZE)
 }
 
 int32_t PreInit(uint32_t deviceId, uint32_t rankId, uint32_t rkSize,
-    std::string ipPort, int autoRank, aclrtStream *stream)
+    std::string ipPort, aclrtStream *stream)
 {
     auto ret = aclInit(nullptr);
     CHECK_RET_ERR(ret, "acl init failed, ret:" << ret << " rank:" << rankId);
@@ -102,12 +102,9 @@ int32_t PreInit(uint32_t deviceId, uint32_t rankId, uint32_t rkSize,
     (void)smem_bm_config_init(&config);
     std::string url = "tcp://0.0.0.0/0:10005";
     std::copy_n(url.c_str(), url.size(), config.hcomUrl);
-    if (autoRank) {
-        config.autoRanking = true;
-    } else {
-        config.autoRanking = false;
-        config.rankId = rankId;
-    }
+    config.autoRanking = false;
+    config.rankId = rankId;
+
     config.flags = 2; // init gvm
     ret = smem_bm_init(ipPort.c_str(), rkSize, deviceId, &config);
     CHECK_RET_ERR(ret, "smem bm init failed, ret:" << ret << " rank:" << rankId);
@@ -144,7 +141,7 @@ constexpr uint32_t BATCH_LAYER_OFFSET = 2;
 void CheckBatchCopy(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, smem_bm_t handle)
 {
     int ret = 0;
-    uint64_t remote = (uint64_t)smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_HOST, 1);
+    uint64_t remote = (uint64_t)smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_HOST, (rankId + 1) % rkSize);
 
     uint64_t rSrc[BATCH_COPY_LAYER];
     uint64_t rSize[BATCH_COPY_LAYER];
@@ -201,7 +198,7 @@ void CheckBatchCopy(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, smem_bm
 void CheckBatchCopy2(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, smem_bm_t handle)
 {
     int ret = 0;
-    uint64_t local = (uint64_t)smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_HOST, 1);
+    uint64_t local = (uint64_t)smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_HOST, rankId);
 
     LOG_INFO(" ==================== [TEST] bm check start, rank:" << rankId << " addr:" << std::hex << local);
     uint64_t rSrc[BATCH_COPY_LAYER];
@@ -246,7 +243,7 @@ void CheckBatchCopy2(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, smem_b
 
     void *hostSrc = malloc(COPY_SIZE);
     void *hostDest = malloc(COPY_SIZE);
-    GenerateData(hostSrc, rankId ^ 1);
+    GenerateData(hostSrc, (rankId + rkSize - 1) % rkSize);
 
     for (uint32_t i = 0; i < BATCH_COPY_NUM; i++) {
         uint64_t ckLen = 0;
@@ -268,27 +265,18 @@ constexpr uint64_t bitCheckSize = 2 * 1024ULL * 1024 * 1024;
 constexpr int BIG_COPY_NUM = 2;
 void BigCopy(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, smem_bm_t handle)
 {
-    void *remote_host = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_HOST, 1);
-    void *local_host = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_HOST, 0);
-    void *remote_dev = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_DEVICE, 1);
-    void *local_dev = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_DEVICE, 0);
+    void *remote_host = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_HOST, (rankId + 1) % rkSize);
+    void *local_host = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_HOST, rankId);
+    void *remote_dev = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_DEVICE, (rankId + 1) % rkSize);
+    void *local_dev = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_DEVICE, rankId);
 
-    GenerateData(local_host, 0, bitCheckSize);
+    GenerateData(local_host, rankId, bitCheckSize);
 
     int ret;
     for (int i = 0; i < BIG_COPY_NUM; i++) {
         ret = smem_bm_copy(handle, local_host, remote_dev, bitCheckSize, SMEMB_COPY_G2G, 0);
         CHECK_RET_VOID(ret, "copy g2g failed, ret:" << ret << " rank:" << rankId <<
             " ptr:" << local_host << " " << remote_dev);
-        ret = smem_bm_copy(handle, local_dev, remote_host, bitCheckSize, SMEMB_COPY_G2G, 0);
-        CHECK_RET_VOID(ret, "copy g2g failed, ret:" << ret << " rank:" << rankId <<
-            " ptr:" << local_dev << " " << remote_host);
-        ret = smem_bm_copy(handle, local_host, remote_host, bitCheckSize, SMEMB_COPY_G2G, 0);
-        CHECK_RET_VOID(ret, "copy g2g failed, ret:" << ret << " rank:" << rankId <<
-            " ptr:" << local_host << " " << remote_host);
-        ret = smem_bm_copy(handle, local_dev, remote_dev, bitCheckSize, SMEMB_COPY_G2G, 0);
-        CHECK_RET_VOID(ret, "copy g2g failed, ret:" << ret << " rank:" << rankId <<
-            " ptr:" << local_dev << " " << remote_dev);
     }
     LOG_INFO(" ==================== [TEST] bm copy ok, rank:" << rankId);
 }
@@ -296,34 +284,28 @@ void BigCopy(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, smem_bm_t hand
 void BigCopyCheck(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, smem_bm_t handle)
 {
     void *base = malloc(bitCheckSize);
-    GenerateData(base, 0, bitCheckSize);
+    GenerateData(base, (rankId + rkSize - 1) % rkSize, bitCheckSize);
 
-    void *remote_host = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_HOST, 0);
-    void *local_host = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_HOST, 1);
-    void *remote_dev = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_DEVICE, 0);
-    void *local_dev = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_DEVICE, 1);
+    void *local_host = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_HOST, rankId);
+    void *local_dev = smem_bm_ptr_by_mem_type(handle, SMEM_MEM_TYPE_DEVICE, rankId);
 
     int ret;
     for (int i = 0; i < BIG_COPY_NUM; i++) {
-        ret = smem_bm_copy(handle, remote_host, local_dev, bitCheckSize, SMEMB_COPY_G2G, 0);
-        CHECK_RET_VOID(ret, "copy g2g failed, ret:" << ret << " rank:" << rankId);
-        ret = smem_bm_copy(handle, remote_dev, local_host, bitCheckSize, SMEMB_COPY_G2G, 0);
-        CHECK_RET_VOID(ret, "copy g2g failed, ret:" << ret << " rank:" << rankId);
-        ret = smem_bm_copy(handle, remote_host, local_host, bitCheckSize, SMEMB_COPY_G2G, 0);
-        CHECK_RET_VOID(ret, "copy g2g failed, ret:" << ret << " rank:" << rankId);
-        ret = smem_bm_copy(handle, remote_dev, local_dev, bitCheckSize, SMEMB_COPY_G2G, 0);
-        CHECK_RET_VOID(ret, "copy g2g failed, ret:" << ret << " rank:" << rankId);
+        ret = smem_bm_copy(handle, local_dev, local_host, bitCheckSize, SMEMB_COPY_G2G, 0);
+        CHECK_RET_VOID(ret, "copy g2g failed, ret:" << ret << " rank:" << rankId <<
+                                                    " ptr:" << local_host << " " << local_dev);
     }
 
     ret = CheckData(base, local_host, bitCheckSize);
+    free(base);
     CHECK_RET_VOID((ret == false), "check G2G data failed, rank:" << rankId);
     LOG_INFO(" ==================== [TEST] bm check ok, rank:" << rankId);
 }
 
-void SubProcessRuning(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, std::string ipPort, int autoRank)
+void SubProcessRuning(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, std::string ipPort)
 {
     aclrtStream stream;
-    auto ret = PreInit(deviceId, rankId, rkSize, ipPort, autoRank, &stream);
+    auto ret = PreInit(deviceId, rankId, rkSize, ipPort, &stream);
     CHECK_RET_VOID(ret, "pre init failed, ret:" << ret << " rank:" << rankId);
 
     smem_bm_t handle = smem_bm_create(0, 0, OP_TYPE, GVA_SIZE, GVA_SIZE, 0);
@@ -337,26 +319,19 @@ void SubProcessRuning(uint32_t deviceId, uint32_t rankId, uint32_t rkSize, std::
     CHECK_RET_VOID(ret, "barrier failed after init, ret:" << ret << " rank:" << rankId);
     LOG_INFO(" ==================== [TEST] bm init ok, rank:" << rankId);
 
-    bool checkBatch = false;
-    if (rankId == 0) {
-        if (checkBatch) {
-            CheckBatchCopy(deviceId, rankId, rkSize, handle);
-        } else {
-            BigCopy(deviceId, rankId, rkSize, handle);
-        }
+    if (RUN_BATCH) {
+        CheckBatchCopy(deviceId, rankId, rkSize, handle);
+    } else {
+        BigCopy(deviceId, rankId, rkSize, handle);
     }
-
     ret = g_barrier->Barrier();
     CHECK_RET_VOID(ret, "barrier failed after init, ret:" << ret << " rank:" << rankId);
 
-    if (rankId == 1) {
-        if (checkBatch) {
-            CheckBatchCopy2(deviceId, rankId, rkSize, handle);
-        } else {
-            BigCopyCheck(deviceId, rankId, rkSize, handle);
-        }
+    if (RUN_BATCH) {
+        CheckBatchCopy2(deviceId, rankId, rkSize, handle);
+    } else {
+        BigCopyCheck(deviceId, rankId, rkSize, handle);
     }
-
     ret = g_barrier->Barrier();
     CHECK_RET_VOID(ret, "barrier failed after init, ret:" << ret << " rank:" << rankId);
 
@@ -370,13 +345,9 @@ int main(int32_t argc, char* argv[])
     int rankNum = atoi(argv[RANK_NUM_ARG_INDEX]);
     int rankStart = atoi(argv[RANK_START_ARG_INDEX]);
     std::string ipport = argv[IPPORT_ARG_INDEX];
-    int autoRank = 0;
-    if (argc > AUTO_RANK_ARG_INDEX) {
-        autoRank = atoi(argv[AUTO_RANK_ARG_INDEX]);
-    }
 
     LOG_INFO("input rank_size:" << rankSize << " local_size:" << rankNum << " rank_offset:" << rankStart <<
-        " input_ip:" << ipport << " autoRank:" << autoRank);
+        " input_ip:" << ipport);
 
     if (rankSize != (rankSize & (~(rankSize - 1)))) {
         LOG_ERROR("input rank_size: " << rankSize << " is not the power of 2");
@@ -395,7 +366,7 @@ int main(int32_t argc, char* argv[])
             exit(-1);
         } else if (pids[i] == 0) {
             // subprocess
-            SubProcessRuning(i, i + rankStart, rankSize, ipport, autoRank);
+            SubProcessRuning(i, i + rankStart, rankSize, ipport);
             LOG_INFO("subprocess (" << i << ") exited.");
             exit(0);
         }
