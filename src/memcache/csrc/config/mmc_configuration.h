@@ -170,7 +170,7 @@ public:
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
         AddStrConf(OCK_MMC_META_SERVICE_CONFIG_STORE_URL, VNoCheck::Create(), 0);
         AddBoolConf(OCK_MMC_META_HA_ENABLE, VNoCheck::Create());
-        AddStrConf(OCK_MMC_LOG_LEVEL, VStrEnum::Create(OCK_MMC_LOG_LEVEL.first, LOG_LEVEL_ENUM_STR));
+        AddStrConf(OCK_MMC_LOG_LEVEL, VNoCheck::Create());
         AddStrConf(OCK_MMC_LOG_PATH, VStrLength::Create(OCK_MMC_LOG_PATH.first, PATH_MAX_LEN));
         AddIntConf(OCK_MMC_LOG_ROTATION_FILE_SIZE, VIntRange::Create(OCK_MMC_LOG_ROTATION_FILE_SIZE.first,
             MIN_LOG_ROTATION_FILE_SIZE, MAX_LOG_ROTATION_FILE_SIZE));
@@ -232,7 +232,7 @@ public:
     {
         using namespace ConfConstant;
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
-        AddStrConf(OCK_MMC_LOG_LEVEL, VStrEnum::Create(OCK_MMC_LOG_LEVEL.first, LOG_LEVEL_ENUM_STR));
+        AddStrConf(OCK_MMC_LOG_LEVEL, VNoCheck::Create());
 
         AddBoolConf(OCK_MMC_TLS_ENABLE, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_CA_PATH, VStrLength::Create(OCK_MMC_TLS_CA_PATH.first, TLS_PATH_MAX_LEN));
