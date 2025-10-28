@@ -28,6 +28,15 @@ static bool CopyPutOptions(const ReplicateConfig &replicateConfig, mmc_put_optio
                                         << ", Maximum number of copies is " << MAX_BLOB_COPIES);
         return false;
     }
+    if (replicateConfig.replicaNum > MAX_BLOB_COPIES) {
+        MMC_LOG_ERROR("replica number " << replicateConfig.replicaNum
+                                        << " exceeds maximum number of copies (" << MAX_BLOB_COPIES << ")");
+        return false;
+    }
+    if (replicateConfig.replicaNum == 0) {
+        MMC_LOG_ERROR("replica number cannot be 0");
+        return false;
+    }
     options.mediaType = 0; // will set by client proxy
     options.policy = NATIVE_AFFINITY;
     std::fill(std::begin(options.preferredLocalServiceIDs), std::end(options.preferredLocalServiceIDs), -1);
