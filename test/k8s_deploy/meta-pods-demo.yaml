@@ -30,12 +30,12 @@ spec:
               app: meta-service
       containers:
         - name: meta-service
-          image: 127.0.0.1:5000/memcache:jchv1
+          image: 127.0.0.1:5000/memcache:1028
           command: [ "/bin/bash", "-c" ]
           args:
             - |
               source /usr/local/Ascend/ascend-toolkit/set_env.sh && \
-              bash /home/xxxxxxxx/mxc-memfabric_hybrid-1.0.0_linux_aarch64.run && \
+              bash /home/meta/mxc-memfabric_hybrid-1.0.0_linux_aarch64.run && \
               echo "install end." && \
               sleep 20 && \
               exec /usr/local/mxc/memfabric_hybrid/latest/aarch64-linux/bin/mmc_meta_service
@@ -44,7 +44,7 @@ spec:
               name: meta
           env:
             - name: LD_LIBRARY_PATH
-              value: "/usr/local/python3.11/lib:/usr/local/mxc/memfabric_hybrid/latest/aarch64-linux/lib64:$(LD_LIBRARY_PATH)"
+              value: "/usr/local/python3.11/lib:/usr/local/mxc/memfabric_hybrid/latest/aarch64-linux/lib64"
             - name: MMC_META_CONFIG_PATH
               value: /home/meta/config/mmc-meta.conf
             - name: META_POD_NAME
@@ -97,7 +97,7 @@ spec:
               mountPath: /dev/hisi_hdc
       initContainers:
         - name: change-pod-ip
-          image: 127.0.0.1:5000/memcache:jchv1
+          image: 127.0.0.1:5000/memcache:1028
           command: ["/bin/sh", "-c"]
           args:
             - |

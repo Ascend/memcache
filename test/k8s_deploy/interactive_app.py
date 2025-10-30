@@ -2,108 +2,92 @@
 
 """Brief description of the module.
    Interactive calling of memcache
-   Available commands: put <number>, get, remove, quit
+   Available commands: put, get, remove, quit
 """
 
-import time
-import os
-import unittest
-from time import sleep
 import faulthandler
+
 from memcache import DistributedObjectStore
 from memcache import ReplicateConfig
 
 faulthandler.enable()  # 崩溃时自动打印 Python 堆栈
 
-cache = DistributedObjectStore()
-key = f"key_pid333"
-PUT_DATA = b"some data!"
+STORE = DistributedObjectStore()
+DEFAULT_REPLICA_NUMBER = 2
+AVAILABLE_COMMANDS = "'put <key> <value>', 'get <key>', 'remove <key>' or 'quit'/'exit'"
 
 
 def set_up():
-    res = cache.init(0)
+    res = STORE.init(0)
     if res != 0:
-        raise ValueError("res must be zero")
-    sleep(1)
+        raise ValueError(f"init failed, res={res}")
     print("object store set_up succeeded.")
 
 
-def put(duplicates: int):
-    print(f"Executing put operation duplicates={duplicates}")
+def put(key: str, value: bytes):
+    print(f"Executing put operation: key={key}, value={value}")
     config = ReplicateConfig()
-    config.replicaNum = duplicates
-    put_res = cache.put(key, PUT_DATA, config)
-    if put_res != 0:
-        raise ValueError("put_res must be zero")
-    sleep(1)
-    print(f"Executing put operation succeeded, duplicates={duplicates}")
+    config.replicaNum = DEFAULT_REPLICA_NUMBER
+    res = STORE.put(key, value, config)
+    if res != 0:
+        raise ValueError(f"put failed, res={res}")
+    print(f"Put operation succeeded")
 
 
-def get():
-    print("Executing get operation")
-    retrieved_data = cache.get(key)
-    print(retrieved_data)
-    sleep(1)
-    if retrieved_data == PUT_DATA:
-        print("Executing get operation succeeded.")
-    else:
-        print("Executing get operation failed.")
+def get(key: str):
+    print(f"Executing get operation: key={key}")
+    retrieved_data = STORE.get(key)
+    print(f"Get result: {retrieved_data}")
 
 
-def remove():
-    print("Performing remove...")
-    exist_res = cache.is_exist(key)
-    if exist_res == 1:
-        cache.remove(key)
-    sleep(1)
-    print("object store removed ${}".format(key))
+def remove(key: str):
+    print(f"Executing remove operation: key={key}")
+    res = STORE.remove(key)
+    if res != 0:
+        raise ValueError(f"remove failed, res={res}")
+    print(f"Remove operation succeeded")
 
 
 def stop():
     print("Performing cleanup (stop)...")
-    cache.close()
-    sleep(1)
-    print("object store destroyed ${}".format(key))
+    STORE.close()
+    print("object store destroyed")
 
 
 def main():
     print("Welcome to the interactive command tool")
-    print("Available commands: put <number>, get, remove, quit")
+    print(f"Available commands: {AVAILABLE_COMMANDS}")
     set_up()
     while True:
         try:
             user_input = input("Enter command: ").strip()
             if not user_input:
-                print("Invalid command. Please enter 'put <number>', 'get', 'remove' or 'quit'")
+                print(f"Invalid command. Please enter {AVAILABLE_COMMANDS}")
                 continue
 
             parts = user_input.split()
             command = parts[0].lower()
 
             if command == 'put':
-                if len(parts) != 2:
-                    print("Usage: put <number>")
+                if len(parts) != 3:
+                    print("Usage: put <key> <value>")
                 else:
-                    try:
-                        value = int(parts[1])
-                        put(value)
-                    except ValueError:
-                        print("Error: Please provide a valid integer after 'put'")
+                    put(parts[1], bytes(parts[2], "utf-8"))
             elif command == 'get':
-                if len(parts) != 1:
-                    print("Usage: get")
+                if len(parts) != 2:
+                    print("Usage: get <key>")
                 else:
-                    get()
+                    get(parts[1])
             elif command == 'remove':
-                if len(parts) != 1:
-                    print("Usage: remove")
+                if len(parts) != 2:
+                    print("Usage: remove <key>")
                 else:
-                    remove()
+                    remove(parts[1])
             elif command in ('quit', 'exit'):
                 print("Preparing to exit...")
                 break
             else:
-                print("Invalid command. Please enter 'put <number>', 'get', 'remove' or 'quit'")
+                print(f"Invalid command. Please enter {AVAILABLE_COMMANDS}")
 
         except KeyboardInterrupt:
             print("\nInterrupt received (Ctrl+C). Preparing to exit...")
