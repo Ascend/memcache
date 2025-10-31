@@ -56,6 +56,8 @@ public:
 
     uint32_t Id() const;
 
+    uint32_t GetRankIdByGva(void *gva);
+
     const hybm_options &GetCoreOptions() const;
 
     void *GetGvaAddress() const;

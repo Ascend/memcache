@@ -332,6 +332,18 @@ Result SmemBmEntry::Wait()
     return hybm_wait(entity_);
 }
 
+uint32_t SmemBmEntry::GetRankIdByGva(void *gva)
+{
+    if (AddrInHostGva(gva, 1UL)) {
+        return ((uint64_t) gva - (uint64_t) hostGva_) / coreOptions_.hostVASpace;
+    }
+
+    if (AddrInDeviceGva(gva, 1UL)) {
+        return ((uint64_t) gva - (uint64_t) deviceGva_) / coreOptions_.deviceVASpace;
+    }
+    return UINT32_MAX;
+}
+
 Result SmemBmEntry::RegisterMem(uint64_t addr, uint64_t size)
 {
     SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);

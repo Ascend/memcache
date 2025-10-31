@@ -166,6 +166,12 @@ int32_t smem_bm_register_user_mem(smem_bm_t handle, uint64_t addr, uint64_t size
 int32_t smem_bm_register_layer_mem(const uint64_t *addrs, const uint64_t *sizes, uint64_t layer, uint64_t num);
 
 /**
+ * @brief Get the belong rank id of gva
+ * @param gva
+ * @return rank id if successful, UINT32_MAX is returned if failed
+ */
+uint32_t smem_bm_get_rank_id_by_gva(smem_bm_t handle, void *gva);
+/**
  * @brief This command is used to register host memory to device.
  * @param addr             [in] requested the src share memory pointer, srcPtr must be page aligned.
  * @param size             [in] requested byte size.
