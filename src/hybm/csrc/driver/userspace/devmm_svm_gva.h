@@ -5,6 +5,7 @@
 #ifndef MEM_FABRIC_HYBRID_DEVMM_SVM_GVA_H
 #define MEM_FABRIC_HYBRID_DEVMM_SVM_GVA_H
 
+#include <cstddef>
 #include <cstdint>
 
 namespace ock {

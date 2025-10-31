@@ -97,7 +97,7 @@ bool HybmGvmVirPageManager::UpdateRegisterMap(uint64_t va, uint64_t size, uint64
         return false;
     }
 
-    registerSet_.emplace(va << REGISTER_SET_MARK_BIT | REGISTER_SET_LEFT_MARK, newVa);
+    registerSet_.emplace((va << REGISTER_SET_MARK_BIT) | REGISTER_SET_LEFT_MARK, newVa);
     registerSet_.emplace((va + size) << REGISTER_SET_MARK_BIT, newVa + size);
     return true;
 }

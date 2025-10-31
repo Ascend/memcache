@@ -10,10 +10,10 @@
 #include "hybm_networks_common.h"
 #include "hybm_device_user_mem_seg.h"
 #include "hybm_device_mem_segment.h"
+#include "hybm_gva.h"
 #include "hybm_types.h"
 #include "hybm_host_mem_segment.h"
 #include "hybm_sdma_mem_segment.h"
-#include "hybm_types.h"
 
 namespace ock {
 namespace mf {

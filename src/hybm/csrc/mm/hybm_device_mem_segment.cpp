@@ -13,6 +13,7 @@
 #include "dl_acl_api.h"
 #include "hybm_common_include.h"
 #include "hybm_ex_info_transfer.h"
+#include "hybm_gva.h"
 #include "hybm_gvm_user.h"
 #include "hybm_logger.h"
 #include "hybm_networks_common.h"

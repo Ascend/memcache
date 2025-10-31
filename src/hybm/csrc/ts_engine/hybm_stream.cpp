@@ -5,6 +5,7 @@
 #include "hybm_common_include.h"
 #include "dl_hal_api.h"
 #include "dl_hal_api_def.h"
+#include "hybm_gva.h"
 #include "hybm_gvm_user.h"
 #include "hybm_logger.h"
 #include "ptracer.h"

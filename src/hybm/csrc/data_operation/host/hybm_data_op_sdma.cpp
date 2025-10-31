@@ -8,6 +8,7 @@
 #include "hybm_ptracer.h"
 #include "hybm_gvm_user.h"
 #include "hybm_data_op.h"
+#include "hybm_gva.h"
 #include "hybm_stream_manager.h"
 
 namespace ock {
@@ -795,7 +796,7 @@ int HostDataOpSDMA::BatchCopyG2G(void **destVAs, void **srcVAs,
     uint64_t dest = 0U;
     uint64_t len = 0U;
 
-    auto asyncFunc = [&]() {
+    auto asyncFunc = [this, dest, src, len, &asyncRet, &ret]() {
         asyncRet = CopyG2GAsync(reinterpret_cast<void *>(dest), reinterpret_cast<void *>(src), len);
         if (asyncRet != 0) {
             BM_LOG_ERROR("BatchCopyG2G failed:" << asyncRet << " src:" << src << " dest:" << dest << " length:" << len);

@@ -255,8 +255,7 @@ whether to start config store, default true)")
 automatically allocate rank IDs, default is false)")
         .def_readwrite("rank_id", &smem_bm_config_t::rankId, "user specified rank ID, valid for autoRanking is False")
         .def_readwrite("flags", &smem_bm_config_t::flags, "other flags, default 0")
-        .def(
-            "set_nic",
+        .def("set_nic",
             [](smem_bm_config_t &config, const std::string &nic) {
                 strncpy(config.hcomUrl, nic.c_str(), sizeof(config.hcomUrl));
             },
