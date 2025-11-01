@@ -71,11 +71,13 @@ int32_t DataOpDeviceRDMA::AllocSwapMemory()
 void DataOpDeviceRDMA::FreeSwapMemory()
 {
     if (rdmaSwapBaseAddr_ != nullptr) {
-        auto ret = transportManager_->UnregisterMemoryRegion((uint64_t)rdmaSwapBaseAddr_);
-        if (ret != 0) {
-            BM_LOG_WARN("Failed to UnregisterMemoryRegion, ret: " << ret);
+        if (transportManager_ != nullptr) {
+            const auto ret = transportManager_->UnregisterMemoryRegion((uint64_t)rdmaSwapBaseAddr_);
+            if (ret != 0) {
+                BM_LOG_ERROR("Failed to UnregisterMemoryRegion, ret: " << ret);
+            }
         }
-        ret = DlAclApi::AclrtFreeHost(rdmaSwapBaseAddr_);
+        const auto ret = DlAclApi::AclrtFreeHost(rdmaSwapBaseAddr_);
         if (ret != 0) {
             BM_LOG_ERROR("Failed to AclrtFreeHost swap memory, ret: " << ret);
         }
