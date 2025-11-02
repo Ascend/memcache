@@ -463,12 +463,12 @@ class MmcTest(TestServer):
 
         results = self._store.batch_put_from_layers(
             keys,
-            [[]
-             if block is None
+            [[] if block is None
              else [layer.data_ptr() for layer in block]
              for block in blocks],
             sizes,
-            direct
+            direct,
+            rep_conf
         )
         if device == 'npu':
             self.sync_stream()
@@ -492,8 +492,7 @@ class MmcTest(TestServer):
             blocks.append(tensor)
         results = self._store.batch_get_into_layers(
             keys,
-            [[]
-             if block is None
+            [[] if block is None
              else [layer.data_ptr() for layer in block]
              for block in blocks],
             sizes,

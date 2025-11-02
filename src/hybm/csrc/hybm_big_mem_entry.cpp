@@ -311,5 +311,4 @@ int32_t hybm_host_mem_unregister(uint64_t src)
         return BM_DL_FUNCTION_FAILED;
     }
     return BM_OK;
-
 }
