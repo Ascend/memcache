@@ -37,6 +37,9 @@ typedef struct {
 
 namespace ock {
 namespace mmc {
+
+constexpr uint32_t MMC_PROXY_MTX_NUM = 61;
+
 class MmcBmProxy : public MmcReferable {
 public:
     explicit MmcBmProxy(const std::string &name) : name_(name), spaces_{0}, bmRankId_{0} {}
@@ -92,7 +95,7 @@ private:
     smem_bm_t handle_ = nullptr;
     std::string name_;
     bool started_ = false;
-    std::mutex mutex_;
+    std::mutex mutex_[MMC_PROXY_MTX_NUM];
     uint32_t bmRankId_;
     MediaType mediaType_ {MEDIA_NONE};
     mmc_bm_create_config_t createConfig_{};

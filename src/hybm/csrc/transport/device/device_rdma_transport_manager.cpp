@@ -19,6 +19,7 @@
 #include "fixed_ranks_qp_manager.h"
 #include "bipartite_ranks_qp_manager.h"
 #include "hybm_types.h"
+#include "hybm_ptracer.h"
 #include "joinable_ranks_qp_manager.h"
 
 namespace {
@@ -398,27 +399,25 @@ Result RdmaTransportManager::WriteRemote(uint32_t rankId, uint64_t lAddr, uint64
 
 Result RdmaTransportManager::ReadRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size)
 {
-    BM_LOG_DEBUG(
-        "ReadRemoteAsync rk:" << rankId << " lAddr:" << std::hex << lAddr << " rAddr:" << rAddr << " size:" << size);
+    TP_TRACE_BEGIN(TP_HYBM_DEV_RDMA_ASYNC_READ);
     auto ret = RemoteIO(rankId, lAddr, rAddr, size, false, false);
+    TP_TRACE_END(TP_HYBM_DEV_RDMA_ASYNC_READ, ret);
     if (ret != BM_OK) {
         BM_LOG_ERROR("ReadRemoteAsync() failed: " << ret);
         return ret;
     }
-    BM_LOG_DEBUG("ReadRemoteAsync() success. size=" << size);
     return BM_OK;
 }
 
 Result RdmaTransportManager::WriteRemoteAsync(uint32_t rankId, uint64_t lAddr, uint64_t rAddr, uint64_t size)
 {
-    BM_LOG_DEBUG(
-        "WriteRemoteAsync rk:" << rankId << " lAddr:" << std::hex << lAddr << " rAddr:" << rAddr << " size:" << size);
+    TP_TRACE_BEGIN(TP_HYBM_DEV_RDMA_ASYNC_WRITE);
     auto ret = RemoteIO(rankId, lAddr, rAddr, size, true, false);
+    TP_TRACE_END(TP_HYBM_DEV_RDMA_ASYNC_WRITE, ret);
     if (ret != BM_OK) {
         BM_LOG_ERROR("WriteRemoteAsync() failed: " << ret);
         return ret;
     }
-    BM_LOG_DEBUG("WriteRemoteAsync() success. size=" << size);
     return BM_OK;
 }
 
@@ -690,7 +689,9 @@ int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAd
     }
 
     send_wr_rsp rspInfo{};
+    TP_TRACE_BEGIN(TP_HYBM_DEV_SEND_WR);
     ret = DlHccpApi::RaSendWrV2(qp->qpHandle, &wr, &rspInfo);
+    TP_TRACE_END(TP_HYBM_DEV_SEND_WR, ret);
     if (ret != 0) {
         BM_LOG_ERROR("DlHccpApi::RaSendWr(handle, &wr, &opRsp) failed: " << ret);
         qpManager_->PutQpHandle(qp);
@@ -700,7 +701,9 @@ int RdmaTransportManager::RemoteIO(uint32_t rankId, uint64_t lAddr, uint64_t rAd
     StreamTask task;
     task.type = STREAM_TASK_TYPE_RDMA;
     ConstructSqeNoSinkModeForRdmaDbSendTask(rspInfo, task.sqe);
+    TP_TRACE_BEGIN(TP_HYBM_DEV_SUBMIT_TASK);
     ret = stream_->SubmitTasks(task);
+    TP_TRACE_END(TP_HYBM_DEV_SUBMIT_TASK, ret);
     if (ret != BM_OK) {
         BM_LOG_ERROR("stream_->SubmitTasks(task) failed: " << ret);
         qpManager_->PutQpHandle(qp);
@@ -833,7 +836,6 @@ void RdmaTransportManager::ConstructSqeNoSinkModeForRdmaDbSendTask(const send_wr
         BM_LOG_ERROR("generate db address is zero.");
         return;
     }
-    BM_LOG_DEBUG("db val=" << std::hex << dbVal);
 
     sqe->write_value_part0 = static_cast<uint32_t>(dbVal & MASK_32_BIT);
     sqe->write_value_part1 = static_cast<uint32_t>(dbVal >> UINT32_BIT_NUM);
@@ -844,7 +846,6 @@ void RdmaTransportManager::ConstructSqeNoSinkModeForRdmaDbSendTask(const send_wr
 uint64_t RdmaTransportManager::GetRoceDbAddrForRdmaDbSendTask()
 {
     BM_ASSERT_RETURN(deviceChipInfo_ != nullptr, BM_MALLOC_FAILED);
-    uint32_t deviceId = deviceId_;
 
     auto chipId = deviceChipInfo_->GetChipId();
     auto dieId = deviceChipInfo_->GetDieId();
@@ -854,8 +855,6 @@ uint64_t RdmaTransportManager::GetRoceDbAddrForRdmaDbSendTask()
 
     const uint64_t dbAddr = RT_ASCEND910B1_ROCEE_BASE_ADDR + RT_ASCEND910B1_ROCEE_VF_DB_CFG0_REG +
                             chipOffset * static_cast<uint64_t>(chipId) + dieOffset * dieId + chipAddr;
-    BM_LOG_DEBUG("deviceId=" << deviceId << ", die_id=" << dieId);
-
     return dbAddr;
 }
 

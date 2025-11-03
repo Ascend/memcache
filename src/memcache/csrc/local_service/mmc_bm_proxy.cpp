@@ -15,7 +15,7 @@ std::mutex MmcBmProxyFactory::instanceMutex_;
 
 Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_create_config_t &createConfig)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_[0]);
     if (started_ && handle_ != nullptr) {
         MMC_LOG_INFO("MmcBmProxy " << name_ << " already init");
         return MMC_OK;
@@ -101,7 +101,7 @@ Result MmcBmProxy::InternalCreateBm(const mmc_bm_create_config_t &createConfig)
 
 void MmcBmProxy::DestroyBm()
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_[0]);
     if (!started_) {
         MMC_LOG_ERROR("MmcBmProxy (" << name_ << ") is not init");
         return ;
@@ -138,7 +138,7 @@ std::string MmcBmProxy::GetDataOpType() const
 
 Result MmcBmProxy::Put(uint64_t srcBmAddr, uint64_t dstBmAddr, uint64_t size, smem_bm_copy_type type)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_[0]);
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to put data to smem bm, handle is null");
         return MMC_ERROR;
@@ -151,7 +151,7 @@ Result MmcBmProxy::Put(uint64_t srcBmAddr, uint64_t dstBmAddr, uint64_t size, sm
 
 Result MmcBmProxy::Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_[0]);
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to put data to smem bm, handle is null");
         return MMC_ERROR;
@@ -201,7 +201,7 @@ Result MmcBmProxy::Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
 
 Result MmcBmProxy::Get(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_[0]);
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to get data to smem bm, handle is null");
         return MMC_ERROR;
@@ -306,7 +306,7 @@ Result MmcBmProxy::Get(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
 
 Result MmcBmProxy::BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_[0]);
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to get data to smem bm, handle is null");
         return MMC_ERROR;
@@ -346,7 +346,7 @@ Result MmcBmProxy::BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
 
 Result MmcBmProxy::BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_[0]);
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to get data to smem bm, handle is null");
         return MMC_ERROR;
@@ -387,7 +387,11 @@ Result MmcBmProxy::BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
 Result MmcBmProxy::BatchDataPut(std::vector<void *> &sources, std::vector<void *> &destinations,
                                 const std::vector<uint64_t> &sizes, MediaType localMedia)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    if (sources.empty() || sources.size() != destinations.size() || sources.size() != sizes.size()) {
+        MMC_LOG_ERROR("Failed data copy, sources:" << sources.size() << ", destinations:" << destinations.size()
+                                                   << ", sizes:" << sizes.size());
+        return MMC_ERROR;
+    }
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to put data to smem bm, handle is null");
         return MMC_ERROR;
@@ -396,11 +400,9 @@ Result MmcBmProxy::BatchDataPut(std::vector<void *> &sources, std::vector<void *
         MMC_LOG_ERROR("Failed to put data to smem bm, media:" << localMedia);
         return MMC_ERROR;
     }
-    if (sources.empty() || sources.size() != destinations.size() || sources.size() != sizes.size()) {
-        MMC_LOG_ERROR("Failed data copy, sources:" << sources.size() << ", destinations:" << destinations.size()
-                                                   << ", sizes:" << sizes.size());
-        return MMC_ERROR;
-    }
+    auto rankId = smem_bm_get_rank_id_by_gva(handle_, destinations[0]);
+    std::lock_guard<std::mutex> lock(mutex_[rankId % MMC_PROXY_MTX_NUM]);
+
     smem_bm_copy_type type = localMedia == MEDIA_DRAM ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
     smem_batch_copy_params batch_params = {reinterpret_cast<void **>(sources.data()),
                                            reinterpret_cast<void **>(destinations.data()), sizes.data(),
@@ -416,7 +418,11 @@ Result MmcBmProxy::BatchDataPut(std::vector<void *> &sources, std::vector<void *
 Result MmcBmProxy::BatchDataGet(std::vector<void *> &sources, std::vector<void *> &destinations,
                                 const std::vector<uint64_t> &sizes, MediaType localMedia)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    if (sources.empty() || sources.size() != destinations.size() || sources.size() != sizes.size()) {
+        MMC_LOG_ERROR("Failed data copy, sources:" << sources.size() << ", destinations:" << destinations.size()
+                                                   << ", sizes:" << sizes.size());
+        return MMC_ERROR;
+    }
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to get data to smem bm, handle is null");
         return MMC_ERROR;
@@ -425,11 +431,10 @@ Result MmcBmProxy::BatchDataGet(std::vector<void *> &sources, std::vector<void *
         MMC_LOG_ERROR("Failed to get data to smem bm, media:" << localMedia);
         return MMC_ERROR;
     }
-    if (sources.empty() || sources.size() != destinations.size() || sources.size() != sizes.size()) {
-        MMC_LOG_ERROR("Failed data copy, sources:" << sources.size() << ", destinations:" << destinations.size()
-                                                   << ", sizes:" << sizes.size());
-        return MMC_ERROR;
-    }
+    
+    auto rankId = smem_bm_get_rank_id_by_gva(handle_, sources[0]);
+    std::lock_guard<std::mutex> lock(mutex_[rankId % MMC_PROXY_MTX_NUM]);
+
     smem_bm_copy_type type = localMedia == MEDIA_DRAM ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
     smem_batch_copy_params batch_params = {reinterpret_cast<void **>(sources.data()),
                                            reinterpret_cast<void **>(destinations.data()), sizes.data(),
@@ -444,7 +449,7 @@ Result MmcBmProxy::BatchDataGet(std::vector<void *> &sources, std::vector<void *
 
 Result MmcBmProxy::RegisterBuffer(uint64_t addr, uint64_t size)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_[0]);
     auto ret = smem_bm_register_user_mem(handle_, addr, size);
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("Failed to register mem,  ret:" << ret);
@@ -454,7 +459,7 @@ Result MmcBmProxy::RegisterBuffer(uint64_t addr, uint64_t size)
 
 Result MmcBmProxy::RegisterLayerBuffer(const uint64_t *addrs, const uint64_t *sizes, uint64_t layer, uint64_t num)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_[0]);
     auto ret = smem_bm_register_layer_mem(addrs, sizes, layer, num);
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("Failed to register layer mem,  ret:" << ret);
@@ -464,7 +469,7 @@ Result MmcBmProxy::RegisterLayerBuffer(const uint64_t *addrs, const uint64_t *si
 
 Result MmcBmProxy::CopyWait()
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_[0]);
     auto ret = smem_bm_wait(handle_);
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("Failed to wait copy task ret:" << ret);

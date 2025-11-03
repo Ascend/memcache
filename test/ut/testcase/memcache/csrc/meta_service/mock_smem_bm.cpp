@@ -109,3 +109,8 @@ int32_t smem_bm_wait(smem_bm_t handle)
 {
     return 0;
 }
+
+uint32_t smem_bm_get_rank_id_by_gva(smem_bm_t handle, void *gva)
+{
+    return 0;
+}

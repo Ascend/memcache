@@ -298,7 +298,7 @@ void BatchCopyPut(smem_bm_mem_type localMemType, smem_bm_mem_type rmtMemType, ui
         CHECK_RET_VOID(ret, "copy hbm to gva failed, ret:" << ret << " rank:" << gvaRankId);
     }
     uint64_t totalTimeUs = (TimeNs() - startTime) / 1000;
-    LOG_INFO("=== " << FormatString(direction, totalTimeUs, COPY_SIZE, BATCH_SIZE, COPY_COUNT) << " ===");
+    std::cout << FormatString(direction, totalTimeUs, COPY_SIZE, BATCH_SIZE, COPY_COUNT) << std::endl;
 }
 
 void BatchCopyGet(smem_bm_mem_type localMemType, smem_bm_mem_type rmtMemType, uint16_t gvaRankId, smem_bm_t handle,
@@ -332,7 +332,7 @@ void BatchCopyGet(smem_bm_mem_type localMemType, smem_bm_mem_type rmtMemType, ui
         CHECK_RET_VOID(ret, "copy hbm to gva failed, ret:" << ret << " rank:" << gvaRankId);
     }
     uint64_t totalTimeUs = (TimeNs() - startTime) / 1000;
-    LOG_INFO("=== " << FormatString(direction, totalTimeUs, COPY_SIZE, BATCH_SIZE, COPY_COUNT) << " ===");
+    std::cout << FormatString(direction, totalTimeUs, COPY_SIZE, BATCH_SIZE, COPY_COUNT) << std::endl;
 }
 
 void SubProcessRuning(uint32_t deviceId, uint32_t rankId, uint32_t localRankNum, uint32_t rkSize, std::string ipPort)
@@ -420,13 +420,13 @@ int main(int32_t argc, char* argv[])
     int rankStart = atoi(argv[RANK_START_ARG_INDEX]);
     std::string ipport = argv[IPPORT_ARG_INDEX];
     if (argc > COPY_SIZE_INDEX) {
-        COPY_SIZE = atoi(argv[COPY_SIZE_INDEX]);
+        COPY_SIZE = std::stoull(argv[COPY_SIZE_INDEX]);
     }
     if (argc > COPY_COUNT_INDEX) {
-        COPY_COUNT = atoi(argv[COPY_COUNT_INDEX]);
+        COPY_COUNT = std::stoull(argv[COPY_COUNT_INDEX]);
     }
     if (argc > BATCH_SIZE_INDEX) {
-        BATCH_SIZE = atoi(argv[BATCH_SIZE_INDEX]);
+        BATCH_SIZE = std::stoull(argv[BATCH_SIZE_INDEX]);
     }
 
     LOG_INFO("input rank_size:" << rankSize << " local_size:" << rankNum << " rank_offset:" << rankStart
