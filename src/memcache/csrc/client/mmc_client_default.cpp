@@ -372,14 +372,22 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
     MMC_ASSERT_RETURN(!bufArrs[0].Buffers().empty(), MMC_INVALID_PARAM);
     batchResult.resize(keys.size(), MMC_ERROR);
     for (size_t i = 0; i < keys.size(); ++i) {
+        const MmcBufferArray &bufArr = bufArrs[i];
         const auto &blobs = response.blobs_[i];
         uint8_t numBlobs = response.numBlobs_[i];
         actionResults.push_back(MMC_READ_FINISH);
-
         if (numBlobs <= 0 || blobs.empty() || blobs.size() != numBlobs) {
             MMC_LOG_ERROR("client " << name_ << " batch get failed for key " << keys[i] << ", blob:" << numBlobs
                                     << ", size:" << blobs.size());
             batchResult[i] = MMC_ERROR;
+            ranks.push_back(UINT32_MAX);
+            mediaTypes.push_back(MEDIA_NONE);
+            continue;
+        }
+        if (bufArr.TotalSize() != blobs[0].size_) {
+            batchResult[i] = MMC_ERROR;
+            MMC_LOG_ERROR("client " << name_ << " batch get failed for key " << keys[i] << ", blob:" << numBlobs
+                                    << ", size:" << blobs.size() << " key size:" << bufArr.TotalSize());
             ranks.push_back(UINT32_MAX);
             mediaTypes.push_back(MEDIA_NONE);
             continue;
@@ -389,7 +397,6 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
 
         batchResult[i] = MMC_OK;
         indexs.push_back(i);
-        const MmcBufferArray &bufArr = bufArrs[i];
         uint64_t shift = 0;
         uint32_t count = bufArr.Buffers().size();
         for (size_t k = 0; k < count; ++k) {

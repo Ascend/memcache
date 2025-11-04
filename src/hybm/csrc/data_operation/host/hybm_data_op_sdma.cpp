@@ -782,7 +782,7 @@ int HostDataOpSDMA::BatchCopyG2G(void **destVAs, void **srcVAs,
     uint64_t dest = 0U;
     uint64_t len = 0U;
 
-    auto asyncFunc = [this, dest, src, len, &asyncRet, &ret]() {
+    auto asyncFunc = [this, &dest, &src, &len, &asyncRet, &ret]() {
         asyncRet = CopyG2GAsync(reinterpret_cast<void *>(dest), reinterpret_cast<void *>(src), len);
         if (asyncRet != 0) {
             BM_LOG_ERROR("BatchCopyG2G failed:" << asyncRet << " src:" << src << " dest:" << dest << " length:" << len);
