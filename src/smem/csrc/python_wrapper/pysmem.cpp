@@ -4,6 +4,7 @@
 #include <Python.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
+#include <pybind11/stl.h>
 #include <cstdint>
 #include <mutex>
 #include <new>
@@ -65,6 +66,19 @@ public:
         if (ret != 0) {
             throw std::runtime_error(std::string("copy bm data failed:").append(std::to_string(ret)));
         }
+    }
+
+    int32_t CopyDataBatch(std::vector<uintptr_t> srcs, std::vector<uintptr_t> dsts, std::vector<size_t> sizes,
+                          uint32_t count, smem_bm_copy_type type, uint32_t flags)
+    {
+        void *sources[count];
+        void *destinations[count];
+        for (uint64_t i = 0; i < count; ++i) {
+            sources[i] =  reinterpret_cast<void *>(srcs[i]);
+            destinations[i] =  reinterpret_cast<void *>(dsts[i]);
+        }
+        smem_batch_copy_params batch_params = {sources, destinations, sizes.data(), count};
+        return smem_bm_copy_batch(handle_, &batch_params, type, flags);
     }
 
     static int Initialize(const std::string &storeURL, uint32_t worldSize, uint16_t deviceId,
@@ -363,7 +377,10 @@ Arguments:
     type(BmCopyType): copy type, L2G, G2L, G2H, H2G
     flags(int): optional flags
 Returns:
-    0 if successful)");
+    0 if successful)")
+        .def("copy_data_batch", &BigMemory::CopyDataBatch, py::call_guard<py::gil_scoped_release>(),
+             py::arg("src_addrs"), py::arg("dst_addrs"), py::arg("sizes"), py::arg("count"),
+             py::arg("type"), py::arg("flags"), "copy_data_batch");
 }
 } // namespace
 

@@ -588,6 +588,72 @@ int32_t DataOpDeviceRDMA::BatchCopyGD2LH(hybm_batch_copy_params &params, const E
 int32_t DataOpDeviceRDMA::BatchDataCopyLocal(hybm_batch_copy_params &params, int32_t direction,
                                              const ock::mf::ExtOptions &options) noexcept
 {
+    switch (direction) {
+        case HYBM_LOCAL_HOST_TO_GLOBAL_HOST:
+        case HYBM_GLOBAL_HOST_TO_GLOBAL_HOST:
+        case HYBM_GLOBAL_HOST_TO_LOCAL_HOST:
+            return BatchDataCopyLocalSync(params, ACL_MEMCPY_HOST_TO_HOST, options);
+        case HYBM_LOCAL_DEVICE_TO_GLOBAL_DEVICE:
+        case HYBM_GLOBAL_DEVICE_TO_GLOBAL_DEVICE:
+        case HYBM_GLOBAL_DEVICE_TO_LOCAL_DEVICE:
+            return BatchDataCopyLocalAsync(params, ACL_MEMCPY_DEVICE_TO_DEVICE, options);
+        case HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE:
+        case HYBM_GLOBAL_HOST_TO_GLOBAL_DEVICE:
+        case HYBM_GLOBAL_HOST_TO_LOCAL_DEVICE:
+            return BatchDataCopyLocalBatch(params, ACL_MEMCPY_HOST_TO_DEVICE, options);
+        case HYBM_LOCAL_DEVICE_TO_GLOBAL_HOST:
+        case HYBM_GLOBAL_DEVICE_TO_GLOBAL_HOST:
+        case HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST:
+            return BatchDataCopyLocalBatch(params, ACL_MEMCPY_DEVICE_TO_HOST, options);
+        default:
+            BM_LOG_ERROR("Failed to BatchDataCopyLocal noy support direct:" << direction);
+            return -1;
+    }
+}
+
+int32_t DataOpDeviceRDMA::BatchDataCopyLocalSync(hybm_batch_copy_params &params, int32_t direction,
+                                                 const ExtOptions &options) noexcept
+{
+    for (size_t i = 0; i < params.batchSize; ++i) {
+        auto destAddr = params.destinations[i];
+        auto srcAddr = params.sources[i];
+        auto count = params.dataSizes[i];
+        auto ret = DlAclApi::AclrtMemcpy(destAddr, count, srcAddr, count, direction);
+        if (ret != 0) {
+            BM_LOG_ERROR("copy memory on local failed: " << ret << " direct:" << direction);
+            return BM_DL_FUNCTION_FAILED;
+        }
+    }
+    return BM_OK;
+}
+
+int32_t DataOpDeviceRDMA::BatchDataCopyLocalAsync(hybm_batch_copy_params &params, int32_t direction,
+                                                  const ExtOptions &options) noexcept
+{
+    void *st = options.stream;
+    auto ret = 0;
+    uint32_t batchNum = params.batchSize;
+    for (size_t i = 0; i < batchNum; ++i) {
+        auto destAddr = params.destinations[i];
+        auto srcAddr = params.sources[i];
+        auto count = params.dataSizes[i];
+        ret = DlAclApi::AclrtMemcpyAsync(destAddr, count, srcAddr, count, direction, st);
+        if (ret != 0) {
+            BM_LOG_ERROR("copy memory on local failed: " << ret << " stream:" << reinterpret_cast<uintptr_t>(st)
+                << " direct:" << direction << std::hex << " src:" << srcAddr << " dst:" << destAddr);
+            return BM_DL_FUNCTION_FAILED;
+        }
+    }
+    ret = DlAclApi::AclrtSynchronizeStream(st);
+    if (ret != 0) {
+        BM_LOG_ERROR("aclrtSynchronizeStream failed: " << ret << " stream:" << reinterpret_cast<uintptr_t>(st));
+    }
+    return ret;
+}
+
+int32_t DataOpDeviceRDMA::BatchDataCopyLocalBatch(hybm_batch_copy_params &params, int32_t direction,
+                                                  const ExtOptions &options) noexcept
+{
     uint32_t batchNum = params.batchSize;
     std::vector<aclrtMemcpyBatchAttr> attrs(batchNum);
     std::vector<size_t> attrsIds(batchNum);
@@ -597,23 +663,23 @@ int32_t DataOpDeviceRDMA::BatchDataCopyLocal(hybm_batch_copy_params &params, int
                                       aclrtMemLocationType::ACL_MEM_LOCATION_TYPE_DEVICE};
     auto hostLoc = aclrtMemLocation{0, aclrtMemLocationType::ACL_MEM_LOCATION_TYPE_HOST};
     for (size_t i = 0; i < batchNum; i++) {
-        if (direction == ACL_MEMCPY_DEVICE_TO_HOST) {
-            attrs[i] = aclrtMemcpyBatchAttr{hostLoc, deviceLoc, {}};
-        } else {
+        if (direction == ACL_MEMCPY_HOST_TO_DEVICE) {
             attrs[i] = aclrtMemcpyBatchAttr{deviceLoc, hostLoc, {}};
+        } else {
+            attrs[i] = aclrtMemcpyBatchAttr{hostLoc, deviceLoc, {}};
         }
         attrsIds[i] = idx++;
         sizes[i] = params.dataSizes[i];
     }
-    size_t fail_idx;
+    size_t fail_idx = 0;
     auto ret = DlAclApi::AclrtMemcpyBatch(params.destinations, sizes.data(), params.sources, sizes.data(),
                                           sizes.size(), attrs.data(), attrsIds.data(), attrs.size(), &fail_idx);
     if (ret != 0) {
-        BM_LOG_ERROR("Failed to batchDataCopyLocal ret:" << ret);
+        BM_LOG_ERROR("Failed to batchDataCopyLocal ret:" << ret << std::hex << " srcAddr:" << params.sources[fail_idx]
+            << " dstAddr:" << params.destinations[fail_idx]);
     }
     return ret;
 }
-
 
 void DataOpDeviceRDMA::ClassifyDataAddr(void **globalAddrs, void **localAddrs, const uint64_t *counts,
                                         uint32_t batchSize, std::unordered_map<uint32_t, CopyDescriptor> &registered,
@@ -694,7 +760,7 @@ int32_t DataOpDeviceRDMA::BatchCopyWrite(hybm_batch_copy_params &params, const E
                                               it.second.counts.data(), static_cast<uint32_t>(it.second.counts.size())};
         tmpOptions.destRankId = it.first;
         TP_TRACE_BEGIN(TP_HYBM_RDMA_BATCH_LOCAL);
-        ret = BatchDataCopyLocal(localParams, ACL_MEMCPY_HOST_TO_DEVICE, tmpOptions);
+        ret = BatchDataCopyLocal(localParams, direction, tmpOptions);
         TP_TRACE_END(TP_HYBM_RDMA_BATCH_LOCAL, ret);
         BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "write local failed:", ret);
     }
@@ -740,11 +806,11 @@ int32_t DataOpDeviceRDMA::BatchCopyRead(hybm_batch_copy_params &params, const Ex
     }
     // 再写本地
     for (auto &it : localed) {
-        hybm_batch_copy_params localParams = {it.second.localAddrs.data(), it.second.globalAddrs.data(),
+        hybm_batch_copy_params localParams = {it.second.globalAddrs.data(), it.second.localAddrs.data(),
                                               it.second.counts.data(), static_cast<uint32_t>(it.second.counts.size())};
         tmpOptions.destRankId = it.first;
         TP_TRACE_BEGIN(TP_HYBM_RDMA_BATCH_LOCAL);
-        ret = BatchDataCopyLocal(localParams, ACL_MEMCPY_DEVICE_TO_HOST, tmpOptions);
+        ret = BatchDataCopyLocal(localParams, direction, tmpOptions);
         TP_TRACE_END(TP_HYBM_RDMA_BATCH_LOCAL, ret);
         BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "write local failed:", ret);
     }

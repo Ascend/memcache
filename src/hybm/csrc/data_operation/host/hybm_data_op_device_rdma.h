@@ -66,6 +66,12 @@ private:
                                 const ExtOptions &options) noexcept;
     int32_t BatchDataCopyLocal(hybm_batch_copy_params &params, int32_t direction,
                                const ExtOptions &options) noexcept;
+    int32_t BatchDataCopyLocalSync(hybm_batch_copy_params &params, int32_t direction,
+                                   const ExtOptions &options) noexcept;
+    int32_t BatchDataCopyLocalAsync(hybm_batch_copy_params &params, int32_t direction,
+                                    const ExtOptions &options) noexcept;
+    int32_t BatchDataCopyLocalBatch(hybm_batch_copy_params &params, int32_t direction,
+                                    const ExtOptions &options) noexcept;
 
     int32_t AllocSwapMemory();
     void FreeSwapMemory();
