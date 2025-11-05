@@ -39,6 +39,8 @@ private:
 void *HybmStreamManager::GetThreadAclStream(int32_t devId)
 {
     static thread_local void *stream_ = nullptr;
+    static uint32_t ACL_STREAM_FAST_LAUNCH = 1U;
+    static uint32_t ACL_STREAM_FAST_SYNC = 2U;
     if (stream_ != nullptr) {
         return stream_;
     }
@@ -47,7 +49,7 @@ void *HybmStreamManager::GetThreadAclStream(int32_t devId)
         BM_LOG_ERROR("Set device id to be " << devId << " failed: " << ret);
         return nullptr;
     }
-    ret = DlAclApi::AclrtCreateStream(&stream_);
+    ret = DlAclApi::AclrtCreateStreamWithConfig(&stream_, 0, ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC);
     if (ret != 0) {
         BM_LOG_ERROR("create stream failed: " << ret);
         return nullptr;

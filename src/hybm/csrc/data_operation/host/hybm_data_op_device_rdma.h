@@ -64,12 +64,15 @@ private:
 
     int32_t BatchDataCopyDefault(hybm_batch_copy_params &params, hybm_data_copy_direction direction,
                                 const ExtOptions &options) noexcept;
+    int32_t BatchDataCopyLocal(hybm_batch_copy_params &params, int32_t direction,
+                               const ExtOptions &options) noexcept;
 
     int32_t AllocSwapMemory();
     void FreeSwapMemory();
 
     void ClassifyDataAddr(void **globalAddrs, void **localAddrs, const uint64_t *counts, uint32_t batchSize,
                           std::unordered_map<uint32_t, CopyDescriptor> &registered,
+                          std::unordered_map<uint32_t, CopyDescriptor> &localed,
                           std::unordered_map<uint32_t, CopyDescriptor> &notRegistered) noexcept;
     int32_t BatchCopyWrite(hybm_batch_copy_params &params, const ExtOptions &options,
                            hybm_data_copy_direction direction) noexcept;

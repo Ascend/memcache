@@ -10,10 +10,29 @@
 namespace ock {
 namespace mf {
 
+enum class aclrtMemLocationType {
+    ACL_MEM_LOCATION_TYPE_HOST = 0,   // Host内存
+    ACL_MEM_LOCATION_TYPE_DEVICE,     // Device内存
+};
+
+using aclrtMemLocation = struct aclrtMemLocation;
+struct aclrtMemLocation {
+    uint32_t id;
+    aclrtMemLocationType type;    // 内存所在位置
+};
+
+using aclrtMemcpyBatchAttr = struct aclrtMemcpyBatchAttr;
+struct aclrtMemcpyBatchAttr {
+    aclrtMemLocation dstLoc;
+    aclrtMemLocation srcLoc;
+    uint8_t rsv[16];
+};
+
 using aclrtSetDeviceFunc = int32_t (*)(int32_t);
 using aclrtGetDeviceFunc = int32_t (*)(int32_t *);
 using aclrtDeviceEnablePeerAccessFunc = int32_t (*)(int32_t, uint32_t);
 using aclrtCreateStreamFunc = int (*)(void **);
+using aclrtCreateStreamWithConfigFunc = int (*)(void **, int32_t, uint32_t);
 using aclrtDestroyStreamFunc = int (*)(void *);
 using aclrtSynchronizeStreamFunc = int (*)(void *);
 using aclrtMallocFunc = int32_t (*)(void **, size_t, uint32_t);
@@ -36,6 +55,8 @@ using rtGetLogicDevIdByUserDevIdFunc = int32_t (*)(const int32_t, int32_t *const
 using rtIpcOpenMemoryFunc = int32_t (*)(void **, const char *);
 using rtIpcCloseMemoryFunc = int32_t (*)(const void *);
 using aclrtGetSocNameFunc = const char *(*)();
+using aclrtMemcpyBatchFunc = int32_t (*)(void **, size_t *, void **, size_t *, size_t,
+                                         aclrtMemcpyBatchAttr *, size_t *, size_t, size_t *);
 
 class DlAclApi {
 public:
@@ -80,6 +101,14 @@ public:
             return BM_UNDER_API_UNLOAD;
         }
         return pAclrtCreateStream(stream);
+    }
+
+    static inline Result AclrtCreateStreamWithConfig(void **stream, uint32_t prot, uint32_t config)
+    {
+        if (pAclrtCreateStreamWithConfig == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pAclrtCreateStreamWithConfig(stream, prot, config);
     }
 
     static inline Result AclrtDestroyStream(void *stream)
@@ -145,6 +174,17 @@ public:
             return BM_UNDER_API_UNLOAD;
         }
         return pAclrtMemcpyAsync(dst, destMax, src, count, kind, stream);
+    }
+
+    static inline Result AclrtMemcpyBatch(void **dsts, size_t *destMax,
+                                          void **srcs, size_t *sizes, size_t numBatches,
+                                          aclrtMemcpyBatchAttr *attrs, size_t *attrsIndexes,
+                                          size_t numAttrs, size_t *failIndex)
+    {
+        if (pAclrtMemcpyBatch == nullptr) {
+            return BM_UNDER_API_UNLOAD;
+        }
+        return pAclrtMemcpyBatch(dsts, destMax, srcs, sizes, numBatches, attrs, attrsIndexes, numAttrs, failIndex);
     }
 
     static inline Result AclrtMemcpy2d(void *dst, size_t dpitch, const void *src, size_t spitch,
@@ -268,6 +308,7 @@ private:
     static aclrtGetDeviceFunc pAclrtGetDevice;
     static aclrtDeviceEnablePeerAccessFunc pAclrtDeviceEnablePeerAccess;
     static aclrtCreateStreamFunc pAclrtCreateStream;
+    static aclrtCreateStreamWithConfigFunc pAclrtCreateStreamWithConfig;
     static aclrtDestroyStreamFunc pAclrtDestroyStream;
     static aclrtSynchronizeStreamFunc pAclrtSynchronizeStream;
     static aclrtMallocFunc pAclrtMalloc;
@@ -275,6 +316,7 @@ private:
     static aclrtMallocHostFunc pAclrtMallocHost;
     static aclrtFreeHostFunc pAclrtFreeHost;
     static aclrtMemcpyFunc pAclrtMemcpy;
+    static aclrtMemcpyBatchFunc pAclrtMemcpyBatch;
     static aclrtMemcpyAsyncFunc pAclrtMemcpyAsync;
     static aclrtMemcpy2dFunc pAclrtMemcpy2d;
     static aclrtMemcpy2dAsyncFunc pAclrtMemcpy2dAsync;

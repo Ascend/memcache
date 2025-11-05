@@ -585,13 +585,57 @@ int32_t DataOpDeviceRDMA::BatchCopyGD2LH(hybm_batch_copy_params &params, const E
     return BM_OK;
 }
 
+int32_t DataOpDeviceRDMA::BatchDataCopyLocal(hybm_batch_copy_params &params, int32_t direction,
+                                             const ock::mf::ExtOptions &options) noexcept
+{
+    uint32_t batchNum = params.batchSize;
+    std::vector<aclrtMemcpyBatchAttr> attrs(batchNum);
+    std::vector<size_t> attrsIds(batchNum);
+    std::vector<size_t> sizes(batchNum);
+    size_t idx = 0;
+    auto deviceLoc = aclrtMemLocation{static_cast<uint32_t>(HybmGetInitDeviceId()),
+                                      aclrtMemLocationType::ACL_MEM_LOCATION_TYPE_DEVICE};
+    auto hostLoc = aclrtMemLocation{0, aclrtMemLocationType::ACL_MEM_LOCATION_TYPE_HOST};
+    for (size_t i = 0; i < batchNum; i++) {
+        if (direction == ACL_MEMCPY_DEVICE_TO_HOST) {
+            attrs[i] = aclrtMemcpyBatchAttr{hostLoc, deviceLoc, {}};
+        } else {
+            attrs[i] = aclrtMemcpyBatchAttr{deviceLoc, hostLoc, {}};
+        }
+        attrsIds[i] = idx++;
+        sizes[i] = params.dataSizes[i];
+    }
+    size_t fail_idx;
+    auto ret = DlAclApi::AclrtMemcpyBatch(params.destinations, sizes.data(), params.sources, sizes.data(),
+                                          sizes.size(), attrs.data(), attrsIds.data(), attrs.size(), &fail_idx);
+    if (ret != 0) {
+        BM_LOG_ERROR("Failed to batchDataCopyLocal ret:" << ret);
+    }
+    return ret;
+}
+
+
 void DataOpDeviceRDMA::ClassifyDataAddr(void **globalAddrs, void **localAddrs, const uint64_t *counts,
                                         uint32_t batchSize, std::unordered_map<uint32_t, CopyDescriptor> &registered,
+                                        std::unordered_map<uint32_t, CopyDescriptor> &localed,
                                         std::unordered_map<uint32_t, CopyDescriptor> &notRegistered) noexcept
 {
     for (size_t i = 0; i < batchSize; ++i) {
         uint32_t gvaRankId = GetRankIdByGva(reinterpret_cast<uint64_t>(globalAddrs[i]));
-        if (!hybm_gvm_mem_has_registered((uint64_t)localAddrs[i], counts[i]) || gvaRankId == rankId_) {
+        if (gvaRankId == rankId_) {
+            auto iter = notRegistered.find(gvaRankId);
+            if (iter == notRegistered.end()) {
+                CopyDescriptor desc{};
+                desc.localAddrs.push_back(localAddrs[i]);
+                desc.globalAddrs.push_back(globalAddrs[i]);
+                desc.counts.push_back(counts[i]);
+                localed.emplace(std::make_pair(gvaRankId, desc));
+            } else {
+                iter->second.localAddrs.push_back(localAddrs[i]);
+                iter->second.globalAddrs.push_back(globalAddrs[i]);
+                iter->second.counts.push_back(counts[i]);
+            }
+        } else if (!hybm_gvm_mem_has_registered((uint64_t)localAddrs[i], counts[i])) {
             auto iter = notRegistered.find(gvaRankId);
             if (iter == notRegistered.end()) {
                 CopyDescriptor desc{};
@@ -626,9 +670,10 @@ int32_t DataOpDeviceRDMA::BatchCopyWrite(hybm_batch_copy_params &params, const E
 {
     auto ret = 0;
     ExtOptions tmpOptions = options;
+    std::unordered_map<uint32_t, CopyDescriptor> localed{};
     std::unordered_map<uint32_t, CopyDescriptor> registered{};
     std::unordered_map<uint32_t, CopyDescriptor> notRegistered{};
-    ClassifyDataAddr(params.destinations, params.sources, params.dataSizes, params.batchSize, registered,
+    ClassifyDataAddr(params.destinations, params.sources, params.dataSizes, params.batchSize, registered, localed,
                      notRegistered);
 
     // 先写异步
@@ -644,6 +689,16 @@ int32_t DataOpDeviceRDMA::BatchCopyWrite(hybm_batch_copy_params &params, const E
         }
     }
     // 再写本地
+    for (auto &it : localed) {
+        hybm_batch_copy_params localParams = {it.second.localAddrs.data(), it.second.globalAddrs.data(),
+                                              it.second.counts.data(), static_cast<uint32_t>(it.second.counts.size())};
+        tmpOptions.destRankId = it.first;
+        TP_TRACE_BEGIN(TP_HYBM_RDMA_BATCH_LOCAL);
+        ret = BatchDataCopyLocal(localParams, ACL_MEMCPY_HOST_TO_DEVICE, tmpOptions);
+        TP_TRACE_END(TP_HYBM_RDMA_BATCH_LOCAL, ret);
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "write local failed:", ret);
+    }
+    // 再写未注册
     for (auto &it : notRegistered) {
         hybm_batch_copy_params notParams = {it.second.localAddrs.data(), it.second.globalAddrs.data(),
                                             it.second.counts.data(), static_cast<uint32_t>(it.second.counts.size())};
@@ -666,9 +721,10 @@ int32_t DataOpDeviceRDMA::BatchCopyRead(hybm_batch_copy_params &params, const Ex
 {
     auto ret = 0;
     ExtOptions tmpOptions = options;
+    std::unordered_map<uint32_t, CopyDescriptor> localed{};
     std::unordered_map<uint32_t, CopyDescriptor> registered{};
     std::unordered_map<uint32_t, CopyDescriptor> notRegistered{};
-    ClassifyDataAddr(params.sources, params.destinations, params.dataSizes, params.batchSize, registered,
+    ClassifyDataAddr(params.sources, params.destinations, params.dataSizes, params.batchSize, registered, localed,
                      notRegistered);
 
     // 先写异步
@@ -683,6 +739,16 @@ int32_t DataOpDeviceRDMA::BatchCopyRead(hybm_batch_copy_params &params, const Ex
         }
     }
     // 再写本地
+    for (auto &it : localed) {
+        hybm_batch_copy_params localParams = {it.second.localAddrs.data(), it.second.globalAddrs.data(),
+                                              it.second.counts.data(), static_cast<uint32_t>(it.second.counts.size())};
+        tmpOptions.destRankId = it.first;
+        TP_TRACE_BEGIN(TP_HYBM_RDMA_BATCH_LOCAL);
+        ret = BatchDataCopyLocal(localParams, ACL_MEMCPY_DEVICE_TO_HOST, tmpOptions);
+        TP_TRACE_END(TP_HYBM_RDMA_BATCH_LOCAL, ret);
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "write local failed:", ret);
+    }
+    // 再写未注册
     for (auto &it : notRegistered) {
         hybm_batch_copy_params notParams = {it.second.globalAddrs.data(), it.second.localAddrs.data(),
                                             it.second.counts.data(), static_cast<uint32_t>(it.second.counts.size())};
