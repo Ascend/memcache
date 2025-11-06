@@ -1044,6 +1044,7 @@ int32_t MemEntityDefault::RegisterMem(uint64_t addr, uint64_t size) noexcept
         BM_LOG_ERROR("input addr is not hbm! addr:" << std::hex << addr);
         return BM_ERROR;
     }
+    size = (size + DEVICE_LARGE_PAGE_SIZE - 1) / DEVICE_LARGE_PAGE_SIZE * DEVICE_LARGE_PAGE_SIZE;
 
     if ((options_.bmDataOpType & HYBM_DOP_TYPE_DEVICE_RDMA) && transportManager_ != nullptr) {
         transport::TransportMemoryRegion info;
@@ -1054,7 +1055,6 @@ int32_t MemEntityDefault::RegisterMem(uint64_t addr, uint64_t size) noexcept
         BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "Failed to RegisterMem into rdma", ret);
     }
 
-    size = (size + DEVICE_LARGE_PAGE_SIZE - 1) / DEVICE_LARGE_PAGE_SIZE * DEVICE_LARGE_PAGE_SIZE;
     return hybm_gvm_mem_register(addr, size, addr);
 }
 

@@ -523,66 +523,12 @@ int32_t DataOpDeviceRDMA::BatchDataCopyDefault(hybm_batch_copy_params &params, h
 
 int32_t DataOpDeviceRDMA::BatchCopyLH2GD(hybm_batch_copy_params &params, const ExtOptions &options) noexcept
 {
-    if (options.destRankId == rankId_) {
-        return BatchDataCopyDefault(params, HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE, options);
-    }
-
-    auto ret = 0;
-    uint64_t totalSize = 0;
-    for (size_t i = 0; i < params.batchSize; ++i) {
-        totalSize += params.dataSizes[i];
-    }
-    if (totalSize > RDMA_SWAP_SPACE_SIZE) {
-        BM_LOG_WARN("batch length is too large! size: " << totalSize);
-        return BatchDataCopyDefault(params, HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE, options);
-    }
-
-    uint64_t offset = 0;
-    for (size_t i = 0; i < params.batchSize; ++i) {
-        auto srcAddr = params.sources[i];
-        auto destAddr = (void *)((uint64_t)rdmaSwapBaseAddr_ + offset);
-        auto count = params.dataSizes[i];
-        offset += count;
-        ret = CopyLH2LH(srcAddr, destAddr, count, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == 0, "copy LH to swap_buf failed! ret:" << ret, BM_ERROR);
-    }
-
-    ret = transportManager_->WriteRemote(options.destRankId, (uint64_t)rdmaSwapBaseAddr_,
-                                         (uint64_t)params.destinations[0], totalSize);
-    BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[BatchCopyLH2GD] Failed to write src to dest", ret);
-    return BM_OK;
+    return BatchCopyWrite(params, options, HYBM_LOCAL_HOST_TO_GLOBAL_DEVICE);
 }
 
 int32_t DataOpDeviceRDMA::BatchCopyGD2LH(hybm_batch_copy_params &params, const ExtOptions &options) noexcept
 {
-    if (options.srcRankId == rankId_) {
-        return BatchDataCopyDefault(params, HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST, options);
-    }
-
-    auto ret = 0;
-    uint64_t totalSize = 0;
-    for (size_t i = 0; i < params.batchSize; ++i) {
-        totalSize += params.dataSizes[i];
-    }
-    if (totalSize > RDMA_SWAP_SPACE_SIZE) {
-        BM_LOG_WARN("batch length is too large! size: " << totalSize);
-        return BatchDataCopyDefault(params, HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST, options);
-    }
-
-    ret = transportManager_->ReadRemote(options.srcRankId, (uint64_t)rdmaSwapBaseAddr_,
-                                        (uint64_t)params.sources[0], totalSize);
-    BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[BatchCopyGD2LH] Failed to write src to dest", ret);
-
-    uint64_t offset = 0;
-    for (size_t i = 0; i < params.batchSize; ++i) {
-        auto srcAddr = (void *)((uint64_t)rdmaSwapBaseAddr_ + offset);
-        auto destAddr = params.destinations[i];
-        auto count = params.dataSizes[i];
-        offset += count;
-        ret = CopyLH2LH(srcAddr, destAddr, count, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == 0, "copy swap_buf to LH failed! ret:" << ret, BM_ERROR);
-    }
-    return BM_OK;
+    return BatchCopyRead(params, options, HYBM_GLOBAL_DEVICE_TO_LOCAL_HOST);
 }
 
 int32_t DataOpDeviceRDMA::BatchDataCopyLocal(hybm_batch_copy_params &params, int32_t direction,
@@ -677,6 +623,7 @@ int32_t DataOpDeviceRDMA::BatchDataCopyLocalBatch(hybm_batch_copy_params &params
     if (ret != 0) {
         BM_LOG_ERROR("Failed to batchDataCopyLocal ret:" << ret << std::hex << " srcAddr:" << params.sources[fail_idx]
             << " dstAddr:" << params.destinations[fail_idx]);
+        return BatchDataCopyLocalAsync(params, direction, options);
     }
     return ret;
 }
@@ -689,8 +636,8 @@ void DataOpDeviceRDMA::ClassifyDataAddr(void **globalAddrs, void **localAddrs, c
     for (size_t i = 0; i < batchSize; ++i) {
         uint32_t gvaRankId = GetRankIdByGva(reinterpret_cast<uint64_t>(globalAddrs[i]));
         if (gvaRankId == rankId_) {
-            auto iter = notRegistered.find(gvaRankId);
-            if (iter == notRegistered.end()) {
+            auto iter = localed.find(gvaRankId);
+            if (iter == localed.end()) {
                 CopyDescriptor desc{};
                 desc.localAddrs.push_back(localAddrs[i]);
                 desc.globalAddrs.push_back(globalAddrs[i]);
