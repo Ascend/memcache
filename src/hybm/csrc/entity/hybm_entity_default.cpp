@@ -611,52 +611,6 @@ int32_t MemEntityDefault::CopyData(hybm_copy_params &params, hybm_data_copy_dire
     return BM_ERROR;
 }
 
-int32_t MemEntityDefault::CopyData2d(hybm_copy_2d_params &params, hybm_data_copy_direction direction,
-                                     void *stream, uint32_t flags) noexcept
-{
-    if (!initialized) {
-        BM_LOG_ERROR("the object is not initialized, please check whether Initialize is called.");
-        return BM_NOT_INITIALIZED;
-    }
-
-    int32_t ret = BM_OK;
-    if (stream == nullptr) {
-        stream = HybmStreamManager::GetThreadAclStream(HybmGetInitDeviceId());
-    }
-
-    ExtOptions options{};
-    options.flags = flags;
-    options.stream = stream;
-    GenCopyExtOption(params.src, params.dest, params.spitch * params.height, options);
-
-    if ((options_.bmDataOpType & HYBM_DOP_TYPE_SDMA) != 0 && sdmaDataOperator_ != nullptr) {
-        ret = sdmaDataOperator_->DataCopy2d(params, direction, options);
-        if (ret == BM_OK) {
-            return BM_OK;
-        }
-
-        BM_LOG_ERROR("SDMA data copy direction: " << direction << ", failed : " << ret);
-    }
-
-    if (devRdmaDataOperator_ != nullptr) {
-        ret = devRdmaDataOperator_->DataCopy2d(params, direction, options);
-        if (ret == BM_OK) {
-            return BM_OK;
-        }
-        BM_LOG_ERROR("Device RDMA data copy direction: " << direction << ", failed : " << ret);
-    }
-
-    if (hostRdmaDataOperator_ != nullptr) {
-        ret = hostRdmaDataOperator_->DataCopy2d(params, direction, options);
-        if (ret == BM_OK) {
-            return BM_OK;
-        }
-        BM_LOG_ERROR("Host RDMA data copy direction: " << direction << ", failed : " << ret);
-    }
-    BM_LOG_ERROR("copy data failed.");
-    return BM_ERROR;
-}
-
 int32_t MemEntityDefault::BatchCopyData(hybm_batch_copy_params &params, hybm_data_copy_direction direction,
                                         void *stream, uint32_t flags) noexcept
 {

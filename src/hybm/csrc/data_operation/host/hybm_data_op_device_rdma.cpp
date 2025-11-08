@@ -484,13 +484,6 @@ int32_t DataOpDeviceRDMA::CopyGD2LD(const void *srcVA, void *destVA, uint64_t le
     return ret;
 }
 
-int32_t DataOpDeviceRDMA::DataCopy2d(hybm_copy_2d_params &params, hybm_data_copy_direction direction,
-                                     const ock::mf::ExtOptions &options) noexcept
-{
-    BM_LOG_ERROR("DataOpDeviceRDMA::DataCopy2d Not Supported!");
-    return BM_ERROR;
-}
-
 int32_t DataOpDeviceRDMA::DataCopyAsync(hybm_copy_params &params,
                                         hybm_data_copy_direction direction, const ExtOptions &options) noexcept
 {

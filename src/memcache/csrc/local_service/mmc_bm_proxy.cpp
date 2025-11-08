@@ -159,42 +159,17 @@ Result MmcBmProxy::Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
         return MMC_ERROR;
     }
     smem_bm_copy_type type = buf->type == 0 ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
-    if (buf->dimType == 0) {
-        if (buf->oneDim.len > size) {
-            MMC_LOG_ERROR("Failed to put data to smem bm, buf size : " << buf->oneDim.len
-                << " is larger than bm block size : " << size);
-            return MMC_ERROR;
-        }
-        TP_TRACE_BEGIN(TP_SMEM_BM_PUT);
-        auto ret =
-            smem_bm_copy(handle_, (void*)(buf->addr + buf->oneDim.offset), (void*)bmAddr, buf->oneDim.len,
-                         type, ASYNC_COPY_FLAG);
-        TP_TRACE_END(TP_SMEM_BM_PUT, ret);
-        return ret;
-    } else if (buf->dimType == 1) {
-        if (buf->twoDim.width * buf->twoDim.layerNum > size) {
-            MMC_LOG_ERROR("Failed to put data to smem bm, buf size : " << buf->twoDim.width * buf->twoDim.layerNum
-                << " is larger than bm block size : " << size);
-            return MMC_ERROR;
-        }
-        if (buf->twoDim.dpitch >= buf->twoDim.width) {
-            smem_copy_2d_params params = {(void*)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
-                                          buf->twoDim.dpitch, (void*)bmAddr, buf->twoDim.width, buf->twoDim.width,
-                                          buf->twoDim.layerNum};
-
-            TP_TRACE_BEGIN(TP_SMEM_BM_PUT_2D);
-            auto ret = smem_bm_copy_2d(handle_, &params, type, 0);
-            TP_TRACE_END(TP_SMEM_BM_PUT_2D, ret);
-            return ret;
-        } else {
-            MMC_LOG_ERROR("MmcBmProxy Put dpitch (" << buf->twoDim.dpitch << ") should be larger or equal to width ("
-                          << buf->twoDim.width << ")");
-            return MMC_ERROR;
-        }
-    } else {
-        MMC_LOG_ERROR("MmcBmProxy Put unknown buf type");
+    if (buf->oneDim.len > size) {
+        MMC_LOG_ERROR("Failed to put data to smem bm, buf size : " << buf->oneDim.len
+                                                                   << " is larger than bm block size : " << size);
         return MMC_ERROR;
     }
+    TP_TRACE_BEGIN(TP_SMEM_BM_PUT);
+    auto ret =
+            smem_bm_copy(handle_, (void*)(buf->addr + buf->oneDim.offset), (void*)bmAddr, buf->oneDim.len,
+                         type, ASYNC_COPY_FLAG);
+    TP_TRACE_END(TP_SMEM_BM_PUT, ret);
+    return ret;
 }
 
 Result MmcBmProxy::Get(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
@@ -208,49 +183,17 @@ Result MmcBmProxy::Get(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
         return MMC_ERROR;
     }
     smem_bm_copy_type type = buf->type == 0 ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
-    if (buf->dimType == 0) {
-        if (buf->oneDim.len > size) {
-            MMC_LOG_ERROR("Failed to get data to smem bm, buf length: " << buf->oneDim.len
-                          << " not equal data length: " << size);
-            return MMC_ERROR;
-        }
-        TP_TRACE_BEGIN(TP_SMEM_BM_GET);
-        auto ret =
-            smem_bm_copy(handle_, (void*)bmAddr, (void*)(buf->addr + buf->oneDim.offset), buf->oneDim.len,
-                         type, ASYNC_COPY_FLAG);
-        TP_TRACE_END(TP_SMEM_BM_GET, ret);
-        return ret;
-    } else if (buf->dimType == 1) {
-        uint64_t length = buf->twoDim.width * buf->twoDim.layerNum;
-        if (length != size) {
-            MMC_LOG_ERROR("Failed to get data to smem bm, buf length: " << length
-                          << " not equal data length: " << size);
-            return MMC_ERROR;
-        }
-        if (buf->twoDim.dpitch == buf->twoDim.width) {
-            TP_TRACE_BEGIN(TP_SMEM_BM_GET);
-            auto ret =
-                smem_bm_copy(handle_, (void*)bmAddr, (void*)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
-                             buf->twoDim.width * buf->twoDim.layerNum, type, ASYNC_COPY_FLAG);
-            TP_TRACE_END(TP_SMEM_BM_GET, ret);
-            return ret;
-        } else if (buf->twoDim.dpitch > buf->twoDim.width) {
-            smem_copy_2d_params params = {(void*)bmAddr, buf->twoDim.width,
-                                          (void*)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
-                                          buf->twoDim.dpitch, buf->twoDim.width, buf->twoDim.layerNum};
-
-            TP_TRACE_BEGIN(TP_SMEM_BM_GET_2D);
-            auto ret = smem_bm_copy_2d(handle_, &params, type, 0);
-            TP_TRACE_END(TP_SMEM_BM_GET_2D, ret);
-            return ret;
-        } else {
-            MMC_LOG_ERROR("MmcBmProxy Get dpitch should be larger or equal to width");
-            return MMC_ERROR;
-        }
-    } else {
-        MMC_LOG_ERROR("MmcBmProxy Get unknown buf type");
+    if (buf->oneDim.len > size) {
+        MMC_LOG_ERROR("Failed to get data to smem bm, buf length: " << buf->oneDim.len
+                                                                    << " not equal data length: " << size);
         return MMC_ERROR;
     }
+    TP_TRACE_BEGIN(TP_SMEM_BM_GET);
+    auto ret =
+            smem_bm_copy(handle_, (void*)bmAddr, (void*)(buf->addr + buf->oneDim.offset), buf->oneDim.len,
+                         type, ASYNC_COPY_FLAG);
+    TP_TRACE_END(TP_SMEM_BM_GET, ret);
+    return ret;
 }
 
 Result MmcBmProxy::Put(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
@@ -324,14 +267,7 @@ Result MmcBmProxy::BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
     smem_bm_copy_type type = bufArr.Buffers()[0].type == 0 ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
     for (size_t i = 0; i < count; ++i) {
         auto buf = &bufArr.Buffers()[i];
-        if (buf->dimType == 0) {
-            sources[i] = reinterpret_cast<void *>(buf->addr + buf->oneDim.offset);
-        } else if (buf->dimType == 1) {
-            sources[i] = reinterpret_cast<void *>(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset);
-        } else {
-            MMC_LOG_ERROR("Not support type");
-            return MMC_ERROR;
-        }
+        sources[i] = reinterpret_cast<void *>(buf->addr + buf->oneDim.offset);
         destinations[i] = reinterpret_cast<void *>(blob.gva_ + shift);
         dataSizes[i] = buf->oneDim.len;
         shift += MmcBufSize(*buf);
@@ -363,14 +299,7 @@ Result MmcBmProxy::BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
     smem_bm_copy_type type = bufArr.Buffers()[0].type == 0 ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
     for (size_t i = 0; i < count; ++i) {
         auto buf = &bufArr.Buffers()[i];
-        if (buf->dimType == 0) {
-            destinations[i] = reinterpret_cast<void *>(buf->addr + buf->oneDim.offset);
-        } else if (buf->dimType == 1) {
-            destinations[i] = reinterpret_cast<void *>(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset);
-        } else {
-            MMC_LOG_ERROR("Not support type");
-            return MMC_ERROR;
-        }
+        destinations[i] = reinterpret_cast<void *>(buf->addr + buf->oneDim.offset);
         sources[i] = reinterpret_cast<void *>(blob.gva_ + shift);
         dataSizes[i] = buf->oneDim.len;
         shift += MmcBufSize(*buf);

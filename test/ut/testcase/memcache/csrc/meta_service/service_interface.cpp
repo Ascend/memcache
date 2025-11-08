@@ -114,7 +114,6 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     mmc_buffer buffer;
     buffer.addr = (uint64_t)hostSrc;
     buffer.type = 0;
-    buffer.dimType = 0;
     buffer.oneDim.offset = 0;
     buffer.oneDim.len = SIZE_32K;
     std::vector<std::string> keys;
@@ -204,7 +203,6 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     mmc_buffer buffer;
     buffer.addr = (uint64_t)hostSrc;
     buffer.type = 0;
-    buffer.dimType = 0;
     buffer.oneDim.offset = 0;
     buffer.oneDim.len = SIZE_32K;
 
@@ -216,7 +214,6 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     mmc_buffer readBuffer;
     readBuffer.addr = (uint64_t)hostDest;
     readBuffer.type = 0;
-    readBuffer.dimType = 0;
     readBuffer.oneDim.offset = 0;
     readBuffer.oneDim.len = SIZE_32K;
 
@@ -242,7 +239,6 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
 
         bufs[i].addr = (uint64_t)hostSrcs[i];
         bufs[i].type = 0;
-        bufs[i].dimType = 0;
         bufs[i].oneDim.offset = 0;
         bufs[i].oneDim.len = SIZE_32K;
     }
@@ -254,7 +250,6 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
         mmc_buffer readBuffer;
         readBuffer.addr = (uint64_t)hostDests[i];
         readBuffer.type = 0;
-        readBuffer.dimType = 0;
         readBuffer.oneDim.offset = 0;
         readBuffer.oneDim.len = SIZE_32K;
 
@@ -295,7 +290,7 @@ TEST_F(TestMmcServiceInterface, testPutInvalidParam)
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_TRUE(ret == ock::mmc::MMC_OK);
 
-    mmc_buffer validBuf{ (uint64_t)malloc(1024), 0, 0, {0, 1024} };
+    mmc_buffer validBuf{ (uint64_t)malloc(1024), 0, {0, 1024} };
     const char* emptyKey = "";
     mmc_put_options options{0, NATIVE_AFFINITY, 1};
     std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
@@ -308,7 +303,7 @@ TEST_F(TestMmcServiceInterface, testPutInvalidParam)
     ret = mmcc_put("validKey", nullptr, options, 0);
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
 
-    mmc_buffer invalidBuf{ 0, 0, 0, {0, 1024} };
+    mmc_buffer invalidBuf{ 0, 0, {0, 1024} };
     ret = mmcc_put("validKey", &invalidBuf, options, 0);
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
 
@@ -390,13 +385,13 @@ TEST_F(TestMmcServiceInterface, testBatchGetErrorHandling)
 
     const char* validKeys[] = {"key1", "key2"};
     mmc_buffer invalidBufs[2] = {
-        {.addr = (uint64_t)malloc(SIZE_32K), .type = 0, .dimType = 0, .oneDim = {0, SIZE_32K}},
-        {.addr = 0, .type = 0, .dimType = 0, .oneDim = {0, SIZE_32K}}
+        {.addr = (uint64_t)malloc(SIZE_32K), .type = 0, .oneDim = {0, SIZE_32K}},
+        {.addr = 0, .type = 0, .oneDim = {0, SIZE_32K}}
     };
 
     void* data = malloc(SIZE_32K);
     GenerateData(data, 1);
-    mmc_buffer writeBuf = {.addr = (uint64_t)data, .type = 0, .dimType = 0, .oneDim = {0, SIZE_32K}};
+    mmc_buffer writeBuf = {.addr = (uint64_t)data, .type = 0, .oneDim = {0, SIZE_32K}};
     mmc_put_options putOpts{0, NATIVE_AFFINITY, 1};
     std::fill_n(putOpts.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
 
@@ -429,8 +424,8 @@ TEST_F(TestMmcServiceInterface, testBatchGetWithPartialData)
     GenerateData(data1, 1);
     GenerateData(data3, 3);
 
-    mmc_buffer writeBuf1 = {.addr = (uint64_t)data1, .type = 0, .dimType = 0, .oneDim = {0, SIZE_32K}};
-    mmc_buffer writeBuf3 = {.addr = (uint64_t)data3, .type = 0, .dimType = 0, .oneDim = {0, SIZE_32K}};
+    mmc_buffer writeBuf1 = {.addr = (uint64_t)data1, .type = 0, .oneDim = {0, SIZE_32K}};
+    mmc_buffer writeBuf3 = {.addr = (uint64_t)data3, .type = 0, .oneDim = {0, SIZE_32K}};
 
     mmc_put_options putOpts{0, NATIVE_AFFINITY, 1};
     std::fill_n(putOpts.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
@@ -446,7 +441,6 @@ TEST_F(TestMmcServiceInterface, testBatchGetWithPartialData)
         readBufs[i] = mmc_buffer{
             .addr = (uint64_t)destData[i],
             .type = 0,
-            .dimType = 0,
             .oneDim = {0, SIZE_32K}
         };
     }

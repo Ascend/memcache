@@ -299,33 +299,6 @@ Result SmemBmEntry::DataCopy(const void *src, void *dest, uint64_t size, smem_bm
     return hybm_data_copy(entity_, &copyParams, direct, nullptr, flags);
 }
 
-Result SmemBmEntry::DataCopy2d(smem_copy_2d_params *params, smem_bm_copy_type t, uint32_t flags)
-{
-    SM_VALIDATE_RETURN(params->src != nullptr, "invalid param, src is NULL", SM_INVALID_PARAM);
-    SM_VALIDATE_RETURN(params->dest != nullptr, "invalid param, dest is NULL", SM_INVALID_PARAM);
-    SM_VALIDATE_RETURN(params->width != 0, "invalid param, width is 0", SM_INVALID_PARAM);
-    SM_VALIDATE_RETURN(params->height != 0, "invalid param, height is 0", SM_INVALID_PARAM);
-    SM_VALIDATE_RETURN(t < SMEMB_COPY_BUTT, "invalid param, type invalid: " << t, SM_INVALID_PARAM);
-    SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);
-
-    SM_ASSERT_RETURN(!mf::NumUtil::IsOverflowCheck(params->dpitch, params->height, UINT64_MAX, '*'), SM_INVALID_PARAM);
-    auto direct = TransToHybmDirection(t, params->src, params->spitch * params->height,
-                                       params->dest, params->dpitch * params->height);
-    if (direct == HYBM_DATA_COPY_DIRECTION_BUTT) {
-        SM_LOG_ERROR("Failed to trans to hybm direct, smem direct: " << t << " src: " << params->src
-            << " dest: " << params->dest);
-        return SM_INVALID_PARAM;
-    }
-
-    hybm_copy_2d_params copy2dparams = {.src = params->src,
-                                        .spitch = params->spitch,
-                                        .dest = params->dest,
-                                        .dpitch = params->dpitch,
-                                        .width = params->width,
-                                        .height = params->height};
-    return hybm_data_copy_2d(entity_, &copy2dparams, direct, nullptr, flags);
-}
-
 Result SmemBmEntry::Wait()
 {
     SM_ASSERT_RETURN(inited_, SM_NOT_INITIALIZED);

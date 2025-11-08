@@ -170,7 +170,7 @@ inline uint64_t GetSequenceByOperateId(uint64_t operateId)
 
 inline uint64_t MmcBufSize(const mmc_buffer& buf)
 {
-    return buf.dimType == 0 ? buf.oneDim.len : buf.twoDim.width * buf.twoDim.layerNum;
+    return buf.oneDim.len;
 }
 
 class MmcBufferArray {

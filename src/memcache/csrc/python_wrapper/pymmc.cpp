@@ -227,7 +227,6 @@ PYBIND11_MODULE(_pymmc, m)
                 py::buffer_info info = buf.request(false);
                 mmc_buffer buffer = {.addr = reinterpret_cast<uint64_t>(info.ptr),
                                      .type = 0,
-                                     .dimType = 0,
                                      .oneDim = {.offset = 0, .len = static_cast<uint64_t>(info.size)}};
                 py::gil_scoped_release release;
                 return self.Put(key, buffer, replicateConfig);

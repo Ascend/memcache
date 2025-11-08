@@ -227,20 +227,6 @@
     |flags|预留参数|
     |返回值|成功返回0，失败返回错误码|
 
-1. 2D数据拷贝
-    ```c
-    int32_t smem_bm_copy_2d(smem_bm_t handle, smem_copy_2d_params *params, 
-        smem_bm_copy_type t, uint32_t flags);
-    ```
-
-    |参数/返回值|含义|
-    |-|-|
-    |handle|BM handle|
-    |params|拷贝数据的相关参数|
-    |t|数据拷贝类型，L2G/G2L/G2H/H2G，L=local HBM memory，G=global space，H=Host memory|
-    |flags|预留参数|
-    |返回值|成功返回0，失败返回错误码|
-
 ##### SMEM接口列表
 
 1. SMEM配置初始化

@@ -126,28 +126,6 @@ void *smem_bm_ptr_by_mem_type(smem_bm_t handle, smem_bm_mem_type memType, uint16
  */
 int32_t smem_bm_copy(smem_bm_t handle, const void *src, void *dest, uint64_t size, smem_bm_copy_type t, uint32_t flags);
 
-/**
- * @brief Data copy on Big Memory object, several copy types supported:
- * The size of the dest address must be continuous heigth * width
- * L2G: local memory to global space
- * G2L: global space to local memory
- * G2H: global space to host memory
- * H2G: host memory to global space
- *
- * @param handle           [in] Big Memory object handle created by <i>smem_bm_create</i>
- * @param params.src       [in] source gva of data
- * @param params.spitch    [in] pitch of source memory
- * @param params.dest      [in] target gva of data
- * @param params.dpitch    [in] pitch of destination memory
- * @param params.width     [in] width of matrix transfer
- * @param params.heigth    [in] height of matrix transfer
- * @param t                [in] copy type, L2G, G2L, G2H, H2G
- * @param flags            [in] optional flags
- * @return 0 if successful
- */
-int32_t smem_bm_copy_2d(smem_bm_t handle, smem_copy_2d_params *params, smem_bm_copy_type t, uint32_t flags);
-
-
 int32_t smem_bm_copy_batch(smem_bm_t handle, smem_batch_copy_params *params, smem_bm_copy_type t, uint32_t flags);
 /**
  * @brief wait async copy finish

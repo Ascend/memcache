@@ -70,8 +70,6 @@ public:
     bool CheckAddressInEntity(const void *ptr, uint64_t length) const noexcept override;
     int32_t CopyData(hybm_copy_params &params, hybm_data_copy_direction direction,
                      void *stream, uint32_t flags) noexcept override;
-    int32_t CopyData2d(hybm_copy_2d_params &params, hybm_data_copy_direction direction,
-                       void *stream, uint32_t flags) noexcept override;
     int32_t BatchCopyData(hybm_batch_copy_params &params,
                           hybm_data_copy_direction direction, void *stream, uint32_t flags) noexcept override;
     int32_t Wait() noexcept override;

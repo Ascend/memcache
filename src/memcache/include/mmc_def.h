@@ -70,15 +70,7 @@ typedef struct {
 typedef struct {
     uint64_t addr;
     uint32_t type; // 0 dram, 1 hbm
-    uint32_t dimType; // 0 oneDim, 1 twoDim
     union {
-        struct {
-            uint64_t dpitch : 48;
-            uint64_t layerOffset : 16;
-            uint32_t width;  // max 4GB
-            uint16_t layerNum;
-            uint16_t layerCount;
-        } twoDim;
         struct {
             uint64_t offset;
             uint64_t len;

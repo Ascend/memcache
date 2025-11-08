@@ -402,8 +402,8 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
         uint32_t count = bufArr.Buffers().size();
         for (size_t k = 0; k < count; ++k) {
             auto buf = &bufArr.Buffers()[k];
-            if (buf->type == MEDIA_NONE || buf->dimType != 0) {
-                MMC_LOG_ERROR("unexcepted buf type:" << buf->type << " or dim:" << buf->dimType);
+            if (buf->type == MEDIA_NONE) {
+                MMC_LOG_ERROR("unexcepted buf type:" << buf->type);
                 return MMC_ERROR;
             }
             if (mediaType == MEDIA_NONE) {
@@ -725,8 +725,8 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
             uint32_t count = bufArr.Buffers().size();
             for (size_t k = 0; k < count; ++k) {
                 auto buf = &bufArr.Buffers()[k];
-                if (buf->type == MEDIA_NONE || buf->dimType != 0) {
-                    MMC_LOG_ERROR("unexcepted buf type:" << buf->type << " or dim:" << buf->dimType);
+                if (buf->type == MEDIA_NONE) {
+                    MMC_LOG_ERROR("unexcepted buf type:" << buf->type);
                     return MMC_ERROR;
                 }
                 if (mediaType == MEDIA_NONE) {
@@ -857,12 +857,7 @@ bool MmcClientDefault::QueryInRegisterMap(uint64_t va, uint64_t size)
 bool MmcClientDefault::QueryInRegisterMap(const mmc_buffer &buf)
 {
     uint64_t addr = buf.addr;
-    if (buf.dimType == 0) {
-        return QueryInRegisterMap(addr, buf.oneDim.len);
-    } else if (buf.dimType == 1) {
-        return QueryInRegisterMap(addr, buf.twoDim.width);
-    }
-    return false;
+    return QueryInRegisterMap(addr, buf.oneDim.len);
 }
 
 int32_t MmcClientDefault::SelectTransportType(const mmc_buffer &buf)
@@ -871,7 +866,7 @@ int32_t MmcClientDefault::SelectTransportType(const mmc_buffer &buf)
         return MMC_BATCH_TRANSPORT;
     }
 
-    if (QueryInRegisterMap(buf) || buf.dimType == 1) {
+    if (QueryInRegisterMap(buf)) {
         return MMC_ASYNC_TRANSPORT;
     }
     return MMC_BATCH_TRANSPORT;

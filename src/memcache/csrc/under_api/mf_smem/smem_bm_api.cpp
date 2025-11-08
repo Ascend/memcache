@@ -29,7 +29,6 @@ smemBmJoinFunc MFSmemApi::gSmemBmJoin = nullptr;
 smemBmLeaveFunc MFSmemApi::gSmemBmLeave = nullptr;
 smemBmPtrFunc MFSmemApi::gSmemBmPtr = nullptr;
 smemBmCopyFunc MFSmemApi::gSmemBmCopy = nullptr;
-smemBmCopy2dFunc MFSmemApi::gSmemBmCopy2d = nullptr;
 
 Result MFSmemApi::LoadLibrary(const std::string &libDirPath)
 {
@@ -75,7 +74,6 @@ Result MFSmemApi::LoadLibrary(const std::string &libDirPath)
     DL_LOAD_SYM(gSmemBmLeave, smemBmLeaveFunc, gSmemHandle, "smem_bm_leave");
     DL_LOAD_SYM(gSmemBmPtr, smemBmPtrFunc, gSmemHandle, "smem_bm_ptr");
     DL_LOAD_SYM(gSmemBmCopy, smemBmCopyFunc, gSmemHandle, "smem_bm_copy");
-    DL_LOAD_SYM(gSmemBmCopy2d, smemBmCopy2dFunc, gSmemHandle, "smem_bm_copy_2d");
 
     gLoaded = true;
     return MMC_OK;

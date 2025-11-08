@@ -119,7 +119,6 @@ TEST_F(TestMmcServiceError, metaService)
     mmc_buffer buffer;
     buffer.addr = (uint64_t)hostSrc;
     buffer.type = 0;
-    buffer.dimType = 0;
     buffer.oneDim.offset = 0;
     buffer.oneDim.len = SIZE_32K;
 
@@ -131,7 +130,6 @@ TEST_F(TestMmcServiceError, metaService)
     mmc_buffer readBuffer;
     readBuffer.addr = (uint64_t)hostDest;
     readBuffer.type = 0;
-    readBuffer.dimType = 0;
     readBuffer.oneDim.offset = 0;
     readBuffer.oneDim.len = SIZE_32K;
 
@@ -157,7 +155,6 @@ TEST_F(TestMmcServiceError, metaService)
 
         bufs[i].addr = (uint64_t)hostSrcs[i];
         bufs[i].type = 0;
-        bufs[i].dimType = 0;
         bufs[i].oneDim.offset = 0;
         bufs[i].oneDim.len = SIZE_32K;
     }
@@ -169,7 +166,6 @@ TEST_F(TestMmcServiceError, metaService)
         mmc_buffer readBuffer;
         readBuffer.addr = (uint64_t)hostDests[i];
         readBuffer.type = 0;
-        readBuffer.dimType = 0;
         readBuffer.oneDim.offset = 0;
         readBuffer.oneDim.len = SIZE_32K;
 
@@ -243,7 +239,6 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
     mmc_buffer buffer;
     buffer.addr = (uint64_t)hostSrc;
     buffer.type = 0;
-    buffer.dimType = 0;
     buffer.oneDim.offset = 0;
     buffer.oneDim.len = SIZE_32K;
 
@@ -255,7 +250,6 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
     mmc_buffer readBuffer;
     readBuffer.addr = (uint64_t)hostDest;
     readBuffer.type = 0;
-    readBuffer.dimType = 0;
     readBuffer.oneDim.offset = 0;
     readBuffer.oneDim.len = SIZE_32K;
 
@@ -282,7 +276,6 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
 
         bufs[i].addr = (uint64_t)hostSrcs[i];
         bufs[i].type = 0;
-        bufs[i].dimType = 0;
         bufs[i].oneDim.offset = 0;
         bufs[i].oneDim.len = SIZE_32K;
     }
@@ -294,7 +287,6 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
         mmc_buffer readBuffer;
         readBuffer.addr = (uint64_t)hostDests[i];
         readBuffer.type = 0;
-        readBuffer.dimType = 0;
         readBuffer.oneDim.offset = 0;
         readBuffer.oneDim.len = SIZE_32K;
 
@@ -326,7 +318,6 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
         mmc_buffer readBuffer;
         readBuffer.addr = (uint64_t)hostDests[i];
         readBuffer.type = 0;
-        readBuffer.dimType = 0;
         readBuffer.oneDim.offset = 0;
         readBuffer.oneDim.len = SIZE_32K;
 

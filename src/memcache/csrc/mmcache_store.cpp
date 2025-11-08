@@ -179,7 +179,7 @@ int MmcacheStore::GetInto(const std::string &key, void *buffer, size_t size, con
         default: MMC_LOG_ERROR("Failed to get by type " << direct << " for key " << key); return -1;
     }
     mmc_buffer mmcBuffer = {
-        .addr = reinterpret_cast<uint64_t>(buffer), .type = type, .dimType = 0, .oneDim = {.offset = 0, .len = size}};
+        .addr = reinterpret_cast<uint64_t>(buffer), .type = type, .oneDim = {.offset = 0, .len = size}};
     TP_TRACE_BEGIN(TP_MMC_PY_GET);
     auto res = mmcc_get(key.c_str(), &mmcBuffer, 0);
     TP_TRACE_END(TP_MMC_PY_GET, res);
@@ -204,7 +204,7 @@ int MmcacheStore::PutFrom(const std::string &key, void *buffer, size_t size, con
         default: MMC_LOG_ERROR("Failed to put by type " << direct << " for key " << key); return -1;
     }
     mmc_buffer mmcBuffer = {
-        .addr = reinterpret_cast<uint64_t>(buffer), .type = type, .dimType = 0, .oneDim = {.offset = 0, .len = size}};
+        .addr = reinterpret_cast<uint64_t>(buffer), .type = type, .oneDim = {.offset = 0, .len = size}};
 
     mmc_put_options options{};
     MMC_ASSERT_RETURN(CopyPutOptions(replicateConfig, options), MMC_ERROR);
@@ -414,7 +414,6 @@ std::vector<int> MmcacheStore::BatchPutFrom(const std::vector<std::string> &keys
         keyArray[i] = keys[i].c_str();
         bufferArray[i] = {.addr = reinterpret_cast<uint64_t>(buffers[i]),
                           .type = type,
-                          .dimType = 0,
                           .oneDim = {.offset = 0, .len = static_cast<uint64_t>(sizes[i])}};
     }
 
@@ -456,7 +455,6 @@ std::vector<int> MmcacheStore::BatchGetInto(const std::vector<std::string> &keys
         keyArray[i] = keys[i].c_str();
         bufferArray[i] = {.addr = reinterpret_cast<uint64_t>(buffers[i]),
                           .type = type,
-                          .dimType = 0,
                           .oneDim = {.offset = 0, .len = static_cast<uint64_t>(sizes[i])}};
     }
     TP_TRACE_BEGIN(TP_MMC_PY_BATCH_GET);
@@ -499,7 +497,6 @@ int MmcacheStore::PutFromLayers(const std::string &key, const std::vector<void *
     for (size_t i = 0; i < layerNum; i += 1) {
         bufArr.AddBuffer({.addr = reinterpret_cast<uint64_t>(buffers[i]),
                           .type = type,
-                          .dimType = 0,
                           .oneDim = {.offset = 0, .len = static_cast<uint64_t>(sizes[i])}});
     }
     TP_TRACE_BEGIN(TP_MMC_PY_PUT_LAYERS);
@@ -591,7 +588,6 @@ int MmcacheStore::GetIntoLayers(const std::string &key, const std::vector<void *
     for (size_t i = 0; i < layerNum; i += 1) {
         mmc_buffers.push_back({.addr = reinterpret_cast<uint64_t>(buffers[i]),
                                       .type = type,
-                                      .dimType = 0,
                                       .oneDim = {.offset = 0, .len = static_cast<uint64_t>(sizes[i])}});
     }
     MmcBufferArray bufArr(mmc_buffers);
@@ -677,7 +673,6 @@ void MmcacheStore::GetBufferArrays(const size_t batchSize, const uint32_t type,
         for (size_t l = 0; l < layerNum; l += 1) {
             mmc_buffers.push_back({.addr = reinterpret_cast<uint64_t>(buffers[l]),
                                    .type = type,
-                                   .dimType = 0,
                                    .oneDim = {.offset = 0, .len = sizes[l]}});
         }
         MmcBufferArray bufArr(mmc_buffers);
@@ -726,7 +721,6 @@ mmc_buffer MmcacheStore::Get(const std::string &key)
     }
     mmc_buffer buffer = {.addr = reinterpret_cast<uintptr_t>(dataPtr),
                          .type = 0,
-                         .dimType = 0,
                          .oneDim = {
                              .offset = 0,
                              .len = info.size,

@@ -28,7 +28,6 @@ using smemBmLeaveFunc = int32_t (*)(smem_bm_t, uint32_t);
 using smemBmGetLocalMemSizeFunc = uint64_t (*)(smem_bm_t);
 using smemBmPtrFunc = void *(*)(smem_bm_t, uint16_t);
 using smemBmCopyFunc = int32_t (*)(smem_bm_t, const void *, void *, uint64_t, smem_bm_copy_type, uint32_t);
-using smemBmCopy2dFunc = int32_t (*)(smem_bm_t, smem_copy_2d_params *, smem_bm_copy_type, uint32_t);
 
 class MFSmemApi {
 public:
@@ -239,29 +238,6 @@ public:
         return gSmemBmCopy(handle, src, dest, size, t, flags);
     }
 
-    /**
-     * @brief Data copy on Big Memory object, several copy types supported:
-     * L2G: local memory to global space
-     * G2L: global space to local memory
-     * G2H: global space to host memory
-     * H2G: host memory to global space
-     *
-     * @param handle           [in] Big Memory object handle created by <i>smem_bm_create</i>
-     * @param src              [in] source gva of data
-     * @param spitch           [in] pitch of source memory
-     * @param dest             [in] target gva of data
-     * @param dpitch           [in] pitch of destination memory
-     * @param width            [in] width of matrix transfer
-     * @param heigth           [in] height of matrix transfer
-     * @param t                [in] copy type, L2G, G2L, G2H, H2G
-     * @param flags            [in] optional flags
-     * @return 0 if successful
-     */
-    int32_t smem_bm_copy_2d(smem_bm_t handle, smem_copy_2d_params *params, smem_bm_copy_type t, uint32_t flags)
-    {
-        return gSmemBmCopy2d(handle, params, t, flags);
-    }
-
 private:
     static int32_t GetLibPath(const std::string &libDir, std::string &outputPath);
 
@@ -288,7 +264,6 @@ private:
     static smemBmLeaveFunc gSmemBmLeave;
     static smemBmPtrFunc gSmemBmPtr;
     static smemBmCopyFunc gSmemBmCopy;
-    static smemBmCopy2dFunc gSmemBmCopy2d;
 };
 }
 }

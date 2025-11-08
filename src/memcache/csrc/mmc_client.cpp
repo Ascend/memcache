@@ -333,9 +333,8 @@ MMC_API int32_t mmcc_batch_put(const char** keys, uint32_t keys_count, const mmc
             MMC_LOG_ERROR("Remove invalid key: " << keys[i]);
             return MMC_INVALID_PARAM;  // 这个错误属于入参不合法，直接给调用者返回错误
         }
-        if (bufs == nullptr || bufs[i].addr == 0 || bufs[i].type >= BUF_TYPE_BASE || bufs[i].dimType >= BUF_TYPE_BASE) {
-            MMC_LOG_ERROR("Remove invalid buf with key: " << keys[i] << ", type: " << bufs[i].type
-                                                          << ", dim:" << bufs[i].dimType);
+        if (bufs == nullptr || bufs[i].addr == 0 || bufs[i].type >= BUF_TYPE_BASE) {
+            MMC_LOG_ERROR("Remove invalid buf with key: " << keys[i] << ", type: " << bufs[i].type);
             return MMC_INVALID_PARAM;
         }
         keys_vector.emplace_back(keys[i]);

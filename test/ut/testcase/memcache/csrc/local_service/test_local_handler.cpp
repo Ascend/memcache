@@ -100,21 +100,7 @@ protected:
         oneDimBuffer = {
             .addr = 0x1000,
             .type = 0,
-            .dimType = 0,
             .oneDim = {.offset = 0, .len = 1024}
-        };
-
-        twoDimBuffer = {
-            .addr = 0x1000,
-            .type = 0,
-            .dimType = 1,
-            .twoDim = {
-                .dpitch = 512,
-                .layerOffset = 0,
-                .width = 256,
-                .layerNum = 4,
-                .layerCount = 1
-            }
         };
     }
 
@@ -127,7 +113,6 @@ protected:
     mmc_bm_init_config_t initConfig;
     mmc_bm_create_config_t createConfig;
     mmc_buffer oneDimBuffer;
-    mmc_buffer twoDimBuffer;
 };
 
 TEST_F(TestMmcBmProxy, InitBm_Success)
@@ -178,30 +163,6 @@ TEST_F(TestMmcBmProxy, Put_OneDimSizeExceed)
     EXPECT_EQ(ret, MMC_ERROR);
 }
 
-TEST_F(TestMmcBmProxy, Put_TwoDimSuccess)
-{
-    InitBmWithConfig();
-    Result ret = proxy->Put(&twoDimBuffer, 0x2000, 1024);
-    EXPECT_EQ(ret, MMC_OK);
-}
-
-TEST_F(TestMmcBmProxy, Put_TwoDimDpitchTooSmall)
-{
-    InitBmWithConfig();
-    twoDimBuffer.twoDim.dpitch = 256;
-    twoDimBuffer.twoDim.width = 512;
-    Result ret = proxy->Put(&twoDimBuffer, 0x2000, 1024);
-    EXPECT_EQ(ret, MMC_ERROR);
-}
-
-TEST_F(TestMmcBmProxy, Put_InvalidBufferType)
-{
-    InitBmWithConfig();
-    mmc_buffer invalidBuffer = {.dimType = 2};
-    Result ret = proxy->Put(&invalidBuffer, 0x2000, 1024);
-    EXPECT_EQ(ret, MMC_ERROR);
-}
-
 TEST_F(TestMmcBmProxy, Put_NullBuffer)
 {
     InitBmWithConfig();
@@ -221,38 +182,6 @@ TEST_F(TestMmcBmProxy, Get_OneDimSizeMismatch)
     InitBmWithConfig();
     oneDimBuffer.oneDim.len = 2048;
     Result ret = proxy->Get(&oneDimBuffer, 0x2000, 1024);
-    EXPECT_EQ(ret, MMC_ERROR);
-}
-
-TEST_F(TestMmcBmProxy, Get_TwoDimSuccess)
-{
-    InitBmWithConfig();
-    Result ret = proxy->Get(&twoDimBuffer, 0x2000, 1024);
-    EXPECT_EQ(ret, MMC_OK);
-}
-
-TEST_F(TestMmcBmProxy, Get_TwoDimSizeMismatch)
-{
-    InitBmWithConfig();
-    twoDimBuffer.twoDim.layerNum = 8;
-    Result ret = proxy->Get(&twoDimBuffer, 0x2000, 1024);
-    EXPECT_EQ(ret, MMC_ERROR);
-}
-
-TEST_F(TestMmcBmProxy, Get_TwoDimDpitchTooSmall)
-{
-    InitBmWithConfig();
-    twoDimBuffer.twoDim.dpitch = 256;
-    twoDimBuffer.twoDim.width = 512;
-    Result ret = proxy->Get(&twoDimBuffer, 0x2000, 1024);
-    EXPECT_EQ(ret, MMC_ERROR);
-}
-
-TEST_F(TestMmcBmProxy, Get_InvalidBufferType)
-{
-    InitBmWithConfig();
-    mmc_buffer invalidBuffer = {.dimType = 12};
-    Result ret = proxy->Get(&invalidBuffer, 0x2000, 1024);
     EXPECT_EQ(ret, MMC_ERROR);
 }
 

@@ -46,8 +46,6 @@ public:
 
     Result DataCopy(const void *src, void *dest, uint64_t size, smem_bm_copy_type t, uint32_t flags);
 
-    Result DataCopy2d(smem_copy_2d_params *params, smem_bm_copy_type t, uint32_t flags);
-
     Result DataCopyBatch(smem_batch_copy_params *params, smem_bm_copy_type t, uint32_t flags);
 
     Result Wait();

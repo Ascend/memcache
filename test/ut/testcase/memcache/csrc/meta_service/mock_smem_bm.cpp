@@ -85,11 +85,6 @@ int32_t smem_bm_copy(smem_bm_t handle, const void *src, void *dest,
     return 0;
 }
 
-int32_t smem_bm_copy_2d(smem_bm_t handle, smem_copy_2d_params *params, smem_bm_copy_type t, uint32_t flags)
-{
-    return 0;
-}
-
 int32_t smem_bm_register_user_mem(smem_bm_t handle, uint64_t addr, uint64_t size)
 {
     return 0;
