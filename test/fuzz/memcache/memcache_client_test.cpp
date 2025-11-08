@@ -60,7 +60,7 @@ TEST_F(TestMmcFuzzClientInit, TestMmcClientInit)
         tempConfig.timeOut = *(u32 *)DT_SetGetU32(&g_Element[2], 0);
 
         mmc_data_info infoQuery{.valid = false};
-        mmc_buffer buf{.addr = 1, .type = 0, .oneDim = {.offset = 0, .len = 0}};
+        mmc_buffer buf{.addr = 1, .type = 0, .offset = 0, .len = 0};
         mmc_put_options opt{0, NATIVE_AFFINITY};
 
         ASSERT_NE(mmcc_put("test", &buf, opt, 0), 0);
@@ -100,7 +100,7 @@ TEST_F(TestMmcFuzzClientInit, TestMmcClientInitFailureNoLocal)
         ASSERT_EQ(mmcc_init(&tempConfig) == 0, tempConfig.logLevel <= 3 && tempConfig.logLevel >= 0);
 
         mmc_data_info infoQuery{.valid = true};
-        mmc_buffer buf{.addr = 1, .type = 0, .oneDim = {.offset = 0, .len = 0}};
+        mmc_buffer buf{.addr = 1, .type = 0, .offset = 0, .len = 0};
         mmc_put_options opt{0, NATIVE_AFFINITY};
         ASSERT_NE(mmcc_put("test", &buf, opt, 0), 0);
         ASSERT_NE(mmcc_get("test", &buf, 0), 0);
@@ -247,12 +247,13 @@ TEST_F(TestMmcFuzzClientFeature, TestMmcClientPutOneDim)
         // OneDim Case
         uint64_t offset = *(u64 *)DT_SetGetU64(&g_Element[5], 3);
         uint64_t len = *(u64 *)DT_SetGetU64(&g_Element[6], 50);
-        buf.oneDim = {offset, len};
+        buf.offset = offset;
+        buf.len = len;
 
         bool keyValid = strlen(key) > 0 && strlen(key) <= 256;
         bool isValid = keyValid && buf.addr != 0 && buf.addr != 0 && len <= MAX_BUF_SIZE;
         mmc_data_info infoQuery{.valid = false};
-        mmc_buffer bufGet{.addr = 1, .type = buf.type, .oneDim = buf.oneDim};
+        mmc_buffer bufGet{.addr = 1, .type = buf.type, .offset = buf.offset, .len = buf.len};
 
         ASSERT_NE(mmcc_exist(key, 0), 0);
         ASSERT_EQ(mmcc_query(key, &infoQuery, 0) == 0, keyValid);
@@ -304,7 +305,8 @@ TEST_F(TestMmcFuzzClientFeature, TestMmcClientBatchPutOneDim)
         for (size_t i = 0; i < keys_count; ++i) {
             uint64_t offset = *(u64 *)DT_SetGetU64(&g_Element[dtSetGetCnt++], 3);
             uint64_t len = *(u64 *)DT_SetGetU64(&g_Element[dtSetGetCnt++], 50);
-            bufs[i].oneDim = {offset, len};
+            bufs[i].offset = offset;
+            bufs[i].len = len;
         }
 
         ASSERT_EQ(mmcc_batch_put(keys, keys_count, bufs, opt, 0, results) == 0, isAllValid);  // todo results validate
@@ -336,7 +338,8 @@ TEST_F(TestMmcFuzzClientFeature, TestMmcClientGetOneDim)
         // OneDim Case
         uint64_t offset = *(u64 *)DT_SetGetU64(&g_Element[3], 3);
         uint64_t len = *(u64 *)DT_SetGetU64(&g_Element[4], 50);
-        buf.oneDim = {offset, len};
+        buf.offset = offset;
+        buf.len = len;
 
         ASSERT_NE(mmcc_get(key, &buf, 0), 0);
         ASSERT_NE(mmcc_get(key, nullptr, 0), 0);
@@ -371,7 +374,8 @@ TEST_F(TestMmcFuzzClientFeature, TestMmcClientBatchGetOneDim)
         for (size_t i = 0; i < keys_count; ++i) {
             uint64_t offset = *(u64 *)DT_SetGetU64(&g_Element[dtSetGetCnt++], 3);
             uint64_t len = *(u64 *)DT_SetGetU64(&g_Element[dtSetGetCnt++], 50);
-            bufs[i].oneDim = {offset, len};
+            bufs[i].offset = offset;
+            bufs[i].len = len;
         }
 
         ASSERT_EQ(mmcc_batch_get(keys, keys_count, bufs, 0, results) == 0, isAllValid);  // todo results validate

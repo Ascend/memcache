@@ -97,11 +97,7 @@ protected:
             .flags = 0
         };
 
-        oneDimBuffer = {
-            .addr = 0x1000,
-            .type = 0,
-            .oneDim = {.offset = 0, .len = 1024}
-        };
+        oneDimBuffer = {.addr = 0x1000, .type = 0, .offset = 0, .len = 1024};
     }
 
     Result InitBmWithConfig()
@@ -158,7 +154,7 @@ TEST_F(TestMmcBmProxy, Put_OneDimSuccess)
 TEST_F(TestMmcBmProxy, Put_OneDimSizeExceed)
 {
     InitBmWithConfig();
-    oneDimBuffer.oneDim.len = 2048;
+    oneDimBuffer.len = 2048;
     Result ret = proxy->Put(&oneDimBuffer, 0x2000, 1024);
     EXPECT_EQ(ret, MMC_ERROR);
 }
@@ -180,7 +176,7 @@ TEST_F(TestMmcBmProxy, Get_OneDimSuccess)
 TEST_F(TestMmcBmProxy, Get_OneDimSizeMismatch)
 {
     InitBmWithConfig();
-    oneDimBuffer.oneDim.len = 2048;
+    oneDimBuffer.len = 2048;
     Result ret = proxy->Get(&oneDimBuffer, 0x2000, 1024);
     EXPECT_EQ(ret, MMC_ERROR);
 }

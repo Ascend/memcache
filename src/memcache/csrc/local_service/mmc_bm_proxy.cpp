@@ -159,14 +159,14 @@ Result MmcBmProxy::Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
         return MMC_ERROR;
     }
     smem_bm_copy_type type = buf->type == 0 ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
-    if (buf->oneDim.len > size) {
-        MMC_LOG_ERROR("Failed to put data to smem bm, buf size : " << buf->oneDim.len
+    if (buf->len > size) {
+        MMC_LOG_ERROR("Failed to put data to smem bm, buf size : " << buf->len
                                                                    << " is larger than bm block size : " << size);
         return MMC_ERROR;
     }
     TP_TRACE_BEGIN(TP_SMEM_BM_PUT);
     auto ret =
-            smem_bm_copy(handle_, (void*)(buf->addr + buf->oneDim.offset), (void*)bmAddr, buf->oneDim.len,
+            smem_bm_copy(handle_, (void*)(buf->addr + buf->offset), (void*)bmAddr, buf->len,
                          type, ASYNC_COPY_FLAG);
     TP_TRACE_END(TP_SMEM_BM_PUT, ret);
     return ret;
@@ -183,14 +183,14 @@ Result MmcBmProxy::Get(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
         return MMC_ERROR;
     }
     smem_bm_copy_type type = buf->type == 0 ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
-    if (buf->oneDim.len > size) {
-        MMC_LOG_ERROR("Failed to get data to smem bm, buf length: " << buf->oneDim.len
+    if (buf->len > size) {
+        MMC_LOG_ERROR("Failed to get data to smem bm, buf length: " << buf->len
                                                                     << " not equal data length: " << size);
         return MMC_ERROR;
     }
     TP_TRACE_BEGIN(TP_SMEM_BM_GET);
     auto ret =
-            smem_bm_copy(handle_, (void*)bmAddr, (void*)(buf->addr + buf->oneDim.offset), buf->oneDim.len,
+            smem_bm_copy(handle_, (void*)bmAddr, (void*)(buf->addr + buf->offset), buf->len,
                          type, ASYNC_COPY_FLAG);
     TP_TRACE_END(TP_SMEM_BM_GET, ret);
     return ret;
@@ -267,9 +267,9 @@ Result MmcBmProxy::BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
     smem_bm_copy_type type = bufArr.Buffers()[0].type == 0 ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
     for (size_t i = 0; i < count; ++i) {
         auto buf = &bufArr.Buffers()[i];
-        sources[i] = reinterpret_cast<void *>(buf->addr + buf->oneDim.offset);
+        sources[i] = reinterpret_cast<void *>(buf->addr + buf->offset);
         destinations[i] = reinterpret_cast<void *>(blob.gva_ + shift);
-        dataSizes[i] = buf->oneDim.len;
+        dataSizes[i] = buf->len;
         shift += MmcBufSize(*buf);
     }
     smem_batch_copy_params batch_params = {sources, destinations, dataSizes, count};
@@ -299,9 +299,9 @@ Result MmcBmProxy::BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
     smem_bm_copy_type type = bufArr.Buffers()[0].type == 0 ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
     for (size_t i = 0; i < count; ++i) {
         auto buf = &bufArr.Buffers()[i];
-        destinations[i] = reinterpret_cast<void *>(buf->addr + buf->oneDim.offset);
+        destinations[i] = reinterpret_cast<void *>(buf->addr + buf->offset);
         sources[i] = reinterpret_cast<void *>(blob.gva_ + shift);
-        dataSizes[i] = buf->oneDim.len;
+        dataSizes[i] = buf->len;
         shift += MmcBufSize(*buf);
     }
     smem_batch_copy_params batch_params = {sources, destinations, dataSizes, count};

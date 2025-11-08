@@ -121,26 +121,26 @@ TEST_F(TestBmProxy, Copy)
     mmc_buffer buffer1 = {};
     buffer1.addr = (uint64_t)hostSrc1;
     buffer1.type = 0;
-    buffer1.oneDim.offset = 0;
-    buffer1.oneDim.len = SIZE_32K;
+    buffer1.offset = 0;
+    buffer1.len = SIZE_32K;
 
     mmc_buffer buffer2 = {};
     buffer2.addr = (uint64_t)hostSrc2;
     buffer2.type = 0;
-    buffer2.oneDim.offset = 0;
-    buffer2.oneDim.len = SIZE_32K;
+    buffer2.offset = 0;
+    buffer2.len = SIZE_32K;
 
     mmc_buffer buffer3 = {};
     buffer3.addr = (uint64_t)hostDest1;
     buffer3.type = 0;
-    buffer3.oneDim.offset = 0;
-    buffer3.oneDim.len = SIZE_32K;
+    buffer3.offset = 0;
+    buffer3.len = SIZE_32K;
 
     mmc_buffer buffer4 = {};
     buffer4.addr = (uint64_t)hostDest2;
     buffer4.type = 0;
-    buffer4.oneDim.offset = 0;
-    buffer4.oneDim.len = SIZE_32K;
+    buffer4.offset = 0;
+    buffer4.len = SIZE_32K;
 
     ret = bmProxy->Put(&buffer1, bmAddr, SIZE_32K);
     EXPECT_EQ(ret, MMC_OK);
@@ -198,8 +198,8 @@ TEST_F(TestBmProxy, PutGet_1DData)
 
     mmc_buffer buf = {};
     buf.addr = reinterpret_cast<uint64_t>(new char[200]);
-    buf.oneDim.offset = 0;
-    buf.oneDim.len = 100;
+    buf.offset = 0;
+    buf.len = 100;
 
     ASSERT_EQ(proxy_->Put(&buf, 0x1000, 200), MMC_OK);
     ASSERT_EQ(proxy_->Get(&buf, 0x1000, 100), MMC_OK);
@@ -216,8 +216,8 @@ TEST_F(TestBmProxy, ConcurrentAccess)
     auto worker = [&]() {
         mmc_buffer buf = {};
         buf.addr = reinterpret_cast<uint64_t>(new char[100]);
-        buf.oneDim.offset = 0;
-        buf.oneDim.len = 100;
+        buf.offset = 0;
+        buf.len = 100;
 
         if (proxy_->Put(&buf, 0x1000, 100) == MMC_OK &&
             proxy_->Get(&buf, 0x1000, 100) == MMC_OK) {

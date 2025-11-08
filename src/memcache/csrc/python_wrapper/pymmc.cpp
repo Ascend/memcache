@@ -227,7 +227,8 @@ PYBIND11_MODULE(_pymmc, m)
                 py::buffer_info info = buf.request(false);
                 mmc_buffer buffer = {.addr = reinterpret_cast<uint64_t>(info.ptr),
                                      .type = 0,
-                                     .oneDim = {.offset = 0, .len = static_cast<uint64_t>(info.size)}};
+                                     .offset = 0,
+                                     .len = static_cast<uint64_t>(info.size)};
                 py::gil_scoped_release release;
                 return self.Put(key, buffer, replicateConfig);
             },
@@ -240,7 +241,7 @@ PYBIND11_MODULE(_pymmc, m)
             } else {
                 auto dataPtr = reinterpret_cast<char *>(buffer.addr);
                 std::shared_ptr<char[]> dataSharedPtr(dataPtr, [](char *p) { delete[] p; });
-                return py::bytes(dataPtr, buffer.oneDim.len);
+                return py::bytes(dataPtr, buffer.len);
             }
         });
 }

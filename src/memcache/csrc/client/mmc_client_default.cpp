@@ -414,17 +414,17 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
             }
             // classify addr by rank
             auto src = reinterpret_cast<void *>(blobs[0].gva_ + shift);
-            auto dst = reinterpret_cast<void *>(buf->addr + buf->oneDim.offset);
+            auto dst = reinterpret_cast<void *>(buf->addr + buf->offset);
             auto gvaRankId = blobs[0].rank_;
             auto iter = srcMap.find(gvaRankId);
             if (iter == srcMap.end()) {
                 dstMap.emplace(gvaRankId, std::vector<void *>{dst});
                 srcMap.emplace(gvaRankId, std::vector<void *>{src});
-                sizesMap.emplace(gvaRankId, std::vector<uint64_t>{buf->oneDim.len});
+                sizesMap.emplace(gvaRankId, std::vector<uint64_t>{buf->len});
             } else {
                 dstMap.at(gvaRankId).push_back(dst);
                 srcMap.at(gvaRankId).push_back(src);
-                sizesMap.at(gvaRankId).push_back(buf->oneDim.len);
+                sizesMap.at(gvaRankId).push_back(buf->len);
             }
 
             shift += MmcBufSize(*buf);
@@ -725,18 +725,18 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
                     return MMC_ERROR;
                 }
                 // classify addr by rank
-                auto src = reinterpret_cast<void *>(buf->addr + buf->oneDim.offset);
+                auto src = reinterpret_cast<void *>(buf->addr + buf->offset);
                 auto dst = reinterpret_cast<void *>(blobs[j].gva_ + shift);
                 auto gvaRankId = blobs[j].rank_;
                 auto iter = srcMap.find(gvaRankId);
                 if (iter == srcMap.end()) {
                     dstMap.emplace(gvaRankId, std::vector<void *>{dst});
                     srcMap.emplace(gvaRankId, std::vector<void *>{src});
-                    sizesMap.emplace(gvaRankId, std::vector<uint64_t>{buf->oneDim.len});
+                    sizesMap.emplace(gvaRankId, std::vector<uint64_t>{buf->len});
                 } else {
                     dstMap.at(gvaRankId).push_back(dst);
                     srcMap.at(gvaRankId).push_back(src);
-                    sizesMap.at(gvaRankId).push_back(buf->oneDim.len);
+                    sizesMap.at(gvaRankId).push_back(buf->len);
                 }
 
                 shift += MmcBufSize(*buf);
@@ -846,7 +846,7 @@ bool MmcClientDefault::QueryInRegisterMap(uint64_t va, uint64_t size)
 bool MmcClientDefault::QueryInRegisterMap(const mmc_buffer &buf)
 {
     uint64_t addr = buf.addr;
-    return QueryInRegisterMap(addr, buf.oneDim.len);
+    return QueryInRegisterMap(addr, buf.len);
 }
 
 int32_t MmcClientDefault::SelectTransportType(const mmc_buffer &buf)
