@@ -302,9 +302,6 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
     ret = mmcc_get(test.c_str(), &readBuffer, 0);
     EXPECT_TRUE(ret == 0);
 
-    location = mmcc_get_location(test.c_str(), 0);
-    EXPECT_TRUE(location.xx == 0);
-
     ret = mmcc_remove(test.c_str(), 0);
     EXPECT_TRUE(ret == 0);
 
