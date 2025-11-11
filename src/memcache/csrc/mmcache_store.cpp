@@ -174,8 +174,8 @@ int MmcacheStore::GetInto(const std::string &key, void *buffer, size_t size, con
 {
     uint32_t type = 0;
     switch (direct) {
-        case SMEMB_COPY_G2L: type = 1; break;
-        case SMEMB_COPY_G2H: type = 0; break;
+        case SMEMB_COPY_G2L: type = MEDIA_HBM; break;
+        case SMEMB_COPY_G2H: type = MEDIA_DRAM; break;
         default: MMC_LOG_ERROR("Failed to get by type " << direct << " for key " << key); return -1;
     }
     mmc_buffer mmcBuffer = {
@@ -199,8 +199,8 @@ int MmcacheStore::PutFrom(const std::string &key, void *buffer, size_t size, con
 {
     uint32_t type = 0;
     switch (direct) {
-        case SMEMB_COPY_L2G: type = 1; break;
-        case SMEMB_COPY_H2G: type = 0; break;
+        case SMEMB_COPY_L2G: type = MEDIA_HBM; break;
+        case SMEMB_COPY_H2G: type = MEDIA_DRAM; break;
         default: MMC_LOG_ERROR("Failed to put by type " << direct << " for key " << key); return -1;
     }
     mmc_buffer mmcBuffer = {
@@ -403,8 +403,8 @@ std::vector<int> MmcacheStore::BatchPutFrom(const std::vector<std::string> &keys
     }
     uint32_t type = 0;
     switch (direct) {
-        case SMEMB_COPY_L2G: type = 1; break;
-        case SMEMB_COPY_H2G: type = 0; break;
+        case SMEMB_COPY_L2G: type = MEDIA_HBM; break;
+        case SMEMB_COPY_H2G: type = MEDIA_DRAM; break;
         default: MMC_LOG_ERROR("Failed to batch put by type " << direct); return results;
     }
 
@@ -445,8 +445,8 @@ std::vector<int> MmcacheStore::BatchGetInto(const std::vector<std::string> &keys
     }
     uint32_t type = 0;
     switch (direct) {
-        case SMEMB_COPY_G2L: type = 1; break;
-        case SMEMB_COPY_G2H: type = 0; break;
+        case SMEMB_COPY_G2L: type = MEDIA_HBM; break;
+        case SMEMB_COPY_G2H: type = MEDIA_DRAM; break;
         default: MMC_LOG_ERROR("Failed to batch get by type " << direct); return results;
     }
 
@@ -474,7 +474,7 @@ int MmcacheStore::PutFromLayers(const std::string &key, const std::vector<void *
         MMC_LOG_ERROR("Invalid direct(" << direct << "), only 0 (SMEMB_COPY_L2G) and 3 (SMEMB_COPY_H2G) is supported");
         return MMC_INVALID_PARAM;
     }
-    uint32_t type = (direct == SMEMB_COPY_L2G ? 1 : 0);
+    uint32_t type = (direct == SMEMB_COPY_L2G ? MEDIA_HBM : MEDIA_DRAM);
 
     if (key.length() == 0 || key.length() > MAX_KEY_LEN) {
         MMC_LOG_ERROR("Invalid param, key's len (" << key.length() << ") is not between 1 and " << MAX_KEY_LEN);
@@ -526,7 +526,7 @@ std::vector<int> MmcacheStore::BatchPutFromLayers(const std::vector<std::string>
         MMC_LOG_ERROR("Invalid direct(" << direct << "), only 0 (SMEMB_COPY_L2G) and 3 (SMEMB_COPY_H2G) is supported");
         return results;
     }
-    uint32_t type = (direct == SMEMB_COPY_L2G ? 1 : 0);
+    uint32_t type = (direct == SMEMB_COPY_L2G ? MEDIA_HBM : MEDIA_DRAM);
 
     if (batchSize != buffers.size() || batchSize != sizes.size()) {
         MMC_LOG_ERROR("Input vector sizes mismatch: keys=" << keys.size() << ", buffers=" << buffers.size()
@@ -569,7 +569,7 @@ int MmcacheStore::GetIntoLayers(const std::string &key, const std::vector<void *
         return MMC_INVALID_PARAM;
     }
     MMC_ASSERT_RETURN(MmcClientDefault::GetInstance() != nullptr, MMC_INVALID_PARAM);
-    uint32_t type = (direct == SMEMB_COPY_G2L ? 1 : 0);
+    uint32_t type = (direct == SMEMB_COPY_G2L ? MEDIA_HBM : MEDIA_DRAM);
 
     if (key.length() == 0 || key.length() > MAX_KEY_LEN) {
         MMC_LOG_ERROR("Invalid param, key's len (" << key.length() << ") is not between 1 and " << MAX_KEY_LEN);
@@ -617,7 +617,7 @@ std::vector<int> MmcacheStore::BatchGetIntoLayers(const std::vector<std::string>
         MMC_LOG_ERROR("Invalid direct(" << direct << "), only 1 (SMEMB_COPY_G2L) and 2 (SMEMB_COPY_G2H) is supported");
         return results;
     }
-    uint32_t type = (direct == SMEMB_COPY_G2L ? 1 : 0);
+    uint32_t type = (direct == SMEMB_COPY_G2L ? MEDIA_HBM : MEDIA_DRAM);
 
     if (batchSize != buffers.size() || batchSize != sizes.size()) {
         MMC_LOG_ERROR("Input vector sizes mismatch: keys=" << keys.size() << ", buffers=" << buffers.size()

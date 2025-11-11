@@ -193,6 +193,8 @@ private:
 
     void PushRemoveList(const std::string& key, const MmcMemObjMetaPtr& meta);
 
+    EvictResult EvictCallBackFunction(const std::string& key, const MmcMemObjMetaPtr& objMeta);
+
     inline std::size_t GetIndex(const MmcMemObjMetaPtr& meta) const
     {
         const MmcMemObjMeta* objPtr = meta.Get();

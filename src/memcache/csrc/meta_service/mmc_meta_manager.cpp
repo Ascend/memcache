@@ -71,54 +71,28 @@ Result MmcMetaManager::ExistKey(const std::string& key)
 
 void MmcMetaManager::CheckAndEvict()
 {
-    if (!globalAllocator_->NeedEvict(evictThresholdHigh_)) {
+    const auto needEvictList = globalAllocator_->GetNeedEvictList(evictThresholdHigh_);
+    if (needEvictList.empty()) {
         return;
     }
     bool expected = false;
     if (!evictCheck_.compare_exchange_strong(expected, true)) {
         return;
     }
-    auto moveFunc = [this](const std::string& key, const MmcMemObjMetaPtr& objMeta) -> bool {
-        std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(objMeta)]);
-
-        if (objMeta == nullptr) {
-            MMC_LOG_ERROR("objMeta is null");
-            return false;
-        }
-        MediaType type = objMeta->MoveTo(true);
-        MediaType srcType = MoveUp(type);
-        if (type == MediaType::MEDIA_NONE || srcType == MediaType::MEDIA_NONE) {
-            PushRemoveList(key, objMeta);
-            return true;  // 向下淘汰已无可能，直接删除
-        }
-        MmcLocation src{UINT32_MAX, srcType};
-        MmcLocation dst{UINT32_MAX, type};
-
-        uint64_t freeSize = globalAllocator_->GetFreeSpace(type);
-        if (freeSize < objMeta->Size()) {
-            MMC_LOG_WARN("key: " << key << " move to " << dst << " no space:" << freeSize
-                                 << ", need:" << objMeta->Size());
-            PushRemoveList(key, objMeta);
-            return true;  // 向下淘汰已无可能，直接删除
-        }
-
-        auto future = threadPool_->Enqueue([&](const std::string keyL, const MmcLocation srcL,
-                                               const MmcLocation dstL) { return MoveBlob(keyL, srcL, dstL); },
-                                           key, src, dst);
-        if (!future.valid()) {
-            MMC_LOG_WARN("key: " << key << " move blob from " << src << " to " << dst << " failed");
-            PushRemoveList(key, objMeta);
-            return true;  // 向下淘汰失败，直接删除
-        }
-        return false;
+    auto moveFunc = [this](const std::string& key, const MmcMemObjMetaPtr& objMeta) -> EvictResult {
+        return this->EvictCallBackFunction(key, objMeta);
     };
 
     auto evictFuture = threadPool_->Enqueue(
-        [&](std::function<bool(const std::string& key, const MmcMemObjMetaPtr& objMeta)> moveFuncL) {
-            metaContainer_->MultiLevelElimination(evictThresholdHigh_, evictThresholdLow_, moveFuncL);
+        [&](
+            const std::vector<MediaType> &needEvictListL,
+            const std::function<EvictResult(const std::string& key, const MmcMemObjMetaPtr& objMeta)> &moveFuncL
+            ) {
+            metaContainer_->MultiLevelElimination(evictThresholdHigh_, evictThresholdLow_, needEvictListL, moveFuncL);
             bool expected = true;
             evictCheck_.compare_exchange_strong(expected, false);
         },
+        needEvictList,
         moveFunc);
     if (!evictFuture.valid()) {
         MMC_LOG_ERROR("submit evict task failed");
@@ -143,7 +117,7 @@ Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOp
             }
             blobs.clear();
         }
-        MMC_LOG_ERROR("Alloc " << allocOpt.blobSize_ << "failed, ret:" << ret);
+        MMC_LOG_ERROR("Alloc " << allocOpt.blobSize_ << " failed, ret:" << ret);
         return ret;
     }
 
@@ -215,6 +189,7 @@ Result MmcMetaManager::Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo 
         MMC_LOG_ERROR("allocator mount failed, loc rank: " << loc.rank_ << " mediaType_: " << loc.mediaType_);
         return ret;
     }
+    metaContainer_->RegisterMedium(loc.mediaType_);
     if (blobMap.empty()) {
         return globalAllocator_->Start(loc);
     }
@@ -397,6 +372,12 @@ Result MmcMetaManager::CopyBlob(const MmcMemObjMetaPtr& objMeta, const MmcMemBlo
             ret = MMC_ERROR;
             break;
         }
+
+        ret = blobs[0]->UpdateState(MMC_WRITE_OK);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("Failed to Update blob state, ret: " << ret);
+            break;
+        }
         // 挂载
         ret = objMeta->AddBlob(blobs[0]);
         if (ret != MMC_OK) {
@@ -471,6 +452,44 @@ Result MmcMetaManager::ReplicateBlob(const std::string& key, const MmcLocation& 
     }
 
     return CopyBlob(objMeta, blobsDesc[0], loc);
+}
+
+EvictResult MmcMetaManager::EvictCallBackFunction(const std::string &key, const MmcMemObjMetaPtr &objMeta)
+{
+    std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(objMeta)]);
+
+    if (objMeta == nullptr) {
+        MMC_LOG_ERROR("objMeta is null");
+        return EvictResult::FAIL;
+    }
+    MediaType dstMedium = objMeta->MoveTo(true);
+    MediaType srcMedium = MoveUp(dstMedium);
+    if (dstMedium == MEDIA_NONE || srcMedium == MEDIA_NONE) {
+        PushRemoveList(key, objMeta);
+        return EvictResult::REMOVE;  // 向下淘汰已无可能，直接删除
+    }
+    MmcLocation src{UINT32_MAX, srcMedium};
+    MmcLocation dst{UINT32_MAX, dstMedium};
+
+    uint64_t freeSize = globalAllocator_->GetFreeSpace(dstMedium);
+    if (freeSize < objMeta->Size()) {
+        MMC_LOG_WARN("key: " << key << " move to " << dst << " no space:" << freeSize
+                             << ", need:" << objMeta->Size());
+        PushRemoveList(key, objMeta);
+        return EvictResult::REMOVE;  // 向下淘汰已无可能，直接删除
+    }
+
+    auto future = threadPool_->Enqueue(
+        [&](const std::string keyL, const MmcLocation srcL, const MmcLocation dstL) {
+            return MoveBlob(keyL, srcL, dstL);
+        },
+        key, src, dst);
+    if (!future.valid()) {
+        MMC_LOG_WARN("key: " << key << " move blob from " << src << " to " << dst << " failed");
+        PushRemoveList(key, objMeta);
+        return EvictResult::REMOVE;  // 向下淘汰失败，直接删除
+    }
+    return EvictResult::MOVE_DOWN;
 }
 
 }  // namespace mmc

@@ -80,7 +80,7 @@ typedef struct {
 
 typedef struct {
     uint64_t addr;
-    uint32_t type; // 0 dram, 1 hbm
+    uint32_t type; // enum MediaType
     uint64_t offset;
     uint64_t len;
 } mmc_buffer;

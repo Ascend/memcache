@@ -67,8 +67,8 @@ constexpr uint32_t UN16777216 = 16777216;
 constexpr uint32_t MMC_DEFAUT_WAIT_TIME = 120;  // 120s
 
 enum MediaType : uint8_t {
-    MEDIA_DRAM,
     MEDIA_HBM,
+    MEDIA_DRAM,
     MEDIA_NONE,
 };
 
@@ -103,6 +103,12 @@ inline std::ostream& operator<<(std::ostream& os, MediaType type)
     }
     return os;
 }
+
+enum class EvictResult {
+    REMOVE,    // 直接删除
+    MOVE_DOWN, // 向下层移动
+    FAIL,      // 淘汰失败
+};
 
 struct MmcLocation {
     uint32_t rank_;

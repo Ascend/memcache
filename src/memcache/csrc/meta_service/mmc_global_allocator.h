@@ -259,24 +259,27 @@ public:
         return totalSize[type] - usedSize[type];
     }
 
-    bool NeedEvict(uint64_t level)
+    std::vector<MediaType> GetNeedEvictList(const uint64_t level)
     {
+        std::vector<MediaType> results;
         uint64_t totalSize[MEDIA_NONE] = {0};
         uint64_t usedSize[MEDIA_NONE] = {0};
         GetUsedInfo(totalSize, usedSize);
-        for (uint32_t i = 0; i < MEDIA_NONE; i++) {
-            // 只要一个类型的池触发水位，即淘汰
+        // 从下层向上层遍历，先淘汰下层，后淘汰上层
+        for (int i = MEDIA_NONE - 1; i >= 0; i--) {
             if (usedSize[i] > std::numeric_limits<uint64_t>::max() / LEVEL_BASE ||
                 (level != 0 && (totalSize[i] > std::numeric_limits<uint64_t>::max() / level))) {
                 MMC_LOG_ERROR("overflow: usedSize: " << usedSize[i] << ", LEVEL_BASE: " <<
                     LEVEL_BASE << ", totalSize: " << totalSize[i] << ", level: " << level);
-                return false;
+                continue;
             }
             if (usedSize[i] * LEVEL_BASE > totalSize[i] * level) {
-                return true;
+                results.push_back(static_cast<MediaType>(i));
+                MMC_LOG_DEBUG("Medium " << static_cast<MediaType>(i) <<
+                    " need evict, usedSize: " << usedSize[i] << ", totalSize: " << totalSize[i]);
             }
         }
-        return false;
+        return results;
     }
 
 private:

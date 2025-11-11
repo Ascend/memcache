@@ -57,6 +57,13 @@ public:
     Result UpdateState(const std::string &key, uint32_t rankId, uint32_t operateId, BlobActionResult ret);
 
     /**
+     * @brief Update the state of the blob
+     *
+     * @param ret     [in] BlobActionResult
+     */
+    Result UpdateState(BlobActionResult ret);
+
+    /**
      * @brief Link a blob to this blob
      *
      * @param nextBlob     [in] blob to be linked

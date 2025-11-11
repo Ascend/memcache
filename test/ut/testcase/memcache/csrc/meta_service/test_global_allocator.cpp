@@ -113,7 +113,7 @@ TEST_F(TestMmcGlobalAllocator, AllocMulti)
     allocReq.blobSize_ = SIZE_32K;
     allocReq.numBlobs_ = 10;
     allocReq.preferredRank_.push_back(5);
-    allocReq.mediaType_ = 0;
+    allocReq.mediaType_ = MEDIA_DRAM;
 
     Result ret = allocator->Alloc(allocReq, blobs);
     EXPECT_EQ(ret, MMC_OK);
@@ -162,7 +162,7 @@ TEST_F(TestMmcGlobalAllocator, AllocCrossRank)
     allocReq.blobSize_ = SIZE_32K;
     allocReq.numBlobs_ = 12;
     allocReq.preferredRank_.push_back(5);
-    allocReq.mediaType_ = 0;
+    allocReq.mediaType_ = MEDIA_DRAM;
 
     Result ret = allocator->Alloc(allocReq, blobs);
     EXPECT_EQ(ret, -1);
@@ -203,7 +203,7 @@ TEST_F(TestMmcGlobalAllocator, FreeOne)
     allocReq.blobSize_ = SIZE_32K;
     allocReq.numBlobs_ = 1;
     allocReq.preferredRank_.push_back(5);
-    allocReq.mediaType_ = 0;
+    allocReq.mediaType_ = MEDIA_DRAM;
 
     Result ret = allocator->Alloc(allocReq, blobs);
     EXPECT_EQ(ret, MMC_OK);
@@ -261,7 +261,7 @@ TEST_F(TestMmcGlobalAllocator, FreeCrossRank)
     allocReq.blobSize_ = SIZE_32K;
     allocReq.numBlobs_ = 10;
     allocReq.preferredRank_.push_back(5);
-    allocReq.mediaType_ = 0;
+    allocReq.mediaType_ = MEDIA_DRAM;
 
     Result ret = allocator->Alloc(allocReq, blobs);
     EXPECT_EQ(ret, MMC_OK);
@@ -327,7 +327,7 @@ TEST_F(TestMmcGlobalAllocator, MountUnmount)
     allocReq.blobSize_ = SIZE_32K;
     allocReq.numBlobs_ = 9;
     allocReq.preferredRank_.push_back(5);
-    allocReq.mediaType_ = 0;
+    allocReq.mediaType_ = MEDIA_DRAM;
 
     Result ret = allocator->Alloc(allocReq, blobs);
     EXPECT_EQ(ret, MMC_OK);
@@ -558,7 +558,7 @@ TEST_F(TestMmcGlobalAllocator, AllocForce)
     allocReq.blobSize_ = SIZE_32K;
     allocReq.numBlobs_ = 10;
     allocReq.preferredRank_.push_back(5);
-    allocReq.mediaType_ = 0;
+    allocReq.mediaType_ = MEDIA_DRAM;
     allocReq.flags_ = ALLOC_FORCE_BY_RANK;
 
     Result ret = allocator->Alloc(allocReq, blobs);
@@ -618,14 +618,14 @@ TEST_F(TestMmcGlobalAllocator, AllocRandom)
     allocReq.blobSize_ = SIZE_32K;
     allocReq.numBlobs_ = 10;
     allocReq.preferredRank_.push_back(0);
-    allocReq.mediaType_ = 1;
+    allocReq.mediaType_ = MEDIA_HBM;
     allocReq.flags_ = ALLOC_RANDOM;
 
     Result ret = allocator->Alloc(allocReq, blobs);
     EXPECT_EQ(ret, MMC_ERROR);
     EXPECT_EQ(blobs.size(), 0U);
 
-    allocReq.mediaType_ = 0;
+    allocReq.mediaType_ = MEDIA_DRAM;
 
     ret = allocator->Alloc(allocReq, blobs);
     EXPECT_EQ(ret, MMC_OK);

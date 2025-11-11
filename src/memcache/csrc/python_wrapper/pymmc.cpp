@@ -226,7 +226,7 @@ PYBIND11_MODULE(_pymmc, m)
                const ReplicateConfig &replicateConfig) {
                 py::buffer_info info = buf.request(false);
                 mmc_buffer buffer = {.addr = reinterpret_cast<uint64_t>(info.ptr),
-                                     .type = 0,
+                                     .type = MEDIA_DRAM,
                                      .offset = 0,
                                      .len = static_cast<uint64_t>(info.size)};
                 py::gil_scoped_release release;

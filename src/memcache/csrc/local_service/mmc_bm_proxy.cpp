@@ -158,7 +158,7 @@ Result MmcBmProxy::Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
         MMC_LOG_ERROR("Failed to put data to smem bm, buf is null");
         return MMC_ERROR;
     }
-    smem_bm_copy_type type = buf->type == 0 ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
+    smem_bm_copy_type type = buf->type == MEDIA_DRAM ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
     if (buf->len > size) {
         MMC_LOG_ERROR("Failed to put data to smem bm, buf size : " << buf->len
                                                                    << " is larger than bm block size : " << size);
@@ -182,7 +182,7 @@ Result MmcBmProxy::Get(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
         MMC_LOG_ERROR("Failed to get data to smem bm, buf is null");
         return MMC_ERROR;
     }
-    smem_bm_copy_type type = buf->type == 0 ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
+    smem_bm_copy_type type = buf->type == MEDIA_DRAM ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
     if (buf->len > size) {
         MMC_LOG_ERROR("Failed to get data to smem bm, buf length: " << buf->len
                                                                     << " not equal data length: " << size);
@@ -264,7 +264,7 @@ Result MmcBmProxy::BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
     void *sources[count];
     void *destinations[count];
     uint64_t dataSizes[count];
-    smem_bm_copy_type type = bufArr.Buffers()[0].type == 0 ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
+    smem_bm_copy_type type = bufArr.Buffers()[0].type == MEDIA_DRAM ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
     for (size_t i = 0; i < count; ++i) {
         auto buf = &bufArr.Buffers()[i];
         sources[i] = reinterpret_cast<void *>(buf->addr + buf->offset);
@@ -296,7 +296,7 @@ Result MmcBmProxy::BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
     void *sources[count];
     void *destinations[count];
     uint64_t dataSizes[count];
-    smem_bm_copy_type type = bufArr.Buffers()[0].type == 0 ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
+    smem_bm_copy_type type = bufArr.Buffers()[0].type == MEDIA_DRAM ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
     for (size_t i = 0; i < count; ++i) {
         auto buf = &bufArr.Buffers()[i];
         destinations[i] = reinterpret_cast<void *>(buf->addr + buf->offset);

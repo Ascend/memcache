@@ -118,7 +118,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     buffer.len = SIZE_32K;
     std::vector<std::string> keys;
 
-    mmc_put_options options{0, NATIVE_AFFINITY, 1};
+    mmc_put_options options{MEDIA_DRAM, NATIVE_AFFINITY, 1};
     std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
     for (int i = 0; i < 12; i++) {
         std::string key = "test_" + std::to_string(i);
@@ -143,10 +143,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     ret = mmcc_batch_exist(c_keys, keys.size(), results.data(), 0);
     EXPECT_EQ(ret, 0);
 
-    EXPECT_EQ(results[0], MMC_OK);
-    EXPECT_EQ(results[1], MMC_UNMATCHED_KEY);  // 被淘汰
-    EXPECT_EQ(results[2], MMC_UNMATCHED_KEY);  // 被淘汰
-    for (size_t i = 4; i < keys.size(); ++i) {
+    for (size_t i = 0; i < keys.size(); ++i) {
         EXPECT_EQ(results[i], MMC_OK) << "i=" << i;
     }
 
@@ -431,8 +428,7 @@ TEST_F(TestMmcServiceInterface, testBatchGetWithPartialData)
     void* destData[keyCount];
 
     for (uint32_t i = 0; i < keyCount; i++) {
-        destData[i] = malloc(SIZE_32K);
-        memset(destData[i], 0, SIZE_32K);
+        destData[i] = calloc(1, SIZE_32K);
         readBufs[i] = mmc_buffer{.addr = (uint64_t)destData[i], .type = 0, .offset = 0, .len = SIZE_32K};
     }
     std::vector<int> results3(keyCount, -1);
