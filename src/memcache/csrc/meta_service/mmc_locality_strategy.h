@@ -9,6 +9,7 @@
 #include <random>
 #include <algorithm>
 #include <ostream>
+#include <cstdint>
 #include "mmc_mem_blob.h"
 #include "mmc_types.h"
 #include "mmc_blob_allocator.h"
@@ -35,7 +36,7 @@ using MmcAllocators = std::map<MmcLocation, MmcBlobAllocatorPtr>;
 class MmcLocalityStrategy : public MmcReferable {
 public:
     static Result ArrangeLocality(const MmcAllocators &allocators, const AllocOptions &allocReq,
-                                  std::vector<MmcMemBlobPtr> &blobs, const std::unordered_set<uint32_t> &excludeRanks)
+                                  std::vector<MmcMemBlobPtr> &blobs, std::unordered_set<uint32_t> &excludeRanks)
     {
         if (allocators.empty()) {
             MMC_LOG_ERROR("Cannot allocate blob, allocators empty");
@@ -45,41 +46,31 @@ public:
             MMC_LOG_ERROR("Cannot allocate blob, allocators not enough");
             return MMC_ERROR;
         }
-        MmcLocation location{};
-        location.mediaType_ = static_cast<MediaType>(allocReq.mediaType_);
-        location.rank_ = allocReq.preferredRank_.empty() ? 0 : allocReq.preferredRank_[0];
-        auto itPrefer = allocators.find(location);
-        if (itPrefer == allocators.end()) {
-            itPrefer = allocators.begin();
-        }
-        auto it = itPrefer;
-
-        std::set<MmcLocation> visited;
-        for (uint32_t i = 0; i < allocReq.numBlobs_; i++) {
-            while (true) {
-                if (!(visited.find(it->first) != visited.end()) && it->first.mediaType_ == allocReq.mediaType_ &&
-                    excludeRanks.find(it->first.rank_) == excludeRanks.end()) {
-                    auto allocator = it->second;
-                    MmcMemBlobPtr blob = allocator->Alloc(allocReq.blobSize_);
-                    if (blob != nullptr) {
-                        blobs.push_back(blob);
-                        visited.insert(it->first);  // 防止一个alloctor分配两个blob
-                        break;
+        size_t allocatedCount = 0;
+        if (!allocReq.preferredRank_.empty() && excludeRanks.find(allocReq.preferredRank_[0]) == excludeRanks.end()) {
+            MmcLocation location{};
+            location.mediaType_ = static_cast<MediaType>(allocReq.mediaType_);
+            location.rank_ = allocReq.preferredRank_[0];
+            auto itPrefer = allocators.find(location);
+            if (itPrefer != allocators.end()) {
+                auto allocator = itPrefer->second;
+                MmcMemBlobPtr blob = allocator->Alloc(allocReq.blobSize_);
+                if (blob != nullptr) {
+                    excludeRanks.insert(location.rank_);
+                    blobs.push_back(blob);
+                    allocatedCount++;
+                    if (allocatedCount == allocReq.numBlobs_) {
+                        return MMC_OK;
                     }
-                }
-                ++it;
-                if (it == allocators.end()) {
-                    it = allocators.begin();
-                }
-                if (it == itPrefer) {
-                    MMC_LOG_ERROR("Cannot allocate blob, blobSize "<< allocReq.blobSize_
-                        << " numBlobs " << allocReq.numBlobs_ << " mediaType " << allocReq.mediaType_
-                        << " preferredRank " << (allocReq.preferredRank_.empty() ? 0 : allocReq.preferredRank_[0]));
-                    return MMC_ERROR;
                 }
             }
         }
-        return MMC_OK;
+
+        AllocOptions tmpAllocReq = allocReq;
+        tmpAllocReq.numBlobs_ = allocReq.numBlobs_ - allocatedCount;
+        tmpAllocReq.flags_ = static_cast<uint32_t>(ALLOC_RANDOM);
+
+        return RandomAssign(allocators, tmpAllocReq, blobs, excludeRanks);
     }
 
     static Result ForceAssign(const MmcAllocators &allocators, const AllocOptions &allocReq,
@@ -123,7 +114,7 @@ public:
     }
 
     static Result RandomAssign(const MmcAllocators &allocators, const AllocOptions &allocReq,
-                               std::vector<MmcMemBlobPtr> &blobs)
+                               std::vector<MmcMemBlobPtr> &blobs, std::unordered_set<uint32_t> &excludeRanks)
     {
         if (allocators.empty()) {
             MMC_LOG_ERROR("Cannot allocate blob, allocators empty");
@@ -159,6 +150,9 @@ public:
         for (size_t i = 0; i < numCandidates; ++i) {
             auto it = first;
             std::advance(it, indices[i]);
+            if (excludeRanks.find(it->first.rank_) != excludeRanks.end()) {
+                continue;
+            }
             MmcMemBlobPtr blob = it->second->Alloc(allocReq.blobSize_);
             if (blob != nullptr) {
                 blobs.push_back(blob);
