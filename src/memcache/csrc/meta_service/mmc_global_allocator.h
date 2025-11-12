@@ -40,6 +40,13 @@ public:
     // 0,1 强制，剩下的默认处理；默认处理时候需要排除强制rank列表
     Result Alloc(const AllocOptions &allocReq, std::vector<MmcMemBlobPtr> &blobs)
     {
+        std::unordered_set<uint32_t> uniqueRanks(allocReq.preferredRank_.begin(), allocReq.preferredRank_.end());
+        if (allocReq.numBlobs_ < allocReq.preferredRank_.size() ||
+            uniqueRanks.size() != allocReq.preferredRank_.size()) {
+            MMC_LOG_ERROR("Invalid alloc option: " << allocReq);
+            return MMC_ERROR;
+        }
+
         std::unordered_set<uint32_t> excludeRanks;
         globalAllocLock_.LockRead();
         // size=1 不一定是强制分配

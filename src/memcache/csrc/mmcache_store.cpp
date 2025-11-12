@@ -724,7 +724,7 @@ mmc_buffer MmcacheStore::Get(const std::string &key)
     }
     mmc_buffer buffer = {
         .addr = reinterpret_cast<uintptr_t>(dataPtr),
-        .type = 0,
+        .type = MEDIA_DRAM,
         .offset = 0,
         .len = info.size,
     };
