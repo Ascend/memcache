@@ -20,10 +20,13 @@
 #include "mf_str_util.h"
 
 using namespace ock::mmc;
-
+static const auto KEY = "test1";
 uint64_t calculate_hash(const void *data, size_t size)
 {
-    const uint64_t *blocks = static_cast<const uint64_t *>(data);
+    if (data == nullptr || size == 0) {
+        return 0;
+    }
+    const auto *blocks = static_cast<const uint64_t *>(data);
     size_t block_count = size / sizeof(uint64_t);
     uint64_t hash = 14695981039346656037ULL;
     for (size_t i = 0; i < block_count; ++i) {
@@ -36,6 +39,39 @@ uint64_t calculate_hash(const void *data, size_t size)
         hash *= 1099511628211ULL;
     }
     return hash;
+}
+
+bool IOLoop(std::shared_ptr<ObjectStore> &store, const size_t size, void *putAddr, uint64_t hash_value, void *getAddr,
+            const std::string &key)
+{
+    std::string input;
+    std::cin >> input;
+    if (input == "exit") {
+        return true;
+    }
+    if (input == "get") {
+        MMC_LOG_INFO("store->IsExist(KEY): " << store->IsExist(key));
+        if (store->IsExist(key) != 0) {
+            auto ret = store->GetInto(key, getAddr, size);
+            MMC_LOG_INFO("store->GetInto(KEY): " << ret);
+            auto getHash = calculate_hash(getAddr, size);
+            MMC_LOG_INFO("getStr内存内容的哈希值: " << getHash);
+            if (getHash != hash_value) {
+                std::cerr << "getHash != hash_value" << std::endl;
+                return true;
+            }
+        }
+    } else if (input == "remove") {
+        auto ret = store->Remove(key);
+        MMC_LOG_INFO("store->Remove(KEY): " << ret);
+    } else if (input == "put") {
+        auto ret = store->PutFrom(key, putAddr, size);
+        MMC_LOG_INFO("store->PutFrom: " << ret);
+        if (ret != 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 int main(int argc, char *argv[])
@@ -69,21 +105,19 @@ int main(int argc, char *argv[])
     uint64_t hash_value = calculate_hash(putAddr, size);
     std::cout << "put 内存内容的哈希值: " << hash_value << std::endl;
     void *getAddr = std::malloc(size);
-    std::string key = "test1";
-
-    MMC_LOG_INFO("store->IsExist(key): " << store->IsExist(key));
-    if (store->IsExist(key) == 0) {
-        auto ret = store->PutFrom(key, putAddr, size);
+    MMC_LOG_INFO("store->IsExist(KEY): " << store->IsExist(KEY));
+    if (store->IsExist(KEY) == 0) {
+        auto ret = store->PutFrom(KEY, putAddr, size);
         MMC_LOG_INFO("store->PutFrom: " << ret);
         MMC_ASSERT_RETURN(ret == 0, -1);
     }
     auto ret2 = store->BatchPutFrom({"kBatchPutFrom"}, {putAddr}, {size});
     MMC_LOG_INFO("store->BatchPutFrom: " << ret2[0]);
     MMC_ASSERT_RETURN(ret2[0] == 0, -1);
-    MMC_LOG_INFO("store->IsExist(key): " << store->IsExist(key));
-    if (store->IsExist(key) != 0) {
-        auto ret = store->GetInto(key, getAddr, size);
-        MMC_LOG_INFO("store->GetInto(key): " << ret);
+    MMC_LOG_INFO("store->IsExist(KEY): " << store->IsExist(KEY));
+    if (store->IsExist(KEY) != 0) {
+        auto ret = store->GetInto(KEY, getAddr, size);
+        MMC_LOG_INFO("store->GetInto(KEY): " << ret);
         auto getHash = calculate_hash(getAddr, size);
         MMC_LOG_INFO("getStr内存内容的哈希值: " << getHash);
         if (getHash != hash_value) {
@@ -93,32 +127,8 @@ int main(int argc, char *argv[])
         }
     }
     while (true) {
-        std::string input;
-        std::cin >> input;
-        if (input == "exit") {
+        if (IOLoop(store, size, putAddr, hash_value, getAddr, KEY)) {
             break;
-        }
-        if (input == "get") {
-            MMC_LOG_INFO("store->IsExist(key): " << store->IsExist(key));
-            if (store->IsExist(key) != 0) {
-                auto ret = store->GetInto(key, getAddr, size);
-                MMC_LOG_INFO("store->GetInto(key): " << ret);
-                auto getHash = calculate_hash(getAddr, size);
-                MMC_LOG_INFO("getStr内存内容的哈希值: " << getHash);
-                if (getHash != hash_value) {
-                    std::cerr << "getHash != hash_value" << std::endl;
-                    break;
-                }
-            }
-        } else if (input == "remove") {
-            auto ret = store->Remove(key);
-            MMC_LOG_INFO("store->Remove(key): " << ret);
-        } else if (input == "put") {
-            auto ret = store->PutFrom(key, putAddr, size);
-            MMC_LOG_INFO("store->PutFrom: " << ret);
-            if (ret != 0) {
-                break;
-            }
         }
     }
     free(putAddr);

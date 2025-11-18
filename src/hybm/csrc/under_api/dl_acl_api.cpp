@@ -40,16 +40,18 @@ rtEnableP2PFunc DlAclApi::pRtEnableP2P = nullptr;
 rtDisableP2PFunc DlAclApi::pRtDisableP2P = nullptr;
 rtGetLogicDevIdByUserDevIdFunc DlAclApi::pRtGetLogicDevIdByUserDevId = nullptr;
 
+#ifndef USE_CANN
 Result DlAclApi::LoadLibrary(const std::string &libDirPath)
 {
-#ifndef USE_CANN
     return BM_OK;
+}
 #else
+Result DlAclApi::LoadLibrary(const std::string &libDirPath)
+{
     std::lock_guard<std::mutex> guard(gMutex);
     if (gLoaded) {
         return BM_OK;
     }
-
     std::string realPath;
     auto result = Func::LibraryRealPath(libDirPath, std::string(gAscendAclLibName), realPath);
     if (result != BM_OK) {
@@ -96,8 +98,8 @@ Result DlAclApi::LoadLibrary(const std::string &libDirPath)
 
     gLoaded = true;
     return BM_OK;
-#endif
 }
+#endif
 
 void DlAclApi::CleanupLibrary()
 {

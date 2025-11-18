@@ -81,7 +81,7 @@ target_compile_features(memcache_cpp_test PUBLIC cxx_std_17)
 
 # 可选：设置编译器特定选项
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_compile_options(memcache_cpp_test PRIVATE -Wall -Wextra)
+    target_compile_options(memcache_cpp_test PRIVATE -W)
 endif ()
 
 # 显示过滤后的源文件和包含目录（调试用，正式使用可注释掉）

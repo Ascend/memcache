@@ -110,6 +110,7 @@ Result HcomTransportManager::CloseDevice()
     return BM_OK;
 }
 
+#ifdef USE_CANN
 Result HcomTransportManager::RegisterMemoryRegion(const TransportMemoryRegion &mr)
 {
     BM_ASSERT_RETURN(rpcService_ != 0, BM_ERROR);
@@ -123,37 +124,61 @@ Result HcomTransportManager::RegisterMemoryRegion(const TransportMemoryRegion &m
 
     Service_MemoryRegion memoryRegion;
     int32_t ret = DlHcomApi::ServiceRegisterAssignMemoryRegion(rpcService_, mr.addr, mr.size, &memoryRegion);
-    // 单节点不需要hcom
-#ifdef USE_CANN
     if (ret != 0) {
         BM_LOG_ERROR("Failed to register mem region, size: " << mr.size << " addr:" << std::hex << mr.addr
                                                              << " service: " << rpcService_ << " ret: " << ret);
         return BM_DL_FUNCTION_FAILED;
     }
+
+    Service_MemoryRegionInfo memoryRegionInfo;
+    ret = DlHcomApi::ServiceGetMemoryRegionInfo(memoryRegion, &memoryRegionInfo);
+    if (ret != 0) {
+        BM_LOG_ERROR("Failed to get mem region info, size: " << mr.size << " service: " << rpcService_
+                                                             << " ret: " << ret);
+        DlHcomApi::ServiceDestroyMemoryRegion(rpcService_, memoryRegion);
+        return BM_DL_FUNCTION_FAILED;
+    }
+
+    HcomMemoryRegion mrInfo{};
+    mrInfo.addr = mr.addr;
+    mrInfo.size = mr.size;
+    mrInfo.mr = memoryRegion;
+    std::copy_n(memoryRegionInfo.lKey.keys, sizeof(memoryRegionInfo.lKey.keys) / sizeof(memoryRegionInfo.lKey.keys[0]),
+                mrInfo.lKey.keys);
+    {
+        std::unique_lock<std::mutex> lock(mrMutex_[rankId_]);
+        mrs_[rankId_].push_back(mrInfo);
+    }
+    BM_LOG_DEBUG("Success to register to mr info size: " << mrInfo.size << " lKey: " << mrInfo.lKey.keys[0]);
+    return BM_OK;
+}
 #else
+Result HcomTransportManager::RegisterMemoryRegion(const TransportMemoryRegion &mr)
+{
+    BM_ASSERT_RETURN(rpcService_ != 0, BM_ERROR);
+    BM_ASSERT_RETURN(mr.addr != 0 && mr.size != 0, BM_INVALID_PARAM);
+
+    HcomMemoryRegion info{};
+    if (GetMemoryRegionByAddr(rankId_, mr.addr, info) == BM_OK) {
+        BM_LOG_ERROR("Failed to register mem region, addr already registered");
+        return BM_ERROR;
+    }
+
+    Service_MemoryRegion memoryRegion;
+    int32_t ret = DlHcomApi::ServiceRegisterAssignMemoryRegion(rpcService_, mr.addr, mr.size, &memoryRegion);
+    // 单rank不需要hcom,目的是在无网卡的情况下也可以测试
     if (ret != 0) {
         BM_LOG_WARN("Failed to register mem region, size: " << mr.size << " addr:" << std::hex << mr.addr
                                                              << " service: " << rpcService_ << " ret: " << ret);
     }
-#endif
     Service_MemoryRegionInfo memoryRegionInfo;
     if (ret == 0) {
         ret = DlHcomApi::ServiceGetMemoryRegionInfo(memoryRegion, &memoryRegionInfo);
     }
-    // 单节点不需要hcom
-#ifdef USE_CANN
-    if (ret != 0) {
-        BM_LOG_ERROR("Failed to get mem region info, size: " << mr.size
-                                                             << " service: " << rpcService_ << " ret: " << ret);
-        DlHcomApi::ServiceDestroyMemoryRegion(rpcService_, memoryRegion);
-        return BM_DL_FUNCTION_FAILED;
-    }
-#else
     if (ret != 0) {
         BM_LOG_WARN("Failed to get mem region info, size: " << mr.size
                                                              << " service: " << rpcService_ << " ret: " << ret);
     }
-#endif
 
     HcomMemoryRegion mrInfo{};
     mrInfo.addr = mr.addr;
@@ -169,6 +194,7 @@ Result HcomTransportManager::RegisterMemoryRegion(const TransportMemoryRegion &m
                                                          << " lKey: " << mrInfo.lKey.keys[0]);
     return BM_OK;
 }
+#endif
 
 Result HcomTransportManager::UnregisterMemoryRegion(uint64_t addr)
 {
