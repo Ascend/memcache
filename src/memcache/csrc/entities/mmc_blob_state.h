@@ -32,6 +32,17 @@ enum BlobState : uint8_t {
     NONE,
 };
 
+inline std::ostream& operator<<(std::ostream& os, BlobState type)
+{
+    switch (type) {
+        case ALLOCATED: os << "ALLOCATED"; break;
+        case READABLE: os << "READABLE"; break;
+        case REMOVING: os << "REMOVING"; break;
+        default: os << "NONE"; break;
+    }
+    return os;
+}
+
 struct BlobStateAction {
     BlobState state_ = NONE;
     BlobLeaseFunction action_ = nullptr;

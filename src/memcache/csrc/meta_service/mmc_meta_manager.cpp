@@ -159,7 +159,19 @@ Result MmcMetaManager::UpdateState(const std::string& key, const MmcLocation& lo
     }
     MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(loc.rank_, loc.mediaType_, NONE);
     std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(metaObj)]);
-    return metaObj->UpdateBlobsState(key, filter, operateId, actRet);
+    ret = metaObj->UpdateBlobsState(key, filter, operateId, actRet);
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("UpdateState: Failed to update blob state, ret: " << ret);
+        return ret;
+    }
+    if (actRet == MMC_WRITE_FAIL) {
+        ret = Remove(key);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("UpdateState: Failed remove key " << key << ", ret: " << ret);
+            return ret;
+        }
+    }
+    return MMC_OK;
 }
 
 void MmcMetaManager::PushRemoveList(const std::string& key, const MmcMemObjMetaPtr& meta)

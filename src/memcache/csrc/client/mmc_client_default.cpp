@@ -146,33 +146,28 @@ Result MmcClientDefault::Put(const std::string &key, const MmcBufferArray &bufAr
         return MMC_ERROR;
     }
     MMC_ASSERT_RETURN(!bufArr.Buffers().empty(), MMC_ERROR);
-    auto transType = SelectTransportType(bufArr.Buffers()[0]);
+
     for (uint8_t i = 0; i < response.numBlobs_; i++) {
         auto blob = response.blobs_[i];
         MMC_LOG_DEBUG("Attempting to put to blob " << static_cast<int>(i) << " key " << key);
-        auto ret = transType == MMC_ASYNC_TRANSPORT ?
-            bmProxy_->Put(bufArr, blob) : bmProxy_->BatchPut(bufArr, blob);
-        if (ret == MMC_OK && transType == MMC_ASYNC_TRANSPORT) {
-            ret = bmProxy_->CopyWait();
-            if (ret != MMC_OK) {
-                MMC_LOG_ERROR("Failed to wait copy task, ret: " << ret);
-            }
-        }
+        auto ret = bmProxy_->BatchPut(bufArr, blob);
+        UpdateRequest updateRequest;
+        Response updateResponse;
         if (ret != MMC_OK) {
-            UpdateRequest updateRequest{MMC_WRITE_FAIL, key, blob.rank_, blob.mediaType_, operateId};
-            Response updateResponse;
-            metaNetClient_->SyncCall(updateRequest, updateResponse, rpcRetryTimeOut_);
-            MMC_LOG_ERROR("client " << name_ << " put " << key << " blob rank:" << blob.rank_
-                                    << ", media:" << blob.mediaType_ << " failed");
-            return MMC_ERROR;
+            MMC_LOG_ERROR("client " << name_ << " put " << key << " blob rank: " << blob.rank_
+                                    << ", media: " << blob.mediaType_ << " failed, ret: " << ret);
+            updateRequest = {MMC_WRITE_FAIL, key, blob.rank_, blob.mediaType_, operateId};
         } else {
-            UpdateRequest updateRequest{MMC_WRITE_OK, key, blob.rank_, blob.mediaType_, operateId};
-            Response updateResponse;
-            ret = metaNetClient_->SyncCall(updateRequest, updateResponse, rpcRetryTimeOut_);
-            if (ret != MMC_OK || updateResponse.ret_ != MMC_OK) {
-                MMC_LOG_ERROR("client " << name_ << " update " << key << " blob rank:" << blob.rank_ << ", media:"
-                                        << blob.mediaType_ << " failed:" << ret << ", " << updateResponse.ret_);
-            }
+            updateRequest = {MMC_WRITE_OK, key, blob.rank_, blob.mediaType_, operateId};
+        }
+        auto updateRet = metaNetClient_->SyncCall(updateRequest, updateResponse, rpcRetryTimeOut_);
+        if (updateRet != MMC_OK || updateResponse.ret_ != MMC_OK) {
+            MMC_LOG_ERROR("client " << name_ << " update " << key << " blob rank:" << blob.rank_ << ", media:"
+                                    << blob.mediaType_ << " failed:" << updateRet << ", " << updateResponse.ret_);
+        }
+
+        if (ret != MMC_OK) {
+            return ret;
         }
     }
     return MMC_OK;
@@ -281,15 +276,7 @@ Result MmcClientDefault::Get(const std::string &key, const MmcBufferArray& bufAr
         return MMC_ERROR;
     }
     auto& blob = response.blobs_[0];
-    auto transType = SelectTransportType(bufArr.Buffers()[0]);
-    auto ret = transType == MMC_ASYNC_TRANSPORT ? bmProxy_->Get(bufArr, blob) :
-        bmProxy_->BatchGet(bufArr, blob);
-    if (ret == MMC_OK && transType == MMC_ASYNC_TRANSPORT) {
-        ret = bmProxy_->CopyWait();
-        if (ret != MMC_OK) {
-            MMC_LOG_ERROR("Failed to wait copy task, ret: " << ret);
-        }
-    }
+    auto ret = bmProxy_->BatchGet(bufArr, blob);
 
     auto future = threadPool_->Enqueue(
         [&](const std::string keyL, uint32_t rankL, uint16_t mediaTypeL, uint64_t operateIdL) {

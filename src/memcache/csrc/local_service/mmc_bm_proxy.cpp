@@ -136,7 +136,7 @@ std::string MmcBmProxy::GetDataOpType() const
     return createConfig_.dataOpType;
 }
 
-Result MmcBmProxy::Put(uint64_t srcBmAddr, uint64_t dstBmAddr, uint64_t size, smem_bm_copy_type type)
+Result MmcBmProxy::Copy(uint64_t srcBmAddr, uint64_t dstBmAddr, uint64_t size, smem_bm_copy_type type)
 {
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to put data to smem bm, handle is null");
@@ -196,7 +196,7 @@ Result MmcBmProxy::Get(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
     return ret;
 }
 
-Result MmcBmProxy::Put(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
+Result MmcBmProxy::AsyncPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
 {
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to get data to smem bm, handle is null");
@@ -220,7 +220,7 @@ Result MmcBmProxy::Put(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
     return MMC_OK;
 }
 
-Result MmcBmProxy::Get(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
+Result MmcBmProxy::AsyncGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
 {
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to get data to smem bm, handle is null");
