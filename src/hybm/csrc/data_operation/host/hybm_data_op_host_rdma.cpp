@@ -110,25 +110,7 @@ int32_t HostDataOpRDMA::CopyHost2Gva(const void *srcVA, void *destVA, uint64_t l
     }
 
     if (transportManager_ != nullptr) {
-        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
-        auto tmpHost = tmpRdmaMemory.Address();
-        if (tmpHost == nullptr) {
-            BM_LOG_ERROR("Failed to malloc host srcVa: " << reinterpret_cast<uintptr_t>(srcVA)
-                                                         << " destVa: " << reinterpret_cast<uintptr_t>(destVA)
-                                                         << " length: " << length);
-            return BM_MALLOC_FAILED;
-        }
-        auto ret = DlAclApi::AclrtMemcpy(tmpHost, length, srcVA, length, ACL_MEMCPY_HOST_TO_HOST);
-        if (ret != BM_OK) {
-            BM_LOG_ERROR("Failed to copy device data to host ret: " << ret);
-            return ret;
-        }
-
-        ret = transportManager_->WriteRemote(options.destRankId, (uint64_t)tmpHost, (uint64_t)destVA, length);
-        if (ret != BM_OK) {
-            BM_LOG_ERROR("Failed to copy host data to remote host memory ret: " << ret);
-        }
-        return ret;
+        return SafePut(srcVA, destVA, length, options, true);
     } else {
         BM_LOG_ERROR("no transport to other ranks.");
         return BM_ERROR;
@@ -142,26 +124,7 @@ int32_t HostDataOpRDMA::CopyGva2Host(const void *srcVA, void *destVA, uint64_t l
     }
 
     if (transportManager_ != nullptr) {
-        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
-        auto tmpHost = tmpRdmaMemory.Address();
-        if (tmpHost == nullptr) {
-            BM_LOG_ERROR("Failed to malloc host srcVa: " << reinterpret_cast<uintptr_t>(srcVA)
-                                                         << " destVa: " << reinterpret_cast<uintptr_t>(destVA)
-                                                         << " length: " << length);
-            return BM_MALLOC_FAILED;
-        }
-
-        auto ret = transportManager_->ReadRemote(options.srcRankId, (uint64_t)tmpHost, (uint64_t)srcVA, length);
-        if (ret != BM_OK) {
-            BM_LOG_ERROR("Failed to copy host data to remote host memory ret: " << ret);
-            return ret;
-        }
-
-        ret = DlAclApi::AclrtMemcpy(destVA, length, tmpHost, length, ACL_MEMCPY_HOST_TO_HOST);
-        if (ret != BM_OK) {
-            BM_LOG_ERROR("Failed to copy device data to host ret: " << ret);
-        }
-        return ret;
+        return SafeGet(srcVA, destVA, length, options, true);
     } else {
         BM_LOG_ERROR("no transport to other ranks.");
         return BM_ERROR;
@@ -175,24 +138,7 @@ int32_t HostDataOpRDMA::CopyDevice2Gva(const void *srcVA, void *destVA, uint64_t
     }
 
     if (transportManager_ != nullptr) {
-        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
-        auto tmpHost = tmpRdmaMemory.Address();
-        if (tmpHost == nullptr) {
-            BM_LOG_ERROR("Failed to malloc host srcVa: " << reinterpret_cast<uintptr_t>(srcVA)
-                                                         << " destVa: " << reinterpret_cast<uintptr_t>(destVA)
-                                                         << " length: " << length);
-            return BM_MALLOC_FAILED;
-        }
-        auto ret = DlAclApi::AclrtMemcpy(tmpHost, length, srcVA, length, ACL_MEMCPY_DEVICE_TO_HOST);
-        if (ret != BM_OK) {
-            BM_LOG_ERROR("Failed to copy device data to host ret: " << ret);
-            return ret;
-        }
-        ret = transportManager_->WriteRemote(options.destRankId, (uint64_t)tmpHost, (uint64_t)destVA, length);
-        if (ret != BM_OK) {
-            BM_LOG_ERROR("Failed to copy host data to remote host memory ret: " << ret);
-        }
-        return ret;
+        return SafePut(srcVA, destVA, length, options, false);
     } else {
         BM_LOG_ERROR("no transport to other ranks.");
         return BM_ERROR;
@@ -206,24 +152,7 @@ int32_t HostDataOpRDMA::CopyGva2Device(const void *srcVA, void *destVA, uint64_t
     }
 
     if (transportManager_ != nullptr) {
-        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
-        auto tmpHost = tmpRdmaMemory.Address();
-        if (tmpHost == nullptr) {
-            BM_LOG_ERROR("Failed to malloc host tmp memory srcVa: " << reinterpret_cast<uintptr_t>(srcVA) << " destVa: "
-                                                                    << reinterpret_cast<uintptr_t>(destVA)
-                                                                    << " length: " << length);
-            return BM_MALLOC_FAILED;
-        }
-        auto ret = transportManager_->ReadRemote(options.srcRankId, (uint64_t)tmpHost, (uint64_t)srcVA, length);
-        if (ret != BM_OK) {
-            BM_LOG_ERROR("Failed to copy host data to remote host memory ret: " << ret);
-            return ret;
-        }
-        ret = DlAclApi::AclrtMemcpy(destVA, length, tmpHost, length, ACL_MEMCPY_HOST_TO_DEVICE);
-        if (ret != BM_OK) {
-            BM_LOG_ERROR("Failed to copy host data to device ret: " << ret);
-        }
-        return ret;
+        return SafeGet(srcVA, destVA, length, options, false);
     } else {
         BM_LOG_ERROR("no transport to other ranks.");
         return BM_ERROR;
@@ -242,6 +171,92 @@ int32_t HostDataOpRDMA::CopyGva2Gva(const void *srcVA, void *destVA, uint64_t le
 
     BM_LOG_ERROR("Not support remote gva to remote gva");
     return BM_INVALID_PARAM;
+}
+
+int32_t ock::mf::HostDataOpRDMA::SafePut(const void *srcVA, void *destVA, uint64_t length, const ExtOptions &options,
+                                         bool isLocalHost)
+{
+    int32_t ret = 0;
+    uintptr_t srcBase = reinterpret_cast<uintptr_t>(srcVA);
+    uintptr_t destBase = reinterpret_cast<uintptr_t>(destVA);
+    uint64_t remainingLength = length;
+    uint64_t offset = 0;
+    while (remainingLength > 0) {
+        uint64_t currentChunkSize = std::min(remainingLength, RDMA_SWAP_SPACE_SIZE);
+        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(currentChunkSize);
+        auto tmpHost = tmpRdmaMemory.Address();
+        if (tmpHost == nullptr) {
+            BM_LOG_ERROR("Failed to malloc host srcVa: " << reinterpret_cast<uintptr_t>(srcVA)
+                                                         << " destVa: " << reinterpret_cast<uintptr_t>(destVA)
+                                                         << " length: " << currentChunkSize);
+            return BM_MALLOC_FAILED;
+        }
+        const void *currentSrc = reinterpret_cast<const void *>(srcBase + offset);
+        void *currentDest = reinterpret_cast<void *>(destBase + offset);
+        if (isLocalHost) {
+            ret = DlAclApi::AclrtMemcpy(tmpHost, currentChunkSize, currentSrc,
+                currentChunkSize, ACL_MEMCPY_HOST_TO_HOST);
+        } else {
+            ret = DlAclApi::AclrtMemcpy(tmpHost, currentChunkSize, currentSrc,
+                currentChunkSize, ACL_MEMCPY_DEVICE_TO_HOST);
+        }
+        if (ret != BM_OK) {
+            BM_LOG_ERROR("Failed to copy device data to host ret: " << ret);
+            return ret;
+        }
+        ret = transportManager_->WriteRemote(options.destRankId, (uint64_t)tmpHost,
+            (uint64_t)currentDest, currentChunkSize);
+        if (ret != BM_OK) {
+            BM_LOG_ERROR("Failed to copy host data to remote host memory ret: " << ret);
+            return ret;
+        }
+        offset += currentChunkSize;
+        remainingLength -= currentChunkSize;
+    }
+    return ret;
+}
+
+int32_t ock::mf::HostDataOpRDMA::SafeGet(const void *srcVA, void *destVA, uint64_t length, const ExtOptions &options,
+                                         bool isLocalHost)
+{
+    int32_t ret = 0;
+    uintptr_t srcBase = reinterpret_cast<uintptr_t>(srcVA);
+    uintptr_t destBase = reinterpret_cast<uintptr_t>(destVA);
+    uint64_t remainingLength = length;
+    uint64_t offset = 0;
+    while (remainingLength > 0) {
+        uint64_t currentChunkSize = std::min(remainingLength, RDMA_SWAP_SPACE_SIZE);
+        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(currentChunkSize);
+        auto tmpHost = tmpRdmaMemory.Address();
+        if (tmpHost == nullptr) {
+            BM_LOG_ERROR("Failed to malloc host srcVa: " << reinterpret_cast<uintptr_t>(srcVA)
+                                                         << " destVa: " << reinterpret_cast<uintptr_t>(destVA)
+                                                         << " length: " << currentChunkSize);
+            return BM_MALLOC_FAILED;
+        }
+        const void *currentSrc = reinterpret_cast<const void *>(srcBase + offset);
+        void *currentDest = reinterpret_cast<void *>(destBase + offset);
+        ret = transportManager_->ReadRemote(options.srcRankId, (uint64_t)tmpHost,
+            (uint64_t)currentSrc, currentChunkSize);
+        if (ret != BM_OK) {
+            BM_LOG_ERROR("Failed to copy host data to remote host memory ret: " << ret);
+            return ret;
+        }
+        if (isLocalHost) {
+            ret = DlAclApi::AclrtMemcpy(currentDest, currentChunkSize, tmpHost,
+                currentChunkSize, ACL_MEMCPY_HOST_TO_HOST);
+        } else {
+            ret = DlAclApi::AclrtMemcpy(currentDest, currentChunkSize, tmpHost,
+                currentChunkSize, ACL_MEMCPY_HOST_TO_DEVICE);
+        }
+        if (ret != BM_OK) {
+            BM_LOG_ERROR("Failed to copy device data to host ret: " << ret);
+            return ret;
+        }
+        offset += currentChunkSize;
+        remainingLength -= currentChunkSize;
+    }
+    return ret;
 }
 
 int32_t HostDataOpRDMA::BatchDataCopy(hybm_batch_copy_params &params, hybm_data_copy_direction direction,

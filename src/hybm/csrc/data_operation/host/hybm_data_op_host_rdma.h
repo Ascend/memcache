@@ -37,6 +37,8 @@ private:
     int32_t CopyDevice2Gva(const void *srcVA, void *destVA, uint64_t length, const ExtOptions &options);
     int32_t CopyGva2Device(const void *srcVA, void *destVA, uint64_t length, const ExtOptions &options);
     int32_t CopyGva2Gva(const void *srcVA, void *destVA, uint64_t length, const ExtOptions &options);
+    int32_t SafePut(const void *srcVA, void *destVA, uint64_t length, const ExtOptions &options, bool isLocalHost);
+    int32_t SafeGet(const void *srcVA, void *destVA, uint64_t length, const ExtOptions &options, bool isLocalHost);
 
     int BatchCopyLD2LH(void *hostAddrs[], void *deviceAddrs[], const uint64_t counts[],
                        uint32_t batchSize, const ExtOptions &options) noexcept;

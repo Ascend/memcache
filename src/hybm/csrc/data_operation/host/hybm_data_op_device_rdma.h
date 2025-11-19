@@ -84,6 +84,8 @@ private:
                           hybm_data_copy_direction direction) noexcept;
     int32_t BatchCopyG2G(hybm_batch_copy_params &params, const ExtOptions &options,
                          hybm_data_copy_direction direction) noexcept;
+    int32_t SafePut(const void *srcVA, void *destVA, uint64_t length, const ExtOptions &options, bool isLocalHost);
+    int32_t SafeGet(const void *srcVA, void *destVA, uint64_t length, const ExtOptions &options, bool isLocalHost);
 
 private:
     bool inited_{false};

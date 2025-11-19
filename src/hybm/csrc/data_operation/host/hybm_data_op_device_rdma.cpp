@@ -235,13 +235,8 @@ int32_t DataOpDeviceRDMA::CopyLH2GH(const void *srcVA, void *destVA, uint64_t le
         ret = CopyLH2LH(srcVA, destVA, length, options);
         BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLH2GH] Failed to copy src to dest", ret);
     } else {
-        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
-        auto tmpHost = tmpRdmaMemory.Address();
-        BM_ASSERT_LOG_AND_RETURN(tmpHost != nullptr, "[CopyLH2GH] Failed to malloc temp buffer", BM_MALLOC_FAILED);
-        ret = CopyLH2LH(srcVA, tmpHost, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLH2GH] Failed to copy src to tmp", ret);
-        ret = CopyRDMA(tmpHost, destVA, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLH2GH] Failed to copy tmp to dest", ret);
+        ret = SafePut(srcVA, destVA, length, options, true);
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLH2GH] Failed to copy src to dest", ret);
     }
     return ret;
 }
@@ -256,13 +251,8 @@ int32_t DataOpDeviceRDMA::CopyLH2GD(const void *srcVA, void *destVA, uint64_t le
         ret = CopyLH2LD(srcVA, destVA, length, options);
         BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLH2GD] Failed to copy src to dest", ret);
     } else {
-        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
-        auto tmpHost = tmpRdmaMemory.Address();
-        BM_ASSERT_LOG_AND_RETURN(tmpHost != nullptr, "[CopyLH2GD] Failed to malloc temp buffer", BM_MALLOC_FAILED);
-        ret = CopyLH2LH(srcVA, tmpHost, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLH2GD] Failed to copy src to tmp", ret);
-        ret = CopyRDMA(tmpHost, destVA, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLH2GD] Failed to copy tmp to dest", ret);
+        ret = SafePut(srcVA, destVA, length, options, true);
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLH2GD] Failed to copy src to dest", ret);
     }
     return ret;
 }
@@ -277,13 +267,8 @@ int32_t DataOpDeviceRDMA::CopyLD2GH(const void *srcVA, void *destVA, uint64_t le
         ret = CopyLD2LH(srcVA, destVA, length, options);
         BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLD2GH] Failed to copy src to dest", ret);
     } else {
-        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
-        auto tmpHost = tmpRdmaMemory.Address();
-        BM_ASSERT_LOG_AND_RETURN(tmpHost != nullptr, "[CopyLD2GH] Failed to malloc temp buffer", BM_MALLOC_FAILED);
-        ret = CopyLD2LH(srcVA, tmpHost, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLD2GH] Failed to copy src to tmp", ret);
-        ret = CopyRDMA(tmpHost, destVA, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLD2GH] Failed to copy tmp to dest", ret);
+        ret = SafePut(srcVA, destVA, length, options, false);
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLD2GH] Failed to copy src to dest", ret);
     }
     return ret;
 }
@@ -298,13 +283,8 @@ int32_t DataOpDeviceRDMA::CopyLD2GD(const void *srcVA, void *destVA, uint64_t le
         ret = CopyLD2LD(srcVA, destVA, length, options);
         BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLD2GD] Failed to copy src to dest", ret);
     } else {
-        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
-        auto tmpHost = tmpRdmaMemory.Address();
-        BM_ASSERT_LOG_AND_RETURN(tmpHost != nullptr, "[CopyLD2GD] Failed to malloc temp buffer", BM_MALLOC_FAILED);
-        ret = CopyLD2LH(srcVA, tmpHost, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLD2GD] Failed to copy src to tmp", ret);
-        ret = CopyRDMA(tmpHost, destVA, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLD2GD] Failed to copy tmp to dest", ret);
+        ret = SafePut(srcVA, destVA, length, options, false);
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyLD2GD] Failed to copy src to dest", ret);
     }
     return ret;
 }
@@ -403,13 +383,8 @@ int32_t DataOpDeviceRDMA::CopyGH2LH(const void *srcVA, void *destVA, uint64_t le
         ret = CopyLH2LH(srcVA, destVA, length, options);
         BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGH2LH] Failed to copy src to dest", ret);
     } else {
-        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
-        auto tmpHost = tmpRdmaMemory.Address();
-        BM_ASSERT_LOG_AND_RETURN(tmpHost != nullptr, "[CopyGH2LH] Failed to malloc temp buffer", BM_MALLOC_FAILED);
-        ret = CopyRDMA(srcVA, tmpHost, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGH2LH] Failed to copy src to tmp", ret);
-        ret = CopyLH2LH(tmpHost, destVA, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGH2LH] Failed to copy tmp to dest", ret);
+        ret = SafeGet(srcVA, destVA, length, options, true);
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGH2LH] Failed to copy src to dest", ret);
     }
     return ret;
 }
@@ -424,13 +399,8 @@ int32_t DataOpDeviceRDMA::CopyGD2LH(const void *srcVA, void *destVA, uint64_t le
         ret = CopyLD2LH(srcVA, destVA, length, options);
         BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGD2LH] Failed to copy src to dest", ret);
     } else {
-        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
-        auto tmpHost = tmpRdmaMemory.Address();
-        BM_ASSERT_LOG_AND_RETURN(tmpHost != nullptr, "[CopyGD2LH] Failed to malloc temp buffer", BM_MALLOC_FAILED);
-        ret = CopyRDMA(srcVA, tmpHost, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGD2LH] Failed to copy src to tmp", ret);
-        ret = CopyLH2LH(tmpHost, destVA, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGD2LH] Failed to copy tmp to dest", ret);
+        ret = SafeGet(srcVA, destVA, length, options, true);
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGD2LH] Failed to copy src to dest", ret);
     }
     return ret;
 }
@@ -448,13 +418,8 @@ int32_t DataOpDeviceRDMA::CopyGH2LD(const void *srcVA, void *destVA, uint64_t le
         ret = CopyRDMA(srcVA, destVA, length, options);
         BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGH2LD] Failed to copy src to dest", ret);
     } else {
-        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
-        auto tmpHost = tmpRdmaMemory.Address();
-        BM_ASSERT_LOG_AND_RETURN(tmpHost != nullptr, "[CopyGH2LD] Failed to malloc temp buffer", BM_MALLOC_FAILED);
-        ret = CopyRDMA(srcVA, tmpHost, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGH2LD] Failed to copy src to tmp", ret);
-        ret = CopyLH2LD(tmpHost, destVA, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGH2LD] Failed to copy tmp to dest", ret);
+        ret = SafeGet(srcVA, destVA, length, options, false);
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGH2LD] Failed to copy src to dest", ret);
     }
     return ret;
 }
@@ -472,13 +437,8 @@ int32_t DataOpDeviceRDMA::CopyGD2LD(const void *srcVA, void *destVA, uint64_t le
         ret = CopyRDMA(srcVA, destVA, length, options);
         BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGD2LD] Failed to copy src to dest", ret);
     } else {
-        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(length);
-        auto tmpHost = tmpRdmaMemory.Address();
-        BM_ASSERT_LOG_AND_RETURN(tmpHost != nullptr, "[CopyGD2LD] Failed to malloc temp buffer", BM_MALLOC_FAILED);
-        ret = CopyRDMA(srcVA, tmpHost, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGD2LD] Failed to copy src to tmp", ret);
-        ret = CopyLH2LD(tmpHost, destVA, length, options);
-        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGD2LD] Failed to copy tmp to dest", ret);
+        ret = SafeGet(srcVA, destVA, length, options, false);
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGD2LD] Failed to copy src to dest", ret);
     }
     return ret;
 }
@@ -840,6 +800,64 @@ int32_t DataOpDeviceRDMA::BatchCopyG2G(hybm_batch_copy_params &params, const Ext
         BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "Failed to Synchronize", ret);
     }
     return ret;
+}
+
+int32_t DataOpDeviceRDMA::SafePut(const void *srcVA, void *destVA, uint64_t length, const ExtOptions &options,
+                                  bool srcIsHost)
+{
+    int32_t ret = 0;
+    uintptr_t srcBase = reinterpret_cast<uintptr_t>(srcVA);
+    uintptr_t destBase = reinterpret_cast<uintptr_t>(destVA);
+    uint64_t remainingLength = length;
+    uint64_t offset = 0;
+    while (remainingLength > 0) {
+        uint64_t currentChunkSize = std::min(remainingLength, RDMA_SWAP_SPACE_SIZE);
+        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(currentChunkSize);
+        auto tmpHost = tmpRdmaMemory.Address();
+        BM_ASSERT_LOG_AND_RETURN(tmpHost != nullptr, "Failed to malloc temp buffer", BM_MALLOC_FAILED);
+        const void *currentSrc = reinterpret_cast<const void *>(srcBase + offset);
+        void *currentDest = reinterpret_cast<void *>(destBase + offset);
+        if (srcIsHost) {
+            ret = CopyLH2LH(currentSrc, tmpHost, currentChunkSize, options);
+        } else {
+            ret = CopyLD2LH(currentSrc, tmpHost, currentChunkSize, options);
+        }
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "Failed to copy src to tmp", ret);
+        ret = CopyRDMA(tmpHost, currentDest, currentChunkSize, options);
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "Failed to copy tmp to dest", ret);
+        offset += currentChunkSize;
+        remainingLength -= currentChunkSize;
+    }
+    return 0;
+}
+
+int32_t DataOpDeviceRDMA::SafeGet(const void *srcVA, void *destVA, uint64_t length, const ExtOptions &options,
+                                  bool destIsHost)
+{
+    int32_t ret = 0;
+    uintptr_t srcBase = reinterpret_cast<uintptr_t>(srcVA);
+    uintptr_t destBase = reinterpret_cast<uintptr_t>(destVA);
+    uint64_t remainingLength = length;
+    uint64_t offset = 0;
+    while (remainingLength > 0) {
+        uint64_t currentChunkSize = std::min(remainingLength, RDMA_SWAP_SPACE_SIZE);
+        auto tmpRdmaMemory = rdmaSwapMemoryAllocator_->Allocate(currentChunkSize);
+        auto tmpHost = tmpRdmaMemory.Address();
+        BM_ASSERT_LOG_AND_RETURN(tmpHost != nullptr, "[CopyGD2LH] Failed to malloc temp buffer", BM_MALLOC_FAILED);
+        const void *currentSrc = reinterpret_cast<const void *>(srcBase + offset);
+        void *currentDest = reinterpret_cast<void *>(destBase + offset);
+        ret = CopyRDMA(currentSrc, tmpHost, currentChunkSize, options);
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGD2LH] Failed to copy src to tmp", ret);
+        if (destIsHost) {
+            ret = CopyLH2LH(tmpHost, currentDest, currentChunkSize, options);
+        } else {
+            ret = CopyLH2LD(tmpHost, currentDest, currentChunkSize, options);
+        }
+        BM_ASSERT_LOG_AND_RETURN(ret == BM_OK, "[CopyGD2LH] Failed to copy tmp to dest", ret);
+        offset += currentChunkSize;
+        remainingLength -= currentChunkSize;
+    }
+    return 0;
 }
 
 int32_t DataOpDeviceRDMA::BatchCopyGH2GH(hybm_batch_copy_params &params, const ExtOptions &options) noexcept
