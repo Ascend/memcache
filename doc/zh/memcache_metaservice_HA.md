@@ -350,9 +350,12 @@ kubectl exec -it meta-service-pod-0 -n ns-memcache -c meta-service -- bash
 （注意local-pods-demo.yaml中的业务启动命令
 `exec python3 /usr/local/mxc/memfabric_hybrid/latest/aarch64-linux/script/ha/test-mmc-meta-ha.py > /home/memcache/logs/mmc-local.log 2>&1`）
 
-### 测试场景
+### 6. 测试场景
 
 - 2个meta, local1 put，切换meta，get正常 910B device_rdma
 - 2个meta, local1 put 2 , 切换meta， local2 get 正常 910B device_rdma
 - 2个meta, local1 put 2 ,local1 quit， 切换meta， local2 get 正常 910B device_rdma
 - 启动local1，local2；local1 put 1；重启local2；切换meta；local1 get成功 local2 get失败
+
+### 7. 注意事项
+1. 建议参考k8s官方文档对k8s集群进行安全加固

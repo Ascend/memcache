@@ -147,21 +147,21 @@ static bool DriverVersionCheck(const std::string &ver)
     int32_t baseVal = GetValueFromVersion(ver, "V");
     int32_t readVal = GetValueFromVersion(readVer, "V");
     if (baseVal == -1 || readVal == -1 || baseVal != readVal) {
-        BM_LOG_ERROR("check driver version failed, Version not equal, limit:" << ver << " read:" << readVer);
+        BM_LOG_INFO("driver version mismatch: Version not equal");
         return false;
     }
 
     baseVal = GetValueFromVersion(ver, "R");
     readVal = GetValueFromVersion(readVer, "R");
     if (baseVal == -1 || readVal == -1 || baseVal != readVal) {
-        BM_LOG_ERROR("check driver version failed, Release not equal, limit:" << ver << " read:" << readVer);
+        BM_LOG_INFO("driver version mismatch: Release not equal");
         return false;
     }
 
     baseVal = GetValueFromVersion(ver, "C");
     readVal = GetValueFromVersion(readVer, "C");
     if (baseVal == -1 || readVal == -1 || readVal < baseVal) {
-        BM_LOG_ERROR("check driver version failed, Customer is too low, limit:" << ver << " read:" << readVer);
+        BM_LOG_INFO("driver version mismatch: Customer is too low");
         return false;
     }
     if (readVal > baseVal) {
@@ -171,7 +171,7 @@ static bool DriverVersionCheck(const std::string &ver)
     baseVal = GetValueFromVersion(ver, "B");
     readVal = GetValueFromVersion(readVer, "B");
     if (baseVal == -1 || readVal == -1 || readVal < baseVal) {
-        BM_LOG_ERROR("check driver version failed, Build is too low, input:" << ver << " read:" << readVer);
+        BM_LOG_INFO("driver version mismatch: Build is too low");
         return false;
     }
     return true;
@@ -185,21 +185,26 @@ int32_t HalGvaPrecheck()
     return BM_OK;
 #endif
     if (DriverVersionCheck(DRIVER_VER_V4)) {
+        BM_LOG_INFO("Driver version V4 found");
         checkVer = HYBM_GVA_V4;
         return BM_OK;
     }
     if (DriverVersionCheck(DRIVER_VER_V3)) {
+        BM_LOG_INFO("Driver version V3 found");
         checkVer = HYBM_GVA_V3;
         return BM_OK;
     }
     if (DriverVersionCheck(DRIVER_VER_V2)) {
+        BM_LOG_INFO("Driver version V2 found");
         checkVer = HYBM_GVA_V2;
         return BM_OK;
     }
     if (DriverVersionCheck(DRIVER_VER_V1)) {
+        BM_LOG_INFO("Driver version V1 found");
         checkVer = HYBM_GVA_V1;
         return BM_OK;
     }
+    BM_LOG_ERROR("Failed to determine driver version");
     return BM_ERROR;
 }
 
