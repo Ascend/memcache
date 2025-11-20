@@ -36,11 +36,10 @@ Result HcomTransportManager::OpenDevice(const TransportOptions &options)
 {
     BM_ASSERT_RETURN(rpcService_ == 0, BM_OK);
     BM_ASSERT_RETURN(CheckTransportOptions(options) == BM_OK, BM_INVALID_PARAM);
-
     Service_Options opt{};
     opt.workerGroupMode = C_SERVICE_BUSY_POLLING;
     opt.maxSendRecvDataSize = HCOM_RECV_DATA_SIZE;
-    Service_Type enumProtocolType = HostHcomHelper::HybmDopTransHcomProtocol(options.protocol);
+    Service_Type enumProtocolType = HostHcomHelper::HybmDopTransHcomProtocol(options.protocol, options.nic);
     int ret = DlHcomApi::ServiceCreate(enumProtocolType, HCOM_RPC_SERVICE_NAME, opt, &rpcService_);
     if (ret != 0) {
         BM_LOG_ERROR("Failed to create hcom service, nic: " << options.nic << " type: " << enumProtocolType
@@ -59,8 +58,10 @@ Result HcomTransportManager::OpenDevice(const TransportOptions &options)
     DlHcomApi::ServiceRegisterHandler(rpcService_, C_SERVICE_REQUEST_POSTED, TransportRpcHcomRequestPosted, 1);
     DlHcomApi::ServiceRegisterHandler(rpcService_, C_SERVICE_READWRITE_DONE, TransportRpcHcomOneSideDone, 1);
 
-    std::string ipMask = localIp_ + "/32";
-    DlHcomApi::ServiceSetDeviceIpMask(rpcService_, ipMask.c_str());
+    if (enumProtocolType != Service_Type::C_SERVICE_UBC) {
+        std::string ipMask = localIp_ + "/32";
+        DlHcomApi::ServiceSetDeviceIpMask(rpcService_, ipMask.c_str());
+    }
     DlHcomApi::ServiceBind(rpcService_, localNic_.c_str(), TransportRpcHcomNewEndPoint);
     ret = DlHcomApi::ServiceStart(rpcService_);
     // 单节点不需要hcom
@@ -73,10 +74,7 @@ Result HcomTransportManager::OpenDevice(const TransportOptions &options)
         return BM_DL_FUNCTION_FAILED;
     }
 #else
-    if (ret != 0) {
-        BM_LOG_WARN("Failed to start hcom service, nic: " << localNic_ << " type: " << enumProtocolType
-                                                           << " ret: " << ret);
-    }
+    BM_LOG_INFO("End to start hcom service, nic: " << localNic_ << " type: " << enumProtocolType << " ret: " << ret);
 #endif
 
     rankId_ = options.rankId;
@@ -545,7 +543,11 @@ Result HcomTransportManager::ConnectHcomChannel(uint32_t rankId, const std::stri
     Service_ConnectOptions options;
     options.clientGroupId = 0;
     options.serverGroupId = 0;
-    options.linkCount = HCOM_TRANS_EP_SIZE;
+    if (StrUtil::StartWith(url, UBC_PROTOCOL_PREFIX)) {
+        options.linkCount = 1UL;
+    } else {
+        options.linkCount = HCOM_TRANS_EP_SIZE;
+    }
     auto rankIdStr = std::to_string(rankId);
     std::copy_n(rankIdStr.c_str(), rankIdStr.size() + 1, options.payLoad);
     do {

@@ -11,9 +11,12 @@
 #include "hybm_def.h"
 #include "hybm_logger.h"
 #include "hcom_service_c_define.h"
+#include "hybm_define.h"
+#include "mf_str_util.h"
 
 namespace ock {
 namespace mf {
+constexpr auto UBC_PROTOCOL_PREFIX = "ubc://";
 namespace transport {
 namespace host {
 
@@ -21,10 +24,13 @@ class HostHcomHelper {
 public:
     static Result AnalysisNic(const std::string &nic, std::string &protocol, std::string &ipStr, uint32_t &port);
 
-    static inline Service_Type HybmDopTransHcomProtocol(uint32_t hybmDop)
+    static inline Service_Type HybmDopTransHcomProtocol(uint32_t hybmDop, const std::string &nic)
     {
         if (hybmDop & HYBM_DOP_TYPE_HOST_TCP) {
             return C_SERVICE_TCP;
+        }
+        if ((hybmDop & HYBM_DOP_TYPE_HOST_RDMA) && StrUtil::StartWith(nic, UBC_PROTOCOL_PREFIX)) {
+            return C_SERVICE_UBC;
         }
         if (hybmDop & HYBM_DOP_TYPE_HOST_RDMA) {
             return C_SERVICE_RDMA;

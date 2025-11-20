@@ -1,7 +1,9 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  */
+
 #include "hybm_data_op_host_rdma.h"
+#include <sys/mman.h>
 #include "dl_acl_api.h"
 #include "hybm_space_allocator.h"
 #include "hybm_ptracer.h"
@@ -17,10 +19,12 @@ int32_t HostDataOpRDMA::Initialize() noexcept
     if (inited_) {
         return BM_OK;
     }
-    rdmaSwapBaseAddr_ = malloc(RDMA_SWAP_SPACE_SIZE);
-    if (rdmaSwapBaseAddr_ == nullptr) {
-        BM_LOG_ERROR("Failed to malloc rdma swap memory, size: " << RDMA_SWAP_SPACE_SIZE);
-        return BM_MALLOC_FAILED;
+    rdmaSwapBaseAddr_ =
+        mmap(nullptr, RDMA_SWAP_SPACE_SIZE, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_HUGETLB | MAP_PRIVATE, -1, 0);
+    if (rdmaSwapBaseAddr_ == MAP_FAILED) {
+        BM_LOG_ERROR("Failed to alloc size:" << RDMA_SWAP_SPACE_SIZE << " error:" << errno << ", "
+                                             << SafeStrError(errno));
+        return BM_ERROR;
     }
 
     transport::TransportMemoryRegion input;
