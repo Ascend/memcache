@@ -600,14 +600,15 @@ int32_t HostDataOpSDMA::Initialize() noexcept
         return BM_OK;
     }
 
-    if (HybmGvmHasInited()) {
-        auto ret = DlAclApi::AclrtMalloc(&sdmaSwapMemAddr_, HBM_SWAP_SPACE_SIZE, 0);
-        if (ret != 0 || !sdmaSwapMemAddr_) {
-            BM_LOG_ERROR("allocate temp copy memory on local device failed: " << ret);
-            return BM_DL_FUNCTION_FAILED;
-        }
+    auto ret = DlAclApi::AclrtMalloc(&sdmaSwapMemAddr_, HBM_SWAP_SPACE_SIZE, 0);
+    if (ret != 0 || !sdmaSwapMemAddr_) {
+        BM_LOG_ERROR("allocate temp copy memory on local device failed: " << ret);
+        return BM_DL_FUNCTION_FAILED;
+    }
 
-        sdmaSwapMemoryAllocator_ = std::make_shared<RbtreeRangePool>((uint8_t *) sdmaSwapMemAddr_, HBM_SWAP_SPACE_SIZE);
+    sdmaSwapMemoryAllocator_ = std::make_shared<RbtreeRangePool>((uint8_t *) sdmaSwapMemAddr_, HBM_SWAP_SPACE_SIZE);
+
+    if (HybmGvmHasInited()) {
         ret = hybm_gvm_mem_register((uint64_t)sdmaSwapMemAddr_, HBM_SWAP_SPACE_SIZE, (uint64_t)sdmaSwapMemAddr_);
         if (ret != BM_OK) {
             DlAclApi::AclrtFree(&sdmaSwapMemAddr_);

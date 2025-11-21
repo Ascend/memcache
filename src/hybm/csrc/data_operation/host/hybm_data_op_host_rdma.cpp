@@ -54,7 +54,7 @@ void HostDataOpRDMA::UnInitialize() noexcept
         transportManager_->UnregisterMemoryRegion(reinterpret_cast<uint64_t>(rdmaSwapBaseAddr_));
     }
     if (rdmaSwapBaseAddr_ != nullptr) {
-        free(rdmaSwapBaseAddr_);
+        munmap(rdmaSwapBaseAddr_, RDMA_SWAP_SPACE_SIZE);
         rdmaSwapBaseAddr_ = nullptr;
     }
     inited_ = false;
