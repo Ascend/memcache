@@ -75,7 +75,7 @@ std::vector<uint32_t> NetworkGetIpAddresses() noexcept
             continue;
         }
 
-        if (p->ifa_addr->sa_family != AF_INET && p->ifa_addr->sa_family != AF_INET6) {
+        if (p->ifa_addr->sa_family != AF_INET) {
             continue;
         }
 
@@ -87,26 +87,17 @@ std::vector<uint32_t> NetworkGetIpAddresses() noexcept
             continue;
         }
 
-        std::string ip_address {};
-        if (p->ifa_addr->sa_family == AF_INET) {
-            auto sin = reinterpret_cast<struct sockaddr_in *>(p->ifa_addr);
+        std::string ifname{p->ifa_name};
+        auto sin = reinterpret_cast<struct sockaddr_in *>(p->ifa_addr);
+        char ip_str[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &sin->sin_addr, ip_str, sizeof(ip_str));
+        if (routeName == ifname) {
+            routeIp = ntohl(sin->sin_addr.s_addr);
+            BM_LOG_INFO("find route ip address: " << p->ifa_name << " -> " << ip_str);
+        } else {
             addresses.emplace_back(ntohl(sin->sin_addr.s_addr));
-            ip_address = inet_ntoa(sin->sin_addr);
-        } else if (p->ifa_addr->sa_family == AF_INET6) {
-            auto sin = reinterpret_cast<struct sockaddr_in6 *>(p->ifa_addr);
-            char addr_str[INET6_ADDRSTRLEN];
-            inet_ntop(AF_INET6, &(sin->sin6_addr), addr_str, INET6_ADDRSTRLEN);
-            ip_address = addr_str;
-
-            // IPv6
-            const uint64_t* latter_ptr = reinterpret_cast<const uint64_t*>(&(sin->sin6_addr.s6_addr[8]));
-            uint64_t latter_id = *latter_ptr;
-            std::hash<uint64_t> hasher;
-            uint32_t ipv6_derived_id = static_cast<uint32_t>(hasher(latter_id));
-            addresses.emplace_back(ipv6_derived_id);
+            BM_LOG_INFO("find ip address: " << p->ifa_name << " -> " << ip_str);
         }
-
-        BM_LOG_INFO("find ip address: " << p->ifa_name << " -> " << ip_address);
     }
 
     freeifaddrs(ifa);

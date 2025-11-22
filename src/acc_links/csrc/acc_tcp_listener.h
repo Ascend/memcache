@@ -40,12 +40,9 @@ public:
 
 private:
     void RunInThread() noexcept;
-    void ProcessNewConnection(int fd, mf_sockaddr addressIn) noexcept;
-    void PrepareSockAddr(mf_sockaddr& addr) noexcept;
+    void ProcessNewConnection(int fd, struct sockaddr_in addressIn) noexcept;
     Result StartAcceptThread() noexcept;
-    Result CreateSocketForStrat(mf_sockaddr &addr, int &tmpFD) noexcept;
-    void FormatIPAddressAndPort(mf_sockaddr addressIn, std::string &ipPort) noexcept;
-    Result BindAndListenSocket(int tmpFD, mf_sockaddr &addr) noexcept;
+
     inline std::string NameAndPort() const noexcept;
 
 private:
@@ -60,7 +57,6 @@ private:
     const bool reusePort_; /* reuse listen port or not */
     const bool enableTls_; /* enable tls */
     SSL_CTX* sslCtx_ = nullptr; /* ssl ctx */
-    IpType ipType_ {IPNONE}; /* listenIp_ is ipv4 or ipv6 */
 };
 using AccTcpListenerPtr = AccRef<AccTcpListener>;
 
@@ -73,12 +69,7 @@ inline void AccTcpListener::RegisterNewConnectionHandler(const NewConnHandlerInn
 
 inline std::string AccTcpListener::NameAndPort() const noexcept
 {
-    if (ipType_ == IpV4) {
-        return listenIp_ + ":" + std::to_string(listenPort_);
-    } else if (ipType_ == IpV6) {
-        return "[" + listenIp_ + "]:" + std::to_string(listenPort_);
-    }
-    return "";
+    return listenIp_ + ":" + std::to_string(listenPort_);
 }
 }  // namespace acc
 }  // namespace ock

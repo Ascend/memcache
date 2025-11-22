@@ -8,6 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 #include "smem_trans_store_helper.h"
+#include "mf_str_util.h"
 #include "smem_trans_fault_handler.h"
 namespace ock {
 namespace smem {
@@ -219,8 +220,8 @@ void SmemStoreFaultHandler::ClearFaultInfo(const uint32_t linkId,
     auto dCntIt = kvStore.find(rankInfo.dInfo.deviceCountKey);
     if (dCntIt != kvStore.end()) {
         std::string valueStr{dCntIt->second.begin(), dCntIt->second.end()};
-        long valueNum;
-        StrToLong(valueStr, valueNum);
+        long valueNum = 0;
+        mf::StrUtil::String2Int(valueStr, valueNum);
         valueNum--;
         std::string valueStrNew = std::to_string(valueNum);
         dCntIt->second = std::vector<uint8_t>(valueStrNew.begin(), valueStrNew.end());
@@ -241,8 +242,8 @@ void SmemStoreFaultHandler::ClearFaultInfo(const uint32_t linkId,
     auto sCntIt = kvStore.find(rankInfo.sInfo.sliceCountKey);
     if (sCntIt != kvStore.end()) {
         std::string valueStr{sCntIt->second.begin(), sCntIt->second.end()};
-        long valueNum;
-        StrToLong(valueStr, valueNum);
+        long valueNum = 0;
+        mf::StrUtil::String2Int(valueStr, valueNum);
         valueNum -=rankInfo.sInfo.sliceInfoId.size();
         std::string valueStrNew = std::to_string(valueNum);
         sCntIt->second = std::vector<uint8_t>(valueStrNew.begin(), valueStrNew.end());

@@ -12,6 +12,7 @@
 
 #include "acc_tcp_server.h"
 #include "acc_common_util.h"
+#include "mf_ipv4_validator.h"
 #include "acc_tcp_server_default.h"
 
 namespace ock {
@@ -80,7 +81,7 @@ Result AccTcpServerDefault::Start(const AccTcpServerOptions &opt, const AccTlsOp
     if (result != ACC_OK) {
         StopAndCleanDelayCleanup();
         StopAndCleanWorkers();
-        LOG_ERROR("Failed to start AccTcpServerDefault listener");
+        LOG_ERROR("Failed to start AccTcpServerDefault listener, result: " << result);
         return result;
     }
 
@@ -460,66 +461,34 @@ void AccTcpServerDefault::WorkerLinkCntUpdate(uint32_t workerIdx)
     return;
 }
 
-static Result CreateSocket(const std::string &peerIp, IpType &type, int &sockfd)
-{
-    if (AccCommonUtil::IsValidIPv4(peerIp)) {
-        type = IpV4;
-        sockfd = ::socket(AF_INET, SOCK_STREAM, 0);
-    } else if (AccCommonUtil::IsValidIPv6(peerIp)) {
-        type = IpV6;
-        sockfd = ::socket(AF_INET6, SOCK_STREAM, 0);
-    } else {
-        return ACC_ERROR;
-    }
-    if (sockfd < 0) {
-        LOG_ERROR("Failed to create socket, errno:" << errno << ", please check if fd is out of limit");
-        return ACC_ERROR;
-    }
-    return ACC_OK;
-}
-
-void AccTcpServerDefault::ConstructSocketAddress(IpType ipType, mf_sockaddr &addr,
-                                                 const std::string &peerIp, uint16_t port)
-{
-    if (ipType == IpV4) {
-        addr.ip.ipv4.sin_family = AF_INET;
-        addr.ip.ipv4.sin_addr.s_addr = inet_addr(peerIp.c_str());
-        addr.ip.ipv4.sin_port = htons(port);
-    } else {
-        addr.ip.ipv6.sin6_family = AF_INET6;
-        inet_pton(AF_INET6, peerIp.c_str(), &addr.ip.ipv6.sin6_addr);
-        addr.ip.ipv6.sin6_port = htons(port);
-    }
-}
-
 Result AccTcpServerDefault::ConnectToPeerServer(const std::string &peerIp, uint16_t port, const AccConnReq &req,
                                                 uint32_t maxRetryTimes, AccTcpLinkComplexPtr &newLink)
 {
-    IpType ipType = IPNONE;
-    auto tmpFD {-1};
-    if (CreateSocket(peerIp, ipType, tmpFD) != ACC_OK) {
-        return ACC_ERROR;
+    auto parser = mf::SocketAddressParserMgr::getInstance().GetParser(options_.listenPort);
+    ASSERT_RETURN(parser != nullptr, ACC_ERROR);
+    if (!parser->IsIpv6()) {
+        ASSERT_RETURN(AccCommonUtil::IsValidIPv4(peerIp), ACC_ERROR);
     }
     std::string ipAndPort = peerIp + ":" + std::to_string(port);
+
+    auto tmpFD = ::socket(parser->GetAddressFamily(), SOCK_STREAM, 0);
+    if (tmpFD < 0) {
+        LOG_ERROR("Failed to create socket, errno:" << errno << ", please check if fd is out of limit");
+        return ACC_ERROR;
+    }
 
     int flags = 1;
     setsockopt(tmpFD, SOL_TCP, TCP_NODELAY, reinterpret_cast<void*>(&flags), sizeof(flags));
     int synCnt = 1; /* Set connect() retry time for quick connect */
     setsockopt(tmpFD, IPPROTO_TCP, TCP_SYNCNT, &synCnt, sizeof(synCnt));
 
-    mf_sockaddr addr {};
-    ConstructSocketAddress(ipType, addr, peerIp, port);
-
     uint32_t timesRetried = 0;
     int lastErrno = 0;
-
+    auto [addrPtr, addrLen] = parser->GetPeerAddress(peerIp, port);
     while (timesRetried < maxRetryTimes) {
         LOG_INFO("Trying to connect to " << ipAndPort);
-
-        if ((ipType == IpV4 && ::connect(tmpFD, reinterpret_cast<struct sockaddr*>(&addr.ip.ipv4),
-            sizeof(addr.ip.ipv4)) == 0)
-            || (ipType == IpV6 && ::connect(tmpFD, reinterpret_cast<struct sockaddr*>(&addr.ip.ipv6),
-            sizeof(addr.ip.ipv6)) == 0)) {
+        errno = 0;
+        if (::connect(tmpFD, addrPtr, addrLen) == 0) {
             struct timeval timeout = {ACC_LINK_RECV_TIMEOUT, 0};
             setsockopt(tmpFD, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
             auto ret = Handshake(tmpFD, req, ipAndPort, newLink);
