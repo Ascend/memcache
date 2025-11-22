@@ -3,38 +3,29 @@
  */
 #include <sys/time.h>
 #include "acc_common_util.h"
+#include "mf_ipv4_validator.h"
 #include "acc_tcp_listener.h"
 
 namespace ock {
 namespace acc {
-    
-void AccTcpListener::PrepareSockAddr(struct sockaddr_in& addr) noexcept
-{
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr(listenIp_.c_str());
-    addr.sin_port = htons(listenPort_);
-}
-
 Result AccTcpListener::Start() noexcept
 {
+    auto parser = mf::SocketAddressParserMgr::getInstance().GetParser(listenPort_);
     if (started_) {
         LOG_INFO("AccTcpListener at " << NameAndPort() << " already started");
         return ACC_OK;
     }
 
     VALIDATE_RETURN(connHandler_ != nullptr, "connection handler not initialized", ACC_ERROR);
+    VALIDATE_RETURN(parser != nullptr, "parser not initialized", ACC_ERROR);
 
     /* create socket */
-    auto tmpFD = ::socket(AF_INET, SOCK_STREAM, 0);
+    auto tmpFD = ::socket(parser->GetAddressFamily(), SOCK_STREAM, 0);
     if (tmpFD < 0) {
         LOG_ERROR("Failed to create listen socket, error " << strerror(errno) <<
             ", please check if running of fd limit");
         return ACC_ERROR;
     }
-
-    /* assign address */
-    struct sockaddr_in addr {};
-    PrepareSockAddr(addr);
 
     /* set option, bind and listen */
     if (reusePort_) {
@@ -46,7 +37,7 @@ Result AccTcpListener::Start() noexcept
         }
     }
 
-    if (::bind(tmpFD, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr)) < 0 || ::listen(tmpFD, 200L) < 0) {
+    if (::bind(tmpFD, parser->GetSockAddr(), parser->GetAddrLen()) < 0 || ::listen(tmpFD, 200L) < 0) {
         auto errorNum = errno;
         SafeCloseFd(tmpFD);
         if (errorNum == EADDRINUSE) {

@@ -34,7 +34,6 @@ public:
 private:
     void RunInThread() noexcept;
     void ProcessNewConnection(int fd, struct sockaddr_in addressIn) noexcept;
-    void PrepareSockAddr(struct sockaddr_in& addr) noexcept;
     Result StartAcceptThread() noexcept;
 
     inline std::string NameAndPort() const noexcept;
