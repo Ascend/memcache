@@ -1,5 +1,11 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 #include "smem_bm_entry.h"
 
@@ -342,6 +348,12 @@ Result SmemBmEntry::DataCopyBatch(smem_batch_copy_params *params, smem_bm_copy_t
     return hybm_data_batch_copy(entity_, &copyParams, direct, nullptr, flags);
 }
 
+Result SmemBmEntry::DataCopy2d(smem_copy_2d_params &params, smem_bm_copy_type t, uint32_t flags)
+{
+    SM_LOG_ERROR("DataCopy2d support later.");
+    return SM_OK;
+}
+
 Result SmemBmEntry::CreateGlobalTeam(uint32_t rankSize, uint32_t rankId)
 {
     SmemGroupChangeCallback joinFunc = std::bind(&SmemBmEntry::JoinHandle, this, std::placeholders::_1);
@@ -398,6 +410,19 @@ bool SmemBmEntry::AddrInDeviceGva(const void *address, uint64_t size)
     }
 
     if ((const uint8_t *)address < (const uint8_t *)deviceGva_) {
+        return false;
+    }
+
+    return true;
+}
+
+bool SmemBmEntry::AddressInRange(const void *address, uint64_t size)
+{
+    if (address < deviceGva_) {
+        return false;
+    }
+    auto totalSize = coreOptions_.singleRankVASpace * coreOptions_.rankCount;
+    if ((const uint8_t *)address + size >= (const uint8_t *)deviceGva_ + totalSize) {
         return false;
     }
 

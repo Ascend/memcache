@@ -15,6 +15,7 @@
 #include "acc_log.h"
 #include "smem_store_factory.h"
 #include "smem_last_error.h"
+#include "smem_trans_fault_handler.h"
 #include "smem.h"
 
 namespace {
@@ -50,6 +51,8 @@ SMEM_API int32_t smem_create_config_store(const char *storeUrl)
         SM_LOG_ERROR("create store server failed with URL.");
         return ock::smem::SM_ERROR;
     }
+    // only server need register fault handler
+    ock::smem::SmemStoreFaultHandler::GetInstance().RegisterHandlerToStore(store);
     
     if (callNum.fetch_add(1U) == 0) {
         pthread_atfork(

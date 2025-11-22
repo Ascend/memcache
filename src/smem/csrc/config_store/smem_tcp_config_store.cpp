@@ -1,5 +1,11 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 #include "smem_tcp_config_store.h"
@@ -145,6 +151,7 @@ Result TcpConfigStore::Startup(const smem_tls_config& tlsConfig, int reconnectRe
     if (result != 0) {
         STORE_LOG_ERROR("Failed to start config store client ret:" << result);
     }
+    isConnect_.store(true);
     return result;
 }
 
@@ -399,6 +406,35 @@ Result TcpConfigStore::Append(const std::string &key, const std::vector<uint8_t>
     return StoreErrorCode::SUCCESS;
 }
 
+Result TcpConfigStore::Write(const std::string &key, const std::vector<uint8_t> &value, const uint32_t offset) noexcept
+{
+    if (key.empty() || key.length() > MAX_KEY_LEN_CLIENT) {
+        STORE_LOG_ERROR("key length is invalid");
+        return StoreErrorCode::INVALID_KEY;
+    }
+
+    SmemMessage request{MessageType::WRITE};
+    std::vector<uint8_t> sendValue(reinterpret_cast<const uint8_t *>(&offset),
+                                   reinterpret_cast<const uint8_t *>(&offset) + sizeof(offset));
+    sendValue.insert(sendValue.end(), value.begin(), value.end());
+    request.keys.push_back(key);
+    request.values.push_back(sendValue);
+
+    auto packedRequest = SmemMessagePacker::Pack(request);
+    auto response = SendMessageBlocked(packedRequest);
+    if (response == nullptr) {
+        STORE_LOG_ERROR("send set for key: " << key << ", get null response");
+        return IO_ERROR;
+    }
+
+    auto responseCode = response->Header().result;
+    if (responseCode != 0) {
+        STORE_LOG_ERROR("send set for key: " << key << ", get response code: " << responseCode);
+    }
+
+    return responseCode;
+}
+
 Result TcpConfigStore::Cas(const std::string &key, const std::vector<uint8_t> &expect,
                            const std::vector<uint8_t> &value, std::vector<uint8_t> &exists) noexcept
 {
@@ -540,9 +576,59 @@ TcpConfigStore::SendMessageBlocked(const std::vector<uint8_t> &reqBody) noexcept
     return response;
 }
 
+Result TcpConfigStore::ReConnectAfterBroken(int reconnectRetryTimes) noexcept
+{
+    auto retryMaxTimes = reconnectRetryTimes < 0 ? CONNECT_RETRY_MAX_TIMES : reconnectRetryTimes;
+    ock::acc::AccConnReq connReq;
+    connReq.rankId = rankId_;
+    auto result = accClient_->ConnectToPeerServer(serverIp_, serverPort_, connReq, retryMaxTimes, accClientLink_);
+    if (result != 0) {
+        STORE_LOG_ERROR("Reconnect to server failed, result.");
+        return result;
+    }
+    return SM_OK;
+}
+
+bool TcpConfigStore::GetConnectStatus() noexcept
+{
+    return isConnect_.load();
+}
+
+void TcpConfigStore::SetConnectStatus(bool status) noexcept
+{
+    isConnect_.store(status);
+}
+
+void TcpConfigStore::RegisterClientBrokenHandler(const ConfigStoreClientBrokenHandler &handler) noexcept
+{
+    brokenHandler_ = std::move(handler);
+}
+
+void TcpConfigStore::RegisterServerBrokenHandler(const ConfigStoreServerBrokenHandler &handler) noexcept
+{
+    if (accServer_ == nullptr) {
+        STORE_LOG_INFO("accServer_ is null, cannot register server broken handler");
+        return;
+    }
+    accServer_->RegisterBrokenLinkCHandler(handler);
+}
+
+void TcpConfigStore::RegisterServerOpHandler(int16_t opCode, const ConfigStoreServerOpHandler &handler) noexcept
+{
+    if (accServer_ == nullptr) {
+        STORE_LOG_INFO("accServer_ is null, cannot register server op handler");
+        return;
+    }
+    accServer_->RegisterOpHandler(opCode, handler);
+}
+
 Result TcpConfigStore::LinkBrokenHandler(const ock::acc::AccTcpLinkComplexPtr &link) noexcept
 {
     STORE_LOG_INFO("link broken, linkId: " << link->Id());
+    SetConnectStatus(false);
+    if (brokenHandler_ != nullptr) {
+        brokenHandler_();
+    }
     std::unordered_map<uint32_t, std::shared_ptr<ClientCommonContext>> tempContext;
     std::unique_lock<std::mutex> msgCtxLocker{msgCtxMutex_};
     tempContext.swap(msgClientContext_);
