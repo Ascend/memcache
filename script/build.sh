@@ -1,4 +1,11 @@
 #!/bin/bash
+# Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+# This file is a part of the CANN Open Software.
+# Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+# Please refer to the License for details. You may not use this file except in compliance with the License.
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+# See LICENSE in the root of the software repository for the full text of the License.
 
 BUILD_MODE=${1:-RELEASE}
 BUILD_TESTS=${2:-OFF}
@@ -7,6 +14,8 @@ BUILD_PYTHON=${4:-ON}
 ENABLE_PTRACER=${5:-ON}
 USE_VMM=${6:-OFF}
 USE_CANN=${7:-ON}
+BUILD_COMPILER=${8:-gcc}
+BUILD_PACKAGE=${9:-ON}
 
 readonly SCRIPT_FULL_PATH=$(dirname $(readlink -f "$0"))
 readonly PROJECT_FULL_PATH=$(dirname "$SCRIPT_FULL_PATH")
@@ -37,7 +46,7 @@ bash script/gen_last_git_commit.sh
 rm -rf ./build ./output
 
 mkdir build/
-cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_TESTS="${BUILD_TESTS}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -DBUILD_PYTHON="${BUILD_PYTHON}" -DENABLE_PTRACER="${ENABLE_PTRACER}" -DUSE_VMM="${USE_VMM}"  -DUSE_CANN="${USE_CANN}" -S . -B build/
+cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_COMPILER="${BUILD_COMPILER}" -DBUILD_TESTS="${BUILD_TESTS}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -DBUILD_PYTHON="${BUILD_PYTHON}" -DENABLE_PTRACER="${ENABLE_PTRACER}" -DUSE_VMM="${USE_VMM}"  -DUSE_CANN="${USE_CANN}" -S . -B build/
 make install -j32 -C build/
 
 if [ "${BUILD_PYTHON}" != "ON" ]; then
@@ -64,8 +73,9 @@ mkdir -p "${PROJ_DIR}/src/memcache/python/memcache/lib"
 mkdir -p ${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib
 cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib"
 cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib"
+\cp -v "${FABRIC_PROJ_DIR}/output/driver/lib64/libhybm_gvm.so" "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib"
 
-GIT_COMMIT=$(cat script/git_last_commit.txt)
+GIT_COMMIT=`git rev-parse HEAD`
 {
   echo "mf version info:"
   echo "mf version: 1.0.0"
@@ -104,20 +114,20 @@ do
         export CMAKE_PREFIX_PATH=$PYTHON_HOME
         export LD_LIBRARY_PATH=$PYTHON_HOME/lib
         export PATH=$PYTHON_HOME/bin:$BACK_PATH_EVN
-        echo "build python so..."
-        pwd
+
         rm -rf build/
         mkdir -p build/
         cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -S . -B build/
         make -j5 -C build
     fi
 
-    rm -f "${FABRIC_PROJ_DIR}"/src/smem/python/mf_smem/_pymf_smem.cpython*.so
+    rm -rf "${FABRIC_PROJ_DIR}"/src/smem/python/mf_smem/_pymf_smem.cpython*.so
     \cp -v "${FABRIC_PROJ_BUILDDIR}"/src/smem/csrc/python_wrapper/_pymf_smem.cpython*.so "${FABRIC_PROJ_DIR}"/src/smem/python/mf_smem
+
     cd "${FABRIC_PROJ_DIR}/src/smem/python"
     rm -rf build mf_smem.egg-info
     python3 setup.py bdist_wheel
-
+    cd "${PROJ_DIR}"
     rm -f "${PROJ_DIR}"/src/memcache/python/memcache/_pymmc.cpython*.so
     \cp -v "${PROJ_DIR}"/build/src/memcache/csrc/python_wrapper/_pymmc.cpython*.so "${PROJ_DIR}"/src/memcache/python/memcache
     cd "${PROJ_DIR}/src/memcache/python"
@@ -126,16 +136,20 @@ do
 
     rm -rf "${FABRIC_PROJ_DIR}"/src/mooncake_adapter/python/mf_adapter/_pymf_transfer.cpython*.so
     \cp -v "${FABRIC_PROJ_BUILDDIR}"/src/mooncake_adapter/csrc/_pymf_transfer.cpython*.so "${FABRIC_PROJ_DIR}"/src/mooncake_adapter/python/mf_adapter
+    mkdir -p ${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib
+    cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib"
+    cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib"
     cd "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python"
     rm -rf build mf_adapter.egg-info
     python3 setup.py bdist_wheel
-
+    cd "${PROJ_DIR}"
 
     if [ -z "${multiple_python}" ];then
         break
     fi
 done
 
+# copy smem wheel package
 mkdir -p "${PROJ_DIR}/output/smem/wheel"
 cp "${FABRIC_PROJ_DIR}"/src/smem/python/dist/*.whl "${PROJ_DIR}/output/smem/wheel"
 rm -rf "${FABRIC_PROJ_DIR}"/src/smem/python/dist
@@ -148,5 +162,16 @@ rm -rf "${PROJ_DIR}"/src/memcache/python/dist
 mkdir -p "${PROJ_DIR}/output/mooncake_adapter/wheel"
 cp "${FABRIC_PROJ_DIR}"/src/mooncake_adapter/python/dist/*.whl "${PROJ_DIR}/output/mooncake_adapter/wheel"
 rm -rf "${FABRIC_PROJ_DIR}"/src/mooncake_adapter/python/dist
+
+if [ "${BUILD_PACKAGE}" == "ON" ]; then
+    #copy smem wheel package && mooncake_adapter wheel package && mf_run package
+    bash "${PROJ_DIR}"/script/run_pkg_maker/make_run.sh RELEASE ON
+    rm -rf "${PROJ_DIR}"/package
+    mkdir -p "${PROJ_DIR}"/package
+    cp "${PROJ_DIR}"/output/mooncake_adapter/wheel/*.whl "${PROJ_DIR}/package"
+    cp "${PROJ_DIR}"/output/smem/wheel/*.whl "${PROJ_DIR}/package"
+    cp "${PROJ_DIR}"/output/memcache/wheel/*.whl "${PROJ_DIR}/package"
+    cp "${PROJ_DIR}"/output/*.run "${PROJ_DIR}"/package
+fi
 
 cd ${CURRENT_DIR}

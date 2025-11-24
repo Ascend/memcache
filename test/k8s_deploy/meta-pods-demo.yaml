@@ -35,16 +35,16 @@ spec:
           args:
             - |
               source /usr/local/Ascend/ascend-toolkit/set_env.sh && \
-              bash /home/meta/mxc-memfabric_hybrid-1.0.0_linux_aarch64.run && \
+              bash /home/meta/memfabric_hybrid-1.0.0_linux_aarch64.run && \
               echo "install end." && \
               sleep 20 && \
-              exec /usr/local/mxc/memfabric_hybrid/latest/aarch64-linux/bin/mmc_meta_service
+              exec /usr/local/memfabric_hybrid/latest/aarch64-linux/bin/mmc_meta_service
           ports:
             - containerPort: 5123
               name: meta
           env:
             - name: LD_LIBRARY_PATH
-              value: "/usr/local/python3.11/lib:/usr/local/mxc/memfabric_hybrid/latest/aarch64-linux/lib64"
+              value: "/usr/local/python3.11/lib:/usr/local/memfabric_hybrid/latest/aarch64-linux/lib64"
             - name: MMC_META_CONFIG_PATH
               value: /home/meta/config/mmc-meta.conf
             - name: META_POD_NAME

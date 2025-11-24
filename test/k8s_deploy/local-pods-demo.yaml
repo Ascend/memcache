@@ -48,7 +48,7 @@ spec:
           args:
             - |
               source /usr/local/Ascend/ascend-toolkit/set_env.sh && \
-              bash /home/meta/mxc-memfabric_hybrid-1.0.0_linux_aarch64.run && \
+              bash /home/meta/memfabric_hybrid-1.0.0_linux_aarch64.run && \
               echo "install end." && \
               echo "App start." && \
               sleep infinity

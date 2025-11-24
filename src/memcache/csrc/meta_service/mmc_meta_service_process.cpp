@@ -54,7 +54,7 @@ int MmcMetaServiceProcess::MainForPython()
 
     RegisterSignal();
 
-    ptracer_config_t ptraceConfig{.tracerType = 1, .dumpFilePath = "/var/log/mxc/memfabric_hybrid"};
+    ptracer_config_t ptraceConfig{.tracerType = 1, .dumpFilePath = "/var/log/memfabric_hybrid"};
     const auto result = ptracer_init(&ptraceConfig);
     if (result != MMC_OK) {
         std::cerr << "init ptracer module failed, result: " << result << std::endl;
