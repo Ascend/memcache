@@ -11,7 +11,7 @@ Result MmcMemBlob::UpdateState(const std::string &key, uint32_t rankId, uint32_t
 {
     auto curStateIter = stateTransTable_.find(state_);
     if (curStateIter == stateTransTable_.end()) {
-        MMC_LOG_ERROR("Cannot update state! The current state is not in the stateTransTable!");
+        MMC_LOG_ERROR("Cannot update state! The current state " << state_ << " is not in the stateTransTable!");
         return MMC_UNMATCHED_STATE;
     }
 
@@ -38,6 +38,25 @@ Result MmcMemBlob::UpdateState(const std::string &key, uint32_t rankId, uint32_t
             return res;
         }
     }
+    return MMC_OK;
+}
+
+Result MmcMemBlob::UpdateState(const BlobActionResult ret)
+{
+    auto curStateIter = stateTransTable_.find(state_);
+    if (curStateIter == stateTransTable_.end()) {
+        MMC_LOG_ERROR("Cannot update state! The current state " << state_ << " is not in the stateTransTable!");
+        return MMC_UNMATCHED_STATE;
+    }
+
+    const auto retIter = curStateIter->second.find(ret);
+    if (retIter == curStateIter->second.end()) {
+        MMC_LOG_ERROR("cannot find " << std::to_string(ret) << " from " << std::to_string(state_));
+
+        return MMC_UNMATCHED_RET;
+    }
+
+    state_ = retIter->second.state_;
     return MMC_OK;
 }
 

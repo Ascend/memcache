@@ -3,6 +3,7 @@
  */
 #include "mmc_bm_proxy.h"
 #include <algorithm>
+#include <numeric>
 #include "mmc_logger.h"
 #include "mmc_smem_bm_helper.h"
 #include "mmc_ptracer.h"
@@ -29,8 +30,8 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
     MMC_RETURN_ERROR(smem_bm_config_init(&config), "Failed to init smem bm config");
     config.flags = initConfig.flags;
     config.startConfigStoreServer = false;
-    config.hcomTlsConfig = initConfig.hcomTlsConfig;
-    config.storeTlsConfig = initConfig.storeTlsConfig;
+    config.hcomTlsConfig = MmcSmemBmHelper::TransSmemTlsConfig(initConfig.hcomTlsConfig);
+    config.storeTlsConfig = MmcSmemBmHelper::TransSmemTlsConfig(initConfig.storeTlsConfig);
 
     // config.hcomUrl is zero-filled, copy only valid chars, and ensure at least one zero at the end.
     std::copy_n(initConfig.hcomUrl.c_str(), std::min(sizeof(config.hcomUrl) - 1, initConfig.hcomUrl.size()),
@@ -83,7 +84,7 @@ Result MmcBmProxy::InternalCreateBm(const mmc_bm_create_config_t &createConfig)
         MMC_LOG_INFO("dram and hbm hybrid pool");
     }
 
-    smem_bm_data_op_type opType = MmcSmemBmHelper::TransSmemBmDataOpType(createConfig);
+    smem_bm_data_op_type opType = MmcSmemBmHelper::TransSmemBmDataOpType(createConfig.dataOpType);
     if (opType == SMEMB_DATA_OP_BUTT) {
         MMC_LOG_ERROR("MmcBmProxy unknown data op type " << createConfig.dataOpType);
         return MMC_ERROR;
@@ -135,22 +136,21 @@ std::string MmcBmProxy::GetDataOpType() const
     return createConfig_.dataOpType;
 }
 
-Result MmcBmProxy::Put(uint64_t srcBmAddr, uint64_t dstBmAddr, uint64_t size, smem_bm_copy_type type)
+Result MmcBmProxy::Copy(uint64_t srcBmAddr, uint64_t dstBmAddr, uint64_t size, smem_bm_copy_type type)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to put data to smem bm, handle is null");
         return MMC_ERROR;
     }
     TP_TRACE_BEGIN(TP_SMEM_BM_PUT);
-    auto ret = smem_bm_copy(handle_, (void*)srcBmAddr, (void*)dstBmAddr, size, type, 0);
+    smem_copy_params params = {(const void*)srcBmAddr, (void*)dstBmAddr, size};
+    auto ret = smem_bm_copy(handle_, &params, type, 0);
     TP_TRACE_END(TP_SMEM_BM_PUT, ret);
     return ret;
 }
 
 Result MmcBmProxy::Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to put data to smem bm, handle is null");
         return MMC_ERROR;
@@ -159,48 +159,22 @@ Result MmcBmProxy::Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
         MMC_LOG_ERROR("Failed to put data to smem bm, buf is null");
         return MMC_ERROR;
     }
-    smem_bm_copy_type type = buf->type == 0 ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
-    if (buf->dimType == 0) {
-        if (buf->oneDim.len > size) {
-            MMC_LOG_ERROR("Failed to put data to smem bm, buf size : " << buf->oneDim.len
-                << " is larger than bm block size : " << size);
-            return MMC_ERROR;
-        }
-        TP_TRACE_BEGIN(TP_SMEM_BM_PUT);
-        auto ret =
-            smem_bm_copy(handle_, (void*)(buf->addr + buf->oneDim.offset), (void*)bmAddr, buf->oneDim.len,
-                         type, ASYNC_COPY_FLAG);
-        TP_TRACE_END(TP_SMEM_BM_PUT, ret);
-        return ret;
-    } else if (buf->dimType == 1) {
-        if (buf->twoDim.width * buf->twoDim.layerNum > size) {
-            MMC_LOG_ERROR("Failed to put data to smem bm, buf size : " << buf->twoDim.width * buf->twoDim.layerNum
-                << " is larger than bm block size : " << size);
-            return MMC_ERROR;
-        }
-        if (buf->twoDim.dpitch >= buf->twoDim.width) {
-            smem_copy_2d_params params = {(void*)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
-                                          buf->twoDim.dpitch, (void*)bmAddr, buf->twoDim.width, buf->twoDim.width,
-                                          buf->twoDim.layerNum};
-
-            TP_TRACE_BEGIN(TP_SMEM_BM_PUT_2D);
-            auto ret = smem_bm_copy_2d(handle_, &params, type, 0);
-            TP_TRACE_END(TP_SMEM_BM_PUT_2D, ret);
-            return ret;
-        } else {
-            MMC_LOG_ERROR("MmcBmProxy Put dpitch (" << buf->twoDim.dpitch << ") should be larger or equal to width ("
-                          << buf->twoDim.width << ")");
-            return MMC_ERROR;
-        }
-    } else {
-        MMC_LOG_ERROR("MmcBmProxy Put unknown buf type");
+    smem_bm_copy_type type = buf->type == MEDIA_DRAM ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
+    if (buf->len > size) {
+        MMC_LOG_ERROR("Failed to put data to smem bm, buf size : " << buf->len
+                                                                   << " is larger than bm block size : " << size);
         return MMC_ERROR;
     }
+    TP_TRACE_BEGIN(TP_SMEM_BM_PUT);
+    smem_copy_params params = {(void*)(buf->addr + buf->offset), (void*)bmAddr, buf->len};
+    auto ret =
+            smem_bm_copy(handle_, &params, type, ASYNC_COPY_FLAG);
+    TP_TRACE_END(TP_SMEM_BM_PUT, ret);
+    return ret;
 }
 
 Result MmcBmProxy::Get(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to get data to smem bm, handle is null");
         return MMC_ERROR;
@@ -209,53 +183,21 @@ Result MmcBmProxy::Get(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size)
         MMC_LOG_ERROR("Failed to get data to smem bm, buf is null");
         return MMC_ERROR;
     }
-    smem_bm_copy_type type = buf->type == 0 ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
-    if (buf->dimType == 0) {
-        if (buf->oneDim.len > size) {
-            MMC_LOG_ERROR("Failed to get data to smem bm, buf length: " << buf->oneDim.len
-                          << " not equal data length: " << size);
-            return MMC_ERROR;
-        }
-        TP_TRACE_BEGIN(TP_SMEM_BM_GET);
-        auto ret =
-            smem_bm_copy(handle_, (void*)bmAddr, (void*)(buf->addr + buf->oneDim.offset), buf->oneDim.len,
-                         type, ASYNC_COPY_FLAG);
-        TP_TRACE_END(TP_SMEM_BM_GET, ret);
-        return ret;
-    } else if (buf->dimType == 1) {
-        uint64_t length = buf->twoDim.width * buf->twoDim.layerNum;
-        if (length != size) {
-            MMC_LOG_ERROR("Failed to get data to smem bm, buf length: " << length
-                          << " not equal data length: " << size);
-            return MMC_ERROR;
-        }
-        if (buf->twoDim.dpitch == buf->twoDim.width) {
-            TP_TRACE_BEGIN(TP_SMEM_BM_GET);
-            auto ret =
-                smem_bm_copy(handle_, (void*)bmAddr, (void*)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
-                             buf->twoDim.width * buf->twoDim.layerNum, type, ASYNC_COPY_FLAG);
-            TP_TRACE_END(TP_SMEM_BM_GET, ret);
-            return ret;
-        } else if (buf->twoDim.dpitch > buf->twoDim.width) {
-            smem_copy_2d_params params = {(void*)bmAddr, buf->twoDim.width,
-                                          (void*)(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset),
-                                          buf->twoDim.dpitch, buf->twoDim.width, buf->twoDim.layerNum};
-
-            TP_TRACE_BEGIN(TP_SMEM_BM_GET_2D);
-            auto ret = smem_bm_copy_2d(handle_, &params, type, 0);
-            TP_TRACE_END(TP_SMEM_BM_GET_2D, ret);
-            return ret;
-        } else {
-            MMC_LOG_ERROR("MmcBmProxy Get dpitch should be larger or equal to width");
-            return MMC_ERROR;
-        }
-    } else {
-        MMC_LOG_ERROR("MmcBmProxy Get unknown buf type");
+    smem_bm_copy_type type = buf->type == MEDIA_DRAM ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
+    if (buf->len > size) {
+        MMC_LOG_ERROR("Failed to get data to smem bm, buf length: " << buf->len
+                                                                    << " not equal data length: " << size);
         return MMC_ERROR;
     }
+    TP_TRACE_BEGIN(TP_SMEM_BM_GET);
+    smem_copy_params params = {(void*)bmAddr, (void*)(buf->addr + buf->offset), buf->len};
+    auto ret =
+            smem_bm_copy(handle_, &params, type, ASYNC_COPY_FLAG);
+    TP_TRACE_END(TP_SMEM_BM_GET, ret);
+    return ret;
 }
 
-Result MmcBmProxy::Put(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
+Result MmcBmProxy::AsyncPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
 {
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to get data to smem bm, handle is null");
@@ -279,7 +221,7 @@ Result MmcBmProxy::Put(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
     return MMC_OK;
 }
 
-Result MmcBmProxy::Get(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
+Result MmcBmProxy::AsyncGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
 {
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to get data to smem bm, handle is null");
@@ -305,7 +247,6 @@ Result MmcBmProxy::Get(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
 
 Result MmcBmProxy::BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to get data to smem bm, handle is null");
         return MMC_ERROR;
@@ -324,19 +265,12 @@ Result MmcBmProxy::BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
     void *sources[count];
     void *destinations[count];
     uint64_t dataSizes[count];
-    smem_bm_copy_type type = bufArr.Buffers()[0].type == 0 ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
+    smem_bm_copy_type type = bufArr.Buffers()[0].type == MEDIA_DRAM ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
     for (size_t i = 0; i < count; ++i) {
         auto buf = &bufArr.Buffers()[i];
-        if (buf->dimType == 0) {
-            sources[i] = reinterpret_cast<void *>(buf->addr + buf->oneDim.offset);
-        } else if (buf->dimType == 1) {
-            sources[i] = reinterpret_cast<void *>(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset);
-        } else {
-            MMC_LOG_ERROR("Not support type");
-            return MMC_ERROR;
-        }
+        sources[i] = reinterpret_cast<void *>(buf->addr + buf->offset);
         destinations[i] = reinterpret_cast<void *>(blob.gva_ + shift);
-        dataSizes[i] = buf->oneDim.len;
+        dataSizes[i] = buf->len;
         shift += MmcBufSize(*buf);
     }
     smem_batch_copy_params batch_params = {sources, destinations, dataSizes, count};
@@ -345,7 +279,6 @@ Result MmcBmProxy::BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
 
 Result MmcBmProxy::BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to get data to smem bm, handle is null");
         return MMC_ERROR;
@@ -364,23 +297,74 @@ Result MmcBmProxy::BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
     void *sources[count];
     void *destinations[count];
     uint64_t dataSizes[count];
-    smem_bm_copy_type type = bufArr.Buffers()[0].type == 0 ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
+    smem_bm_copy_type type = bufArr.Buffers()[0].type == MEDIA_DRAM ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
     for (size_t i = 0; i < count; ++i) {
         auto buf = &bufArr.Buffers()[i];
-        if (buf->dimType == 0) {
-            destinations[i] = reinterpret_cast<void *>(buf->addr + buf->oneDim.offset);
-        } else if (buf->dimType == 1) {
-            destinations[i] = reinterpret_cast<void *>(buf->addr + buf->twoDim.dpitch * buf->twoDim.layerOffset);
-        } else {
-            MMC_LOG_ERROR("Not support type");
-            return MMC_ERROR;
-        }
+        destinations[i] = reinterpret_cast<void *>(buf->addr + buf->offset);
         sources[i] = reinterpret_cast<void *>(blob.gva_ + shift);
-        dataSizes[i] = buf->oneDim.len;
+        dataSizes[i] = buf->len;
         shift += MmcBufSize(*buf);
     }
     smem_batch_copy_params batch_params = {sources, destinations, dataSizes, count};
     return smem_bm_copy_batch(handle_, &batch_params, type, 0);
+}
+
+Result MmcBmProxy::BatchDataPut(std::vector<void *> &sources, std::vector<void *> &destinations,
+                                const std::vector<uint64_t> &sizes, MediaType localMedia)
+{
+    if (sources.empty() || sources.size() != destinations.size() || sources.size() != sizes.size()) {
+        MMC_LOG_ERROR("Failed data copy, sources:" << sources.size() << ", destinations:" << destinations.size()
+                                                   << ", sizes:" << sizes.size());
+        return MMC_ERROR;
+    }
+    if (handle_ == nullptr) {
+        MMC_LOG_ERROR("Failed to put data to smem bm, handle is null");
+        return MMC_ERROR;
+    }
+    if (localMedia == MEDIA_NONE) {
+        MMC_LOG_ERROR("Failed to put data to smem bm, media:" << localMedia);
+        return MMC_ERROR;
+    }
+
+    smem_bm_copy_type type = localMedia == MEDIA_DRAM ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
+    smem_batch_copy_params batch_params = {reinterpret_cast<void **>(sources.data()),
+                                           reinterpret_cast<void **>(destinations.data()), sizes.data(),
+                                           static_cast<uint32_t>(sources.size())};
+    uint64_t totalSize = std::accumulate(sizes.begin(), sizes.end(), 0ULL);
+    TP_TRACE_BEGIN(TP_MMC_LOCAL_BATCH_PUT);
+    auto ret = smem_bm_copy_batch(handle_, &batch_params, type, 0);
+    TP_TRACE_END(TP_MMC_LOCAL_BATCH_PUT, ret);
+    TP_TRACE_RECORD(TP_MMC_LOCAL_BATCH_PUT_SIZE, totalSize * 1000ULL, 0);
+    return ret;
+}
+
+Result MmcBmProxy::BatchDataGet(std::vector<void *> &sources, std::vector<void *> &destinations,
+                                const std::vector<uint64_t> &sizes, MediaType localMedia)
+{
+    if (sources.empty() || sources.size() != destinations.size() || sources.size() != sizes.size()) {
+        MMC_LOG_ERROR("Failed data copy, sources:" << sources.size() << ", destinations:" << destinations.size()
+                                                   << ", sizes:" << sizes.size());
+        return MMC_ERROR;
+    }
+    if (handle_ == nullptr) {
+        MMC_LOG_ERROR("Failed to get data to smem bm, handle is null");
+        return MMC_ERROR;
+    }
+    if (localMedia == MEDIA_NONE) {
+        MMC_LOG_ERROR("Failed to get data to smem bm, media:" << localMedia);
+        return MMC_ERROR;
+    }
+
+    smem_bm_copy_type type = localMedia == MEDIA_DRAM ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
+    smem_batch_copy_params batch_params = {reinterpret_cast<void **>(sources.data()),
+                                           reinterpret_cast<void **>(destinations.data()), sizes.data(),
+                                           static_cast<uint32_t>(sources.size())};
+    uint64_t totalSize = std::accumulate(sizes.begin(), sizes.end(), 0ULL);
+    TP_TRACE_BEGIN(TP_MMC_LOCAL_BATCH_GET);
+    auto ret = smem_bm_copy_batch(handle_, &batch_params, type, 0);
+    TP_TRACE_END(TP_MMC_LOCAL_BATCH_GET, ret);
+    TP_TRACE_RECORD(TP_MMC_LOCAL_BATCH_GET_SIZE, totalSize * 1000ULL, 0);
+    return ret;
 }
 
 Result MmcBmProxy::RegisterBuffer(uint64_t addr, uint64_t size)
@@ -395,7 +379,6 @@ Result MmcBmProxy::RegisterBuffer(uint64_t addr, uint64_t size)
 
 Result MmcBmProxy::CopyWait()
 {
-    std::lock_guard<std::mutex> lock(mutex_);
     auto ret = smem_bm_wait(handle_);
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("Failed to wait copy task ret:" << ret);

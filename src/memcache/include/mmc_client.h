@@ -4,6 +4,8 @@
 #ifndef __MEMFABRIC_MMC_CLIENT_H__
 #define __MEMFABRIC_MMC_CLIENT_H__
 
+#include <stddef.h>
+
 #include "mmc_def.h"
 
 #ifdef __cplusplus
@@ -44,6 +46,14 @@ int32_t mmcc_register_buffer(uint64_t addr, uint64_t size);
 int32_t mmcc_put(const char *key, mmc_buffer *buf, mmc_put_options options, uint32_t flags);
 
 /**
+ * @brief query localServiceId
+ *
+ * @param localServiceId     [out] localServiceId
+ * @return 0 if successful
+ */
+int32_t mmcc_local_service_id(uint32_t *localServiceId);
+
+/**
  * @brief Get data of object by key from Distributed Memory Cache
  * This data operation supports both sync and async
  *
@@ -77,16 +87,6 @@ int32_t mmcc_query(const char *key, mmc_data_info *info, uint32_t flags);
 int32_t mmcc_batch_query(const char **keys, size_t keys_count, mmc_data_info *info, uint32_t flags);
 
 /**
- * @brief Get the locations of object
- * This data operation only supports sync mode
- *
- * @param key              [in] key of data, less than 256
- * @param flags            [in] optional flags, reserved
- * @return locations if exists
- */
-mmc_location_t mmcc_get_location(const char *key, uint32_t flags);
-
-/**
  * @brief Remove the object with key from Distributed Memory Cache
  * This data operation supports both sync and async
  *
@@ -106,15 +106,6 @@ int32_t mmcc_remove(const char *key, uint32_t flags);
  * @return 0 if successfully, positive value if error happens
  */
 int32_t mmcc_batch_remove(const char **keys, uint32_t keys_count, int32_t *remove_results, uint32_t flags);
-
-/**
- * @brief Wait for async operation to object
- *
- * @param waitHandle       [in] handle created by data operation, i.e. mobsc_put, mobsc_get, mobsc_remove
- * @param timeoutSec       [in] timeout of wait, in seconds
- * @return 0 if successfully, 1 if timeout, positive value if error happens
- */
-int32_t mmcc_wait(int32_t waitHandle, int32_t timeoutSec);
 
 /**
  * @brief Determine whether the key is within the BM

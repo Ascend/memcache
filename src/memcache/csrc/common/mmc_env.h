@@ -12,5 +12,5 @@ extern std::string MMC_LOCAL_CONF_PATH;
 extern std::string META_POD_NAME;
 extern std::string META_NAMESPACE;
 extern std::string META_LEASE_NAME;
-}
-}
+} // namespace mmc
+} // namespace ock

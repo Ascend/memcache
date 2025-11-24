@@ -14,6 +14,7 @@ namespace ock {
 namespace mmc {
 
 constexpr int MAX_CONF_FILE_SIZE = 10485760;  // 10MB
+constexpr int MAX_LINE_NUMBER = 10000;
 constexpr uint32_t MAX_LINE_LENGTH = 4096;
 
 KVParser::KVParser() = default;
@@ -51,10 +52,17 @@ Result KVParser::FromFile(const std::string &filePath)
     std::ifstream inConfFile(path);
     std::string strLine;
     Result res = MMC_OK;
+    int count = 0;
     while (getline(inConfFile, strLine)) {
         res = ParseLine(strLine);
         if (res != MMC_OK) {
             MMC_LOG_ERROR("Parse config file failed");
+            break;
+        }
+        count += 1;
+        if (count > MAX_LINE_NUMBER) {
+            MMC_LOG_ERROR("Number of lines in config file exceeds limit: " << MAX_LINE_NUMBER);
+            res = MMC_ERROR;
             break;
         }
     }

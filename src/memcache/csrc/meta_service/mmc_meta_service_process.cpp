@@ -15,6 +15,7 @@
 #include <pybind11/numpy.h>
 #include "spdlogger4c.h"
 #include "spdlogger.h"
+#include "mf_out_logger.h"
 
 #include "mmc_configuration.h"
 #include "mmc_env.h"
@@ -195,14 +196,14 @@ int MmcMetaServiceProcess::InitLogger(const mmc_meta_service_config_t& options)
         std::cerr << "Failed to set log level " << options.logLevel << std::endl;
         return -1;
     }
-
+    mf::OutLogger::Instance().SetLogLevel(static_cast<mf::LogLevel>(options.logLevel));
     ret = SPDLOG_Init(logPath.c_str(), options.logLevel, options.logRotationFileSize, options.logRotationFileCount);
     if (ret != 0) {
         std::cerr << "Failed to init spdlog, error: " << SPDLOG_GetLastErrorMessage() << std::endl;
         return -1;
     }
     MmcOutLogger::Instance().SetExternalLogFunction(SPDLOG_LogMessage);
-
+    mf::OutLogger::Instance().SetExternalLogFunction(SPDLOG_LogMessage);
     ret = SPDLOG_AuditInit(logAuditPath.c_str(), options.logRotationFileSize, options.logRotationFileCount);
     if (ret != 0) {
         std::cerr << "Failed to init audit spdlog, error: " << SPDLOG_GetLastErrorMessage() << std::endl;

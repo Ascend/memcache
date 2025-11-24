@@ -54,7 +54,7 @@ void MmcMetaLeaseManager::Wait()
     if (cv_.wait_for(lockGuard, std::chrono::milliseconds(), [this] { return !useClient.size(); })) {
         MMC_LOG_DEBUG("blob released one, useClient size" << useClient.size());
     } else {
-        MMC_LOG_WARN("blob time out, wite time " << waitTime << " ms, used client size " << useClient.size());
+        MMC_LOG_WARN("blob time out, wait time " << waitTime << " ms, used client size " << useClient.size());
     }
 }
 } // namespace mmc

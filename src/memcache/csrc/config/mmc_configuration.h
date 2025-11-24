@@ -19,6 +19,7 @@
 #include "mmc_types.h"
 #include "mmc_last_error.h"
 #include "smem_bm_def.h"
+#include "common/mmc_functions.h"
 
 namespace ock {
 namespace mmc {
@@ -73,7 +74,6 @@ public:
     bool GetBool(const std::pair<const char *, bool> &item);
     uint64_t GetUInt64(const std::pair<const char *, uint64_t> &item);
     uint64_t GetUInt64(const char *key, uint64_t defaultValue);
-    std::string GetConvertedValue(const std::string &key);
 
     void Set(const std::string &key, int32_t value);
     void Set(const std::string &key, float value);
@@ -95,11 +95,11 @@ public:
     void AddPathConf(const std::pair<std::string, std::string> &pair, const ValidatorPtr &validator = nullptr,
         uint32_t flag = CONF_MUST);
     std::vector<std::string> ValidateConf();
-    void GetAccTlsConfig(tls_config &tlsConfig);
-    void GetHcomTlsConfig(tls_config &tlsConfig);
-    void GetConfigStoreTlsConfig(tls_config &tlsConfig);
+    void GetAccTlsConfig(mmc_tls_config &tlsConfig);
+    void GetHcomTlsConfig(mmc_tls_config &tlsConfig);
+    void GetConfigStoreTlsConfig(mmc_tls_config &tlsConfig);
 
-    static int ValidateTLSConfig(const tls_config &tlsConfig);
+    static int ValidateTLSConfig(const mmc_tls_config &tlsConfig);
 
     const std::string GetBinDir();
     const std::string GetLogPath(const std::string &logPath);
@@ -116,9 +116,6 @@ private:
     MemUnit ParseMemUnit(const std::string& unit);
 
     void SetValidator(const std::string &key, const ValidatorPtr &validator, uint32_t flag);
-
-    void ValidateOneValueMap(std::vector<std::string> &errors,
-        const std::map<std::string, ValidatorPtr> &valueValidator);
 
     template <class T>
     static void AddValidateError(const ValidatorPtr &validator, std::vector<std::string> &errors, const T &iter)
@@ -173,7 +170,7 @@ public:
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
         AddStrConf(OCK_MMC_META_SERVICE_CONFIG_STORE_URL, VNoCheck::Create(), 0);
         AddBoolConf(OCK_MMC_META_HA_ENABLE, VNoCheck::Create());
-        AddStrConf(OCK_MMC_LOG_LEVEL, VStrEnum::Create(OCK_MMC_LOG_LEVEL.first, LOG_LEVEL_ENUM_STR));
+        AddStrConf(OCK_MMC_LOG_LEVEL, VNoCheck::Create());
         AddStrConf(OCK_MMC_LOG_PATH, VStrLength::Create(OCK_MMC_LOG_PATH.first, PATH_MAX_LEN));
         AddIntConf(OCK_MMC_LOG_ROTATION_FILE_SIZE, VIntRange::Create(OCK_MMC_LOG_ROTATION_FILE_SIZE.first,
             MIN_LOG_ROTATION_FILE_SIZE, MAX_LOG_ROTATION_FILE_SIZE));
@@ -208,25 +205,17 @@ public:
 
     void GetMetaServiceConfig(mmc_meta_service_config_t &config)
     {
-        const auto discoveryURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_URL);
-        size_t copy_count = std::min(std::strlen(discoveryURL.c_str()), static_cast<size_t>(DISCOVERY_URL_SIZE - 1));
-        std::copy_n(discoveryURL.c_str(), copy_count, config.discoveryURL);
-        config.discoveryURL[copy_count] = '\0';
-
-        const auto configStoreURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_CONFIG_STORE_URL);
-        copy_count = std::min(std::strlen(configStoreURL.c_str()), static_cast<size_t>(DISCOVERY_URL_SIZE - 1));
-        std::copy_n(configStoreURL.c_str(), copy_count, config.configStoreURL);
-        config.configStoreURL[copy_count] = '\0';
+        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_URL),
+            config.discoveryURL, DISCOVERY_URL_SIZE);
+        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_CONFIG_STORE_URL),
+            config.configStoreURL, DISCOVERY_URL_SIZE);
 
         config.haEnable = GetBool(ConfConstant::OCK_MMC_META_HA_ENABLE);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         StringToLower(logLevelStr);
         config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
 
-        const auto logPath = GetLogPath(GetString(ConfConstant::OCK_MMC_LOG_PATH));
-        copy_count = std::min(std::strlen(logPath.c_str()), static_cast<size_t>(PATH_MAX_SIZE - 1));
-        std::copy_n(logPath.c_str(), copy_count, config.logPath);
-        config.logPath[copy_count] = '\0';
+        SafeCopy(GetLogPath(GetString(ConfConstant::OCK_MMC_LOG_PATH)), config.logPath, PATH_MAX_SIZE);
 
         config.evictThresholdHigh = GetInt(ConfConstant::OKC_MMC_EVICT_THRESHOLD_HIGH);
         config.evictThresholdLow = GetInt(ConfConstant::OKC_MMC_EVICT_THRESHOLD_LOW);
@@ -243,7 +232,7 @@ public:
     {
         using namespace ConfConstant;
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
-        AddStrConf(OCK_MMC_LOG_LEVEL, VStrEnum::Create(OCK_MMC_LOG_LEVEL.first, LOG_LEVEL_ENUM_STR));
+        AddStrConf(OCK_MMC_LOG_LEVEL, VNoCheck::Create());
 
         AddBoolConf(OCK_MMC_TLS_ENABLE, VNoCheck::Create());
         AddStrConf(OCK_MMC_TLS_CA_PATH, VStrLength::Create(OCK_MMC_TLS_CA_PATH.first, TLS_PATH_MAX_LEN));
@@ -296,19 +285,17 @@ public:
 
     void GetLocalServiceConfig(mmc_local_service_config_t &config)
     {
-        const auto discoveryURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_URL);
-        size_t copy_count = std::min(std::strlen(discoveryURL.c_str()), static_cast<size_t>(DISCOVERY_URL_SIZE - 1));
-        std::copy_n(discoveryURL.c_str(), copy_count, config.discoveryURL);
-        config.discoveryURL[copy_count] = '\0';
+        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_URL), config.discoveryURL, DISCOVERY_URL_SIZE);
 
         config.worldSize = static_cast<uint32_t>(GetInt(ConfConstant::OKC_MMC_LOCAL_SERVICE_WORLD_SIZE));
-        config.bmIpPort = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_IP_PORT);
-        config.bmHcomUrl = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL);
+        SafeCopy(GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_IP_PORT), config.bmIpPort, DISCOVERY_URL_SIZE);
+        SafeCopy(GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL), config.bmHcomUrl, DISCOVERY_URL_SIZE);
         config.createId = 0;
-        config.dataOpType = GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_PROTOCOL);
+        SafeCopy(GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_PROTOCOL), config.dataOpType, PROTOCOL_SIZE);
         config.localDRAMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE.first, MEM_128MB_BYTES);
         config.localHBMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first, MEM_2MB_BYTES);
-        if (config.dataOpType == "device_sdma" || config.dataOpType == "device_rdma") {
+        auto protocol = std::string(config.dataOpType);
+        if (protocol == "device_sdma" || protocol == "device_rdma") {
             config.flags |= SMEM_BM_INIT_GVM_FLAG;
         }
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
@@ -321,10 +308,7 @@ public:
 
     void GetClientConfig(mmc_client_config_t &config)
     {
-        const auto discoveryURL = GetString(ConfConstant::OCK_MMC_META_SERVICE_URL);
-        size_t copy_count = std::min(std::strlen(discoveryURL.c_str()), static_cast<size_t>(DISCOVERY_URL_SIZE - 1));
-        std::copy_n(discoveryURL.c_str(), copy_count, config.discoveryURL);
-        config.discoveryURL[copy_count] = '\0';
+        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_URL), config.discoveryURL, DISCOVERY_URL_SIZE);
 
         config.rpcRetryTimeOut = static_cast<uint32_t>(GetInt(ConfConstant::OKC_MMC_CLIENT_RETRY_MILLISECONDS));
         config.timeOut = static_cast<uint32_t>(GetInt(ConfConstant::OCK_MMC_CLIENT_TIMEOUT_SECONDS));

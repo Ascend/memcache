@@ -21,8 +21,8 @@
 namespace ock {
 namespace mmc {
 
-constexpr uint32_t META_MAMAGER_MTX_NUM = 29;
-constexpr int METAMGR_POOL_BASE = 4;
+constexpr uint32_t META_MAMAGER_MTX_NUM = 61;
+constexpr int METAMGR_POOL_BASE = 16;
 
 struct MmcMemMetaDesc {
     uint16_t prot_{0};
@@ -193,6 +193,8 @@ private:
 
     void PushRemoveList(const std::string& key, const MmcMemObjMetaPtr& meta);
 
+    EvictResult EvictCallBackFunction(const std::string& key, const MmcMemObjMetaPtr& objMeta);
+
     inline std::size_t GetIndex(const MmcMemObjMetaPtr& meta) const
     {
         const MmcMemObjMeta* objPtr = meta.Get();
@@ -211,12 +213,13 @@ private:
 private:
     std::mutex mutex_;
     bool started_ = false;
+    std::atomic<bool> evictCheck_{false}; /* if the worker started */
 
     std::mutex metaItemMtxs_[META_MAMAGER_MTX_NUM];
     MmcRef<MmcMetaContainer<std::string, MmcMemObjMetaPtr>> metaContainer_;
     MmcGlobalAllocatorPtr globalAllocator_;
 
-    uint64_t defaultTtlMs_; /* defult ttl in miliseconds */
+    uint64_t defaultTtlMs_; /* default ttl in milliseconds */
     uint16_t evictThresholdHigh_;
     uint16_t evictThresholdLow_;
     MetaNetServerPtr metaNetServer_;

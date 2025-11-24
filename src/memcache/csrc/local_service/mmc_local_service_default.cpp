@@ -207,7 +207,7 @@ Result MmcLocalServiceDefault::CopyBlob(const MmcMemBlobDesc& src, const MmcMemB
         return MMC_ERROR;
     }
 
-    auto ret = bmProxy->Put(src.gva_, dst.gva_, dst.size_, SMEMB_COPY_G2G);
+    auto ret = bmProxy->Copy(src.gva_, dst.gva_, dst.size_, SMEMB_COPY_G2G);
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("bm put failed:" << ret << ", src=" << src << ", dst=" << dst);
         return MMC_ERROR;

@@ -5,6 +5,7 @@
 #ifndef MEM_FABRIC_HYBRID_SMEM_COMMON_FUNC_H
 #define MEM_FABRIC_HYBRID_SMEM_COMMON_FUNC_H
 
+#include <algorithm>
 #include <climits>
 #include <string>
 #include <sys/stat.h>
@@ -17,7 +18,7 @@ namespace mmc {
 #define DL_LOAD_SYM(TARGET_FUNC_VAR, TARGET_FUNC_TYPE, FILE_HANDLE, SYMBOL_NAME)           \
     do {                                                                                   \
         TARGET_FUNC_VAR = (TARGET_FUNC_TYPE)dlsym(FILE_HANDLE, SYMBOL_NAME);               \
-        if (TARGET_FUNC_VAR == nullptr) {                                                  \
+        if ((TARGET_FUNC_VAR) == nullptr) {                                                  \
             MMC_LOG_ERROR("Failed to call dlsym to load SYMBOL_NAME, error" << dlerror()); \
             dlclose(FILE_HANDLE);                                                          \
             return MMC_ERROR;                                                              \
@@ -70,6 +71,7 @@ inline Result Func::LibraryRealPath(const std::string &libDirPath, const std::st
 {
     std::string tmpFullPath = libDirPath;
     if (!Realpath(tmpFullPath)) {
+        MMC_LOG_ERROR("directory is a symlink.");
         return MMC_INVALID_PARAM;
     }
 
@@ -78,6 +80,12 @@ inline Result Func::LibraryRealPath(const std::string &libDirPath, const std::st
     }
 
     tmpFullPath.append(libName);
+
+    if (!Realpath(tmpFullPath)) {
+        MMC_LOG_ERROR("library path is a symlink.");
+        return MMC_INVALID_PARAM;
+    }
+
     auto ret = ::access(tmpFullPath.c_str(), F_OK);
     if (ret != 0) {
         MMC_LOG_ERROR(tmpFullPath << " cannot be accessed, ret: " << ret);
@@ -121,6 +129,22 @@ inline int ValidatePathNotSymlink(const char* path)
     }
 
     return MMC_OK;
+}
+
+inline void SafeCopy(const std::string& src, char* dst, const size_t dstSize)
+{
+    const size_t count = std::min(src.length(), dstSize - 1);
+    std::copy_n(src.c_str(), count, dst);
+    dst[count] = '\0';
+}
+
+inline std::string SafeGetEnv(const char *name) noexcept
+{
+    const auto value = std::getenv(name);
+    if (value == nullptr) {
+        return "";
+    }
+    return value;
 }
 
 }  // namespace mmc

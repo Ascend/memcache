@@ -32,7 +32,7 @@ struct NetEngineOptions {
     uint16_t threadCount = 2;     /* worker thread count */
     uint16_t rankId = UINT16_MAX; /* rank id */
     bool startListener = false;   /* start listener or not */
-    tls_config tlsOption;         /* TLS communication options */
+    mmc_tls_config tlsOption;         /* TLS communication options */
     int32_t logLevel = 3;
     ExternalLog logFunc = nullptr;
 
@@ -40,11 +40,6 @@ struct NetEngineOptions {
     std::string ToString() const;
 
     static Result ExtractIpPortFromUrl(const std::string &url, NetEngineOptions &option);
-
-private:
-    static Result ExtractURL(const std::string &url, NetProtocol &p, std::map<std::string, std::string> &details);
-
-    static Result ExtractTcpURL(const std::string &url, NetProtocol &p, std::map<std::string, std::string> &details);
 };
 
 class NetContext;
@@ -71,22 +66,18 @@ inline std::string NetEngineOptions::ToString() const
 inline Result NetEngineOptions::ExtractIpPortFromUrl(const std::string &url, NetEngineOptions &option)
 {
     using namespace mf;
-
-    NetProtocol p;
-    std::map<std::string, std::string> details;
-    /* extract to vector */
-    auto result = ExtractURL(url, p, details);
-    MMC_RETURN_ERROR(result, "Failed to extract url is invalid");
-
-    std::string ipStr = details["ip"];
-    std::string portStr = details["port"];
-
-    /* verify ip and port */
-    Ipv4PortValidator validator1("IndexServiceUrl");
-    validator1.Initialize();
-    if (!(validator1.Validate(ipStr + ":" + portStr))) {
-        MMC_LOG_ERROR("Failed to extract url");
-        return MMC_INVALID_PARAM;
+    auto result = SocketAddressParserMgr::getInstance().CreateParser(url);
+    MMC_ASSERT_RETURN(result != nullptr, MMC_INVALID_PARAM);
+    std::string ipStr = result->GetIp();
+    std::string portStr = std::to_string(result->GetPort());
+    if (!result->IsIpv6()) {
+        /* verify ip and port */
+        Ipv4PortValidator validator1("IndexServiceUrl");
+        validator1.Initialize();
+        if (!(validator1.Validate(ipStr + ":" + portStr))) {
+            MMC_LOG_ERROR("Failed to extract url");
+            return MMC_INVALID_PARAM;
+        }
     }
 
     /* covert port */
@@ -101,62 +92,7 @@ inline Result NetEngineOptions::ExtractIpPortFromUrl(const std::string &url, Net
     option.port = tmpPort;
     return MMC_OK;
 }
-
-inline Result NetEngineOptions::ExtractURL(const std::string &url, NetProtocol &p,
-                                           std::map<std::string, std::string> &details)
-{
-    using namespace mf;
-
-    p = NetProtocol::NET_NONE;
-    details.clear();
-    /* trim spaces */
-    std::string tmpUrl = url;
-    StrUtil::StrTrim(tmpUrl);
-    /* case1: start with tcp:// */
-    if (StrUtil::StartWith(url, PROTOCOL_TCP)) {
-        return ExtractTcpURL(url, p, details);
-    }
-
-    return MMC_INVALID_PARAM;
-}
-
-inline Result NetEngineOptions::ExtractTcpURL(const std::string &url, NetProtocol &p,
-                                              std::map<std::string, std::string> &details)
-{
-    using namespace mf;
-
-    p = NetProtocol::NET_RPC_TCP;
-    /* remove tcp:// */
-    std::string tmpUrl = url.substr(PROTOCOL_TCP.length(), url.length() - PROTOCOL_TCP.length());
-
-    /* split */
-    std::vector<std::string> splits = StrUtil::Split(tmpUrl, ':');
-    if (splits.size() != UN2) {
-        return MMC_INVALID_PARAM;
-    }
-
-    /* assign port */
-    details["port"] = splits[1];
-    if (splits[0].find('/') == std::string::npos) {
-        /* assign ip */
-        details["ip"] = splits[0];
-        return MMC_OK;
-    }
-
-    /* get ip mask */
-    tmpUrl = splits[0];
-    splits = StrUtil::Split(tmpUrl, '/');
-    if (splits.size() != UN2) {
-        MMC_LOG_ERROR("Get mismatched splits' size (" << splits.size() << "), should get size (" << UN2 << ").");
-        return MMC_INVALID_PARAM;
-    }
-
-    details["ip"] = splits[0];
-    details["mask"] = splits[1];
-    return MMC_OK;
-}
-
-}
-}
+} // namespace mmc
+} // namespace ock
 
 #endif  // MEM_FABRIC_MOBS_NET_COMMON_H

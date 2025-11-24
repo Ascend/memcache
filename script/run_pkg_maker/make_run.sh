@@ -1,5 +1,7 @@
 #!/bin/bash
 # Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+USE_CANN=${2:-ON}
+echo "USE_CANN is ${USE_CANN}"
 set -e
 readonly BASH_PATH=$(dirname $(readlink -f "$0"))
 CURRENT_DIR=$(pwd)
@@ -45,7 +47,6 @@ mkdir -p ${PKG_DIR}/${ARCH_OS}/include/smem
 mkdir -p ${PKG_DIR}/${ARCH_OS}/include/hybm
 mkdir -p ${PKG_DIR}/${ARCH_OS}/include/driver
 mkdir -p ${PKG_DIR}/${ARCH_OS}/include/memcache
-mkdir -p ${PKG_DIR}/${ARCH_OS}/include/util
 mkdir -p ${PKG_DIR}/${ARCH_OS}/script/mock_server
 
 # smem
@@ -68,12 +69,19 @@ cp -r ${OUTPUT_DIR}/mooncake_adapter/wheel/*.whl ${PKG_DIR}/${ARCH_OS}/wheel/
 
 cp ${PROJECT_DIR}/config/* ${PKG_DIR}/config
 cp -r ${PROJECT_DIR}/test/certs ${PKG_DIR}/${ARCH_OS}/script
-cp -r ${PROJECT_DIR}/script/k8s_deploy ${PKG_DIR}/${ARCH_OS}/script
+cp -r ${PROJECT_DIR}/test/k8s_deploy ${PKG_DIR}/${ARCH_OS}/script
 cp ${PROJECT_DIR}/test/python/memcache/mock_server/server.py ${PKG_DIR}/${ARCH_OS}/script/mock_server
+cp ${PROJECT_DIR}/test/python/memcache/mock_server/smem_bm/smem_bm_server.py ${PKG_DIR}/${ARCH_OS}/script/mock_server
 cp -r ${PROJECT_DIR}/test/python/memcache/ha ${PKG_DIR}/${ARCH_OS}/script
 
 mkdir -p ${PKG_DIR}/script
-cp ${BASH_PATH}/install.sh ${PKG_DIR}/script/
+if [[ "$USE_CANN" == "OFF" ]]; then
+   echo "in make_run.sh, USE_CANN is OFF"
+   cp ${BASH_PATH}/no_cann/install.sh ${PKG_DIR}/script/
+else
+   echo "in make_run.sh, USE_CANN is ON"
+   cp ${BASH_PATH}/install.sh ${PKG_DIR}/script/
+fi
 cp ${BASH_PATH}/uninstall.sh ${PKG_DIR}/script/
 
 # generate version.info

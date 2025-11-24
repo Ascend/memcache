@@ -10,6 +10,7 @@
 #include <unordered_map>
 
 #include "mmc_mem_obj_meta.h"
+#include "mf_rwlock.h"
 #include "mmc_meta_container.h"
 
 namespace ock {
@@ -19,55 +20,19 @@ template <typename Key, typename Value> class MmcMetaContainerLRU : public MmcMe
 private:
     struct ValueLruItem {
         Value value_;
+        MediaType mediaType_;
         typename std::list<Key>::iterator lruIter_;
     };
     std::unordered_map<Key, ValueLruItem> metaMap_;
-    std::list<Key> lruList_;
-    mutable std::mutex mutex_;
-
-    using IterBase = typename MmcMetaContainer<Key, Value>::MetaIteratorBase;
-
-    class MetaIterator : public MmcMetaContainer<Key, Value>::MetaIteratorBase {
-        using MapIterator = typename std::unordered_map<Key, ValueLruItem>::iterator;
-        MapIterator it_;
-        MapIterator end_;
-
-    public:
-        MetaIterator(MapIterator it, MapIterator end) : it_(it), end_(end) {}
-        IterBase &operator++() override
-        {
-            ++it_;
-            return *this;
-        };
-
-        bool operator!=(const IterBase &other) const override
-        {
-            const MetaIterator *derived = dynamic_cast<const MetaIterator *>(&other);
-            return derived && (it_ != derived->it_);
-        }
-
-        std::pair<Key, Value> operator*() const override
-        {
-            return {it_->first, it_->second.value_};
-        }
-    };
+    std::list<Key> lruLists_[MEDIA_NONE];
+    MediaType topLayer_ = MEDIA_NONE;
+    ock::mf::ReadWriteLock lruLock_;
+    ock::mf::ReadWriteLock metaLock_;
 
 public:
-    std::unique_ptr<IterBase> Begin() override
-    {
-        std::lock_guard<std::mutex> guard(mutex_);
-        return std::unique_ptr<IterBase>(new (std::nothrow) MetaIterator(metaMap_.begin(), metaMap_.end()));
-    }
-
-    std::unique_ptr<IterBase> End() override
-    {
-        std::lock_guard<std::mutex> guard(mutex_);
-        return std::unique_ptr<IterBase>(new (std::nothrow) MetaIterator(metaMap_.end(), metaMap_.end()));
-    }
-
     Result Insert(const Key &key, const Value &value) override
     {
-        std::lock_guard<std::mutex> guard(mutex_);
+        ock::mf::WriteGuard lockGuard(metaLock_);
         auto iter = metaMap_.find(key);
         if (iter != metaMap_.end()) {
             MMC_LOG_WARN("Fail to insert "
@@ -76,22 +41,27 @@ public:
         }
 
         // insert into LRU and create lruItem
-        lruList_.push_front(key);
-        ValueLruItem lruItem{value, lruList_.begin()};
+        ock::mf::WriteGuard lrucLockGuard(lruLock_);
+        if (topLayer_ == MEDIA_NONE) {
+            MMC_LOG_ERROR("Failed to Insert, no medium registered. ");
+            return MMC_ERROR;
+        }
+        lruLists_[topLayer_].push_front(key);
+        ValueLruItem lruItem{value, topLayer_, lruLists_[topLayer_].begin()};
 
         // insert into map
         auto ret = metaMap_.emplace(key, lruItem);
         if (ret.second) {
             return MMC_OK;
         }
-        lruList_.erase(lruItem.lruIter_);
+        lruLists_[topLayer_].erase(lruItem.lruIter_);
         MMC_LOG_ERROR("Fail to insert " << key << " into MmcMetaContainer. ErrCode: " << MMC_ERROR);
         return MMC_ERROR;
     }
 
     Result Get(const Key &key, Value &value) override
     {
-        std::lock_guard<std::mutex> guard(mutex_);
+        ock::mf::ReadGuard lockGuard(metaLock_);
         auto iter = metaMap_.find(key);
         if (iter != metaMap_.end()) {
             value = iter->second.value_;
@@ -109,7 +79,7 @@ public:
 
     Result Erase(const Key& key, Value& value) override
     {
-        std::lock_guard<std::mutex> guard(mutex_);
+        ock::mf::WriteGuard lockGuard(metaLock_);
         auto iter = metaMap_.find(key);
         if (iter == metaMap_.end()) {
             MMC_LOG_INFO("Key " << key << " not found in MmcMetaContainer. ErrCode: " << MMC_UNMATCHED_KEY);
@@ -118,7 +88,8 @@ public:
         auto lruIter = iter->second.lruIter_;
         value = iter->second.value_;
         if (metaMap_.erase(key) > 0) {
-            lruList_.erase(lruIter);
+            ock::mf::WriteGuard lockGuard(lruLock_);
+            lruLists_[iter->second.mediaType_].erase(lruIter);
             return MMC_OK;
         }
         MMC_LOG_ERROR("Fail to erase " << key << " from MmcMetaContainer. ErrCode: " << MMC_ERROR);
@@ -127,10 +98,11 @@ public:
 
     void EraseIf(std::function<bool(const Key&, const Value&)> matchFunc) override
     {
-        std::lock_guard<std::mutex> guard(mutex_);
+        ock::mf::WriteGuard lockGuard(metaLock_);
         for (auto iter = metaMap_.begin(); iter != metaMap_.end();) {
             if (matchFunc(iter->first, iter->second.value_)) {
-                lruList_.erase(iter->second.lruIter_);
+                ock::mf::WriteGuard lockGuard(lruLock_);
+                lruLists_[iter->second.mediaType_].erase(iter->second.lruIter_);
                 iter = metaMap_.erase(iter);
             } else {
                 ++iter;
@@ -141,7 +113,7 @@ public:
     void IterateIf(std::function<bool(const Key&, const Value&)> matchFunc,
                    std::map<Key, Value>& matchedValues) override
     {
-        std::lock_guard<std::mutex> guard(mutex_);
+        ock::mf::ReadGuard lockGuard(metaLock_);
         for (auto iter = metaMap_.begin(); iter != metaMap_.end();) {
             if (matchFunc(iter->first, iter->second.value_)) {
                 matchedValues.emplace(std::make_pair(iter->first, iter->second.value_));
@@ -152,7 +124,7 @@ public:
 
     Result Promote(const Key &key)
     {
-        std::lock_guard<std::mutex> guard(mutex_);
+        ock::mf::ReadGuard lockGuard(metaLock_);
         auto iter = metaMap_.find(key);
         if (iter != metaMap_.end()) {
             UpdateLRU(iter->first, iter->second);
@@ -162,74 +134,99 @@ public:
         return MMC_UNMATCHED_KEY;
     }
 
-    std::vector<Key> EvictCandidates(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow)
+    bool EvictOneLeastRecentlyUsed(std::function<EvictResult(const Key &, const Value &)> moveFunc,
+                                   const MediaType mediaType)
     {
-        if (evictThresholdLow == 0 || evictThresholdHigh <= evictThresholdLow) {
-            MMC_LOG_ERROR("Evict threshold invalid, high: " << evictThresholdHigh << ", low: " << evictThresholdLow);
-            return {};
+        if (mediaType == MEDIA_NONE) {
+            MMC_LOG_ERROR("Invalid mediaType: " << mediaType);
+            return false;
         }
-        std::lock_guard<std::mutex> guard(mutex_);
+        ock::mf::WriteGuard lockGuard(metaLock_);
+        ock::mf::WriteGuard lruLockGuard(lruLock_);
+        if (lruLists_[mediaType].empty()) {
+            MMC_LOG_ERROR("Unable to evict, LRU list is empty");
+            return false;
+        }
+        auto iter = std::prev(lruLists_[mediaType].end());
+        Key key = *iter;
 
-        uint32_t numEvictObjs = std::max(std::min(
-            lruList_.size() * (evictThresholdHigh - evictThresholdLow) / evictThresholdHigh,
-            lruList_.size()), static_cast<size_t>(1));
-        std::vector<Key> candidates;
-        candidates.reserve(numEvictObjs);
-        auto iter = lruList_.rbegin();
-        for (size_t i = 0; i < numEvictObjs && iter != lruList_.rend(); ++i, ++iter) {
-            candidates.push_back(*iter);
+        // 1、查找value
+        auto mapIter = metaMap_.find(key);
+        if (mapIter == metaMap_.end()) {
+            lruLists_[mediaType].erase(iter);
+            MMC_LOG_INFO("Key " << key << " not found in MmcMetaContainer.");
+            return true;
         }
-        MMC_LOG_INFO("Touched threshold evict, total size: " << lruList_.size()
-            << ", evict size: " << candidates.size());
-        return candidates;
+
+        // 2、删除map和lru
+        Value& value = mapIter->second.value_;
+
+        // 3、回调处理key，value
+        EvictResult res = moveFunc(key, value);
+        if (res == EvictResult::REMOVE) {
+            metaMap_.erase(mapIter);
+            lruLists_[mediaType].erase(iter);
+            MMC_LOG_INFO("Key " << key << " will be evicted by remove.");
+            return true;
+        }
+        if (res == EvictResult::MOVE_DOWN) {
+            auto targetMedium = MoveDown(mediaType);
+            if (targetMedium == MEDIA_NONE) {
+                MMC_LOG_ERROR("Invalid target medium: " << targetMedium);
+                return false;
+            }
+            lruLists_[mediaType].erase(iter);
+            lruLists_[targetMedium].push_front(key);
+            mapIter->second.mediaType_ = targetMedium;
+            mapIter->second.lruIter_ = lruLists_[targetMedium].begin();
+            MMC_LOG_INFO("Key " << key << " will be evicted from " << mediaType << " to " << targetMedium << ".");
+            return true;
+        }
+        MMC_LOG_ERROR("Failed to evict Key " << key << ", moveFunc failed.");
+        return false;
     }
 
-    std::vector<Key> MultiLevelElimination(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow,
-                                           std::function<bool(const Key&, const Value&)> moveFunc)
+    void MultiLevelElimination(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow,
+                               const std::vector<MediaType>& needEvictList,
+                               std::function<EvictResult(const Key &, const Value &)> moveFunc)
     {
-        std::lock_guard<std::mutex> guard(mutex_);
-        size_t oriNum = lruList_.size();
-        uint32_t numEvictObjs = std::max(std::min(
-            oriNum * (evictThresholdHigh - evictThresholdLow) / evictThresholdHigh,
-            oriNum), static_cast<size_t>(1));
-        std::vector<Key> removed;
-        removed.reserve(numEvictObjs);
-        auto iter = lruList_.end();
-        for (size_t i = 0; i < numEvictObjs && iter != lruList_.begin(); ++i) {
-            --iter; // iter前移
-            // 1、查找value
-            Key& key = *iter;
-            auto mapIter = metaMap_.find(key);
-            if (mapIter == metaMap_.end()) {
-                MMC_LOG_INFO("Key " << key << " not found in MmcMetaContainer.");
-                iter = lruList_.erase(iter);
+        for (const MediaType mediaType : needEvictList) {
+            if (mediaType == MEDIA_NONE) {
+                MMC_LOG_ERROR("Invalid mediaType: " << mediaType);
                 continue;
             }
-            // 2、删除map和lru
-            Value& value = mapIter->second.value_;
 
-            // 3、回调处理key，value
-            if (moveFunc(key, value)) {
-                MMC_LOG_INFO("Key " << key << " removed by evict.");
-                metaMap_.erase(mapIter);
-                iter = lruList_.erase(iter);
-                removed.push_back(key);
+            lruLock_.LockRead();
+            size_t oriNum = lruLists_[mediaType].size();
+            lruLock_.UnLock();
+
+            const size_t numEvictObjs = std::max(
+                std::min(oriNum * (evictThresholdHigh - evictThresholdLow) / evictThresholdHigh, oriNum),
+                static_cast<size_t>(1));
+
+            for (size_t i = 0; i < numEvictObjs; ++i) {
+                EvictOneLeastRecentlyUsed(moveFunc, mediaType);
             }
-        }
 
-        if (!removed.empty()) {
-            MMC_LOG_INFO("evict items from " << oriNum << " to " << lruList_.size()
-                                             << ", evict size: " << removed.size());
+            MMC_LOG_INFO("Evicted " << numEvictObjs << " keys from " << mediaType <<
+                ". Number of keys: " << oriNum << " => " << (oriNum - numEvictObjs) << ".");
         }
-        return removed;
+    }
+
+    void RegisterMedium(const MediaType mediaType) override
+    {
+        topLayer_ = std::min(topLayer_, mediaType);
+        MMC_LOG_DEBUG("top layer: " << topLayer_);
     }
 
 private:
     void UpdateLRU(const Key &key, ValueLruItem &lruItem)
     {
-        lruList_.erase(lruItem.lruIter_);
-        lruList_.push_front(key);
-        lruItem.lruIter_ = lruList_.begin();
+        // 只支持在同层级内部更新
+        ock::mf::WriteGuard lockGuard(lruLock_);
+        lruLists_[lruItem.mediaType_].erase(lruItem.lruIter_);
+        lruLists_[lruItem.mediaType_].push_front(key);
+        lruItem.lruIter_ = lruLists_[lruItem.mediaType_].begin();
     }
 };
 

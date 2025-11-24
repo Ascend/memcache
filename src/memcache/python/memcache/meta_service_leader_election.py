@@ -217,14 +217,17 @@ class MetaServiceLeaderElection:
         if not is_renew:  # 首次获取时更新获取时间
             lease.spec.acquire_time = current_time
 
-        self.coordination_v1.replace_namespaced_lease(
-            name=self.lease_name,
-            namespace=self.namespace,
-            body=lease
-        )
-        logger.debug(f"Succeed in updating lease={self.lease_name}: curHolder={self.pod_name}, "
-                     f"leaseDuration={self.lease_duration}, renewTime={current_time}, currentTime={current_time}, "
-                     f"retry_period={self.retry_period}, my_pod_name={self.pod_name}")
+        try:
+            self.coordination_v1.replace_namespaced_lease(
+                name=self.lease_name,
+                namespace=self.namespace,
+                body=lease
+            )
+            logger.debug(f"Succeed in updating lease={self.lease_name}: curHolder={self.pod_name}, "
+                         f"leaseDuration={self.lease_duration}, renewTime={current_time}, currentTime={current_time}, "
+                         f"retry_period={self.retry_period}, my_pod_name={self.pod_name}")
+        except Exception as e:
+            logger.error(f'Failed in updating lease {self.pod_name=}, Exception: {e}')
 
     def _update_pod_label(self, labels):
         """更新当前Pod的标签"""

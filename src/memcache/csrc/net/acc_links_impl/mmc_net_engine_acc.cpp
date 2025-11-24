@@ -17,7 +17,7 @@
 namespace ock {
 namespace mmc {
 constexpr const int16_t NET_SERVER_MAGIC = 3867;
-constexpr const int NET_POOL_BASE = 4;
+constexpr const int NET_POOL_BASE = 16;
 
 Result NetEngineAcc::Start(const NetEngineOptions &options)
 {
@@ -446,14 +446,6 @@ Result NetEngineAcc::HandleLinkBroken(const TcpLinkPtr &link) const
     }
     return ret;
 }
-
-/*
-Result NetEngineAcc::LoadDynamicLib(const std::string &dynLibPath)
-{
-    MMC_ASSERT_RETURN(server_ != nullptr, MMC_ERROR);
-    return server_->LoadDynamicLib(dynLibPath);
-}
-*/
 
 Result NetEngineAcc::ConnectToPeer(uint32_t peerId, const std::string &peerIp, uint16_t port, NetLinkPtr &newLink,
                                    bool isForce)

@@ -37,6 +37,7 @@ MMC_API int32_t mmcc_register_buffer(uint64_t addr, uint64_t size)
 {
     MMC_VALIDATE_RETURN(addr != 0, "invalid parma, addr is null", MMC_INVALID_PARAM);
     MMC_VALIDATE_RETURN(size > 0, "invalid parma, size is zero", MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(MmcClientDefault::GetInstance() != nullptr, "client is not initialize", MMC_CLIENT_NOT_INIT);
 
     return MmcClientDefault::GetInstance()->RegisterBuffer(addr, size);
 }
@@ -130,16 +131,6 @@ MMC_API int32_t mmcc_batch_query(const char **keys, size_t keys_count, mmc_data_
         }
     }
     return MMC_OK;
-}
-
-MMC_API mmc_location_t mmcc_get_location(const char *key, uint32_t flags)
-{
-    MMC_VALIDATE_RETURN(key != nullptr, "invalid param, key is null", {});
-    MMC_VALIDATE_RETURN(strlen(key) != 0, "invalid param, key's len equals 0", {});
-    MMC_VALIDATE_RETURN(strlen(key) <= MAX_KEY_LEN, "invalid param, key's len more than 256", {});
-    MMC_VALIDATE_RETURN(MmcClientDefault::GetInstance() != nullptr, "client is not initialize", {});
-
-    return MmcClientDefault::GetInstance()->GetLocation(key, flags);
 }
 
 MMC_API int32_t mmcc_remove(const char *key, uint32_t flags)
@@ -324,9 +315,8 @@ MMC_API int32_t mmcc_batch_put(const char** keys, uint32_t keys_count, const mmc
             MMC_LOG_ERROR("Remove invalid key: " << keys[i]);
             return MMC_INVALID_PARAM;  // 这个错误属于入参不合法，直接给调用者返回错误
         }
-        if (bufs == nullptr || bufs[i].addr == 0 || bufs[i].type >= BUF_TYPE_BASE || bufs[i].dimType >= BUF_TYPE_BASE) {
-            MMC_LOG_ERROR("Remove invalid buf with key: " << keys[i] << ", type: " << bufs[i].type
-                                                          << ", dim:" << bufs[i].dimType);
+        if (bufs == nullptr || bufs[i].addr == 0 || bufs[i].type >= BUF_TYPE_BASE) {
+            MMC_LOG_ERROR("Remove invalid buf with key: " << keys[i] << ", type: " << bufs[i].type);
             return MMC_INVALID_PARAM;
         }
         keys_vector.emplace_back(keys[i]);
@@ -339,5 +329,13 @@ MMC_API int32_t mmcc_batch_put(const char** keys, uint32_t keys_count, const mmc
     for (uint32_t i = 0; i < keys_count; ++i) {
         results[i] = batchResult[i];
     }
+    return MMC_OK;
+}
+
+MMC_API int32_t mmcc_local_service_id(uint32_t *localServiceId)
+{
+    MMC_VALIDATE_RETURN(localServiceId != nullptr, "invalid param, localServiceID is null", MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(MmcClientDefault::GetInstance() != nullptr, "client is not initialize", MMC_CLIENT_NOT_INIT);
+    *localServiceId = MmcClientDefault::GetInstance()->RankId();
     return MMC_OK;
 }

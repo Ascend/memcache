@@ -43,8 +43,6 @@ public:
     Result BatchGet(const std::vector<std::string>& keys, const std::vector<MmcBufferArray>& bufArrs,
                     uint32_t flags, std::vector<int>& batchResult);
 
-    mmc_location_t GetLocation(const char *key, uint32_t flags);
-
     Result Remove(const char *key, uint32_t flags) const;
 
     Result BatchRemove(const std::vector<std::string>& keys, std::vector<Result>& remove_results, uint32_t flags) const;
@@ -60,6 +58,11 @@ public:
                       uint32_t flags) const;
 
     Result RegisterBuffer(uint64_t addr, uint64_t size);
+
+    uint32_t RankId() const
+    {
+        return rankId_;
+    }
 
     static Result RegisterInstance()
     {
@@ -100,7 +103,7 @@ private:
     MmcClientDefault& operator=(const MmcClientDefault&) = delete;
 
     inline uint32_t RankId(const affinity_policy &policy);
-
+    Result PrePutHandle(const MmcBufferArray &bufArr, mmc_put_options &options, AllocRequest &request, uint32_t flags);
     Result AllocateAndPutBlobs(const std::vector<std::string>& keys, const std::vector<MmcBufferArray>& bufs,
                                const mmc_put_options& options, uint32_t flags, uint64_t operateId,
                                std::vector<int>& batchResult, BatchAllocResponse& allocResponse);
@@ -120,6 +123,7 @@ private:
     uint32_t rpcRetryTimeOut_ = 0;
     uint64_t defaultTtlMs_ = MMC_DATA_TTL_MS;
     MmcThreadPoolPtr threadPool_;
+    MmcThreadPoolPtr ioThreadPool_;
     std::set<uint64_t> registerSet_; // va << 1 | is_left
 };
 

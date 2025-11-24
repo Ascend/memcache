@@ -14,17 +14,7 @@ namespace mmc {
 
 template <typename Key, typename Value> class MmcMetaContainer : public MmcReferable {
 public:
-    class MetaIteratorBase {
-    public:
-        virtual ~MetaIteratorBase() = default;
-        virtual MetaIteratorBase &operator++() = 0;
-        virtual bool operator!=(const MetaIteratorBase &other) const = 0;
-        virtual std::pair<Key, Value> operator*() const = 0;
-    };
-
     virtual ~MmcMetaContainer() = default;
-    virtual std::unique_ptr<MetaIteratorBase> Begin() = 0;
-    virtual std::unique_ptr<MetaIteratorBase> End() = 0;
     virtual Result Insert(const Key &key, const Value &value) = 0;
     virtual Result Get(const Key &key, Value &value) = 0;
     virtual Result Erase(const Key &key) = 0;
@@ -33,9 +23,10 @@ public:
     virtual void IterateIf(std::function<bool(const Key&, const Value&)> matchFunc,
                            std::map<Key, Value>& matchedValues) = 0;
     virtual Result Promote(const Key& key) = 0;
-    virtual std::vector<Key> EvictCandidates(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow) = 0;
-    virtual std::vector<Key> MultiLevelElimination(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow,
-                                                   std::function<bool(const Key&, const Value&)> removeFunc) = 0;
+    virtual void MultiLevelElimination(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow,
+                                       const std::vector<MediaType>& needEvictList,
+                                       std::function<EvictResult(const Key &, const Value &)> removeFunc) = 0;
+    virtual void RegisterMedium(const MediaType mediumType) = 0;
 
     static MmcRef<MmcMetaContainer<Key, Value>> Create();
 };
