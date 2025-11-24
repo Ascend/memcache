@@ -6,11 +6,4 @@
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 
-add_subdirectory(acc_links/csrc)
-add_subdirectory(util/csrc/ptracer)
-add_subdirectory(smem/csrc/config_store)
-add_subdirectory(smem/csrc)
-add_subdirectory(hybm/csrc)
 add_subdirectory(memcache/csrc)
-add_subdirectory(mooncake_adapter/csrc)
-add_subdirectory(driver)

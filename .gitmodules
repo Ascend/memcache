@@ -12,5 +12,5 @@
 	branch = tags/v1.15.3
 [submodule "3rdparty/memfabric_hybrid"]
 	path = 3rdparty/memfabric_hybrid
-	url = https://gitee.com/mrh1024/memfabrichybrid.git
-	branch = br_opensource_memfabric_hybrid
+	url = https://gitee.com/jchanghong/memfabric_hybrid.git
+	branch = br_opensource_memfabric

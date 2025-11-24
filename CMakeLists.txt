@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12.0)
 project(MF_HYBRID VERSION 1.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 17)
-
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
 option(ENABLE_TRACE_LOG "Enable trace log" OFF)
 option(BUILD_TESTS "build test or not" OFF)
 option(BUILD_OPEN_ABI "build open _GLIBCXX_USE_CXX11_ABI" ON)
@@ -116,6 +116,10 @@ set(PROJECT_3RDPARTY_SRC_DIR ${PROJECT_SOURCE_DIR}/3rdparty)
 set(PROJECT_3RDPARTY_BIN_DIR ${PROJECT_SOURCE_DIR}/output/3rdparty)
 set(PROJECT_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/output)
 
+# set src base dir and output dir of memcache
+set(PROJECT_MMC_SRC_BASE ${PROJECT_SOURCE_DIR}/src/memcache)
+set(PROJECT_MMC_OUTPUT ${PROJECT_SOURCE_DIR}/output/memcache)
+
 # set install target top dir
 message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
 if (${CMAKE_INSTALL_PREFIX} MATCHES "/usr/local")
@@ -126,10 +130,6 @@ else ()
     set(TARGET_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/)
 endif ()
 message(STATUS "install dir ${TARGET_INSTALL_DIR}")
-
-# set src base dir and output dir of memcache
-set(PROJECT_MMC_SRC_BASE ${PROJECT_SOURCE_DIR}/src/memcache)
-set(PROJECT_MMC_OUTPUT ${TARGET_INSTALL_DIR}/memcache)
 
 if(BUILD_PYTHON STREQUAL "ON")
     # 获取Python头文件路径
@@ -174,6 +174,19 @@ else()
 endif()
 
 add_subdirectory(3rdparty)
+
+set(HYBRID_SRC ${PROJECT_SOURCE_DIR}/3rdparty/memfabric_hybrid/src)
+file(GLOB_RECURSE ALL_HEADERS
+        "${HYBRID_SRC}/*.h"
+)
+set(INCLUDE_DIRS "")
+foreach (header ${ALL_HEADERS})
+    get_filename_component(HEADER_DIR ${header} PATH)
+    list(APPEND INCLUDE_DIRS ${HEADER_DIR})
+endforeach ()
+list(REMOVE_DUPLICATES INCLUDE_DIRS)
+include_directories(${INCLUDE_DIRS})
+
 add_subdirectory(src)
 add_subdirectory(test/example/memcache_cpp_test)
 
