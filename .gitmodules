@@ -6,11 +6,7 @@
 	path = test/3rdparty/mockcpp
 	url = https://github.com/sinojelly/mockcpp.git
 	branch = tags/v2.7
-[submodule "3rdparty/log/spdlog"]
-	path = 3rdparty/log/spdlog
-	url = https://github.com/gabime/spdlog.git
-	branch = tags/v1.15.3
 [submodule "3rdparty/memfabric_hybrid"]
 	path = 3rdparty/memfabric_hybrid
-	url = https://gitee.com/jchanghong/memfabric_hybrid.git
+	url = https://gitee.com/ascend/memfabric_hybrid.git
 	branch = br_opensource_memfabric
