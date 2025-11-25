@@ -108,7 +108,9 @@ function parse_script_args()
             shift
         ;;
         --*)
-            shift
+            print "ERROR" "Unsupported parameter: $1"
+            print_help
+            exit 1
         ;;
         *)
             break
