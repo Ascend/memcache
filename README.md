@@ -1,194 +1,61 @@
-# memfabric_hybrid
+# Memcache
 
-### 简介
-MemFabric Hybrid面向昇腾NPU服务器和超节点，提供了构建基于HCCS互联的跨节点的HBM和DRAM的内存池的功能，可充分发挥A3超节点内D2D大带宽优势，无需配置额外Host网卡。它为用户提供了一个并行编程接口，并为跨多个NPU的内存的数据创建了一个全局地址空间，可以在NPU上通过使用MTE、RoCE、SDMA发起的数据操作来访问，还提供了由CPU发起的数据拷贝操作。
+## 🔄Latest News
 
-#### Memfabric软件架构
-![architecture](./doc/source/architecture.JPG)
+- [2025/11] memcached项目预计2025年11月30日开源，开源社区地址为：https://gitcode.com/Ascend/memcache
 
-##### Memcache架构
-[Architecture for MemCache](./doc/zh/memcache.md)
+## 🎉概述
 
-### 编译
+MemCache是针对LLM推理场景设计的高性能分布式键值 KV Cache 存储引擎，其主要特性包括：
 
-memfabric_hybrid编译不依赖CANN和HDK.
+- **基于对象操作的API**：支持批量和非批量的put/get/exist/remove操作
+- **支持多副本**：单个对象支持多副本放置到不同的localservice，默认是单副本
+- **高带宽低时延**：基于MemFabric作为多级内存和多通路传输的底座，在Ascend硬件上，基于device_rdma(A2)、device_sdma(A3)、host_rdma(A2/A3)等路径实现onecopy传输，提供高带宽，低时延的读写能力。
+- **支持扩缩容**：支持localservice动态加入和移除
+- **HA能力**：在K8S集群中，metaservice支持多活能力，提供尽力而为的HA能力。
 
-1. 下载代码
-```
-git clone git@gitee.com:ascend/memfabric_hybrid.git
-
-cd memfabric_hybrid
-```
-
-2. 拉取三方库
-```
-git submodule init
-
-git submodule update --recursive
-```
-
-3. 编译
-
-支持直接执行如下脚本编译
-```
-bash script/build.sh
-
-build.sh支持5个参数,按顺序分别是<build_mode> <need_build_ut> <open_abi> <build_whl> <BUILD_COMPILER>
-build_mode:编译类型,可填RELEASE或DEBUG
-need_build_ut:是否编译uttest,可填ON或OFF
-open_abi:编译时是否添加-D_GLIBCXX_USE_CXX11_ABI=1宏,可填ON或OFF
-build_whl:是否编译python的whl包,可填ON或OFF
-build_compiler:编译器选择，输入bisheng可手动指定编译器为bisheng。
-不填入参数情况下,默认执行build.sh RELEASE OFF ON ON gcc
-```
-
-4. ut运行
-
-支持直接执行如下脚本编译并运行ut
-```
-bash script/run_ut.sh
-```
-
-### 安装使用
-
-memfabric_hybrid将所有特性集成到run包中供用户使用，run包格式为 ```mxc-memfabric-hybrid-${version}_${os}_${arch}.run```
-
-其中，versin表示memfabric_hybrid的版本；os表示操作系统,如linux；arch表示架构，如x86或aarch64
-
-#### run包编译
-
-可以直接执行如下命令进行编译，在output目录下生成run包
-```
-bash script/build_and_pack_run.sh
-```
-
-#### run包依赖
-
-run包只能安装到npu环境上，且依赖于NPU固件驱动和CANN包，具体版本依赖详见下面的软件硬件配套说明
-
-请在环境上提前安装NPU固件驱动和CANN包([环境安装参考链接](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/81RC1alpha002/softwareinst/instg/instg_0000.html))
-
-安装完成后需要配置CANN环境变量([参考安装Toolkit开发套件包的第三步配置环境变量](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/81RC1alpha002/softwareinst/instg/instg_0008.html))
-
-#### run包安装
-
-run包的默认安装根路径为 /usr/local/
-
-安装完成后需要source安装路径下的mxc/memfabric_hybrid/set_env.sh
-
-参考安装命令如下
-```bash
-bash mxc-memfabric_hybrid-1.0.0_linux_aarch64.run
-source /usr/local/mxc/memfabric_hybrid/set_env.sh
-```
-
-如果想要自定义安装路径，可以添加--install-path参数
-```bash
-bash mxc-memfabric_hybrid-1.0.0_linux_aarch64.run --install-path=${your path}
-```
-
-安装完成后目录结构如下
-```
-${INSTALL_PATH}/
-    |--mxc
-          |--memfabric_hybrid
-              |-- latest
-              |-- set_env.sh
-              |-- ${version}
-                   |-- ${arch}-${os}
-                        |-- include    (头文件)
-                        |-- lib64      (so库)
-                        |-- whl        (python的whl包)
-                   |-- uninstall.sh
-                   |-- version.info
-
-default ${INSTALL_PATH} is /usr/local/
-```
-
-在安装过程中，会默认尝试安装适配当前环境的memfabric-hybrid的whl包，如果未安装，则在使用python接口前需要用户手动安装(安装包路径参考上面目录结构)
-
-memfabric-hybrid 默认开启tls通信加密。如果想关闭，需要主动调用`smem_set_conf_store_tls`接口关闭：
-```c
-int32_t ret = smem_set_conf_store_tls(false, nullptr, 0);
-```
-具体细节详见安全声明章节
+![memcache_architecture.png](./doc/source/memcache_architecture.png)
 
 
-### 特性简介
-#### Big Memory(BM)
-    * 支持创建统一内存空间存储数据
-    * 支持同步数据拷贝，包含L2G, G2L, G2H, H2G
-    * 自动分配rank (初始化时用户可以不指定rank,由BM内部自动生成,具体参见smem_bm_init接口)
-    * 动态join和leave (参见smem_bm_join和smem_bm_leave接口)
-    * 接口支持的语言: c, python
+## 🧩核心组件
 
-Note:
-```angular2html
-L2G: copy data from local HBM space to global HBM space
-G2L: copy data from global HBM space to local HBM space
-H2G: copy data from host DRAM memory to global HBM space
-G2H: copy data from global HBM space to host DRAM memory
-```
+MemCache包含LocalService和MetaService两大核心模块，基于MemFabric构建能力。
 
-安装memfabri hybrid后，BM接口头文件位于
-```${INSTALL_PATH}/mxc/memfabric_hybrid/latest/${arch}-${os}/include/smem/host/smem_bm.h```
+- **MetaService**：负责管理整个集群的内存池空间分配和元数据管理，并处理LocalService的加入与退出。MetaService作为独立进程运行，提供两种启动方式：python API启动；二进制启动，详见安装部署章节。
+MetaService支持两种部署形态：
+  - **1、单点模式**：MetaService由单个进程组成，部署方式简单，但存在单点故障的问题。如果MetaService进程崩溃或无法访问，系统将无法继续提供服务，直至重新恢复为止。
+  - **2、HA模式**：该模式基于K8S的的ClusterIP Service和Lease资源构建，部署较为复杂，会部署多个MetaService进程实例，实现多活高可用。部署详见[MetaService HA](./memcache_metaservice_HA.md)
 
-#### Share Memory(SHM)
-    * 支持创建统一内存空间
-    * 支持用户传入自定义数据在卡侧访问(参见smem_shm_set_extra_context和smem_shm_get_extra_context_addr接口)
-    * 支持host侧全局barrier和allgather(参见smem_shm_control_barrier和smem_shm_control_allgather接口)
-    * 支持超节点内，卡侧通过MTE直接访问统一内存
-    * 卡侧提供基础copy接口
-    * 接口支持的语言: c, python
-
-安装memfabri hybrid后，SHM接口头文件位于
-```
-${INSTALL_PATH}/mxc/memfabric_hybrid/latest/${arch}-${os}/include/smem/host/smem_shm.h
-和
-${INSTALL_PATH}/mxc/memfabric_hybrid/latest/${arch}-${os}/include/smem/device/smem_shm_aicore_base_api.h
-```
-
-### 使用方法
-#### C接口
-安装完成run包并source安装路径下的set_env.sh后，会添加memfabric_hybrid安装路径的环境变量MEMFABRIC_HYBRID_HOME_PATH
-
-使用memfabric_hybrid相关接口时，需要include相关头文件(在\${MEMFABRIC_HYBRID_HOME_PATH}/aarch64-linux/include/smem/host路径下)，并且在**链接时需要添加libmf_smem.so**(在${MEMFABRIC_HYBRID_HOME_PATH}/aarch64-linux/lib64路径下)依赖
-
-可以通过MEMFABRIC_HYBRID_HOME_PATH环境变量指定头文件和lib库依赖路径，从而完成代码构建
+- **LocalService**：负责承担如下功能：
+  - **客户端**：作为客户端，以whl/so形式作为共享库被应用进程加载调用API
+  - **内存提供者**：负责提供一段连续的内存区域作为内存池空间的一部分，其内存可以被其他LocalService实例基于地址直接访问。
 
 
-[C接口API列表](./doc/zh/smem_api.md)
+## 🔥性能表现
 
-#### Python接口
-安装完成run包并source安装路径下的set_env.sh后，即可在python中通过**import mf_smem**导入memfabric_hybrid的python包，然后调用python接口
+- 在昇腾A2芯片上传输数据我们的带宽性能数据如下：
 
-python接口为c接口的封装，功能一致，具体介绍可以在python中使用help函数获取，参考如下
-```python
-import mf_smem  #导入memfabric_hybrid
-help(mf_smem)   #查看memfabric_hybrid基础函数介绍
-help(mf_smem.bm)    #查看big memory接口介绍
-help(mf_smem.shm)   #查看share memory接口介绍
-```
-
-[python接口API列表](./doc/zh/smem_py_api.md)
-
-#### 运行样例
-
-具体流程参考example目录下各个样例中对应的README.md，example及其他样例代码仅供参考，在生产环境中请谨慎使用。
-
-### 软件硬件配套说明
-- 硬件型号支持
-  - Atlas 800I A2/A3 系列产品
-  - Atlas 800T A2/A3 系列产品
-- 平台：aarch64/x86
-- 配套软件：驱动固件 Ascend HDK 25.0.RC1、 CANN 8.1.RC1及之后版本
-- cmake >= 3.19  
-- GLIBC >= 2.28
+- 在昇腾A3芯片上传输数据我们的带宽性能数据如下：
 
 
-### 安全声明
+## 🔍目录结构
 
-[安全声明](./doc/SECURITYNOTE.md)
 
-### 许可证
-memfabric_hybrid使用Apache License，详见[LICENSE](./LICENSE)文件。
+## 🚀快速入门
+
+请访问以下文档获取简易教程。
+
+- [构建](./doc/build.md)：介绍组件编译和安装教程。
+
+- 样例执行：具体流程参考example目录下各个样例中对应的README.md，example及其他样例代码仅供参考，在生产环境中请谨慎使用。
+
+- [KV读写路径](./doc/KV.md)：介绍KV读写路径
+
+## 📑学习教程
+
+- [C接口](./doc/memcached_api.md)：C接口介绍以及C接口对应的API列表
+
+## 📦软件硬件配套说明
+[MemCache Conf](./doc/memcached_config.md)：MemCache将MetaService和LocalService的公共配置部分抽取为配置文件
+
+## 📝相关信息
