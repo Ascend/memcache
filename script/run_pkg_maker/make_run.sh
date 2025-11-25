@@ -71,7 +71,7 @@ cp ${OUTPUT_DIR}/memcache/wheel/*.whl ${PKG_DIR}/${ARCH_OS}/wheel/
 cp -r ${OUTPUT_DIR}/mooncake_adapter/wheel/*.whl ${PKG_DIR}/${ARCH_OS}/wheel/
 
 cp ${PROJECT_DIR}/config/* ${PKG_DIR}/config
-cp -r ${PROJECT_DIR}/test/certs ${PKG_DIR}/${ARCH_OS}/script
+cp -r ${PROJECT_DIR}/3rdparty/memfabric_hybrid/test/certs ${PKG_DIR}/${ARCH_OS}/script
 cp -r ${PROJECT_DIR}/test/k8s_deploy ${PKG_DIR}/${ARCH_OS}/script
 cp ${PROJECT_DIR}/test/python/memcache/mock_server/server.py ${PKG_DIR}/${ARCH_OS}/script/mock_server
 cp ${PROJECT_DIR}/test/python/memcache/mock_server/smem_bm/smem_bm_server.py ${PKG_DIR}/${ARCH_OS}/script/mock_server

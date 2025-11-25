@@ -227,7 +227,7 @@ list(APPEND INCLUDE_DIRS "${HYBRID_OUT}/3rdparty/spdlog/include")
 include_directories(${INCLUDE_DIRS})
 
 add_subdirectory(src)
-add_subdirectory(test/example/memcache_cpp_test)
+add_subdirectory(test/example/cpp)
 
 if(BUILD_TESTS STREQUAL "ON")
     set(CMAKE_CXX_STANDARD 17)

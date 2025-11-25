@@ -24,7 +24,8 @@ MemCache包含LocalService和MetaService两大核心模块，基于MemFabric构�
 - **MetaService**：负责管理整个集群的内存池空间分配和元数据管理，并处理LocalService的加入与退出。MetaService作为独立进程运行，提供两种启动方式：python API启动；二进制启动，详见安装部署章节。
 MetaService支持两种部署形态：
   - **1、单点模式**：MetaService由单个进程组成，部署方式简单，但存在单点故障的问题。如果MetaService进程崩溃或无法访问，系统将无法继续提供服务，直至重新恢复为止。
-  - **2、HA模式**：该模式基于K8S的的ClusterIP Service和Lease资源构建，部署较为复杂，会部署多个MetaService进程实例，实现多活高可用。部署详见[MetaService HA](./memcache_metaservice_HA.md)
+  - **2、HA模式**：该模式基于K8S的的ClusterIP
+    Service和Lease资源构建，部署较为复杂，会部署多个MetaService进程实例，实现多活高可用。部署详见[MetaService HA](./doc/memcache_metaservice_HA.md)
 
 - **LocalService**：负责承担如下功能：
   - **客户端**：作为客户端，以whl/so形式作为共享库被应用进程加载调用API
