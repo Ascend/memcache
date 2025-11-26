@@ -6,7 +6,7 @@
 
 ## 🎉概述
 
-MemCache是针对LLM推理场景设计的高性能分布式键值 KV Cache 存储引擎，其主要特性包括：
+MemCache是针对LLM推理、GR推理场景设计的高性能分布式KVCache存储引擎，其主要特性包括：
 
 - **基于对象操作的API**：支持批量和非批量的put/get/exist/remove操作
 - **支持多副本**：单个对象支持多副本放置到不同的LocalService，默认是单副本
