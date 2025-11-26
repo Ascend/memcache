@@ -7,7 +7,7 @@
 每个MetaService定时检查Lease资源，判断租约是否过期，如果过期，则尝试更新租约进行选主； 
 主服务（leader）则定期续约。 当主节点故障，且租约过期后，其他MetaService节点竞争成为新的主节点（Leader），并更新自身标签role=master。
 
-![metaservice-ha.png](./doc/source/memcache_metaservice_ha.png)
+![metaservice-ha.png](./source/memcache_metaservice_ha.png)
 
 ### 1. 环境准备
 测试验证推荐用2个节点，本文档基于2节点，要求910b或更新的芯片，2个节点能互相访问。
