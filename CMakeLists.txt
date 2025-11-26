@@ -212,7 +212,6 @@ include_directories(
 add_subdirectory(3rdparty)
 
 set(HYBRID_SRC ${PROJECT_SOURCE_DIR}/3rdparty/memfabric_hybrid/src)
-set(HYBRID_OUT ${PROJECT_SOURCE_DIR}/3rdparty/memfabric_hybrid/output)
 file(GLOB_RECURSE ALL_HEADERS
         "${HYBRID_SRC}/*.h"
 )
@@ -222,7 +221,6 @@ foreach (header ${ALL_HEADERS})
     list(APPEND INCLUDE_DIRS ${HEADER_DIR})
 endforeach ()
 list(REMOVE_DUPLICATES INCLUDE_DIRS)
-list(APPEND INCLUDE_DIRS "${HYBRID_OUT}/3rdparty/spdlog/include")
 
 include_directories(${INCLUDE_DIRS})
 
