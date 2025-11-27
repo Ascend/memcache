@@ -20,14 +20,13 @@ run包只能安装到npu环境上，且依赖于NPU固件驱动和CANN包，具�
 
 ## 编译
 
-memcache_hybrid编译不依赖CANN和HDK.
+MemCache编译不依赖CANN和HDK.
 
 1. 下载代码
 
 ```
-git clone https://gitee.com/ascend/memfabric_hybrid.git
-cd memfabric_hybrid
-git checkout br_opensource_memcache
+git clone https://gitcode.com/Ascend/memcache
+cd memcache
 git clean -xdf
 git reset --hard
 ```
@@ -61,9 +60,9 @@ bash script/run_ut.sh
 
 ## 安装使用
 
-memcache_hybrid将所有特性集成到run包中供用户使用，run包格式为 ```memcache_hybrid-${version}_${os}_${arch}.run```
+MemCache将所有特性集成到run包中供用户使用，run包格式为 ```memcache_hybrid-${version}_${os}_${arch}.run```
 
-其中，versin表示memcache_hybrid的版本；os表示操作系统,如linux；arch表示架构，如x86或aarch64
+其中，versin表示MemCache的版本；os表示操作系统,如linux；arch表示架构，如x86或aarch64
 
 ### run包安装
 
@@ -151,7 +150,7 @@ bash memcache_hybrid-1.0.0_linux_aarch64.run --install-path=${your path}
 │   │   │       ├── server.py
 │   │   │       └── smem_bm_server.py
 │   │   └── wheel
-│   │       ├── memcache-1.0.0-cp311-cp311-linux_aarch64.whl
+│   │       ├── memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
 │   │       ├── mf_adapter-1.0.0-cp311-cp311-linux_aarch64.whl
 │   │       └── mf_smem-1.0.0-cp311-cp311-linux_aarch64.whl
 │   ├── config
@@ -173,7 +172,7 @@ root@localhost:/# pip show mf_smem
 Name: mf_smem
 Version: 1.0.0
 Summary: python api for smem
-Home-page: https://gitee.com/ascend/memfabric_hybrid
+Home-page: https://gitcode.com/Ascend/memfabric_hybrid
 Author:
 Author-email:
 License: Apache License Version 2.0
@@ -185,7 +184,7 @@ root@localhost:/# pip show mf_adapter
 Name: mf_adapter
 Version: 1.0.0
 Summary: python api for mf_adapter
-Home-page: https://gitee.com/ascend/memfabric_hybrid
+Home-page: https://gitcode.com/Ascend/memfabric_hybrid
 Author:
 Author-email:
 License: Apache License Version 2.0
@@ -193,11 +192,11 @@ Location: /usr/local/lib/python3.11/site-packages
 Requires:
 Required-by:
 
-root@localhost:# pip show memcache
-Name: memcache
+root@localhost:# pip show memcache_hybrid
+Name: memcache_hybrid
 Version: 1.0.0
 Summary: python api for memcache
-Home-page: https://gitee.com/ascend/memfabric_hybrid
+Home-page: https://gitcode.com/Ascend/memcache
 Author:
 Author-email:
 License: Apache License Version 2.0
@@ -232,8 +231,8 @@ root@localhost:/# tree /usr/local/lib/python3.11/site-packages/mf_adapter
     ├── libmf_hybm_core.so
     └── libmf_smem.so 
     
-root@localhost:/# tree /usr/local/lib/python3.11/site-packages/memcache
-/usr/local/lib/python3.11/site-packages/memcache
+root@localhost:/# tree /usr/local/lib/python3.11/site-packages/memcache_hybrid
+/usr/local/lib/python3.11/site-packages/memcache_hybrid
 ├── VERSION
 ├── __init__.py
 ├── __pycache__
@@ -249,10 +248,10 @@ root@localhost:/# tree /usr/local/lib/python3.11/site-packages/memcache
     
 ```
 
-在安装过程中，会默认尝试安装适配当前环境的memcache_hybrid的whl包，如果未安装，则在使用python接口前需要用户手动安装(
+在安装过程中，会默认尝试安装适配当前环境的MemCache的whl包，如果未安装，则在使用python接口前需要用户手动安装(
 安装包路径参考上面目录结构)
 
-memcache_hybrid 默认开启tls通信加密。如果想关闭，需要主动调用`smem_set_conf_store_tls`接口关闭：
+MemCache 默认开启tls通信加密。如果想关闭，需要主动调用`smem_set_conf_store_tls`接口关闭：
 
 ```c
 int32_t ret = smem_set_conf_store_tls(false, nullptr, 0);
@@ -262,16 +261,16 @@ int32_t ret = smem_set_conf_store_tls(false, nullptr, 0);
 ## 安装部署
 ### MetaService
 * **python形式**：
-*以下均以python311版本whl包（memcache-1.0.0-cp311-cp311-linux_aarch64.whl）为例*
+  *以下均以python311版本whl包（memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl）为例*
 ```
 1、安装whl包
-pip install memcache-1.0.0-cp311-cp311-linux_aarch64.whl
+pip install memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
 
 2、设置配置文件环境变量
 export MMC_META_CONFIG_PATH=/usr/local/memfabric_hybrid/latest/config/mmc-meta.conf
 
 3、进入python控制台或者编写python脚本如下即可拉起进程：
-from memcache import MetaService
+from memcache_hybrid import MetaService
 MetaService.main()
 ```
 * **bin形式**：
@@ -298,12 +297,12 @@ export MMC_META_CONFIG_PATH=/usr/local/memfabric_hybrid/latest/config/mmc-meta.c
 * **whl（python）**：
 ```
 1、安装whl包
-pip install memcache-1.0.0-cp311-cp311-linux_aarch64.whl
+pip install memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
 
 2、设置配置文件环境变量
 export MMC_LOCAL_CONFIG_PATH=/usr/local/memfabric_hybrid/latest/config/mmc-local.conf
 
-3、通过memcache提供的接口初始化客户端并拉起localservice，执行数据写入、查询、获取、删除等，下面的脚本时一个示例：
+3、通过MemCache提供的接口初始化客户端并拉起localservice，执行数据写入、查询、获取、删除等，下面的脚本时一个示例：
 python3 test_mmc_demo.py
 ```
   

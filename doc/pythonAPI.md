@@ -3,7 +3,7 @@
 安装完成run包并source安装路径下的set_env.sh后，即可在python中通过
 
 ```python
-from memcache import DistributedObjectStore
+from memcache_hybrid import DistributedObjectStore
 ```
 
 DistributedObjectStore类，然后调用python接口
@@ -11,16 +11,16 @@ DistributedObjectStore类，然后调用python接口
 ### python接口文档
 
 ```shell
-pydoc memcache
+pydoc memcache_hybrid
 ```
 
 结果如下
 
 ```text
-Help on package memcache:
+Help on package memcache_hybrid:
 
 NAME
-    memcache
+    memcache_hybrid
 
 DESCRIPTION
     # coding=utf-8
@@ -225,7 +225,7 @@ DATA
     __all__ = ['DistributedObjectStore', 'ReplicateConfig', 'KeyInfo', 'Me...
 
 FILE
-    /usr/local/lib/python3.11/site-packages/memcache/__init__.py
+    /usr/local/lib/python3.11/site-packages/memcache_hybrid/__init__.py
 ```
 
 ## Python 接口列表

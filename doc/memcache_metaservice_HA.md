@@ -21,7 +21,8 @@ sudo timedatectl set-time "2025-10-17 17:30:00"
 ```
 
 #### 1.2 安装k8s
-[k8s安装包和安装步骤]()
+
+请安装k8s安装指南安装好环境。
 
 ```shell
 # 启动k8s命令补全
@@ -154,7 +155,7 @@ cp -rf /usr/local/memfabric_hybrid/latest/config/* /home/meta/config
    
    mmc-local.conf
    ```ini
-   ock.mmc.local_service.world_size = 2
+   ock.mmc.local_service.world_size = 16
    ```
 
 5. metaservice落盘日志路径推荐设置到有磁盘挂载的目录, 方便直接查看容器中服务的日志
@@ -175,8 +176,8 @@ cp -rf /usr/local/memfabric_hybrid/latest/config/* /home/meta/config
 下载源码，并参考README内容，编译构建安装包，并放置到/home/meta目录下（pod启动时会自动安装这个目录下的包）
 
 #### 2.4 镜像准备
-##### 2.4.1 准备一个已安装好memcache所有运行依赖的镜像
-内网环境最新镜像：memcache:1028
+
+##### 2.4.1 准备一个已安装好MemCache所有运行依赖的镜像
 
 ##### 2.4.2 将docker镜像导入到nerdctl
 ```shell
@@ -224,16 +225,16 @@ kubectl apply -f meta-cluster-ip-demo.yaml
 kubectl apply -f meta-pods-demo.yaml
 ```
 
-查询集群对外ip，如下例子为10.96.232.72
+查询集群对外ip，如下例子为x.x.x.x
 ```shell
 k8s_deploy# k get service -n ns-memcache
 NAME                          TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)               AGE
-service-cluster-ip-memcache   ClusterIP   10.96.232.72   <none>        18080/TCP,18090/TCP   24s
+service-cluster-ip-memcache   ClusterIP   x.x.x.x   <none>        18080/TCP,18090/TCP   24s
 ```
 然后修改 /home/meta/config/mmc-local.conf
 ```ini
-ock.mmc.meta_service_url = tcp://10.96.232.72:18080
-ock.mmc.local_service.config_store_url = tcp://10.96.232.72:18090
+ock.mmc.meta_service_url = tcp://x.x.x.x:18080
+ock.mmc.local_service.config_store_url = tcp://x.x.x.x:18090
 ```
 
 创建Local客户端
@@ -289,7 +290,7 @@ kubectl describe service service-cluster-ip-memcache -n ns-memcache
 kubectl describe lease lease-memcache -n ns-memcache
 ```
 
-#### 4.2 测试memcache功能正常
+#### 4.2 测试MemCache功能正常
 ```shell
 # 其中，local-service-pod-0为pod名称，local-service为容器名称
 # 进入启动一个local 容器
@@ -324,8 +325,6 @@ kubectl delete pod meta-service-pod-0 -n ns-memcache
 
 
 ### 5. FAQ
-#### 5.1 内网代理配置参考
-[代理配置参考链接]()
 
 #### 5.2 常见问题排查方法
 直接查看local-pod-0日志
