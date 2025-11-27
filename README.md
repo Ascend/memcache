@@ -43,6 +43,32 @@ MemCache核心能力是提供大容量内存池和高性能的H2D、D2H、**D2RH
 
 ## 🔍目录结构
 
+```
+├── LICENSE                                 # LICENSE
+├── .clang-format                           # 格式化配置
+├── .gitmodules                             # git配置
+├── .gitignore                              # git忽视文件
+├── CMakeLists.txt                          # 项目的CMakeList
+├── doc                                     # 文档目录
+├── example                                 # 样例
+│  ├── cpp                                  # c++样例
+│  └── python                               # python样例
+├── script                                  # 构建脚本
+│  ├── build_and_pack_run.sh                # 编译+加包脚本
+│  ├── build.sh                             # 编译脚本
+│  ├── run_ut.sh                            # 编译+运行ut脚本
+├── test                                    # test目录
+│  ├── python                               # python测试用例
+│  ├── k8s_deploy                           # k8s ha样例脚本
+│  ├── fuzz                                 # fuzz目录
+│  └── ut                                   # 单元测试用例
+├── src                                     # 源码
+│  ├── memcache                             # memcache 源码
+├── config                                  # 配置目录
+│  ├── mmc-local.conf                       # 本地服务配置文件模板
+│  ├── mmc-meta.conf                        # meta服务配置文件模板
+├── README.md
+```
 
 ## 🚀快速入门
 
@@ -50,7 +76,7 @@ MemCache核心能力是提供大容量内存池和高性能的H2D、D2H、**D2RH
 
 - [构建](./doc/build.md)：介绍组件编译和安装教程。
 
-- 样例执行：具体流程参考example目录下各个样例中对应的README.md，example及其他样例代码仅供参考，在生产环境中请谨慎使用。
+- [样例执行](./example/examples.md)：介绍如何端到端执行样例代码，包括C++和Python样例。
 
 ## 📑学习教程
 

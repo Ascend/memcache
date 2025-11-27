@@ -220,7 +220,6 @@ list(REMOVE_DUPLICATES INCLUDE_DIRS)
 include_directories(${INCLUDE_DIRS})
 
 add_subdirectory(src)
-add_subdirectory(test/example/cpp)
 
 if(BUILD_TESTS STREQUAL "ON")
     set(CMAKE_CXX_STANDARD 17)

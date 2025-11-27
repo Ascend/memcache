@@ -17,8 +17,6 @@
 #include <random>
 #include <signal.h>
 #include "mmcache.h"
-#include "mmc_logger.h"
-#include "mf_str_util.h"
 
 using namespace ock::mmc;
 
@@ -125,7 +123,7 @@ public:
         : store_(std::move(store)), buffer_size_(buffer_size), put_buffer_(buffer_size), get_buffer_(buffer_size),
           put_hash_value_(FNVHashCalculator::calculate(put_buffer_))
     {
-        MMC_LOG_INFO("Initialized with put hash value: " << put_hash_value_);
+        std::cout << "Initialized with put hash value: " << put_hash_value_ << std::endl;
     }
 
     bool performOperation() const
@@ -160,18 +158,18 @@ public:
 
     void initializeDefaultData()
     {
-        MMC_LOG_INFO("Checking if key exists: " << DEFAULT_KEY);
+        std::cout << "Checking if key exists: " << DEFAULT_KEY << std::endl;
 
         if (store_->IsExist(DEFAULT_KEY) == 0) {
             const int result = store_->PutFrom(DEFAULT_KEY, put_buffer_.get(), buffer_size_);
-            MMC_LOG_INFO("Initial PutFrom result: " << result);
+            std::cout << "Initial PutFrom result: " << result << std::endl;
             if (result != 0) {
                 throw std::runtime_error("Failed to put initial data");
             }
         }
 
         const auto batch_result = store_->BatchPutFrom({"kBatchPutFrom"}, {put_buffer_.get()}, {buffer_size_});
-        MMC_LOG_INFO("BatchPutFrom result: " << batch_result[0]);
+        std::cout << "BatchPutFrom result: " << batch_result[0] << std::endl;
         store_->Remove("kBatchPutFrom");
 
         if (store_->IsExist(DEFAULT_KEY) != 0) {
@@ -187,23 +185,23 @@ public:
 private:
     void handleGet(const std::string &key) const
     {
-        MMC_LOG_INFO("Checking existence for key: " << key);
+        std::cout << "Checking existence for key: " << key << std::endl;
         if (store_->IsExist(key) != 0) {
             const int result = store_->GetInto(key, get_buffer_.get(), buffer_size_);
-            MMC_LOG_INFO("GetInto result: " << result);
+            std::cout << "GetInto result: " << result << std::endl;
 
             if (result == 0) {
                 verifyRetrievedData(key);
             }
         } else {
-            MMC_LOG_INFO("Key does not exist: " << key);
+            std::cout << "Key does not exist: " << key << std::endl;
         }
     }
 
     void handleRemove(const std::string &key) const
     {
         const int result = store_->Remove(key);
-        MMC_LOG_INFO("Remove result: " << result << " for key: " << key);
+        std::cout << "Remove result: " << result << " for key: " << key << std::endl;
     }
 
     void handlePut(const std::string &key) const
@@ -220,13 +218,14 @@ private:
         replicate_config.replicaNum = replica_num;
 
         const int result = store_->PutFrom(key, put_buffer_.get(), buffer_size_, 3, replicate_config);
-        MMC_LOG_INFO("PutFrom result: " << result << ", key: " << key << ", replicas: " << replicate_config.replicaNum);
+        std::cout << "PutFrom result: " << result << ", key: " << key << ", replicas: " << replicate_config.replicaNum
+                  << std::endl;
     }
 
     void verifyRetrievedData(const std::string &key) const
     {
         const uint64_t retrieved_hash = FNVHashCalculator::calculate(get_buffer_);
-        MMC_LOG_INFO("Retrieved data hash for key " << key << ": " << retrieved_hash);
+        std::cout << "Retrieved data hash for key " << key << ": " << retrieved_hash << std::endl;
 
         if (retrieved_hash != put_hash_value_) {
             std::cerr << "Error: Hash mismatch for key " << key << ". Expected: " << put_hash_value_
@@ -296,7 +295,9 @@ static std::vector<std::string> executeCmd(const std::string &command)
 
     int returnCode = pclose(pipe.release());
     if (returnCode != 0) {
-        throw std::runtime_error("命令执行失败，返回码: " + std::to_string(returnCode));
+        std::cerr << "no device finded." << std::endl << std::endl;
+        throw std::runtime_error("命令执行失败npu-smi info | grep 'No running processes'，返回码: " +
+                                 std::to_string(returnCode));
     }
 
     return outputLines;
@@ -318,8 +319,7 @@ int main(int argc, char *argv[])
         for (int i = list.size(); i > 0; --i) {
             auto it =
                 std::find_if(list[i - 1].begin(), list[i - 1].end(), [](const char c) { return std::isdigit(c); });
-            uint32_t tmp = 0;
-            ock::mf::StrUtil::String2Uint(std::string(1, *it), tmp);
+            uint32_t tmp = std::stoul(std::string(1, *it));
             if (tmp > 0) {
                 std::cout << "change device id to " << tmp << std::endl;
                 device_id = tmp;
