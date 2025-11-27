@@ -12,10 +12,9 @@ BUILD_TESTS=${2:-OFF}
 BUILD_OPEN_ABI=${3:-ON}
 BUILD_PYTHON=${4:-ON}
 ENABLE_PTRACER=${5:-ON}
-USE_VMM=${6:-OFF}
-USE_CANN=${7:-ON}
-BUILD_COMPILER=${8:-gcc}
-BUILD_PACKAGE=${9:-ON}
+USE_CANN=${6:-ON}
+BUILD_COMPILER=${7:-gcc}
+BUILD_PACKAGE=${8:-ON}
 
 readonly SCRIPT_FULL_PATH=$(dirname $(readlink -f "$0"))
 readonly PROJECT_FULL_PATH=$(dirname "$SCRIPT_FULL_PATH")
@@ -46,7 +45,7 @@ bash script/gen_last_git_commit.sh
 rm -rf ./build ./output
 
 mkdir build/
-cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_COMPILER="${BUILD_COMPILER}" -DBUILD_TESTS="${BUILD_TESTS}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -DBUILD_PYTHON="${BUILD_PYTHON}" -DENABLE_PTRACER="${ENABLE_PTRACER}" -DUSE_VMM="${USE_VMM}"  -DUSE_CANN="${USE_CANN}" -S . -B build/
+cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_COMPILER="${BUILD_COMPILER}" -DBUILD_TESTS="${BUILD_TESTS}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -DBUILD_PYTHON="${BUILD_PYTHON}" -DENABLE_PTRACER="${ENABLE_PTRACER}" -DUSE_CANN="${USE_CANN}" -S . -B build/
 make install -j32 -C build/
 
 if [ "${BUILD_PYTHON}" != "ON" ]; then
@@ -62,18 +61,15 @@ FABRIC_PROJ_BUILDDIR=${PROJ_DIR}/build/3rdparty/memfabric_hybrid
 mkdir -p "${FABRIC_PROJ_DIR}/src/smem/python/mf_smem/lib"
 \cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${FABRIC_PROJ_DIR}/src/smem/python/mf_smem/lib"
 \cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${FABRIC_PROJ_DIR}/src/smem/python/mf_smem/lib"
-\cp -v "${FABRIC_PROJ_DIR}/output/driver/lib64/libhybm_gvm.so" "${FABRIC_PROJ_DIR}/src/smem/python/mf_smem/lib"
 
 mkdir -p "${PROJ_DIR}/src/memcache/python/memcache/lib"
 \cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${PROJ_DIR}/src/memcache/python/memcache/lib"
 \cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${PROJ_DIR}/src/memcache/python/memcache/lib"
 \cp -v "${PROJ_DIR}/output/memcache/lib64/libmf_memcache.so" "${PROJ_DIR}/src/memcache/python/memcache/lib"
-\cp -v "${FABRIC_PROJ_DIR}/output/driver/lib64/libhybm_gvm.so" "${PROJ_DIR}/src/memcache/python/memcache/lib"
 
 mkdir -p ${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib
 cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib"
 cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib"
-\cp -v "${FABRIC_PROJ_DIR}/output/driver/lib64/libhybm_gvm.so" "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib"
 
 GIT_COMMIT=`git rev-parse HEAD`
 {

@@ -59,9 +59,6 @@ cp ${OUTPUT_DIR}/smem/wheel/* ${PKG_DIR}/${ARCH_OS}/wheel
 # hybm
 cp -r ${OUTPUT_DIR}/hybm/include/* ${PKG_DIR}/${ARCH_OS}/include/hybm
 cp ${OUTPUT_DIR}/hybm/lib64/libmf_hybm_core.so ${PKG_DIR}/${ARCH_OS}/lib64/
-# driver
-cp -r ${OUTPUT_DIR}/driver/include/* ${PKG_DIR}/${ARCH_OS}/include/driver
-cp ${OUTPUT_DIR}/driver/lib64/* ${PKG_DIR}/${ARCH_OS}/lib64/
 # memcache
 cp -r ${OUTPUT_DIR}/memcache/include/* ${PKG_DIR}/${ARCH_OS}/include/memcache
 cp ${OUTPUT_DIR}/memcache/lib64/* ${PKG_DIR}/${ARCH_OS}/lib64/
