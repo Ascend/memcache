@@ -21,7 +21,7 @@ sudo timedatectl set-time "2025-10-17 17:30:00"
 ```
 
 #### 1.2 安装k8s
-[k8s安装包和安装步骤](https://3ms.huawei.com/next/groups/index.html#/wiki/detail?wikiId=8030354&groupId=3957217)
+[k8s安装包和安装步骤]()
 
 ```shell
 # 启动k8s命令补全
@@ -110,14 +110,14 @@ CONTAINER ID    IMAGE                           COMMAND                   CREATE
 │   └── libhcom.so
 ├── logs
 │   └── logs
-└── mxc-memfabric_hybrid-1.0.0_linux_aarch64.run
+└── memfabric_hybrid-1.0.0_linux_aarch64.run
 ```
 
 #### 2.1 配置文件
 先往config目录下拷贝一份配置文件模板（配置文件可以通过安装run包方式获取）
 ```shell
-bash mxc-memfabric_hybrid-1.0.0_linux_aarch64.run
-cp -rf /usr/local/mxc/memfabric_hybrid/latest/config/* /home/meta/config
+bash memfabric_hybrid-1.0.0_linux_aarch64.run
+cp -rf /usr/local/memfabric_hybrid/latest/config/* /home/meta/config
 ```
 
 修改如下配置
@@ -296,9 +296,9 @@ kubectl describe lease lease-memcache -n ns-memcache
 kubectl exec -it local-service-pod-0 -n ns-memcache -c local-service -- bash
 
 source /usr/local/Ascend/ascend-toolkit/set_env.sh;
-source /usr/local/mxc/memfabric_hybrid/set_env.sh;
+source /usr/local/memfabric_hybrid/set_env.sh;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/meta/lib
-cd /usr/local/mxc/memfabric_hybrid/latest/aarch64-linux/script/k8s_deploy;
+cd /usr/local/memfabric_hybrid/latest/aarch64-linux/script/k8s_deploy;
 # 交互式测试，输入put/get/remove 等命令验证功能正常
 python interactive_app.py 
 ```
@@ -325,7 +325,7 @@ kubectl delete pod meta-service-pod-0 -n ns-memcache
 
 ### 5. FAQ
 #### 5.1 内网代理配置参考
-[代理配置参考链接](https://3ms.huawei.com/next/groups/index.html#/wiki/detail?groupId=3957217&wikiId=8017808&)
+[代理配置参考链接]()
 
 #### 5.2 常见问题排查方法
 直接查看local-pod-0日志
@@ -348,11 +348,15 @@ kubectl exec -it meta-service-pod-0 -n ns-memcache -c meta-service -- bash
 <br>将meta日志路径配置为`/home/memcache`，则对应的业务日志会写到`/home/memcache/logs/mmc-meta.log`文件中
 <br>将local的测试输出重定向到`/home/memcache/logs/mmc-local.log`文件中<br>
 （注意local-pods-demo.yaml中的业务启动命令
-`exec python3 /usr/local/mxc/memfabric_hybrid/latest/aarch64-linux/script/ha/test-mmc-meta-ha.py > /home/memcache/logs/mmc-local.log 2>&1`）
+`exec python3 /usr/local/memfabric_hybrid/latest/aarch64-linux/script/ha/test-mmc-meta-ha.py > /home/memcache/logs/mmc-local.log 2>&1`）
 
-### 测试场景
+### 6. 测试场景
 
 - 2个meta, local1 put，切换meta，get正常 910B device_rdma
 - 2个meta, local1 put 2 , 切换meta， local2 get 正常 910B device_rdma
 - 2个meta, local1 put 2 ,local1 quit， 切换meta， local2 get 正常 910B device_rdma
 - 启动local1，local2；local1 put 1；重启local2；切换meta；local1 get成功 local2 get失败
+
+### 7. 注意事项
+
+1. 建议参考k8s官方文档对k8s集群进行安全加固

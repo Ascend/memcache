@@ -1,4 +1,4 @@
-## Memcache Configs
+## MemCache Configs
 
 #### MetaService Config
 

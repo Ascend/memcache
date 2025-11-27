@@ -31,7 +31,10 @@ MetaService支持两种部署形态：
 
 
 ## 🔥性能表现
-MemCache核心能力是提供大容量内存池和高性能的H2D、D2H、**D2RH、RH2D** 数据访问能力，由于MemCache以 [MemFabric](https://gitcode.com/Ascend/memfabric_hybrid) 作为池化底座，所以支持RH2D、D2RH等跨机一跳访问能力，下图为RH2D示意图。
+
+MemCache核心能力是提供大容量内存池和高性能的H2D、D2H、**D2RH、RH2D**
+数据访问能力，由于MemCache以 [MemFabric](https://gitcode.com/Ascend/memfabric_hybrid)
+作为池化底座，所以支持RH2D、D2RH等跨机一跳访问能力，下图为RH2D示意图。
 ![memcache_rh2d.png](./doc//source/memcache_rh2d.png)
 
 模拟构造DeepSeek-R1模型KV大小的block，单个block size为：61x128K + 61x16K = 8784KB ≈ 8.57MB，共122个离散地址。
@@ -80,9 +83,15 @@ MemCache核心能力是提供大容量内存池和高性能的H2D、D2H、**D2RH
 
 ## 📑学习教程
 
-- [C接口](./doc/memcached_api.md)：C接口介绍以及C接口对应的API列表
+- [C接口](./doc/mamcached_api.md)：C接口介绍以及C接口对应的API列表
+- [python接口](./doc/pythonAPI.md)：python接口介绍以及python接口对应的API列表
 
 ## 📦软件硬件配套说明
+
 [MemCache Conf](./doc/memcached_config.md)：MemCache将MetaService和LocalService的公共配置部分抽取为配置文件
 
 ## 📝相关信息
+
+- [安全声明](./doc/SECURITYNOTE.md)
+
+- [许可证](./LICENSE)
