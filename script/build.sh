@@ -62,10 +62,10 @@ mkdir -p "${FABRIC_PROJ_DIR}/src/smem/python/mf_smem/lib"
 \cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${FABRIC_PROJ_DIR}/src/smem/python/mf_smem/lib"
 \cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${FABRIC_PROJ_DIR}/src/smem/python/mf_smem/lib"
 
-mkdir -p "${PROJ_DIR}/src/memcache/python/memcache/lib"
-\cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${PROJ_DIR}/src/memcache/python/memcache/lib"
-\cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${PROJ_DIR}/src/memcache/python/memcache/lib"
-\cp -v "${PROJ_DIR}/output/memcache/lib64/libmf_memcache.so" "${PROJ_DIR}/src/memcache/python/memcache/lib"
+mkdir -p "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
+\cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
+\cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
+\cp -v "${PROJ_DIR}/output/memcache/lib64/libmf_memcache.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
 
 mkdir -p ${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib
 cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib"
@@ -79,7 +79,7 @@ GIT_COMMIT=`git rev-parse HEAD` || true
 } > VERSION
 
 cp VERSION "${FABRIC_PROJ_DIR}/src/smem/python/mf_smem/"
-cp VERSION "${PROJ_DIR}/src/memcache/python/memcache/"
+cp VERSION "${PROJ_DIR}/src/memcache/python/memcache_hybrid/"
 cp VERSION "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/"
 rm -f VERSION
 
@@ -124,10 +124,10 @@ do
     rm -rf build mf_smem.egg-info
     python3 setup.py bdist_wheel
     cd "${PROJ_DIR}"
-    rm -f "${PROJ_DIR}"/src/memcache/python/memcache/_pymmc.cpython*.so
-    \cp -v "${PROJ_DIR}"/build/src/memcache/csrc/python_wrapper/_pymmc.cpython*.so "${PROJ_DIR}"/src/memcache/python/memcache
+    rm -f "${PROJ_DIR}"/src/memcache/python/memcache_hybrid/_pymmc.cpython*.so
+    \cp -v "${PROJ_DIR}"/build/src/memcache/csrc/python_wrapper/_pymmc.cpython*.so "${PROJ_DIR}"/src/memcache/python/memcache_hybrid
     cd "${PROJ_DIR}/src/memcache/python"
-    rm -rf build memcache.egg-info
+    rm -rf build memcache_hybrid.egg-info
     python3 setup.py bdist_wheel
 
     rm -rf "${FABRIC_PROJ_DIR}"/src/mooncake_adapter/python/mf_adapter/_pymf_transfer.cpython*.so

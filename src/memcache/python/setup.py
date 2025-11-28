@@ -2,7 +2,7 @@
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2025-2026. All rights reserved.
 
-"""python api for memcache."""
+"""python api for memcache_hybrid."""
 
 import os
 
@@ -24,15 +24,15 @@ class BinaryDistribution(Distribution):
 
 
 setuptools.setup(
-    name="memcache",
+    name="memcache_hybrid",
     version=current_version,
     author="",
     author_email="",
     description="python api for memcache",
     packages=find_namespace_packages(exclude=("tests*",)),
-    url="https://gitee.com/ascend/memfabric_hybrid",
+    url="https://gitcode.com/Ascend/memcache",
     license="Apache License Version 2.0",
     python_requires=">=3.7",
-    package_data={"memcache": ["_pymmc.cpython*.so", "lib/**", "VERSION"]},
+    package_data={"memcache_hybrid": ["_pymmc.cpython*.so", "lib/**", "VERSION"]},
     distclass=BinaryDistribution
 )
