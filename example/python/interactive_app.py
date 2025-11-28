@@ -9,8 +9,16 @@ import faulthandler
 
 from memcache_hybrid import DistributedObjectStore
 from memcache_hybrid import ReplicateConfig
+import acl
 
 faulthandler.enable()  # 崩溃时自动打印 Python 堆栈
+acl.init()
+count, ret = acl.rt.get_device_count()
+print("设备数量:", acl.rt.get_device_count())
+ret = acl.rt.set_device(count - 1)
+print("set_device returned: {}".format(ret))
+
+
 
 STORE = DistributedObjectStore()
 DEFAULT_REPLICA_NUMBER = 2
@@ -18,7 +26,7 @@ AVAILABLE_COMMANDS = "'put <key> <value>', 'get <key>', 'remove <key>' or 'quit'
 
 
 def set_up():
-    res = STORE.init(0)
+    res = STORE.init(count - 1)
     if res != 0:
         raise ValueError(f"init failed, res={res}")
     print("object store set_up succeeded.")

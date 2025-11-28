@@ -2,6 +2,14 @@ import time
 import unittest
 
 from memcache_hybrid import DistributedObjectStore
+import acl
+
+acl.init()
+count, ret = acl.rt.get_device_count()
+print("设备数量:", acl.rt.get_device_count())
+ret = acl.rt.set_device(count - 1)
+print("set_device returned: {}".format(ret))
+
 
 
 class TestExample(unittest.TestCase):
@@ -14,7 +22,7 @@ class TestExample(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self._distributed_object_store = DistributedObjectStore()
-        self._distributed_object_store.init(0)
+        self._distributed_object_store.init(count - 1)
         print("object store initialized")
 
     def test_batch_exist_batch_remove(self):
