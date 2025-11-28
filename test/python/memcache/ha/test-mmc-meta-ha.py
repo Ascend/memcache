@@ -9,7 +9,7 @@ import torch
 import uuid
 import acl
 from enum import Enum
-from memcache import DistributedObjectStore
+from memcache_hybrid import DistributedObjectStore
 
 
 class MmcDirect(Enum):

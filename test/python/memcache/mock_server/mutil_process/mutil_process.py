@@ -6,7 +6,7 @@ from typing import List
 import torch
 import torch_npu
 
-from memcache import DistributedObjectStore
+from memcache_hybrid import DistributedObjectStore
 
 process_count: int = 8
 one_batch_count: int = 32

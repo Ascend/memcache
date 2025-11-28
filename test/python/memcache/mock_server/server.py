@@ -16,7 +16,7 @@ from enum import Enum
 
 import torch
 
-from memcache import DistributedObjectStore, ReplicateConfig
+from memcache_hybrid import DistributedObjectStore, ReplicateConfig
 
 
 class MmcDirect(Enum):

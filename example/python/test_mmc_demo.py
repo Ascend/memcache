@@ -1,7 +1,7 @@
 import time
 import unittest
 
-from memcache import DistributedObjectStore
+from memcache_hybrid import DistributedObjectStore
 
 
 class TestExample(unittest.TestCase):

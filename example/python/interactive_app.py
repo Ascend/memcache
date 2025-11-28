@@ -1,14 +1,14 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
 
 """Brief description of the module.
-   Interactive calling of memcache
+   Interactive calling of memcache_hybrid
    Available commands: put, get, remove, quit
 """
 
 import faulthandler
 
-from memcache import DistributedObjectStore
-from memcache import ReplicateConfig
+from memcache_hybrid import DistributedObjectStore
+from memcache_hybrid import ReplicateConfig
 
 faulthandler.enable()  # 崩溃时自动打印 Python 堆栈
 
