@@ -49,5 +49,5 @@ mmc_meta_service &
 选择脚本，直接执行，比如
 
 ```shell
-python python/test_mmc_demo.py
+python python/test_mmc_start_meta_service_and_simple_test.py
 ```
