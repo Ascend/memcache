@@ -54,22 +54,12 @@ if [ "${BUILD_PYTHON}" != "ON" ]; then
         exit 0
 fi
 
-cp -rf 3rdparty/memfabric_hybrid/output/* output/
 FABRIC_PROJ_DIR=${PROJ_DIR}/3rdparty/memfabric_hybrid
-FABRIC_PROJ_BUILDDIR=${PROJ_DIR}/build/3rdparty/memfabric_hybrid
-
-mkdir -p "${FABRIC_PROJ_DIR}/src/smem/python/mf_smem/lib"
-\cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${FABRIC_PROJ_DIR}/src/smem/python/mf_smem/lib"
-\cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${FABRIC_PROJ_DIR}/src/smem/python/mf_smem/lib"
 
 mkdir -p "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
 \cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
 \cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
 \cp -v "${PROJ_DIR}/output/memcache/lib64/libmf_memcache.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
-
-mkdir -p ${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib
-cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib"
-cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib"
 
 GIT_COMMIT=`git rev-parse HEAD` || true
 {
@@ -78,9 +68,7 @@ GIT_COMMIT=`git rev-parse HEAD` || true
   echo "git: ${GIT_COMMIT}"
 } > VERSION
 
-cp VERSION "${FABRIC_PROJ_DIR}/src/smem/python/mf_smem/"
 cp VERSION "${PROJ_DIR}/src/memcache/python/memcache_hybrid/"
-cp VERSION "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/"
 rm -f VERSION
 
 readonly BACK_PATH_EVN=$PATH

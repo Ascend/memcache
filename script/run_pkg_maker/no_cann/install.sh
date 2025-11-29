@@ -9,7 +9,7 @@ script_dir=$(dirname $(readlink -f "$0"))
 version1="none"
 pkg_arch="none"
 os1="none"
-default_install_dir="/usr/local/memfabric_hybrid"
+default_install_dir="/usr/local/memcache_hybrid"
 echo "USE_CANN is OFF"
 function print_help() {
     echo "--install-path=<path>             Install to specific dir"
@@ -30,7 +30,7 @@ function get_version_in_file()
         pkg_arch=`cat ${script_dir}/../version.info | awk -F ':' '$1=="Platform" {print $2}'`
         os1=`cat ${script_dir}/../version.info | awk -F ':' '$1=="Kernel" {print $2}'`
     fi
-    print "INFO" "memfabric_hybrid version: ${version1} arch: ${pkg_arch} os: ${os1}"
+    print "INFO" "memcache_hybrid version: ${version1} arch: ${pkg_arch} os: ${os1}"
 }
 
 function chmod_authority()
@@ -82,7 +82,7 @@ function parse_script_args()
         --install-path=*)
             install_path_flag=y
             target_dir=$(echo $1 | cut -d"=" -f2-)
-            target_dir=${target_dir}/memfabric_hybrid
+            target_dir=${target_dir}/memcache_hybrid
             shift
         ;;
         --uninstall)
@@ -116,7 +116,7 @@ function check_owner()
     local cur_owner=$(whoami)
 
     if [[ "${cur_owner}" != "root" && "${install_flag}" == "y" ]]; then
-        default_install_dir="${HOME}/memfabric_hybrid"
+        default_install_dir="${HOME}/memcache_hybrid"
     fi
 
     if [ "${install_path_flag}" == "y" ]; then
@@ -132,7 +132,7 @@ function delete_install_files()
     fi
 
     install_dir=$1
-    print "INFO" "memfabric_hybrid $(basename $1) delete install files!"
+    print "INFO" "memcache_hybrid $(basename $1) delete install files!"
     if [ -d ${install_dir} ]; then
         chmod -R 700 ${install_dir}
         rm -rf ${install_dir}
@@ -145,7 +145,7 @@ function delete_install_files()
 function delete_latest()
 {
     cd $1/..
-    print "INFO" "memfabric_hybrid delete latest!"
+    print "INFO" "memcache_hybrid delete latest!"
     if [ -d "latest" ]; then
         chmod -R 700 latest
         rm -rf latest
@@ -161,7 +161,7 @@ function uninstall_process()
     if [ ! -d $1 ]; then
         return 0
     fi
-    print "INFO" "memfabric_hybrid $(basename $1) uninstall start!"
+    print "INFO" "memcache_hybrid $(basename $1) uninstall start!"
     mf_dir=$(cd $1/..;pwd)
     delete_latest $1
     delete_install_files $1
@@ -169,7 +169,7 @@ function uninstall_process()
         chmod -R 700 $mf_dir
         rm -rf $mf_dir
     fi
-    print "INFO" "memfabric_hybrid $(basename $1) uninstall success!"
+    print "INFO" "memcache_hybrid $(basename $1) uninstall success!"
 }
 
 function uninstall()
@@ -288,7 +288,6 @@ function generate_set_env()
 {
     touch ${default_install_dir}/set_env.sh
     cat>>${default_install_dir}/set_env.sh<<EOF
-export MEMFABRIC_HYBRID_HOME_PATH=${default_install_dir}/latest
 export LD_LIBRARY_PATH=${default_install_dir}/latest/${pkg_arch}-${os1}/lib64:\$LD_LIBRARY_PATH
 export PATH=${default_install_dir}/latest/${pkg_arch}-${os1}/bin:\$PATH
 EOF
@@ -303,7 +302,7 @@ function install_process()
         fi
     fi
 
-    print "INFO" "memfabric_hybrid start install into ${default_install_dir}"
+    print "INFO" "memcache_hybrid start install into ${default_install_dir}"
     install_to_path
     generate_set_env
 }
@@ -324,7 +323,7 @@ function main()
 
         install_process
         chmod_authority
-        print "INFO" "memfabric_hybrid install success"
+        print "INFO" "memcache_hybrid install success"
     fi
 }
 

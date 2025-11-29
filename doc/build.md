@@ -74,7 +74,7 @@ run包的默认安装根路径为 /usr/local/
 
 ```bash
 bash memcache_hybrid-1.0.0_linux_aarch64.run
-source /usr/local/memfabric_hybrid/set_env.sh
+source /usr/local/memcache_hybrid/set_env.sh
 ```
 
 如果想要自定义安装路径，可以添加--install-path参数
@@ -87,57 +87,26 @@ bash memcache_hybrid-1.0.0_linux_aarch64.run --install-path=${your path}
 
 ```
 
-/usr/local/memfabric_hybrid
+/usr/local/memcache_hybrid/
 ├── 1.0.0
 │   ├── aarch64-linux
 │   │   ├── bin
 │   │   │   └── mmc_meta_service
 │   │   ├── include
-│   │   │   ├── driver
-│   │   │   │   └── hybm_gvm_user.h
-│   │   │   ├── hybm
-│   │   │   │   ├── hybm.h
-│   │   │   │   ├── hybm_big_mem.h
-│   │   │   │   ├── hybm_data_op.h
-│   │   │   │   └── hybm_def.h
-│   │   │   ├── memcache
-│   │   │   │   ├── cpp
-│   │   │   │   │   └── mmcache.h
-│   │   │   │   ├── mmc.h
-│   │   │   │   ├── mmc_client.h
-│   │   │   │   ├── mmc_def.h
-│   │   │   │   └── mmc_service.h
-│   │   │   └── smem
-│   │   │       ├── device
-│   │   │       │   ├── smem_shm_aicore_base_api.h
-│   │   │       │   ├── smem_shm_aicore_base_copy.h
-│   │   │       │   ├── smem_shm_aicore_base_define.h
-│   │   │       │   ├── smem_shm_aicore_base_meta.h
-│   │   │       │   └── smem_shm_aicore_base_rdma.h
-│   │   │       └── host
-│   │   │           ├── smem.h
-│   │   │           ├── smem_bm.h
-│   │   │           ├── smem_bm_def.h
-│   │   │           ├── smem_shm.h
-│   │   │           ├── smem_shm_def.h
-│   │   │           ├── smem_trans.h
-│   │   │           └── smem_trans_def.h
+│   │   │   └── memcache
+│   │   │       ├── cpp
+│   │   │       │   └── mmcache.h
+│   │   │       ├── mmc.h
+│   │   │       ├── mmc_client.h
+│   │   │       ├── mmc_def.h
+│   │   │       └── mmc_service.h
 │   │   ├── lib64
 │   │   │   ├── _pymmc.cpython-311-aarch64-linux-gnu.so
-│   │   │   ├── libhybm_gvm.a
-│   │   │   ├── libhybm_gvm.so
-│   │   │   ├── libmf_hybm_core.so
-│   │   │   ├── libmf_memcache.so
-│   │   │   └── libmf_smem.so
+│   │   │   └── libmf_memcache.so
 │   │   ├── logs
 │   │   │   ├── mmc-meta-audit.log
 │   │   │   └── mmc-meta.log
 │   │   ├── script
-│   │   │   ├── certs
-│   │   │   │   ├── generate_client_cert.py
-│   │   │   │   ├── generate_crl.py
-│   │   │   │   ├── generate_root_cert.py
-│   │   │   │   └── generate_server_cert.py
 │   │   │   ├── ha
 │   │   │   │   └── test-mmc-meta-ha.py
 │   │   │   ├── k8s_deploy
@@ -150,9 +119,7 @@ bash memcache_hybrid-1.0.0_linux_aarch64.run --install-path=${your path}
 │   │   │       ├── server.py
 │   │   │       └── smem_bm_server.py
 │   │   └── wheel
-│   │       ├── memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
-│   │       ├── mf_adapter-1.0.0-cp311-cp311-linux_aarch64.whl
-│   │       └── mf_smem-1.0.0-cp311-cp311-linux_aarch64.whl
+│   │       └── memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
 │   ├── config
 │   │   ├── mmc-local.conf
 │   │   └── mmc-meta.conf
@@ -167,30 +134,6 @@ bash memcache_hybrid-1.0.0_linux_aarch64.run --install-path=${your path}
 安装的python包如下
 
 ```text
-
-root@localhost:/# pip show mf_smem
-Name: mf_smem
-Version: 1.0.0
-Summary: python api for smem
-Home-page: https://gitcode.com/Ascend/memfabric_hybrid
-Author:
-Author-email:
-License: Apache License Version 2.0
-Location: /usr/local/lib/python3.11/site-packages
-Requires:
-Required-by:
-
-root@localhost:/# pip show mf_adapter
-Name: mf_adapter
-Version: 1.0.0
-Summary: python api for mf_adapter
-Home-page: https://gitcode.com/Ascend/memfabric_hybrid
-Author:
-Author-email:
-License: Apache License Version 2.0
-Location: /usr/local/lib/python3.11/site-packages
-Requires:
-Required-by:
 
 root@localhost:# pip show memcache_hybrid
 Name: memcache_hybrid
@@ -209,28 +152,6 @@ python 包文件内容
 
 ```text
 
-root@localhost:/# tree /usr/local/lib/python3.11/site-packages/mf_smem
-/usr/local/lib/python3.11/site-packages/mf_smem
-├── VERSION
-├── __init__.py
-├── __pycache__
-│   └── __init__.cpython-311.pyc
-├── _pymf_smem.cpython-311-aarch64-linux-gnu.so
-└── lib
-    ├── libmf_hybm_core.so
-    └── libmf_smem.so
-
-root@localhost:/# tree /usr/local/lib/python3.11/site-packages/mf_adapter
-/usr/local/lib/python3.11/site-packages/mf_adapter
-├── VERSION
-├── __init__.py
-├── __pycache__
-│   └── __init__.cpython-311.pyc
-├── _pymf_transfer.cpython-311-aarch64-linux-gnu.so
-└── lib
-    ├── libmf_hybm_core.so
-    └── libmf_smem.so 
-    
 root@localhost:/# tree /usr/local/lib/python3.11/site-packages/memcache_hybrid
 /usr/local/lib/python3.11/site-packages/memcache_hybrid
 ├── VERSION
@@ -240,7 +161,6 @@ root@localhost:/# tree /usr/local/lib/python3.11/site-packages/memcache_hybrid
 │   └── meta_service_leader_election.cpython-311.pyc
 ├── _pymmc.cpython-311-aarch64-linux-gnu.so
 ├── lib
-│   ├── libhybm_gvm.so
 │   ├── libmf_hybm_core.so
 │   ├── libmf_memcache.so
 │   └── libmf_smem.so
@@ -267,7 +187,7 @@ int32_t ret = smem_set_conf_store_tls(false, nullptr, 0);
 pip install memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
 
 2、设置配置文件环境变量
-export MMC_META_CONFIG_PATH=/usr/local/memfabric_hybrid/latest/config/mmc-meta.conf
+export MMC_META_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-meta.conf
 
 3、进入python控制台或者编写python脚本如下即可拉起进程：
 from memcache_hybrid import MetaService
@@ -286,11 +206,11 @@ bash memcache_hybrid-1.0.0_linux_aarch64.run --install-path=${your path}
 如果自定义安装路径，下述 /usr/local 需替换为 ${your path}
 
 2、设置环境变量
-source /usr/local/memfabric_hybrid/set_env.sh
-export MMC_META_CONFIG_PATH=/usr/local/memfabric_hybrid/latest/config/mmc-meta.conf
+source /usr/local/memcache_hybrid/set_env.sh
+export MMC_META_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-meta.conf
 
 3、拉起二进制
-/usr/local/memfabric_hybrid/latest/aarch64-linux/bin/mmc_meta_service
+/usr/local/memcache_hybrid/latest/aarch64-linux/bin/mmc_meta_service
 ```
 
 ### LocalService
@@ -300,7 +220,7 @@ export MMC_META_CONFIG_PATH=/usr/local/memfabric_hybrid/latest/config/mmc-meta.c
 pip install memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
 
 2、设置配置文件环境变量
-export MMC_LOCAL_CONFIG_PATH=/usr/local/memfabric_hybrid/latest/config/mmc-local.conf
+export MMC_LOCAL_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-local.conf
 
 3、通过MemCache提供的接口初始化客户端并拉起localservice，执行数据写入、查询、获取、删除等，下面的脚本时一个示例：
 python3 test_mmc_demo.py

@@ -20,7 +20,7 @@ function delete_install_files()
     fi
 
     install_dir=$1
-    print "INFO" "memfabric_hybrid $(basename $1) delete install files!"
+    print "INFO" "memcache_hybrid $(basename $1) delete install files!"
     if [ -f ${install_dir} ]; then
         chmod 700 ${install_dir}
         rm -f ${install_dir}
@@ -32,7 +32,7 @@ function delete_install_files()
 
 function delete_latest()
 {
-    print "INFO" "memfabric_hybrid delete latest!"
+    print "INFO" "memcache_hybrid delete latest!"
     cd $1/..
     if [ -f "set_env.sh" ]; then
         chmod 500 set_env.sh
@@ -49,7 +49,7 @@ function uninstall_process()
     if [ ! -d $1 ]; then
         return 0
     fi
-    print "INFO" "memfabric_hybrid $(basename $1) uninstall start.."
+    print "INFO" "memcache_hybrid $(basename $1) uninstall start.."
     delete_latest $1
     delete_install_files $1
     mf_dir=$(cd $1/..;pwd)
@@ -60,11 +60,11 @@ function uninstall_process()
 
     pip_path=$(which pip3 2>/dev/null)
     if [ -z "$pip_path" ]; then
-        print "WARNING" "memfabric_hybrid  pip3 Not Found, skip uninstall wheel package."
+        print "WARNING" "memcache_hybrid  pip3 Not Found, skip uninstall wheel package."
     else
-        pip3 uninstall -y mf_smem
+        pip3 uninstall -y memcache_hybrid
     fi
-    print "INFO" "memfabric_hybrid $(basename $1) uninstall success!"
+    print "INFO" "memcache_hybrid $(basename $1) uninstall success!"
 }
 
 install_dir=${CUR_DIR}

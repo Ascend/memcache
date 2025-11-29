@@ -34,7 +34,7 @@ fi
 OS_NAME=$(uname -s | awk '{print tolower($0)}')
 ARCH_OS=${ARCH}-${OS_NAME}
 
-PKG_DIR="memfabric_hybrid"
+PKG_DIR="memcache_hybrid"
 VERSION="1.0.0"
 OUTPUT_DIR=${BASH_PATH}/../../output
 
@@ -46,18 +46,9 @@ mkdir ${PKG_DIR}/${ARCH_OS}/lib64
 mkdir ${PKG_DIR}/${ARCH_OS}/wheel
 mkdir ${PKG_DIR}/${ARCH_OS}/script
 mkdir ${PKG_DIR}/config
-mkdir -p ${PKG_DIR}/${ARCH_OS}/include/smem
-mkdir -p ${PKG_DIR}/${ARCH_OS}/include/hybm
-mkdir -p ${PKG_DIR}/${ARCH_OS}/include/driver
 mkdir -p ${PKG_DIR}/${ARCH_OS}/include/memcache
 mkdir -p ${PKG_DIR}/${ARCH_OS}/script/mock_server
 
-# smem
-cp -r ${OUTPUT_DIR}/smem/include/* ${PKG_DIR}/${ARCH_OS}/include/smem
-cp ${OUTPUT_DIR}/smem/lib64/* ${PKG_DIR}/${ARCH_OS}/lib64
-# hybm
-cp -r ${OUTPUT_DIR}/hybm/include/* ${PKG_DIR}/${ARCH_OS}/include/hybm
-cp ${OUTPUT_DIR}/hybm/lib64/libmf_hybm_core.so ${PKG_DIR}/${ARCH_OS}/lib64/
 # memcache
 cp -r ${OUTPUT_DIR}/memcache/include/* ${PKG_DIR}/${ARCH_OS}/include/memcache
 cp ${OUTPUT_DIR}/memcache/lib64/* ${PKG_DIR}/${ARCH_OS}/lib64/
@@ -65,7 +56,6 @@ cp ${OUTPUT_DIR}/memcache/bin/* ${PKG_DIR}/${ARCH_OS}/bin/
 cp ${OUTPUT_DIR}/memcache/wheel/*.whl ${PKG_DIR}/${ARCH_OS}/wheel/
 
 cp ${PROJECT_DIR}/config/* ${PKG_DIR}/config
-cp -r ${PROJECT_DIR}/3rdparty/memfabric_hybrid/test/certs ${PKG_DIR}/${ARCH_OS}/script
 cp -r ${PROJECT_DIR}/test/k8s_deploy ${PKG_DIR}/${ARCH_OS}/script
 cp ${PROJECT_DIR}/test/python/memcache/mock_server/server.py ${PKG_DIR}/${ARCH_OS}/script/mock_server
 cp ${PROJECT_DIR}/test/python/memcache/mock_server/smem_bm/smem_bm_server.py ${PKG_DIR}/${ARCH_OS}/script/mock_server
@@ -98,10 +88,5 @@ mv ${FILE_NAME}.run ${OUTPUT_DIR}
 
 rm -rf ${PKG_DIR}
 rm -rf ${FILE_NAME}.tar.gz
-
-cd ${OUTPUT_DIR}
-oldname="${FILE_NAME}.run"
-newname="${oldname/memfabric/memcache}"
-mv "$oldname" "$newname"
 
 cd ${CURRENT_DIR}

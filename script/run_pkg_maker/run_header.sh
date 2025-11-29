@@ -40,7 +40,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-bash ${TARGET_DIR}/memfabric_hybrid/script/install.sh $*
+bash ${TARGET_DIR}/memcache_hybrid/script/install.sh $*
 
 EXIT_CODE=$?
 
