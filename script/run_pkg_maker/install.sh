@@ -15,7 +15,7 @@ script_dir=$(dirname $(readlink -f "$0"))
 version1="none"
 pkg_arch="none"
 os1="none"
-default_install_dir="/usr/local/memfabric_hybrid"
+default_install_dir="/usr/local/memcache_hybrid"
 
 function print_help() {
     echo "--install-path=<path>             Install to specific dir"
@@ -310,9 +310,7 @@ function install_to_path()
     wheel_dir="${install_dir}"/"${pkg_arch}"-"${os1}"/wheel
     python_version=$(python3 -c "import sys; print(''.join(map(str, sys.version_info[:2])))")
 
-    install_wheel_package "${wheel_dir}" mf_smem "${python_version}"
     install_wheel_package "${wheel_dir}" memcache_hybrid "${python_version}"
-    install_wheel_package "${wheel_dir}" mf_adapter "${python_version}"
 }
 
 function generate_set_env()

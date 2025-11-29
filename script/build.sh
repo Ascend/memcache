@@ -117,12 +117,6 @@ do
         make -j5 -C build
     fi
 
-    rm -rf "${FABRIC_PROJ_DIR}"/src/smem/python/mf_smem/_pymf_smem.cpython*.so
-    \cp -v "${FABRIC_PROJ_BUILDDIR}"/src/smem/csrc/python_wrapper/_pymf_smem.cpython*.so "${FABRIC_PROJ_DIR}"/src/smem/python/mf_smem
-
-    cd "${FABRIC_PROJ_DIR}/src/smem/python"
-    rm -rf build mf_smem.egg-info
-    python3 setup.py bdist_wheel
     cd "${PROJ_DIR}"
     rm -f "${PROJ_DIR}"/src/memcache/python/memcache_hybrid/_pymmc.cpython*.so
     \cp -v "${PROJ_DIR}"/build/src/memcache/csrc/python_wrapper/_pymmc.cpython*.so "${PROJ_DIR}"/src/memcache/python/memcache_hybrid
@@ -130,42 +124,19 @@ do
     rm -rf build memcache_hybrid.egg-info
     python3 setup.py bdist_wheel
 
-    rm -rf "${FABRIC_PROJ_DIR}"/src/mooncake_adapter/python/mf_adapter/_pymf_transfer.cpython*.so
-    \cp -v "${FABRIC_PROJ_BUILDDIR}"/src/mooncake_adapter/csrc/_pymf_transfer.cpython*.so "${FABRIC_PROJ_DIR}"/src/mooncake_adapter/python/mf_adapter
-    mkdir -p ${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib
-    cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib"
-    cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python/mf_adapter/lib"
-    cd "${FABRIC_PROJ_DIR}/src/mooncake_adapter/python"
-    rm -rf build mf_adapter.egg-info
-    python3 setup.py bdist_wheel
-    cd "${PROJ_DIR}"
-
     if [ -z "${multiple_python}" ];then
         break
     fi
 done
 
-# copy smem wheel package
-mkdir -p "${PROJ_DIR}/output/smem/wheel"
-cp "${FABRIC_PROJ_DIR}"/src/smem/python/dist/*.whl "${PROJ_DIR}/output/smem/wheel"
-rm -rf "${FABRIC_PROJ_DIR}"/src/smem/python/dist
-
 mkdir -p "${PROJ_DIR}/output/memcache/wheel"
 cp "${PROJ_DIR}"/src/memcache/python/dist/*.whl "${PROJ_DIR}/output/memcache/wheel"
 rm -rf "${PROJ_DIR}"/src/memcache/python/dist
 
-# copy mooncake_adapter wheel package
-mkdir -p "${PROJ_DIR}/output/mooncake_adapter/wheel"
-cp "${FABRIC_PROJ_DIR}"/src/mooncake_adapter/python/dist/*.whl "${PROJ_DIR}/output/mooncake_adapter/wheel"
-rm -rf "${FABRIC_PROJ_DIR}"/src/mooncake_adapter/python/dist
-
 if [ "${BUILD_PACKAGE}" == "ON" ]; then
-    #copy smem wheel package && mooncake_adapter wheel package && mf_run package
     bash "${PROJ_DIR}"/script/run_pkg_maker/make_run.sh RELEASE ON
     rm -rf "${PROJ_DIR}"/package
     mkdir -p "${PROJ_DIR}"/package
-    cp "${PROJ_DIR}"/output/mooncake_adapter/wheel/*.whl "${PROJ_DIR}/package"
-    cp "${PROJ_DIR}"/output/smem/wheel/*.whl "${PROJ_DIR}/package"
     cp "${PROJ_DIR}"/output/memcache/wheel/*.whl "${PROJ_DIR}/package"
     cp "${PROJ_DIR}"/output/*.run "${PROJ_DIR}"/package
 fi

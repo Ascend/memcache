@@ -22,8 +22,8 @@ from typing import Dict, Any, Optional
 import torch
 import torch_npu
 
-import mf_smem
-from mf_smem import bm
+import memfabric_hybrid
+from memfabric_hybrid import bm
 
 
 class MmcDirect(Enum):
@@ -359,10 +359,10 @@ class MmcTest(TestServer):
         # 读取配置文件
         client_config = self.read_client_conf()
         # init
-        ret = mf_smem.initialize()
+        ret = memfabric_hybrid.initialize()
         if ret != 0:
             self.cli_return(-1)
-            raise RuntimeError(f"Failed to init mf_smem")
+            raise RuntimeError(f"Failed to init memfabric_hybrid")
         config = bm.BmConfig()
         config.auto_ranking = False
         config.rank_id = self._rank_id
