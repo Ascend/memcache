@@ -508,7 +508,7 @@ class MmcTest(TestServer):
         acl.init()
         ret = acl.rt.set_device(self._device_id)
         if ret != 0:
-            raise RuntimeError("acl set device failed")
+            raise RuntimeError(f"acl set device failed, ret={ret}")
 
     def sync_stream(self):
         import torch_npu
