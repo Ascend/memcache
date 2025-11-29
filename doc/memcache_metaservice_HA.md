@@ -10,9 +10,14 @@
 ![metaservice-ha.png](./source/memcache_metaservice_ha.png)
 
 ### 1. 环境准备
-测试验证推荐用2个节点，本文档基于2节点，要求910b或更新的芯片，2个节点能互相访问。
 
-修改本文档命令中xxxxxxxx为自己的目录或者正确的ip
+测试验证推荐用2个节点，本文档基于2个节点，要求910b或最新的芯片，2个节点能互相访问。
+
+注
+
+```text
+修改本文档命令中的目录或者IP为自己的目录或者正确的IP
+```
 
 #### 1.1 确保2台机器时间一致
 同时执行如下命令
@@ -22,7 +27,7 @@ sudo timedatectl set-time "2025-10-17 17:30:00"
 
 #### 1.2 安装k8s
 
-请安装k8s安装指南安装好环境。
+请按照k8s安装指南安装好环境。
 
 ```shell
 # 启动k8s命令补全
@@ -166,11 +171,9 @@ cp -rf /usr/local/memfabric_hybrid/latest/config/* /home/meta/config
    ```
 
 #### 2.2 依赖库
-使用host_rdma数据传输协议时，需要将libhcom.so拷贝至/home/meta/lib下
 
-流水线环境可以在此目录获得最新日构建版本libhcom.so: 
-
-/home/CI_HOME_for_25.2.0/memfabric_hybrid_br_A3_shm_bm_630/ubs_comm-hcom-1.2.0-1.oe2203sp3.aarch64/hcom/lib/
+使用host_rdma数据传输协议时，需要将libhcom.so拷贝至/home/meta/lib下，  
+请参考hcom项目获取最新的so文件。
 
 #### 2.3 软件包
 下载源码，并参考README内容，编译构建安装包，并放置到/home/meta目录下（pod启动时会自动安装这个目录下的包）
@@ -349,12 +352,6 @@ kubectl exec -it meta-service-pod-0 -n ns-memcache -c meta-service -- bash
 （注意local-pods-demo.yaml中的业务启动命令
 `exec python3 /usr/local/memfabric_hybrid/latest/aarch64-linux/script/ha/test-mmc-meta-ha.py > /home/memcache/logs/mmc-local.log 2>&1`）
 
-### 6. 测试场景
-
-- 2个meta, local1 put，切换meta，get正常 910B device_rdma
-- 2个meta, local1 put 2 , 切换meta， local2 get 正常 910B device_rdma
-- 2个meta, local1 put 2 ,local1 quit， 切换meta， local2 get 正常 910B device_rdma
-- 启动local1，local2；local1 put 1；重启local2；切换meta；local1 get成功 local2 get失败
 
 ### 7. 注意事项
 

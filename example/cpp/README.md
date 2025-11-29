@@ -2,6 +2,8 @@
 
 本样例简单验证了MemCache相关接口
 
+### 如果编译选择CANN依赖
+
 本样例需要在npu环境下编译运行
 
 首先,请在环境上提前安装NPU固件驱动和CANN包([环境安装参考链接](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/81RC1alpha002/softwareinst/instg/instg_0000.html))
@@ -56,7 +58,7 @@ mmc_meta_service &
 ```
 
 编译完成后,会在当前目录生成build/memcache_cpp_test可执行文件
-执行方式如下,支持多节点运行
+执行方式如下,可交互式的执行put，get等操作命令。
 
 ```text
 root@localhost:/home/memfabric_hybrid/example/cpp# ./build/memcache_cpp_test

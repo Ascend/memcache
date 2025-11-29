@@ -1,9 +1,10 @@
 ## 代码实现介绍
 
-本样例简单验证了`big memory`相关`python`接口
+本样例简单验证了`memcache_hybrid`相关`python`接口
 
 本样例需要在npu环境下编译运行
 
+### 如果编译选择CANN依赖
 首先,请在环境上提前安装NPU固件驱动和CANN包([环境安装参考链接](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/81RC1alpha002/softwareinst/instg/instg_0000.html))
 
 HDK固件驱动需要使用**25.0.RC1**
@@ -46,7 +47,7 @@ mmc_meta_service &
 
 ## 执行脚本
 
-选择脚本，直接执行，比如
+选择脚本，直接执行，比如下面这个脚本，会在一个进程里面启动meta服务和local服务并且完成put，get等测试（不需要前面步骤单独的启动meta服务进程）
 
 ```shell
 python python/test_mmc_start_meta_service_and_simple_test.py

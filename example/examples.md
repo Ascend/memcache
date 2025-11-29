@@ -14,5 +14,5 @@
 
 | **样例名称**                             | **样例介绍**          | **开发语言** |
 |--------------------------------------|-------------------|----------|
-| [C++ example](./cpp/README.md)       | memcache C++样例    | C++      |
-| [python example](./python/README.md) | memcache Python样例 | Python   |
+| [C++ example](./cpp/README.md)       | MemCache C++样例    | C++      |
+| [python example](./python/README.md) | MemCache Python样例 | Python   |

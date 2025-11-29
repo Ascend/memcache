@@ -104,7 +104,8 @@ int32_t mmcc_put(const char *key, mmc_buffer *buf, mmc_put_options options, uint
 **功能**: 将指定 key 的数据放入分布式内存缓存中。支持同步和异步操作。
 
 **参数**:
-- `key`: 数据的键，长度小于256字节
+
+- `key`: 数据的键，长度小于256个字节
 - `buf`: 要放入的数据缓冲区
 - `options`: 放置操作的选项
 - `flags`: 可选标志，保留字段
@@ -120,7 +121,8 @@ int32_t mmcc_get(const char *key, mmc_buffer *buf, uint32_t flags);
 **功能**: 从分布式内存缓存中获取指定 key 的数据。支持同步和异步操作。
 
 **参数**:
-- `key`: 数据的键，长度小于256字节
+
+- `key`: 数据的键，长度小于256个字节
 - `buf`: 存储获取数据的缓冲区
 - `flags`: 可选标志，保留字段
 
@@ -135,7 +137,8 @@ int32_t mmcc_query(const char *key, mmc_data_info *info, uint32_t flags);
 **功能**: 查询分布式内存缓存中指定 key 的数据信息。支持同步和异步操作。
 
 **参数**:
-- `key`: 数据的键，长度小于256字节
+
+- `key`: 数据的键，长度小于256个字节
 - `info`: 存储数据信息的结构体
 - `flags`: 可选标志，保留字段
 
@@ -150,7 +153,8 @@ int32_t mmcc_remove(const char *key, uint32_t flags);
 **功能**: 从分布式内存缓存中删除指定 key 的对象。支持同步和异步操作。
 
 **参数**:
-- `key`: 数据的键，长度小于256字节
+
+- `key`: 数据的键，长度小于256个字节
 - `flags`: 可选标志，保留字段
 
 **返回值**:
@@ -164,7 +168,8 @@ int32_t mmcc_exist(const char *key, uint32_t flags);
 **功能**: 判断指定 key 是否存在于分布式内存缓存中。
 
 **参数**:
-- `key`: 数据的键，长度小于256字节
+
+- `key`: 数据的键，长度小于256个字节
 - `flags`: 可选标志，保留字段
 
 **返回值**:
@@ -178,7 +183,8 @@ int32_t mmcc_batch_query(const char **keys, size_t keys_count, mmc_data_info *in
 **功能**: 批量查询指定 keys 的 blob 信息。
 
 **参数**:
-- `keys`: 数据键数组，每个键长度小于256字节
+
+- `keys`: 数据键数组，每个键长度小于256个字节
 - `keys_count`: 键的数量
 - `info`: 输出的键的 Blob 信息
 - `flags`: 操作标志
@@ -211,7 +217,8 @@ int32_t mmcc_batch_exist(const char **keys, uint32_t keys_count, int32_t *exist_
 **功能**: 判断多个键是否存在于 BM 中。
 
 **参数**:
-- `keys`: 数据键数组，每个键长度小于256字节
+
+- `keys`: 数据键数组，每个键长度小于256个字节
 - `keys_count`: 键的数量
 - `exist_results`: BM 中键的存在状态列表
 - `flags`: 可选标志，保留字段
@@ -389,6 +396,6 @@ TLS配置结构体，包含以下字段：
 
 ## 注意事项
 
-- 所有键的长度必须小于256字节
+- 所有键的长度必须小于256个字节
 - 支持同步和异步两种操作模式
 - 批量操作可以提高处理效率
