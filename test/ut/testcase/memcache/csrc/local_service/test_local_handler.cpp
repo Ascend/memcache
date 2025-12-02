@@ -84,7 +84,7 @@ protected:
             .worldSize = 4,
             .ipPort = "127.0.0.1:5000",
             .hcomUrl = "tcp://127.0.0.1:5001",
-            .logLevel = 0,
+            .logLevel = INFO_LEVEL,
             .logFunc = nullptr
         };
         

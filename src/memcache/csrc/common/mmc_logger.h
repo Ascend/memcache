@@ -81,13 +81,13 @@ public:
 
     inline void Log(int level, const std::ostringstream &oss)
     {
-#ifndef UT_ENABLED
-        if (logFunc_ != nullptr) {
-            logFunc_(level, oss.str().c_str());
+        if (level < logLevel_) {
             return;
         }
 
-        if (level < logLevel_) {
+#ifndef UT_ENABLED
+        if (logFunc_ != nullptr) {
+            logFunc_(level, oss.str().c_str());
             return;
         }
 

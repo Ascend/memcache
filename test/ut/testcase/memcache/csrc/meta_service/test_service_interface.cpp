@@ -77,7 +77,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     std::string hcomUrl = "tcp://127.0.0.1:5883";
 
     mmc_meta_service_config_t metaServiceConfig{};
-    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logLevel = INFO_LEVEL;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.accTlsConfig.tlsEnable = false;
@@ -93,7 +93,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma",
                                                      totalSize, totalSize, 0};
-    localServiceConfig.logLevel = 0;
+    localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
@@ -102,7 +102,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     ASSERT_TRUE(local_service != nullptr);
 
     mmc_client_config_t clientConfig;
-    clientConfig.logLevel = 0;
+    clientConfig.logLevel = INFO_LEVEL;
     clientConfig.tlsConfig.tlsEnable = false;
     clientConfig.rankId = 0;
     UrlStringToChar(metaUrl, clientConfig.discoveryURL);
@@ -161,7 +161,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     std::string hcomUrl = "tcp://127.0.0.1:5883";
     std::string localUrl = "";
     mmc_meta_service_config_t metaServiceConfig{};
-    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logLevel = INFO_LEVEL;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.accTlsConfig.tlsEnable = false;
@@ -175,7 +175,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma",
                                                      104857600, 104857600, 0};
-    localServiceConfig.logLevel = 0;
+    localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
@@ -184,7 +184,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     ASSERT_TRUE(local_service != nullptr);
 
     mmc_client_config_t clientConfig;
-    clientConfig.logLevel = 0;
+    clientConfig.logLevel = INFO_LEVEL;
     clientConfig.tlsConfig.tlsEnable = false;
     clientConfig.rankId = 0;
     UrlStringToChar(metaUrl, clientConfig.discoveryURL);
@@ -271,6 +271,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
 TEST_F(TestMmcServiceInterface, testClientInitUninit)
 {
     mmc_client_config_t clientConfig{};
+    clientConfig.logLevel = INFO_LEVEL;
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
 
@@ -281,6 +282,7 @@ TEST_F(TestMmcServiceInterface, testClientInitUninit)
 TEST_F(TestMmcServiceInterface, testPutInvalidParam)
 {
     mmc_client_config_t clientConfig{};
+    clientConfig.logLevel = INFO_LEVEL;
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_TRUE(ret == ock::mmc::MMC_OK);
 
@@ -346,6 +348,7 @@ TEST_F(TestMmcServiceInterface, testBatchQueryInvalidKeys)
 TEST_F(TestMmcServiceInterface, testExistOperations)
 {
     mmc_client_config_t clientConfig{};
+    clientConfig.logLevel = INFO_LEVEL;
     mmcc_init(&clientConfig);
 
     int32_t ret = mmcc_exist("non_existent_key", 0);
@@ -361,6 +364,7 @@ TEST_F(TestMmcServiceInterface, testExistOperations)
 TEST_F(TestMmcServiceInterface, testBatchGetErrorHandling)
 {
     mmc_client_config_t clientConfig{};
+    clientConfig.logLevel = INFO_LEVEL;
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_EQ(ret, ock::mmc::MMC_OK);
     std::vector<int> results1(2, -1);
@@ -405,6 +409,7 @@ TEST_F(TestMmcServiceInterface, testBatchGetErrorHandling)
 TEST_F(TestMmcServiceInterface, testBatchGetWithPartialData)
 {
     mmc_client_config_t clientConfig{};
+    clientConfig.logLevel = INFO_LEVEL;
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_EQ(ret, ock::mmc::MMC_OK);
 
@@ -470,7 +475,9 @@ protected:
     void TearDown() override
     {
         delete allocator;
+        allocator = nullptr;
         delete[] baseMem;
+        baseMem = nullptr;
     }
 
     void CheckAlignment(const ock::mmc::MmcMemBlobPtr& blob)

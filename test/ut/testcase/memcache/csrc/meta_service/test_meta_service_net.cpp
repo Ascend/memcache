@@ -50,7 +50,7 @@ TEST_F(TestMmcMetaService, Init)
     std::string bmUrl = "tcp://127.0.0.1:5681";
     std::string hcomUrl = "tcp://127.0.0.1:5682";
     mmc_meta_service_config_t metaServiceConfig{};
-    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logLevel = INFO_LEVEL;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.evictThresholdHigh = 70;
@@ -64,7 +64,7 @@ TEST_F(TestMmcMetaService, Init)
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
-    localServiceConfig.logLevel = 0;
+    localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
@@ -98,7 +98,7 @@ TEST_F(TestMmcMetaService, ExistRequest)
     std::string bmUrl = "tcp://127.0.0.1:5681";
     std::string hcomUrl = "tcp://127.0.0.1:5682";
     mmc_meta_service_config_t metaServiceConfig{};
-    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logLevel = INFO_LEVEL;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.evictThresholdHigh = 70;
@@ -112,7 +112,7 @@ TEST_F(TestMmcMetaService, ExistRequest)
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
-    localServiceConfig.logLevel = 0;
+    localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
@@ -153,7 +153,7 @@ TEST_F(TestMmcMetaService, BatchExistRequest)
     std::string bmUrl = "tcp://127.0.0.1:5681";
     std::string hcomUrl = "tcp://127.0.0.1:5682";
     mmc_meta_service_config_t metaServiceConfig{};
-    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logLevel = INFO_LEVEL;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.evictThresholdHigh = 70;
@@ -167,7 +167,7 @@ TEST_F(TestMmcMetaService, BatchExistRequest)
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
-    localServiceConfig.logLevel = 0;
+    localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
@@ -227,7 +227,7 @@ TEST_F(TestMmcMetaService, QueryRequest)
     std::string bmUrl = "tcp://127.0.0.1:5681";
     std::string hcomUrl = "tcp://127.0.0.1:5682";
     mmc_meta_service_config_t metaServiceConfig{};
-    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logLevel = INFO_LEVEL;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.evictThresholdHigh = 70;
@@ -241,7 +241,7 @@ TEST_F(TestMmcMetaService, QueryRequest)
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
-    localServiceConfig.logLevel = 0;
+    localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
@@ -285,7 +285,7 @@ TEST_F(TestMmcMetaService, BatchQueryRequest)
     std::string bmUrl = "tcp://127.0.0.1:5681";
     std::string hcomUrl = "tcp://127.0.0.1:5682";
     mmc_meta_service_config_t metaServiceConfig{};
-    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logLevel = INFO_LEVEL;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.evictThresholdHigh = 70;
@@ -299,7 +299,7 @@ TEST_F(TestMmcMetaService, BatchQueryRequest)
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
-    localServiceConfig.logLevel = 0;
+    localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
