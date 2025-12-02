@@ -9,6 +9,7 @@
 
 using namespace testing;
 using namespace std;
+using namespace ock::mmc;
 
 class TestMmcServiceError : public testing::Test {
 public:
@@ -72,7 +73,7 @@ TEST_F(TestMmcServiceError, metaService)
     std::string hcomUrl = "tcp://127.0.0.1:5882";
     std::string localUrl = "";
     mmc_meta_service_config_t metaServiceConfig{};
-    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logLevel = INFO_LEVEL;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.evictThresholdHigh = 70;
@@ -85,7 +86,7 @@ TEST_F(TestMmcServiceError, metaService)
     ASSERT_TRUE(meta_service != nullptr);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
-    localServiceConfig.logLevel = 0;
+    localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
@@ -94,7 +95,7 @@ TEST_F(TestMmcServiceError, metaService)
     ASSERT_TRUE(local_service != nullptr);
 
     mmc_client_config_t clientConfig;
-    clientConfig.logLevel = 0;
+    clientConfig.logLevel = INFO_LEVEL;
     clientConfig.tlsConfig.tlsEnable = false;
     clientConfig.rankId = 0;
     UrlStringToChar(metaUrl, clientConfig.discoveryURL);
@@ -196,7 +197,7 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
     std::string hcomUrl = "tcp://127.0.0.1:5882";
     std::string localUrl = "";
     mmc_meta_service_config_t metaServiceConfig{};
-    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logLevel = ERROR_LEVEL;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.evictThresholdHigh = 70;
@@ -209,7 +210,7 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
     ASSERT_TRUE(meta_service != nullptr);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, MF_SIZE, 0};
-    localServiceConfig.logLevel = 0;
+    localServiceConfig.logLevel = ERROR_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, localServiceConfig.bmIpPort);
@@ -218,7 +219,7 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
     ASSERT_TRUE(local_service != nullptr);
 
     mmc_client_config_t clientConfig;
-    clientConfig.logLevel = 0;
+    clientConfig.logLevel = ERROR_LEVEL;
     clientConfig.tlsConfig.tlsEnable = false;
     clientConfig.rankId = 0;
     UrlStringToChar(metaUrl, clientConfig.discoveryURL);

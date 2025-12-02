@@ -15,6 +15,7 @@
 #include "mmc_env.h"
 #include "mmc.h"
 #include "mmcache_store.h"
+#include "mmc_logger.h"
 
 using namespace testing;
 using namespace std;
@@ -140,7 +141,7 @@ TEST_F(TestMmcacheStore, Init)
     std::string bmUrl = "tcp://127.0.0.1:5882";
 
     mmc_meta_service_config_t metaServiceConfig{};
-    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logLevel = INFO_LEVEL;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.accTlsConfig.tlsEnable = false;
@@ -193,7 +194,7 @@ static mmc_meta_service_t StartMetaService()
     std::string bmUrl = "tcp://127.0.0.1:5882";
 
     mmc_meta_service_config_t metaServiceConfig{};
-    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logLevel = INFO_LEVEL;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.accTlsConfig.tlsEnable = false;
