@@ -11,6 +11,9 @@ using namespace testing;
 using namespace std;
 using namespace ock::mmc;
 
+static const uint32_t UT_READ_POOL_NUM = 32U;
+static const uint32_t UT_WRITE_POOL_NUM = 4U;
+
 class TestMmcServiceError : public testing::Test {
 public:
     TestMmcServiceError();
@@ -98,6 +101,8 @@ TEST_F(TestMmcServiceError, metaService)
     clientConfig.logLevel = INFO_LEVEL;
     clientConfig.tlsConfig.tlsEnable = false;
     clientConfig.rankId = 0;
+    clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
+    clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     UrlStringToChar(metaUrl, clientConfig.discoveryURL);
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_TRUE(ret == 0);
@@ -222,6 +227,8 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
     clientConfig.logLevel = ERROR_LEVEL;
     clientConfig.tlsConfig.tlsEnable = false;
     clientConfig.rankId = 0;
+    clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
+    clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     UrlStringToChar(metaUrl, clientConfig.discoveryURL);
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_TRUE(ret == 0);

@@ -17,7 +17,6 @@ constexpr uint32_t MMC_REGISTER_SET_LEFT_MARK = 1U;
 constexpr int32_t MMC_BATCH_TRANSPORT = 1U;
 constexpr int32_t MMC_ASYNC_TRANSPORT = 2U;
 constexpr uint32_t KEY_MAX_LENTH = 256U;
-constexpr uint32_t MMC_IO_POOL_NUM = 64;
 constexpr uint32_t MMC_EACH_BATCH_SIZE = 61;
 
 MmcClientDefault* MmcClientDefault::gClientHandler = nullptr;
@@ -39,9 +38,13 @@ Result MmcClientDefault::Start(const mmc_client_config_t &config)
     MMC_ASSERT_RETURN(threadPool_ != nullptr, MMC_MALLOC_FAILED);
     MMC_RETURN_ERROR(threadPool_->Start(), "thread pool start failed");
 
-    ioThreadPool_ = MmcMakeRef<MmcThreadPool>("io_pool", MMC_IO_POOL_NUM);
-    MMC_ASSERT_RETURN(ioThreadPool_ != nullptr, MMC_MALLOC_FAILED);
-    MMC_RETURN_ERROR(ioThreadPool_->Start(), "io thread pool start failed");
+    readThreadPool_ = MmcMakeRef<MmcThreadPool>("read_pool", config.readThreadPoolNum);
+    MMC_ASSERT_RETURN(readThreadPool_ != nullptr, MMC_MALLOC_FAILED);
+    MMC_RETURN_ERROR(readThreadPool_->Start(), "read thread pool start failed");
+
+    writeThreadPool_ = MmcMakeRef<MmcThreadPool>("write_pool", config.writeThreadPoolNum);
+    MMC_ASSERT_RETURN(writeThreadPool_ != nullptr, MMC_MALLOC_FAILED);
+    MMC_RETURN_ERROR(writeThreadPool_->Start(), "write thread pool start failed");
 
     MMC_ASSERT_RETURN(memchr(config.discoveryURL, '\0', DISCOVERY_URL_SIZE) != nullptr, MMC_INVALID_PARAM);
     auto tmpNetClient  = MetaNetClientFactory::GetInstance(config.discoveryURL, "MetaClientCommon").Get();
@@ -432,7 +435,7 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
             std::vector<void *> partDst(tmpDst.begin() + i, tmpDst.begin() + i + currentBatchSize);
             std::vector<uint64_t> partSize(tmpSize.begin() + i, tmpSize.begin() + i + currentBatchSize);
 
-            auto future = ioThreadPool_->Enqueue(
+            auto future = readThreadPool_->Enqueue(
                 [&](std::vector<void *> sourcesL, std::vector<void *> destinationsL, const std::vector<uint64_t> sizesL,
                     MediaType localMediaL) -> int32_t {
                     return bmProxy_->BatchDataGet(sourcesL, destinationsL, sizesL, localMediaL);
@@ -746,7 +749,7 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
             std::vector<void *> partDst(tmpDst.begin() + i, tmpDst.begin() + i + currentBatchSize);
             std::vector<uint64_t> partSize(tmpSize.begin() + i, tmpSize.begin() + i + currentBatchSize);
 
-            auto future = ioThreadPool_->Enqueue(
+            auto future = writeThreadPool_->Enqueue(
                 [&](std::vector<void *> sourcesL, std::vector<void *> destinationsL, const std::vector<uint64_t> sizesL,
                     MediaType localMediaL) -> int32_t {
                     return bmProxy_->BatchDataPut(sourcesL, destinationsL, sizesL, localMediaL);

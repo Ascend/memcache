@@ -91,6 +91,8 @@ static int GenerateLocalConf(std::string confPath)
 
     outFile << "ock.mmc.client.retry_milliseconds = 0" << std::endl;
     outFile << "ock.mmc.client.timeout.seconds = 60" << std::endl;
+    outFile << "ock.mmc.client.read_thread_pool.size = 32" << std::endl;
+    outFile << "ock.mmc.client.write_thread_pool.size = 4" << std::endl;
 
     outFile.close();
     return 0;
