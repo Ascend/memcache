@@ -122,8 +122,8 @@ CONTAINER ID    IMAGE                           COMMAND                   CREATE
 #### 2.1 配置文件
 先往config目录下拷贝一份配置文件模板（配置文件可以通过安装run包方式获取）
 ```shell
-bash memfabric_hybrid-1.0.0_linux_aarch64.run
-cp -rf /usr/local/memfabric_hybrid/latest/config/* /home/meta/config
+bash memcache_hybrid-1.0.0_linux_aarch64.run
+cp -rf /usr/local/memcache_hybrid/latest/config/* /home/meta/config
 ```
 
 修改如下配置

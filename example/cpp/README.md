@@ -20,7 +20,9 @@ git
 
 ```bash
 bash memfabric_hybrid-1.0.0_linux_aarch64.run
+bash memcache_hybrid-1.0.0_linux_aarch64.run
 source /usr/local/memfabric_hybrid/set_env.sh
+source /usr/local/memcache_hybrid/set_env.sh
 ```
 
 ## 编译
@@ -36,16 +38,16 @@ source /usr/local/memfabric_hybrid/set_env.sh
 ## 启动元数据服务
 
 ```shell
-sed -i 's/true/false/g' /usr/local/memfabric_hybrid/latest/config/mmc-meta.conf;
-sed -i 's/true/false/g' /usr/local/memfabric_hybrid/latest/config/mmc-local.conf;
-sed -i 's/5000/5123/g' /usr/local/memfabric_hybrid/latest/config/mmc-meta.conf;
-sed -i 's/5000/5123/g' /usr/local/memfabric_hybrid/latest/config/mmc-local.conf;
-sed -i 's/6000/6123/g' /usr/local/memfabric_hybrid/latest/config/mmc-meta.conf;
-sed -i 's/6000/6123/g' /usr/local/memfabric_hybrid/latest/config/mmc-local.conf;
-sed -i 's/7000/8000/g' /usr/local/memfabric_hybrid/latest/config/mmc-local.conf;
-export MMC_META_CONFIG_PATH=/usr/local/memfabric_hybrid/latest/config/mmc-meta.conf;
-export MMC_LOCAL_CONFIG_PATH=/usr/local/memfabric_hybrid/latest/config/mmc-local.conf;
-# 修改/usr/local/memfabric_hybrid/latest/config/mmc-local.conf ock.mmc.local_service.hcom_url 
+sed -i 's/true/false/g' /usr/local/memcache_hybrid/latest/config/mmc-meta.conf;
+sed -i 's/true/false/g' /usr/local/memcache_hybrid/latest/config/mmc-local.conf;
+sed -i 's/5000/5123/g' /usr/local/memcache_hybrid/latest/config/mmc-meta.conf;
+sed -i 's/5000/5123/g' /usr/local/memcache_hybrid/latest/config/mmc-local.conf;
+sed -i 's/6000/6123/g' /usr/local/memcache_hybrid/latest/config/mmc-meta.conf;
+sed -i 's/6000/6123/g' /usr/local/memcache_hybrid/latest/config/mmc-local.conf;
+sed -i 's/7000/8100/g' /usr/local/memcache_hybrid/latest/config/mmc-local.conf;
+export MMC_META_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-meta.conf;
+export MMC_LOCAL_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-local.conf;
+# 修改/usr/local/memcache_hybrid/latest/config/mmc-local.conf ock.mmc.local_service.hcom_url 为当前环境正确的ip
 mmc_meta_service &
 ```
 ## 运行
