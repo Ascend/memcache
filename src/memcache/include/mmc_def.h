@@ -73,6 +73,8 @@ typedef struct {
     uint32_t rankId;
     uint32_t rpcRetryTimeOut;
     uint32_t timeOut;
+    uint32_t readThreadPoolNum;
+    uint32_t writeThreadPoolNum;
     int32_t logLevel;
     ExternalLog logFunc;
     mmc_tls_config tlsConfig;

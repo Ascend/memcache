@@ -123,7 +123,8 @@ private:
     uint32_t rpcRetryTimeOut_ = 0;
     uint64_t defaultTtlMs_ = MMC_DATA_TTL_MS;
     MmcThreadPoolPtr threadPool_;
-    MmcThreadPoolPtr ioThreadPool_;
+    MmcThreadPoolPtr readThreadPool_;
+    MmcThreadPoolPtr writeThreadPool_;
     std::set<uint64_t> registerSet_; // va << 1 | is_left
 };
 

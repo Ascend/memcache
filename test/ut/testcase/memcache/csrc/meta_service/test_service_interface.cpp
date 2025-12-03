@@ -14,6 +14,9 @@ using namespace testing;
 using namespace std;
 using namespace ock::mmc;
 
+static const uint32_t UT_READ_POOL_NUM = 32U;
+static const uint32_t UT_WRITE_POOL_NUM = 4U;
+
 class TestMmcServiceInterface : public testing::Test {
 public:
     TestMmcServiceInterface();
@@ -105,6 +108,8 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     clientConfig.logLevel = INFO_LEVEL;
     clientConfig.tlsConfig.tlsEnable = false;
     clientConfig.rankId = 0;
+    clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
+    clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     UrlStringToChar(metaUrl, clientConfig.discoveryURL);
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_EQ(ret, 0);
@@ -187,6 +192,8 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     clientConfig.logLevel = INFO_LEVEL;
     clientConfig.tlsConfig.tlsEnable = false;
     clientConfig.rankId = 0;
+    clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
+    clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     UrlStringToChar(metaUrl, clientConfig.discoveryURL);
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_TRUE(ret == 0);
@@ -272,6 +279,8 @@ TEST_F(TestMmcServiceInterface, testClientInitUninit)
 {
     mmc_client_config_t clientConfig{};
     clientConfig.logLevel = INFO_LEVEL;
+    clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
+    clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
 
@@ -283,6 +292,8 @@ TEST_F(TestMmcServiceInterface, testPutInvalidParam)
 {
     mmc_client_config_t clientConfig{};
     clientConfig.logLevel = INFO_LEVEL;
+    clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
+    clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_TRUE(ret == ock::mmc::MMC_OK);
 
@@ -349,6 +360,8 @@ TEST_F(TestMmcServiceInterface, testExistOperations)
 {
     mmc_client_config_t clientConfig{};
     clientConfig.logLevel = INFO_LEVEL;
+    clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
+    clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     mmcc_init(&clientConfig);
 
     int32_t ret = mmcc_exist("non_existent_key", 0);
@@ -365,6 +378,8 @@ TEST_F(TestMmcServiceInterface, testBatchGetErrorHandling)
 {
     mmc_client_config_t clientConfig{};
     clientConfig.logLevel = INFO_LEVEL;
+    clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
+    clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_EQ(ret, ock::mmc::MMC_OK);
     std::vector<int> results1(2, -1);
@@ -410,6 +425,8 @@ TEST_F(TestMmcServiceInterface, testBatchGetWithPartialData)
 {
     mmc_client_config_t clientConfig{};
     clientConfig.logLevel = INFO_LEVEL;
+    clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
+    clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_EQ(ret, ock::mmc::MMC_OK);
 
