@@ -117,6 +117,7 @@ CONTAINER ID    IMAGE                           COMMAND                   CREATE
 ├── logs
 │   └── logs
 └── memfabric_hybrid-1.0.0_linux_aarch64.run
+└── memcache_hybrid-1.0.0_linux_aarch64.run
 ```
 
 #### 2.1 配置文件
@@ -301,8 +302,9 @@ kubectl exec -it local-service-pod-0 -n ns-memcache -c local-service -- bash
 
 source /usr/local/Ascend/ascend-toolkit/set_env.sh;
 source /usr/local/memfabric_hybrid/set_env.sh;
+source /usr/local/memcache_hybrid/set_env.sh;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/meta/lib
-cd /usr/local/memfabric_hybrid/latest/aarch64-linux/script/k8s_deploy;
+cd /usr/local/memcache_hybrid/latest/aarch64-linux/script/k8s_deploy;
 # 交互式测试，输入put/get/remove 等命令验证功能正常
 python interactive_app.py 
 ```

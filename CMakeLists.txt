@@ -40,6 +40,7 @@ option(BUILD_GIT_COMMIT_GEN_FILE "generate commit log file" ON)
 option(BUILD_PYTHON "build python file" ON)
 option(ENABLE_PTRACER "build ptracer" OFF)
 option(USE_CANN "BM implemented using CANN." ON)
+option(BUILD_CPP_EXAMPLE "Compile and package the c++ example." OFF)
 
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RELEASE)
@@ -220,6 +221,10 @@ list(REMOVE_DUPLICATES INCLUDE_DIRS)
 include_directories(${INCLUDE_DIRS})
 
 add_subdirectory(src)
+
+if (BUILD_CPP_EXAMPLE)
+    add_subdirectory(example/cpp)
+endif ()
 
 if(BUILD_TESTS STREQUAL "ON")
     set(CMAKE_CXX_STANDARD 17)

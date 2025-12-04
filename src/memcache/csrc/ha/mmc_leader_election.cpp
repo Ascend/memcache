@@ -16,7 +16,7 @@
 
 namespace ock {
 namespace mmc {
-std::string g_leaderElectionModule = "memcache.meta_service_leader_election";
+std::string g_leaderElectionModule = "memcache_hybrid.meta_service_leader_election";
 constexpr uint32_t LEASE_RETRY_PERIOD = 3;
 
 MmcMetaServiceLeaderElection::MmcMetaServiceLeaderElection(

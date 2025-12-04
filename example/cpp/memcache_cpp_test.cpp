@@ -303,9 +303,8 @@ static std::vector<std::string> executeCmd(const std::string &command)
 
     int returnCode = pclose(pipe.release());
     if (returnCode != 0) {
-        std::cerr << "no device finded." << std::endl << std::endl;
-        throw std::runtime_error("命令执行失败npu-smi info | grep 'No running processes'，返回码: " +
-                                 std::to_string(returnCode));
+        std::cerr << "no device finded npu-smi info." << std::endl << std::endl;
+        return {"0"};
     }
 
     return outputLines;
