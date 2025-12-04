@@ -1,6 +1,14 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
- */
+* Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+ * MemCache_Hybrid is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan PSL v2.
+ * You may obtain a copy of Mulan PSL v2 at:
+ *          http://license.coscl.org.cn/MulanPSL2
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+ * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+ * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ * See the Mulan PSL v2 for more details.
+*/
 #include <iostream>
 #include "gtest/gtest.h"
 #include "mmc_ref.h"
@@ -50,7 +58,7 @@ TEST_F(TestBmInit, Init)
     std::string bmUrl = "tcp://127.0.0.1:5681";
     std::string hcomUrl = "tcp://127.0.0.1:5682";
     mmc_meta_service_config_t metaServiceConfig{};
-    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logLevel = INFO_LEVEL;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.evictThresholdHigh = 70;
@@ -64,7 +72,7 @@ TEST_F(TestBmInit, Init)
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig1 = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
-    localServiceConfig1.logLevel = 0;
+    localServiceConfig1.logLevel = INFO_LEVEL;
     localServiceConfig1.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig1.discoveryURL);
     UrlStringToChar(bmUrl, localServiceConfig1.bmIpPort);

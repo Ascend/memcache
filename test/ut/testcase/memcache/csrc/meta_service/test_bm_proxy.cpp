@@ -1,6 +1,14 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
- */
+* Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+ * MemCache_Hybrid is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan PSL v2.
+ * You may obtain a copy of Mulan PSL v2 at:
+ *          http://license.coscl.org.cn/MulanPSL2
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+ * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+ * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ * See the Mulan PSL v2 for more details.
+*/
 #include <iostream>
 #include "gtest/gtest.h"
 #include "mmc_ref.h"
@@ -33,7 +41,7 @@ void TestBmProxy::SetUp()
 {
     cout << "this is NetEngine TEST_F setup:" << endl;
 
-    initConfig_.logLevel = 0;
+    initConfig_.logLevel = INFO_LEVEL;
     initConfig_.ipPort = "127.0.0.1:12345";
     initConfig_.worldSize = 1;
     initConfig_.deviceId = 0;
@@ -91,7 +99,7 @@ TEST_F(TestBmProxy, Copy)
     MmcBmProxyPtr bmProxy = MmcBmProxyFactory::GetInstance("bmProxyDefault");
 
     mmc_bm_init_config_t initConfig;
-    initConfig.logLevel = 0;
+    initConfig.logLevel = INFO_LEVEL;
     initConfig.ipPort = bmUrl;
     initConfig.worldSize = 1;
     initConfig.deviceId = 0;

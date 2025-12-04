@@ -16,5 +16,5 @@ spec:
       protocol: TCP      # 显式指定TCP协议
     - port: 18090        # Service暴露的端口（ClusterIP:18090）
       name: config
-      targetPort: 6000   # 后端Pod实际监听的端口，与meta配置文件中的ock.mmc.meta_service.config_store_url端口号保持一致
+      targetPort: 6123   # 后端Pod实际监听的端口，与meta配置文件中的ock.mmc.meta_service.config_store_url端口号保持一致
       protocol: TCP      # 显式指定TCP协议

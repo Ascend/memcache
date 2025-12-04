@@ -35,6 +35,7 @@ git reset --hard
 
 ```
 git submodule update --recursive --init
+git submodule update --remote 3rdparty/memfabric_hybrid
 ```
 
 3. 编译

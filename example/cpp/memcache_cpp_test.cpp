@@ -1,6 +1,14 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2024-2025. All rights reserved.
- */
+* Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+ * MemCache_Hybrid is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan PSL v2.
+ * You may obtain a copy of Mulan PSL v2 at:
+ *          http://license.coscl.org.cn/MulanPSL2
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+ * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+ * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ * See the Mulan PSL v2 for more details.
+*/
 
 #include <bits/fs_fwd.h>
 #include <sys/mman.h>
@@ -295,9 +303,8 @@ static std::vector<std::string> executeCmd(const std::string &command)
 
     int returnCode = pclose(pipe.release());
     if (returnCode != 0) {
-        std::cerr << "no device finded." << std::endl << std::endl;
-        throw std::runtime_error("命令执行失败npu-smi info | grep 'No running processes'，返回码: " +
-                                 std::to_string(returnCode));
+        std::cerr << "no device finded npu-smi info." << std::endl << std::endl;
+        return {"0"};
     }
 
     return outputLines;

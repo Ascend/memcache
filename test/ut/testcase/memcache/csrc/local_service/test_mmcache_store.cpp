@@ -1,6 +1,14 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
- */
+* Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+ * MemCache_Hybrid is licensed under Mulan PSL v2.
+ * You can use this software according to the terms and conditions of the Mulan PSL v2.
+ * You may obtain a copy of Mulan PSL v2 at:
+ *          http://license.coscl.org.cn/MulanPSL2
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+ * EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+ * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+ * See the Mulan PSL v2 for more details.
+*/
 #include <iostream>
 #include <memory>
 #include <stdlib.h>
@@ -15,6 +23,7 @@
 #include "mmc_env.h"
 #include "mmc.h"
 #include "mmcache_store.h"
+#include "mmc_logger.h"
 
 using namespace testing;
 using namespace std;
@@ -90,6 +99,8 @@ static int GenerateLocalConf(std::string confPath)
 
     outFile << "ock.mmc.client.retry_milliseconds = 0" << std::endl;
     outFile << "ock.mmc.client.timeout.seconds = 60" << std::endl;
+    outFile << "ock.mmc.client.read_thread_pool.size = 32" << std::endl;
+    outFile << "ock.mmc.client.write_thread_pool.size = 4" << std::endl;
 
     outFile.close();
     return 0;
@@ -140,7 +151,7 @@ TEST_F(TestMmcacheStore, Init)
     std::string bmUrl = "tcp://127.0.0.1:5882";
 
     mmc_meta_service_config_t metaServiceConfig{};
-    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logLevel = INFO_LEVEL;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.accTlsConfig.tlsEnable = false;
@@ -193,7 +204,7 @@ static mmc_meta_service_t StartMetaService()
     std::string bmUrl = "tcp://127.0.0.1:5882";
 
     mmc_meta_service_config_t metaServiceConfig{};
-    metaServiceConfig.logLevel = 0;
+    metaServiceConfig.logLevel = INFO_LEVEL;
     metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
     metaServiceConfig.logRotationFileCount = 20;
     metaServiceConfig.accTlsConfig.tlsEnable = false;
