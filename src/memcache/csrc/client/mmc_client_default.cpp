@@ -25,7 +25,6 @@ constexpr uint32_t MMC_REGISTER_SET_LEFT_MARK = 1U;
 constexpr int32_t MMC_BATCH_TRANSPORT = 1U;
 constexpr int32_t MMC_ASYNC_TRANSPORT = 2U;
 constexpr uint32_t KEY_MAX_LENTH = 256U;
-constexpr uint32_t MMC_EACH_BATCH_SIZE = 61;
 
 MmcClientDefault* MmcClientDefault::gClientHandler = nullptr;
 std::mutex MmcClientDefault::gClientHandlerMtx;
@@ -362,12 +361,11 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
     std::vector<uint32_t> ranks;
     std::vector<uint16_t> mediaTypes;
 
-    std::unordered_map<uint32_t, std::vector<void *>> srcMap{};
-    std::unordered_map<uint32_t, std::vector<void *>> dstMap{};
-    std::unordered_map<uint32_t, std::vector<uint64_t>> sizesMap{};
-    std::vector<uint64_t> indexs;
     MediaType mediaType = MEDIA_NONE;
-
+    std::vector<std::pair<uint32_t, std::future<int32_t>>> futures;
+    std::vector<void *> partSrc{};
+    std::vector<void *> partDst{};
+    std::vector<uint64_t> partSize{};
     MMC_ASSERT_RETURN(!bufArrs[0].Buffers().empty(), MMC_INVALID_PARAM);
     batchResult.resize(keys.size(), MMC_ERROR);
     for (size_t i = 0; i < keys.size(); ++i) {
@@ -395,7 +393,6 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
         mediaTypes.push_back(blobs[0].mediaType_);
 
         batchResult[i] = MMC_OK;
-        indexs.push_back(i);
         uint64_t shift = 0;
         uint32_t count = bufArr.Buffers().size();
         for (size_t k = 0; k < count; ++k) {
@@ -411,65 +408,31 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
                 return MMC_ERROR;
             }
             // classify addr by rank
-            auto src = reinterpret_cast<void *>(blobs[0].gva_ + shift);
-            auto dst = reinterpret_cast<void *>(buf->addr + buf->offset);
-            auto gvaRankId = blobs[0].rank_;
-            auto iter = srcMap.find(gvaRankId);
-            if (iter == srcMap.end()) {
-                dstMap.emplace(gvaRankId, std::vector<void *>{dst});
-                srcMap.emplace(gvaRankId, std::vector<void *>{src});
-                sizesMap.emplace(gvaRankId, std::vector<uint64_t>{buf->len});
-            } else {
-                dstMap.at(gvaRankId).push_back(dst);
-                srcMap.at(gvaRankId).push_back(src);
-                sizesMap.at(gvaRankId).push_back(buf->len);
-            }
-
+            partSrc.push_back(reinterpret_cast<void *>(blobs[0].gva_ + shift));
+            partDst.push_back(reinterpret_cast<void *>(buf->addr + buf->offset));
+            partSize.push_back(buf->len);
             shift += MmcBufSize(*buf);
         }
-    }
 
-    std::vector<std::pair<uint32_t, std::future<int32_t>>> futures;
-    for (auto &it : srcMap) {
-        std::vector<void *> &tmpSrc = srcMap.at(it.first);
-        std::vector<void *> &tmpDst = dstMap.at(it.first);
-        std::vector<uint64_t> &tmpSize = sizesMap.at(it.first);
-        size_t tmpSizeNum = tmpSize.size();
-        size_t eachCount = MMC_EACH_BATCH_SIZE;
-        bool success = true;
-        for (size_t i = 0; i < tmpSizeNum; i += eachCount) {
-            size_t currentBatchSize = std::min(eachCount, tmpSizeNum - i);
-            std::vector<void *> partSrc(tmpSrc.begin() + i, tmpSrc.begin() + i + currentBatchSize);
-            std::vector<void *> partDst(tmpDst.begin() + i, tmpDst.begin() + i + currentBatchSize);
-            std::vector<uint64_t> partSize(tmpSize.begin() + i, tmpSize.begin() + i + currentBatchSize);
-
-            auto future = readThreadPool_->Enqueue(
-                [&](std::vector<void *> sourcesL, std::vector<void *> destinationsL, const std::vector<uint64_t> sizesL,
-                    MediaType localMediaL) -> int32_t {
-                    return bmProxy_->BatchDataGet(sourcesL, destinationsL, sizesL, localMediaL);
-                },
-                partSrc, partDst, partSize, mediaType);
-            if (future.valid()) {
-                futures.push_back(std::make_pair(it.first, std::move(future)));
-            } else {
-                success = false;
-                MMC_LOG_ERROR("add thread pool queue failed");
-                break;
+        auto future = readThreadPool_->Enqueue(
+            [&](std::vector<void *> sourcesL, std::vector<void *> destinationsL, const std::vector<uint64_t> sizesL,
+                MediaType localMediaL) -> int32_t {
+                return bmProxy_->BatchDataGet(sourcesL, destinationsL, sizesL, localMediaL);
+            },
+            partSrc, partDst, partSize, mediaType);
+        if (future.valid()) {
+            futures.push_back(std::make_pair(i, std::move(future)));
+        } else {
+            // 提交失败，直接执行
+            auto ret = bmProxy_->BatchDataGet(partSrc, partDst, partSize, mediaType);
+            if (ret != MMC_OK) {
+                MMC_LOG_ERROR("Failed to put ret: " << ret);
+                batchResult[i] = MMC_ERROR;
             }
         }
-
-        if (success) {
-            continue;
-        }
-        // 提交失败，直接执行
-        auto ret = bmProxy_->BatchDataGet(it.second, dstMap.at(it.first), sizesMap.at(it.first), mediaType);
-        if (ret != MMC_OK) {
-            MMC_LOG_ERROR("Failed to put ret: " << ret);
-            for (auto idx : indexs) {
-                batchResult[idx] = ret;
-            }
-            break;
-        }
+        partSrc.clear();
+        partDst.clear();
+        partSize.clear();
     }
 
     for (auto &future : futures) {
@@ -477,10 +440,8 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
         auto res = future.second.get();
         TP_TRACE_END(TP_MMC_LOCAL_GET_WAIT_FUTURE, res);
         if (res != 0) {
-            MMC_LOG_ERROR("batch rank " << future.first << " failed, error code " << res);
-            for (auto idx : indexs) {
-                batchResult[idx] = res;
-            }
+            MMC_LOG_ERROR("batch seq " << future.first << " failed, error code " << res);
+            batchResult[future.first] = res;
         }
     }
 
@@ -680,12 +641,11 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
     }
     MMC_ASSERT_RETURN(!bufArrs.empty() && !bufArrs[0].Buffers().empty(), MMC_INVALID_PARAM);
 
-    std::unordered_map<uint32_t, std::vector<void *>> srcMap{};
-    std::unordered_map<uint32_t, std::vector<void *>> dstMap{};
-    std::unordered_map<uint32_t, std::vector<uint64_t>> sizesMap{};
-    std::vector<uint64_t> indexs;
     MediaType mediaType = MEDIA_NONE;
-
+    std::vector<std::pair<uint32_t, std::future<int32_t>>> futures;
+    std::vector<void *> partSrc{};
+    std::vector<void *> partDst{};
+    std::vector<uint64_t> partSize{};
     for (size_t i = 0; i < keys.size(); ++i) {
         const std::string& key = keys[i];
         const MmcBufferArray& bufArr = bufArrs[i];
@@ -706,10 +666,10 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
         }
 
         batchResult[i] = MMC_OK;
-        indexs.push_back(i);
         for (uint8_t j = 0; j < numBlobs; ++j) {
             uint64_t shift = 0;
             uint32_t count = bufArr.Buffers().size();
+            // 一个blob对应的所有地址
             for (size_t k = 0; k < count; ++k) {
                 auto buf = &bufArr.Buffers()[k];
                 if (buf->type == MEDIA_NONE) {
@@ -722,40 +682,12 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
                     MMC_LOG_ERROR("not all data type same as " << mediaType << ", unexcepted buf type:" << buf->type);
                     return MMC_ERROR;
                 }
-                // classify addr by rank
-                auto src = reinterpret_cast<void *>(buf->addr + buf->offset);
-                auto dst = reinterpret_cast<void *>(blobs[j].gva_ + shift);
-                auto gvaRankId = blobs[j].rank_;
-                auto iter = srcMap.find(gvaRankId);
-                if (iter == srcMap.end()) {
-                    dstMap.emplace(gvaRankId, std::vector<void *>{dst});
-                    srcMap.emplace(gvaRankId, std::vector<void *>{src});
-                    sizesMap.emplace(gvaRankId, std::vector<uint64_t>{buf->len});
-                } else {
-                    dstMap.at(gvaRankId).push_back(dst);
-                    srcMap.at(gvaRankId).push_back(src);
-                    sizesMap.at(gvaRankId).push_back(buf->len);
-                }
 
+                partSrc.push_back(reinterpret_cast<void *>(buf->addr + buf->offset));
+                partDst.push_back(reinterpret_cast<void *>(blobs[j].gva_ + shift));
+                partSize.push_back(buf->len);
                 shift += MmcBufSize(*buf);
             }
-        }
-    }
-
-    std::vector<std::pair<uint32_t, std::future<int32_t>>> futures;
-    for (auto &it : srcMap) {
-        std::vector<void *> &tmpSrc = srcMap.at(it.first);
-        std::vector<void *> &tmpDst = dstMap.at(it.first);
-        std::vector<uint64_t> &tmpSize = sizesMap.at(it.first);
-        size_t tmpSizeNum = tmpSize.size();
-        size_t eachCount = MMC_EACH_BATCH_SIZE;
-        bool success = true;
-        for (size_t i = 0; i < tmpSizeNum; i += eachCount) {
-            size_t currentBatchSize = std::min(eachCount, tmpSizeNum - i);
-
-            std::vector<void *> partSrc(tmpSrc.begin() + i, tmpSrc.begin() + i + currentBatchSize);
-            std::vector<void *> partDst(tmpDst.begin() + i, tmpDst.begin() + i + currentBatchSize);
-            std::vector<uint64_t> partSize(tmpSize.begin() + i, tmpSize.begin() + i + currentBatchSize);
 
             auto future = writeThreadPool_->Enqueue(
                 [&](std::vector<void *> sourcesL, std::vector<void *> destinationsL, const std::vector<uint64_t> sizesL,
@@ -764,25 +696,18 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
                 },
                 partSrc, partDst, partSize, mediaType);
             if (future.valid()) {
-                futures.push_back(std::make_pair(it.first, std::move(future)));
+                futures.push_back(std::make_pair(i, std::move(future)));
             } else {
-                success = false;
-                MMC_LOG_ERROR("add thread pool queue failed");
-                break;
+                // 提交失败，直接执行
+                auto ret = bmProxy_->BatchDataPut(partSrc, partDst, partSize, mediaType);
+                if (ret != MMC_OK) {
+                    MMC_LOG_ERROR("Failed to put ret: " << ret);
+                    batchResult[i] = MMC_ERROR;
+                }
             }
-        }
-
-        if (success) {
-            continue;
-        }
-        // 提交失败，直接执行
-        auto ret = bmProxy_->BatchDataPut(it.second, dstMap.at(it.first), sizesMap.at(it.first), mediaType);
-        if (ret != MMC_OK) {
-            MMC_LOG_ERROR("Failed to put ret: " << ret);
-            for (auto idx : indexs) {
-                batchResult[idx] = ret;
-            }
-            break;
+            partSrc.clear();
+            partDst.clear();
+            partSize.clear();
         }
     }
 
@@ -791,10 +716,8 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
         auto res = future.second.get();
         TP_TRACE_END(TP_MMC_LOCAL_PUT_WAIT_FUTURE, res);
         if (res != 0) {
-            MMC_LOG_ERROR("batch rank " << future.first << " failed, error code " << res);
-            for (auto idx : indexs) {
-                batchResult[idx] = res;
-            }
+            MMC_LOG_ERROR("batch seq " << future.first << " failed, error code " << res);
+            batchResult[future.first] = res;
         }
     }
 
