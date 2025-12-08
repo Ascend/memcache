@@ -33,6 +33,7 @@ public:
     virtual Result Promote(const Key& key) = 0;
     virtual void MultiLevelElimination(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow,
                                        const std::vector<MediaType>& needEvictList,
+                                       const std::vector<uint16_t> &nowMemoryThresholds,
                                        std::function<EvictResult(const Key &, const Value &)> removeFunc) = 0;
     virtual void RegisterMedium(const MediaType mediumType) = 0;
 

@@ -273,7 +273,7 @@ public:
         return totalSize[type] - usedSize[type];
     }
 
-    std::vector<MediaType> GetNeedEvictList(const uint64_t level)
+    std::vector<MediaType> GetNeedEvictList(const uint64_t level, std::vector<uint16_t> &nowMemoryThresholds)
     {
         std::vector<MediaType> results;
         uint64_t totalSize[MEDIA_NONE] = {0};
@@ -288,7 +288,9 @@ public:
                 continue;
             }
             if (usedSize[i] * LEVEL_BASE > totalSize[i] * level) {
+                uint16_t nowMemoryThreshold = usedSize[i] * LEVEL_BASE / totalSize[i];
                 results.push_back(static_cast<MediaType>(i));
+                nowMemoryThresholds.push_back(nowMemoryThreshold);
                 MMC_LOG_DEBUG("Medium " << static_cast<MediaType>(i) <<
                     " need evict, usedSize: " << usedSize[i] << ", totalSize: " << totalSize[i]);
             }

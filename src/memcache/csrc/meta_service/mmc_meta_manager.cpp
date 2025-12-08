@@ -79,7 +79,8 @@ Result MmcMetaManager::ExistKey(const std::string& key)
 
 void MmcMetaManager::CheckAndEvict()
 {
-    const auto needEvictList = globalAllocator_->GetNeedEvictList(evictThresholdHigh_);
+    std::vector<uint16_t> nowMemoryThresholds;
+    const auto needEvictList = globalAllocator_->GetNeedEvictList(evictThresholdHigh_, nowMemoryThresholds);
     if (needEvictList.empty()) {
         return;
     }
@@ -93,14 +94,16 @@ void MmcMetaManager::CheckAndEvict()
 
     auto evictFuture = threadPool_->Enqueue(
         [&](
-            const std::vector<MediaType> &needEvictListL,
+            const std::vector<MediaType> &needEvictListL, const std::vector<uint16_t> &nowMemoryThresholds,
             const std::function<EvictResult(const std::string& key, const MmcMemObjMetaPtr& objMeta)> &moveFuncL
             ) {
-            metaContainer_->MultiLevelElimination(evictThresholdHigh_, evictThresholdLow_, needEvictListL, moveFuncL);
+            metaContainer_->MultiLevelElimination(evictThresholdHigh_, evictThresholdLow_,
+                                                  needEvictListL, nowMemoryThresholds, moveFuncL);
             bool expected = true;
             evictCheck_.compare_exchange_strong(expected, false);
         },
         needEvictList,
+        nowMemoryThresholds,
         moveFunc);
     if (!evictFuture.valid()) {
         MMC_LOG_ERROR("submit evict task failed");

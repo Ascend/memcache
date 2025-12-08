@@ -195,10 +195,13 @@ public:
     }
 
     void MultiLevelElimination(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow,
-                               const std::vector<MediaType>& needEvictList,
+                               const std::vector<MediaType> &needEvictList,
+                               const std::vector<uint16_t> &nowMemoryThresholds,
                                std::function<EvictResult(const Key &, const Value &)> moveFunc)
     {
-        for (const MediaType mediaType : needEvictList) {
+        for (size_t i = 0; i < needEvictList.size(); ++i) {
+            auto mediaType = needEvictList[i];
+            auto nowThreshold = nowMemoryThresholds[i];
             if (mediaType == MEDIA_NONE) {
                 MMC_LOG_ERROR("Invalid mediaType: " << mediaType);
                 continue;
@@ -209,7 +212,7 @@ public:
             lruLock_.UnLock();
 
             const size_t numEvictObjs = std::max(
-                std::min(oriNum * (evictThresholdHigh - evictThresholdLow) / evictThresholdHigh, oriNum),
+                std::min(oriNum * (nowThreshold - evictThresholdLow) / evictThresholdHigh, oriNum),
                 static_cast<size_t>(1));
 
             for (size_t i = 0; i < numEvictObjs; ++i) {
