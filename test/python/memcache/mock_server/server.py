@@ -191,6 +191,9 @@ def result_handler(func):
 def tensor_sum(tensor, sizes: List[int] = None):
     if tensor is None:
         return 0
+    # 加速求和
+    import torch_npu
+    tensor = tensor.to("npu")
     if sizes is None:
         return tensor.sum().item()
 
