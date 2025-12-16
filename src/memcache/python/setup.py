@@ -13,15 +13,31 @@
 """python api for memcache_hybrid."""
 
 import os
-
-import setuptools
+import platform
+import glob
+import subprocess
+from setuptools import setup
 from setuptools import find_namespace_packages
 from setuptools.dist import Distribution
+from setuptools.command.build_ext import build_ext
+from wheel.bdist_wheel import bdist_wheel
+
+
+def check_env_flag(name: str, default: str = "") -> bool:
+    return os.getenv(name, default).upper() in ["ON", "1", "YES", "TRUE", "Y"]
+
 
 # 消除whl压缩包的时间戳差异
-os.environ['SOURCE_DATE_EPOCH'] = '0'
+os.environ["SOURCE_DATE_EPOCH"] = "0"
 
-current_version = os.getenv('VERSION', '1.0.0')
+current_version = os.getenv("MEMCACHE_VERSION", "1.0.0")
+is_manylinux = check_env_flag("IS_MANYLINUX", "FALSE")
+build_open_abi = os.getenv("BUILD_OPEN_ABI", "OFF")
+build_mode = os.getenv("BUILD_MODE", "RELEASE")
+build_compiler = os.getenv("BUILD_COMPILER", "gcc")
+enable_ptracer = os.getenv("ENABLE_PTRACER", "ON")
+use_cann = os.getenv("USE_CANN", "ON")
+python3_executable = os.getenv("PYTHON3_EXECUTABLE", "/usr/local/bin/python3")
 
 
 class BinaryDistribution(Distribution):
@@ -31,16 +47,88 @@ class BinaryDistribution(Distribution):
         return True
 
 
-setuptools.setup(
+class BuildWheel(bdist_wheel):
+    def run(self):
+        bdist_wheel.run(self)
+
+        if is_manylinux:
+            file = glob.glob(os.path.join(self.dist_dir, "*-linux_*.whl"))[0]
+            auditwheel_cmd = [
+                "auditwheel",
+                "-v",
+                "repair",
+                "--plat",
+                f"manylinux_2_27_{platform.machine()}",
+                "--plat",
+                f"manylinux_2_28_{platform.machine()}",
+                "-w",
+                self.dist_dir,
+                file,
+            ]
+            subprocess.check_call(auditwheel_cmd)
+            os.remove(file)
+
+
+class CMakeBuildExt(build_ext):
+    def run(self):
+        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+        build_dir = os.path.abspath(os.path.join(root_dir, "build"))
+        install_dir = os.path.abspath(os.path.join(build_dir, "install"))
+        os.makedirs(build_dir, exist_ok=True)
+        config_mode = "Release"
+        if build_mode == "DEBUG":
+            config_mode = "Debug"
+        subprocess.check_call(
+            [
+                "cmake",
+                f"-S{root_dir}",
+                f"-B{build_dir}",
+                f"-DPython3_EXECUTABLE={python3_executable}",
+                f"-DCMAKE_INSTALL_PREFIX={install_dir}",
+                f"-DCMAKE_BUILD_TYPE={build_mode}",
+                f"-DBUILD_OPEN_ABI={build_open_abi}",
+                f"-DBUILD_COMPILER={build_compiler}",
+                f"-DENABLE_PTRACER={enable_ptracer}",
+                f"-DUSE_CANN={use_cann}",
+                "-DBUILD_PYTHON=ON",
+                "-DBUILD_TESTS=OFF",
+            ]
+        )
+
+        subprocess.check_call(
+            [
+                "cmake",
+                "--build",
+                build_dir,
+                "--config",
+                config_mode,
+                "--target",
+                "install",
+                "-j8",
+            ]
+        )
+
+        super().run()
+
+    def build_extension(self, ext):
+        super().build_extension(ext)
+
+
+setup(
     name="memcache_hybrid",
     version=current_version,
     author="",
     author_email="",
-    description="python api for memcache",
+    description="python api for memcache_hybrid",
     packages=find_namespace_packages(exclude=("tests*",)),
     url="https://gitcode.com/Ascend/memcache",
     license="Apache License Version 2.0",
     python_requires=">=3.7",
+    zip_safe=False,
     package_data={"memcache_hybrid": ["_pymmc.cpython*.so", "lib/**", "VERSION"]},
-    distclass=BinaryDistribution
+    cmdclass={
+        "build_ext": CMakeBuildExt,
+        "bdist_wheel": BuildWheel,
+    },
+    distclass=BinaryDistribution,
 )

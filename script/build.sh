@@ -11,7 +11,7 @@
 
 BUILD_MODE=${1:-RELEASE}
 BUILD_TESTS=${2:-OFF}
-BUILD_OPEN_ABI=${3:-ON}
+BUILD_OPEN_ABI=${3:-OFF}
 BUILD_PYTHON=${4:-ON}
 ENABLE_PTRACER=${5:-ON}
 USE_CANN=${6:-ON}
@@ -47,26 +47,19 @@ bash script/gen_last_git_commit.sh
 rm -rf ./build ./output
 
 mkdir build/
-cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_COMPILER="${BUILD_COMPILER}" -DBUILD_TESTS="${BUILD_TESTS}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -DBUILD_PYTHON="${BUILD_PYTHON}" -DENABLE_PTRACER="${ENABLE_PTRACER}" -DUSE_CANN="${USE_CANN}" -S . -B build/
-make install -j32 -C build/
 
 if [ "${BUILD_PYTHON}" != "ON" ]; then
-    echo "========= skip build python ============"
-        cd ${CURRENT_DIR}
-        exit 0
+    echo "========= [warning] cannot skip build python for meta HA ============"
+    cd ${CUQRRENT_DIR}
+    BUILD_PYTHON=ON
 fi
 
-FABRIC_PROJ_DIR=${PROJ_DIR}/3rdparty/memfabric_hybrid
-
-mkdir -p "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
-\cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
-\cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
-\cp -v "${PROJ_DIR}/output/memcache/lib64/libmf_memcache.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
+export MEMCACHE_VERSION="${VERSION:-1.0.0}"
 
 GIT_COMMIT=`git rev-parse HEAD` || true
 {
-  echo "mf version info:"
-  echo "mf version: 1.0.0"
+  echo "memcache_hybrid version info:"
+  echo "memcache_hybrid version: ${MEMCACHE_VERSION}"
   echo "git: ${GIT_COMMIT}"
 } > VERSION
 
@@ -83,14 +76,37 @@ if [ -z "$PYTHON_HOME" ]; then
     if [ -d "$CHECK_DIR" ]; then
         export PYTHON_HOME="$CHECK_DIR"
     else
-        export PYTHON_HOME="/usr/local/"
+        export PYTHON_HOME="/usr/local"
     fi
-    echo "Not set PYTHON_HOME，and use $PYTHON_HOME"
+    echo "Not set PYTHON_HOME, and use $PYTHON_HOME"
 fi
+
+export PYTHON_HOME="${PYTHON_HOME%/}" # remove the last char "/"
 
 export LD_LIBRARY_PATH=$PYTHON_HOME/lib:$LD_LIBRARY_PATH
 export PATH=$PYTHON_HOME/bin:$BACK_PATH_EVN
 export CMAKE_PREFIX_PATH=$PYTHON_HOME
+export PYTHON3_EXECUTABLE=$(which python3)
+
+cmake \
+    -DPython3_EXECUTABLE=$PYTHON3_EXECUTABLE \
+    -DCMAKE_BUILD_TYPE="${BUILD_MODE}" \
+    -DBUILD_COMPILER="${BUILD_COMPILER}" \
+    -DBUILD_TESTS="${BUILD_TESTS}" \
+    -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" \
+    -DBUILD_PYTHON="${BUILD_PYTHON}" \
+    -DENABLE_PTRACER="${ENABLE_PTRACER}" \
+    -DUSE_CANN="${USE_CANN}" \
+    -S . -B build/
+
+make install -j32 -C build/
+
+FABRIC_PROJ_DIR=${PROJ_DIR}/3rdparty/memfabric_hybrid
+
+mkdir -p "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
+\cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
+\cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
+\cp -v "${PROJ_DIR}/output/memcache/lib64/libmf_memcache.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
 
 python_path_list=("/opt/buildtools/python-3.8.5" "/opt/buildtools/python-3.9.11" "/opt/buildtools/python-3.10.2" "/opt/buildtools/python-3.11.4")
 for python_path in "${python_path_list[@]}"
@@ -100,10 +116,20 @@ do
         export CMAKE_PREFIX_PATH=$PYTHON_HOME
         export LD_LIBRARY_PATH=$PYTHON_HOME/lib
         export PATH=$PYTHON_HOME/bin:$BACK_PATH_EVN
+        export PYTHON3_EXECUTABLE=$(which python3)
 
         rm -rf build/
         mkdir -p build/
-        cmake -DCMAKE_BUILD_TYPE="${BUILD_MODE}" -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" -S . -B build/
+        cmake \
+            -DPython3_EXECUTABLE=$PYTHON3_EXECUTABLE \
+            -DCMAKE_BUILD_TYPE="${BUILD_MODE}" \
+            -DBUILD_COMPILER="${BUILD_COMPILER}" \
+            -DBUILD_TESTS="${BUILD_TESTS}" \
+            -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" \
+            -DBUILD_PYTHON="${BUILD_PYTHON}" \
+            -DENABLE_PTRACER="${ENABLE_PTRACER}" \
+            -DUSE_CANN="${USE_CANN}" \
+            -S . -B build/
         make -j5 -C build
     fi
 
@@ -112,6 +138,7 @@ do
     \cp -v "${PROJ_DIR}"/build/src/memcache/csrc/python_wrapper/_pymmc.cpython*.so "${PROJ_DIR}"/src/memcache/python/memcache_hybrid
     cd "${PROJ_DIR}/src/memcache/python"
     rm -rf build memcache_hybrid.egg-info
+    export LD_LIBRARY_PATH="${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib":$LD_LIBRARY_PATH # fix `auditwheel repair` failed
     python3 setup.py bdist_wheel
 
     if [ -z "${multiple_python}" ];then
