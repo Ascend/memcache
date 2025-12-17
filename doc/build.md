@@ -63,7 +63,7 @@ bash script/run_ut.sh
 
 MemCache将所有特性集成到run包中供用户使用，run包格式为 ```memcache_hybrid-${version}_${os}_${arch}.run```
 
-其中，versin表示MemCache的版本；os表示操作系统,如linux；arch表示架构，如x86或aarch64
+其中，versin表示MemCache的版本；os表示操作系统，如linux；arch表示架构，如x86或aarch64
 
 ### run包安装
 
@@ -90,42 +90,42 @@ bash memcache_hybrid-1.0.0_linux_aarch64.run --install-path=${your path}
 
 /usr/local/memcache_hybrid/
 ├── 1.0.0
-│   ├── aarch64-linux
-│   │   ├── bin
-│   │   │   └── mmc_meta_service
-│   │   ├── include
-│   │   │   └── memcache
-│   │   │       ├── cpp
-│   │   │       │   └── mmcache.h
-│   │   │       ├── mmc.h
-│   │   │       ├── mmc_client.h
-│   │   │       ├── mmc_def.h
-│   │   │       └── mmc_service.h
-│   │   ├── lib64
-│   │   │   ├── _pymmc.cpython-311-aarch64-linux-gnu.so
-│   │   │   └── libmf_memcache.so
-│   │   ├── logs
-│   │   │   ├── mmc-meta-audit.log
-│   │   │   └── mmc-meta.log
-│   │   ├── script
-│   │   │   ├── ha
-│   │   │   │   └── test-mmc-meta-ha.py
-│   │   │   ├── k8s_deploy
-│   │   │   │   ├── account-role-demo.yaml
-│   │   │   │   ├── local-pods-demo.yaml
-│   │   │   │   ├── meta-cluster-ip-demo.yaml
-│   │   │   │   ├── meta-lease-lock-demo.yaml
-│   │   │   │   └── meta-pods-demo.yaml
-│   │   │   └── mock_server
-│   │   │       ├── server.py
-│   │   │       └── smem_bm_server.py
-│   │   └── wheel
-│   │       └── memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
-│   ├── config
-│   │   ├── mmc-local.conf
-│   │   └── mmc-meta.conf
-│   ├── uninstall.sh
-│   └── version.info
+│   ├── aarch64-linux
+│   │   ├── bin
+│   │   │   └── mmc_meta_service
+│   │   ├── include
+│   │   │   └── memcache
+│   │   │       ├── cpp
+│   │   │       │   └── mmcache.h
+│   │   │       ├── mmc.h
+│   │   │       ├── mmc_client.h
+│   │   │       ├── mmc_def.h
+│   │   │       └── mmc_service.h
+│   │   ├── lib64
+│   │   │   ├── _pymmc.cpython-311-aarch64-linux-gnu.so
+│   │   │   └── libmf_memcache.so
+│   │   ├── logs
+│   │   │   ├── mmc-meta-audit.log
+│   │   │   └── mmc-meta.log
+│   │   ├── script
+│   │   │   ├── ha
+│   │   │   │   └── test-mmc-meta-ha.py
+│   │   │   ├── k8s_deploy
+│   │   │   │   ├── account-role-demo.yaml
+│   │   │   │   ├── local-pods-demo.yaml
+│   │   │   │   ├── meta-cluster-ip-demo.yaml
+│   │   │   │   ├── meta-lease-lock-demo.yaml
+│   │   │   │   └── meta-pods-demo.yaml
+│   │   │   └── mock_server
+│   │   │       ├── server.py
+│   │   │       └── smem_bm_server.py
+│   │   └── wheel
+│   │       └── memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
+│   ├── config
+│   │   ├── mmc-local.conf
+│   │   └── mmc-meta.conf
+│   ├── uninstall.sh
+│   └── version.info
 ├── latest -> 1.0.0
 └── set_env.sh
 
@@ -158,13 +158,13 @@ root@localhost:/# tree /usr/local/lib/python3.11/site-packages/memcache_hybrid
 ├── VERSION
 ├── __init__.py
 ├── __pycache__
-│   ├── __init__.cpython-311.pyc
-│   └── meta_service_leader_election.cpython-311.pyc
+│   ├── __init__.cpython-311.pyc
+│   └── meta_service_leader_election.cpython-311.pyc
 ├── _pymmc.cpython-311-aarch64-linux-gnu.so
 ├── lib
-│   ├── libmf_hybm_core.so
-│   ├── libmf_memcache.so
-│   └── libmf_smem.so
+│   ├── libmf_hybm_core.so
+│   ├── libmf_memcache.so
+│   └── libmf_smem.so
 └── meta_service_leader_election.py
     
 ```
@@ -208,6 +208,7 @@ bash memcache_hybrid-1.0.0_linux_aarch64.run --install-path=${your path}
 
 2、设置环境变量
 source /usr/local/memcache_hybrid/set_env.sh
+source /usr/local/memfabric_hybrid/set_env.sh
 export MMC_META_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-meta.conf
 
 3、拉起二进制
@@ -226,7 +227,7 @@ export MMC_LOCAL_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-local.
 3、通过MemCache提供的接口初始化客户端并拉起localservice，执行数据写入、查询、获取、删除等，下面的脚本时一个示例：
 python3 test_mmc_demo.py
 ```
-  
+
 * **so（C++）**：
 ```
 1、导入头文件

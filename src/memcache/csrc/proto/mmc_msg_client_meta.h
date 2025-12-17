@@ -917,6 +917,26 @@ struct BatchQueryResponse : MsgBase {
         return MMC_OK;
     }
 };
+
+struct RemoveAllRequest : MsgBase {
+    RemoveAllRequest() : MsgBase{0, LM_REMOVE_ALL_REQ, 0} {}
+
+    Result Serialize(NetMsgPacker& packer) const override
+    {
+        packer.Serialize(msgVer);
+        packer.Serialize(msgId);
+        packer.Serialize(destRankId);
+        return MMC_OK;
+    }
+
+    Result Deserialize(NetMsgUnpacker& packer) override
+    {
+        packer.Deserialize(msgVer);
+        packer.Deserialize(msgId);
+        packer.Deserialize(destRankId);
+        return MMC_OK;
+    }
+};
 }  // namespace mmc
 }  // namespace ock
 #endif  // MF_HYBRID_MMC_MSG_CLIENT_META_H

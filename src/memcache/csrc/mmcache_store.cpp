@@ -248,6 +248,14 @@ std::vector<int> MmcacheStore::BatchRemove(const std::vector<std::string> &keys)
     return results;
 }
 
+int MmcacheStore::RemoveAll()
+{
+    MMC_VALIDATE_RETURN(MmcClientDefault::GetInstance() != nullptr, "client is not initialize", MMC_CLIENT_NOT_INIT);
+    MMC_RETURN_ERROR(MmcClientDefault::GetInstance()->RemoveAll(0), MmcClientDefault::GetInstance()->Name()
+        << " remove all keys failed!");
+    return MMC_OK;
+}
+
 int MmcacheStore::IsExist(const std::string &key)
 {
     TP_TRACE_BEGIN(TP_MMC_PY_EXIST);

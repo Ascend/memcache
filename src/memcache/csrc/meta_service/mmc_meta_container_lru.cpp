@@ -96,7 +96,7 @@ public:
         auto lruIter = iter->second.lruIter_;
         value = iter->second.value_;
         if (metaMap_.erase(key) > 0) {
-            ock::mf::WriteGuard lockGuard(lruLock_);
+            ock::mf::WriteGuard lruLockGuard(lruLock_);
             lruLists_[iter->second.mediaType_].erase(lruIter);
             return MMC_OK;
         }
@@ -104,12 +104,29 @@ public:
         return MMC_ERROR;
     }
 
+    Result EraseAll(std::function<void(const Key &, const Value &)> removeFunc) override
+    {
+        mf::WriteGuard metaGuard(metaLock_);
+        mf::WriteGuard lruGuard(lruLock_);
+
+        for (auto& pair : metaMap_) {
+            removeFunc(pair.first, pair.second.value_);
+        }
+
+        metaMap_.clear();
+        for (MediaType type = MEDIA_HBM; type != MEDIA_NONE; type = MoveDown(type)) {
+            lruLists_[type].clear();
+        }
+
+        return MMC_OK;
+    }
+
     void EraseIf(std::function<bool(const Key&, const Value&)> matchFunc) override
     {
         ock::mf::WriteGuard lockGuard(metaLock_);
         for (auto iter = metaMap_.begin(); iter != metaMap_.end();) {
             if (matchFunc(iter->first, iter->second.value_)) {
-                ock::mf::WriteGuard lockGuard(lruLock_);
+                ock::mf::WriteGuard lruLockGuard(lruLock_);
                 lruLists_[iter->second.mediaType_].erase(iter->second.lruIter_);
                 iter = metaMap_.erase(iter);
             } else {

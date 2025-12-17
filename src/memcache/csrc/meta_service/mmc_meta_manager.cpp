@@ -204,6 +204,18 @@ Result MmcMetaManager::Remove(const std::string &key)
     return MMC_OK;
 }
 
+Result MmcMetaManager::RemoveAll()
+{
+    auto removeFunc = [this](const std::string& key, const MmcMemObjMetaPtr& objMeta) -> void {
+        this->PushRemoveList(key, objMeta);
+    };
+
+    MMC_RETURN_ERROR(metaContainer_->EraseAll(removeFunc), "RemoveAll: Fail to erase all from container!");
+
+    MMC_LOG_INFO("All keys removed");
+    return MMC_OK;
+}
+
 Result MmcMetaManager::Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo &localMemInitInfo,
     std::map<std::string, MmcMemBlobDesc> &blobMap)
 {

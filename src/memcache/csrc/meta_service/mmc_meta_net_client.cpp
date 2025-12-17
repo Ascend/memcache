@@ -57,6 +57,7 @@ Result MetaNetClient::Start(const NetEngineOptions &config)
                                       std::bind(&MetaNetClient::HandleMetaReplicate, this, std::placeholders::_1));
     client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::LM_BLOB_COPY_REQ,
                                       std::bind(&MetaNetClient::HandleBlobCopy, this, std::placeholders::_1));
+    client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::LM_REMOVE_ALL_REQ, nullptr);
     client->RegLinkBrokenHandler(std::bind(&MetaNetClient::HandleLinkBroken, this, std::placeholders::_1));
     /* start engine */
     MMC_ASSERT_RETURN(client->Start(config) == MMC_OK, MMC_NOT_STARTED);

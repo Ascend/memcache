@@ -142,6 +142,11 @@ public:
     Result Remove(const std::string &key);
 
     /**
+     * @brief remove all the keys
+     */
+    Result RemoveAll();
+
+    /**
      * @brief unmount new mem pool contributor
      * @param loc               [in] location of the new mem pool contributor
      * @param localMemInitInfo  [in] info of the new mem pool contributor

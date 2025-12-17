@@ -253,10 +253,17 @@ public:
     /**
      * @brief Remove objects with keys
      * @param keys Keys of the objects
-     * @return std::vector<int> Remove status for each keys, 1 if success, -1 if error
+     * @return std::vector<int> Remove status for each key, 0 if success, -1 if error
      * exist
      */
     virtual std::vector<int> BatchRemove(const std::vector<std::string> &keys) = 0;
+
+    /**
+     * @brief Remove all objects
+     * @return 0 for success, other values for failure
+     * exist
+     */
+    virtual int RemoveAll() = 0;
 
     /**
      * @brief Check if an object exists

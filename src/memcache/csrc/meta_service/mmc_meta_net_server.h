@@ -58,11 +58,13 @@ private:
 
     Result HandleRemove(const NetContextPtr &context);
 
+    Result HandleBatchRemove(const NetContextPtr &context);
+
+    Result HandleRemoveAll(const NetContextPtr &context);
+
     Result HandleIsExist(const NetContextPtr &context);
 
     Result HandleBatchIsExist(const NetContextPtr &context);
-
-    Result HandleBatchRemove(const NetContextPtr &context);
 
     Result HandleQuery(const NetContextPtr &context);
 

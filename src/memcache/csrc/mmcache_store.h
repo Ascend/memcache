@@ -104,6 +104,8 @@ public:
 
     std::vector<int> BatchRemove(const std::vector<std::string> &keys) override;
 
+    int RemoveAll() override;
+
     int IsExist(const std::string &key) override;
 
     std::vector<int> BatchIsExist(const std::vector<std::string> &keys) override;

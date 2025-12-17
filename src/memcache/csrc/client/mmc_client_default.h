@@ -55,6 +55,8 @@ public:
 
     Result BatchRemove(const std::vector<std::string>& keys, std::vector<Result>& remove_results, uint32_t flags) const;
 
+    Result RemoveAll(uint32_t flags) const;
+
     Result IsExist(const std::string &key, uint32_t flags) const;
 
     Result BatchIsExist(const std::vector<std::string> &keys, std::vector<int32_t> &exist_results,

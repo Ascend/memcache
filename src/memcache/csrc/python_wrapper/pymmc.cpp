@@ -72,6 +72,7 @@ PYBIND11_MODULE(_pymmc, m)
         .def("init", &MmcacheStore::Init, py::call_guard<py::gil_scoped_release>(), py::arg("device_id"))
         .def("remove", &MmcacheStore::Remove, py::call_guard<py::gil_scoped_release>())
         .def("remove_batch", &MmcacheStore::BatchRemove, py::call_guard<py::gil_scoped_release>())
+        .def("remove_all", &MmcacheStore::RemoveAll, py::call_guard<py::gil_scoped_release>())
         .def("is_exist", &MmcacheStore::IsExist, py::call_guard<py::gil_scoped_release>())
         .def("batch_is_exist", &MmcacheStore::BatchIsExist, py::call_guard<py::gil_scoped_release>(), py::arg("keys"),
              "Check if multiple objects exist. Returns list of results: 1 if exists, 0 if not exists, -1 if error")

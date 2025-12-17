@@ -36,7 +36,13 @@ public:
 
     virtual Result Get(const GetRequest &req, AllocResponse &resp) = 0;
 
+    virtual Result BatchGet(const BatchGetRequest &req, BatchAllocResponse &resp) = 0;
+
     virtual Result Remove(const RemoveRequest &req, Response &resp) = 0;
+
+    virtual Result BatchRemove(const BatchRemoveRequest &req, BatchRemoveResponse &resp) = 0;
+
+    virtual Result RemoveAll(const RemoveAllRequest &req, Response &resp) = 0;
 
     virtual Result Mount(const std::vector<MmcLocation>& loc, const std::vector<MmcLocalMemlInitInfo>& localMemInitInfo,
                          std::map<std::string, MmcMemBlobDesc>& blobMap) = 0;
@@ -45,11 +51,7 @@ public:
 
     virtual Result ExistKey(const IsExistRequest &req, IsExistResponse &resp) = 0;
 
-    virtual Result BatchRemove(const BatchRemoveRequest &req, BatchRemoveResponse &resp) = 0;
-
     virtual Result BatchExistKey(const BatchIsExistRequest &req, BatchIsExistResponse &resp) = 0;
-
-    virtual Result BatchGet(const BatchGetRequest &req, BatchAllocResponse &resp) = 0;
 
     virtual Result Query(const QueryRequest &req, QueryResponse &resp) = 0;
 

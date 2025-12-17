@@ -503,6 +503,19 @@ Result MmcClientDefault::BatchRemove(const std::vector<std::string>& keys,
     return MMC_OK;
 }
 
+Result MmcClientDefault::RemoveAll(uint32_t flags) const
+{
+    MMC_VALIDATE_RETURN(metaNetClient_ != nullptr, "MetaNetClient is null", MMC_CLIENT_NOT_INIT);
+
+    RemoveAllRequest request{};
+    Response response;
+
+    MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, response, rpcRetryTimeOut_),
+        "client " << name_ << " RemoveAll failed");
+
+    return MMC_OK;
+}
+
 Result MmcClientDefault::IsExist(const std::string &key, uint32_t flags) const
 {
     MMC_VALIDATE_RETURN(metaNetClient_ != nullptr, "MetaNetClient is null", MMC_CLIENT_NOT_INIT);

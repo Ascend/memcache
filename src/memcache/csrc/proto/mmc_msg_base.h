@@ -49,6 +49,7 @@ enum LOCAL_META_OPCODE_REQ : int16_t {
     ML_BATCH_ALLOC_REQ = 15,   /* allocate batch of objects by key and size */
     ML_BATCH_UPDATE_REQ = 16,  /* update batch of objects by key and size */
     LM_BLOB_COPY_REQ = 17,     /* copy blob for other rank */
+    LM_REMOVE_ALL_REQ = 18,    /* remove all keys */
 };
 
 enum LOCAL_META_OPCODE_RESP : int16_t {

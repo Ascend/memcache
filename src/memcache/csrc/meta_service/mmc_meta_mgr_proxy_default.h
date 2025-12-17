@@ -83,6 +83,11 @@ public:
         return MMC_OK;
     }
 
+    Result RemoveAll(const RemoveAllRequest &req, Response &resp) override
+    {
+        return resp.ret_ = metaMangerPtr_->RemoveAll();
+    }
+
     Result Mount(const std::vector<MmcLocation>& loc, const std::vector<MmcLocalMemlInitInfo>& localMemInitInfo,
                  std::map<std::string, MmcMemBlobDesc>& blobMap) override
     {

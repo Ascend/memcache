@@ -68,6 +68,8 @@ Result ock::mmc::MetaNetServer::Start(NetEngineOptions &options)
                                       std::bind(&MetaNetServer::HandleRemove, this, std::placeholders::_1));
     server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_BATCH_REMOVE_REQ,
                                       std::bind(&MetaNetServer::HandleBatchRemove, this, std::placeholders::_1));
+    server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::LM_REMOVE_ALL_REQ,
+                                      std::bind(&MetaNetServer::HandleRemoveAll, this, std::placeholders::_1));
     server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_IS_EXIST_REQ,
                                       std::bind(&MetaNetServer::HandleIsExist, this, std::placeholders::_1));
     server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_BATCH_IS_EXIST_REQ,
@@ -299,6 +301,21 @@ Result MetaNetServer::HandleBatchRemove(const NetContextPtr &context)
     auto ret = metaMgrProxy->BatchRemove(req, resp);
     TP_TRACE_END(TP_MMC_META_BATCH_REMOVE, ret);
     MMC_LOG_DEBUG("HandleBatchRemove keys (size  " << req.keys_.size() << ") finish: " << Join(req.keys_));
+
+    return context->Reply(req.msgId, resp);
+}
+
+Result MetaNetServer::HandleRemoveAll(const NetContextPtr &context)
+{
+    RemoveAllRequest req;
+    Response resp;
+    context->GetRequest<RemoveAllRequest>(req);
+
+    MmcMetaMgrProxyPtr metaMgrProxy = metaService_->GetMetaMgrProxy();
+    TP_TRACE_BEGIN(TP_MMC_META_REMOVE_ALL);
+    auto ret = metaMgrProxy->RemoveAll(req, resp);
+    TP_TRACE_END(TP_MMC_META_REMOVE_ALL, ret);
+    MMC_LOG_DEBUG("HandleRemoveAll finished");
 
     return context->Reply(req.msgId, resp);
 }
