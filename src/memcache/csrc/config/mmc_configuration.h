@@ -307,9 +307,6 @@ public:
         config.localDRAMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE.first, MEM_128MB_BYTES);
         config.localHBMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first, MEM_2MB_BYTES);
         auto protocol = std::string(config.dataOpType);
-        if (protocol == "device_sdma" || protocol == "device_rdma") {
-            config.flags |= SMEM_BM_INIT_GVM_FLAG;
-        }
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         StringToLower(logLevelStr);
         config.logLevel = MmcOutLogger::Instance().GetLogLevel(logLevelStr);
