@@ -111,7 +111,7 @@ void MmcBmProxy::DestroyBm()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!started_) {
-        MMC_LOG_ERROR("MmcBmProxy (" << name_ << ") is not init");
+        MMC_LOG_WARN("MmcBmProxy (" << name_ << ") is not init");
         return ;
     }
 

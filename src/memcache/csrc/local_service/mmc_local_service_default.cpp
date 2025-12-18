@@ -113,9 +113,9 @@ Result MmcLocalServiceDefault::InitBm()
 Result MmcLocalServiceDefault::DestroyBm()
 {
     MMC_RETURN_ERROR(bmProxyPtr_ == nullptr, "bm proxy has not been initialized.");
-    bmProxyPtr_->DestroyBm();
 
     BmUnregisterRequest req;
+    req.mediaType_.clear();
     req.rank_ = options_.rankId;
     for (MediaType type = MEDIA_DRAM; type != MEDIA_NONE;) {
         if (bmProxyPtr_->GetGva(type) != 0) {
@@ -123,11 +123,12 @@ Result MmcLocalServiceDefault::DestroyBm()
         }
         type = MoveUp(type);
     }
+    bmProxyPtr_->DestroyBm();
+    bmProxyPtr_ = nullptr;
     Response resp;
     Result ret = SyncCallMeta(req, resp, 30);
     MMC_RETURN_ERROR(ret, "bm destroy failed!");
     MMC_RETURN_ERROR(resp.ret_, "bm destroy failed!");
-    bmProxyPtr_ = nullptr;
     return ret;
 }
 

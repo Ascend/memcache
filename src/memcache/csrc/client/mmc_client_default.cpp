@@ -84,6 +84,12 @@ void MmcClientDefault::Stop()
         MMC_LOG_WARN("MmcClientDefault has not been started");
         return;
     }
+    if (readThreadPool_ != nullptr) {
+        readThreadPool_->Shutdown();
+    }
+    if (writeThreadPool_ != nullptr) {
+        readThreadPool_->Shutdown();
+    }
     if (threadPool_ != nullptr) {
         threadPool_->Shutdown();
     }
