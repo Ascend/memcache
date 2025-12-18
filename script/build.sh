@@ -42,8 +42,6 @@ CURRENT_DIR=$(pwd)
 cd ${ROOT_PATH}/..
 PROJ_DIR=$(pwd)
 
-bash script/gen_last_git_commit.sh
-
 rm -rf ./build ./output
 
 mkdir build/
