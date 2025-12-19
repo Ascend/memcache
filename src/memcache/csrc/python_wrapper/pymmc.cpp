@@ -24,12 +24,6 @@ using namespace ock::mf;
 
 void DefineMmcStructModule(py::module_ &m)
 {
-    py::enum_<smem_bm_copy_type>(m, "MmcCopyDirect")
-        .value("SMEMB_COPY_L2G", SMEMB_COPY_L2G)
-        .value("SMEMB_COPY_G2L", SMEMB_COPY_G2L)
-        .value("SMEMB_COPY_G2H", SMEMB_COPY_G2H)
-        .value("SMEMB_COPY_H2G", SMEMB_COPY_H2G);
-
     // Define the KeyInfo class
     py::class_<KeyInfo, std::shared_ptr<KeyInfo>>(m, "KeyInfo", py::buffer_protocol())
         .def("size", &KeyInfo::Size)

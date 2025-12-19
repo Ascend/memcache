@@ -102,8 +102,6 @@ make install -j32 -C build/
 FABRIC_PROJ_DIR=${PROJ_DIR}/3rdparty/memfabric_hybrid
 
 mkdir -p "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
-\cp -v "${FABRIC_PROJ_DIR}/output/hybm/lib64/libmf_hybm_core.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
-\cp -v "${FABRIC_PROJ_DIR}/output/smem/lib64/libmf_smem.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
 \cp -v "${PROJ_DIR}/output/memcache/lib64/libmf_memcache.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
 
 python_path_list=("/opt/buildtools/python-3.8.5" "/opt/buildtools/python-3.9.11" "/opt/buildtools/python-3.10.2" "/opt/buildtools/python-3.11.4")
