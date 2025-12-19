@@ -109,7 +109,7 @@ public:
         if (!started_) {
             return;
         }
-        threadPool_->Shutdown();
+        threadPool_->Destroy();
         started_ = false;
         MMC_LOG_INFO("Stop MmcMetaManager");
     }

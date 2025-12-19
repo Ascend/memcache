@@ -85,13 +85,13 @@ void MmcClientDefault::Stop()
         return;
     }
     if (readThreadPool_ != nullptr) {
-        readThreadPool_->Shutdown();
+        readThreadPool_->Destroy();
     }
     if (writeThreadPool_ != nullptr) {
-        readThreadPool_->Shutdown();
+        readThreadPool_->Destroy();
     }
     if (threadPool_ != nullptr) {
-        threadPool_->Shutdown();
+        threadPool_->Destroy();
     }
     if (metaNetClient_ != nullptr) {
         metaNetClient_->Stop();

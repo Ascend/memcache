@@ -40,34 +40,34 @@ using invoke_result_t = typename std::invoke_result<F, Args...>::type;
 
 class MmcThreadPool  : public MmcReferable {
 public:
-    MmcThreadPool(std::string name, size_t numThreads) : poolName_(name), numThreads_(numThreads), stop_(false) {}
+    MmcThreadPool(std::string name, size_t numThreads) : mmcPoolName(name), numThreads(numThreads), stop(false) {}
 
     int32_t Start()
     {
-        if (numThreads_ == 0 || numThreads_ > MMC_THREAD_POOL_MAX_THREADS) {
+        if (numThreads == 0 || numThreads > MMC_THREAD_POOL_MAX_THREADS) {
             MMC_LOG_ERROR("Number of threads must be greater than 0 and less than " << MMC_THREAD_POOL_MAX_THREADS);
             return MMC_ERROR;
         }
-        for (size_t i = 0; i < numThreads_; ++i) {
-            workers_.emplace_back([this] {
+        for (size_t i = 0; i < numThreads; ++i) {
+            workers.emplace_back([this] {
                 while (true) {
                     std::function<void()> task;
                     {
-                        std::unique_lock<std::mutex> lock(queueMutex_);
-                        condition_.wait(lock, [this] { return stop_ || !tasks_.empty(); });
-                        if (stop_ && tasks_.empty()) {
+                        std::unique_lock<std::mutex> lock(queueMutex);
+                        queueCondition.wait(lock, [this] { return stop || !taskQueue.empty(); });
+                        if (stop && taskQueue.empty()) {
                             break;
                         }
-                        task = std::move(tasks_.front());
-                        tasks_.pop();
+                        task = std::move(taskQueue.front());
+                        taskQueue.pop();
                     }
                     task();
                 }
-                MMC_LOG_INFO("worker thread :" << std::this_thread::get_id() << " exit");
+                MMC_LOG_DEBUG("worker thread :" << std::this_thread::get_id() << " exit");
             });
 
-            std::string threadName = poolName_ + std::to_string(i);
-            int ret = pthread_setname_np(workers_.back().native_handle(), threadName.c_str());
+            std::string threadName = mmcPoolName + std::to_string(i);
+            int ret = pthread_setname_np(workers.back().native_handle(), threadName.c_str());
             if (ret != 0) {
                 MMC_LOG_ERROR("set thread name failed, i:" << i << ", ret:" << ret);
             }
@@ -76,53 +76,54 @@ public:
     }
 
     template<typename F, typename... Args>
-    auto Enqueue(F&& f, Args&&... args) -> std::future<invoke_result_t<F, Args...>>
+    auto Enqueue(F &&f, Args &&...args) -> std::future<invoke_result_t<F, Args...>>
     {
-        using return_type = invoke_result_t<F, Args...>;
-
-        auto task = std::make_shared<std::packaged_task<return_type()>>(
+        using returnType = invoke_result_t<F, Args...>;
+        auto func = std::make_shared<std::packaged_task<returnType()>>(
             std::bind(std::forward<F>(f), std::forward<Args>(args)...));
-
-        std::future<return_type> result = task->get_future();
+        std::future<returnType> future = func->get_future();
         {
-            std::unique_lock<std::mutex> lock(queueMutex_);
-            if (stop_) {
-                MMC_LOG_ERROR("thread pool stopped");
-                return std::future<return_type>{}; // 返回无效的 future
+            std::unique_lock<std::mutex> uniqueLock(queueMutex);
+            if (stop) {
+                MMC_LOG_ERROR("thread pool has stopped.");
+                return std::future<returnType>{}; // 返回无效的 future
             }
-            tasks_.emplace([task]() { (*task)(); });
+            taskQueue.emplace([func]() { (*func)(); });
         }
-        condition_.notify_one();
-        return result;
+        queueCondition.notify_one();
+        return future;
     }
 
-    void Shutdown()
+    void Destroy()
     {
         {
-            std::unique_lock<std::mutex> lock(queueMutex_);
-            stop_ = true;
+            std::unique_lock<std::mutex> lock(queueMutex);
+            stop = true;
         }
-        condition_.notify_all();
-        for (std::thread& worker : workers_) {
+        queueCondition.notify_all();
+        for (std::thread &worker : workers) {
             if (worker.joinable()) {
                 worker.join();
             }
         }
     }
 
-    ~MmcThreadPool() { Shutdown(); }
+    ~MmcThreadPool() override
+    {
+        Destroy();
+    }
 
     MmcThreadPool(const MmcThreadPool&) = delete;
     MmcThreadPool& operator=(const MmcThreadPool&) = delete;
 
 private:
-    std::vector<std::thread> workers_;
-    std::queue<std::function<void()>> tasks_;
-    std::mutex queueMutex_;
-    std::condition_variable condition_;
-    std::string poolName_;
-    size_t numThreads_;
-    bool stop_;
+    std::vector<std::thread> workers;
+    std::queue<std::function<void()>> taskQueue;
+    std::mutex queueMutex;
+    std::condition_variable queueCondition;
+    std::string mmcPoolName;
+    size_t numThreads;
+    bool stop;
 };
 
 using MmcThreadPoolPtr = MmcRef<MmcThreadPool>;

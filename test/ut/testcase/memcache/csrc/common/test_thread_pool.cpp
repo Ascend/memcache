@@ -56,7 +56,7 @@ TEST_F(TestMmcThreadPool, MultiThreadTest)
         1);
     EXPECT_TRUE(future3.valid());
 
-    pool.Shutdown();
+    pool.Destroy();
 
     auto future4 = pool.Enqueue([](int id) { return id; }, 2);
     EXPECT_FALSE(future4.valid());

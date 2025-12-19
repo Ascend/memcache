@@ -78,7 +78,7 @@ void NetEngineAcc::Stop()
         return;
     }
     if (threadPool_ == nullptr) {
-        threadPool_->Shutdown();
+        threadPool_->Destroy();
     }
     MMC_ASSERT(StopInner() == MMC_OK);
 
