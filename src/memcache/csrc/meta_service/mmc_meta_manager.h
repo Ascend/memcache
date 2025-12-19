@@ -94,7 +94,8 @@ public:
         }
         globalAllocator_ = MmcMakeRef<MmcGlobalAllocator>();
         MMC_ASSERT_RETURN(globalAllocator_ != nullptr, MMC_MALLOC_FAILED);
-        metaContainer_ = MmcMetaContainer<std::string, MmcMemObjMetaPtr>::Create();
+        auto GetTypeFunc = [](const MmcMemObjMetaPtr &objMeta) -> MediaType { return objMeta->GetBlobType(); };
+        metaContainer_ = MmcMetaContainer<std::string, MmcMemObjMetaPtr>::Create(GetTypeFunc);
         MMC_ASSERT_RETURN(metaContainer_ != nullptr, MMC_MALLOC_FAILED);
         threadPool_ = MmcMakeRef<MmcThreadPool>("metamgr_pool", METAMGR_POOL_BASE);
         MMC_ASSERT_RETURN(threadPool_ != nullptr, MMC_MALLOC_FAILED);

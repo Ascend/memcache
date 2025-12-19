@@ -29,6 +29,7 @@ Result MmcMetaManager::Get(const std::string& key, uint64_t operateId, MmcBlobFi
         MMC_LOG_ERROR("Get key: " << key << " failed. ErrCode: " << ret);
         return ret;
     }
+
     metaContainer_->Promote(key);
 
     std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(memObj)]);
@@ -224,7 +225,6 @@ Result MmcMetaManager::Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo 
         MMC_LOG_ERROR("allocator mount failed, loc rank: " << loc.rank_ << " mediaType_: " << loc.mediaType_);
         return ret;
     }
-    metaContainer_->RegisterMedium(loc.mediaType_);
     if (blobMap.empty()) {
         return globalAllocator_->Start(loc);
     }
@@ -436,37 +436,40 @@ Result MmcMetaManager::MoveBlob(const std::string& key, const MmcLocation& src, 
         MMC_LOG_ERROR("Cannot find MmcMemObjMeta with key : " << key);
         return MMC_UNMATCHED_KEY;
     }
-    std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(objMeta)]);
-    std::vector<MmcMemBlobDesc> blobsDesc;
-    MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(src.rank_, src.mediaType_, READABLE);
-    if (filter == nullptr) {
-        MMC_LOG_ERROR("Fail to malloc filter");
-        return MMC_MALLOC_FAILED;
-    }
-    objMeta->GetBlobsDesc(blobsDesc, filter);
-    if (blobsDesc.empty()) {
-        MMC_LOG_ERROR("blob for " << src << " to " << dst << " is empty with key : " << key << "," << objMeta);
-        return MMC_UNMATCHED_KEY;
-    }
+    {
+        std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(objMeta)]);
+        std::vector<MmcMemBlobDesc> blobsDesc;
+        MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(src.rank_, src.mediaType_, READABLE);
+        if (filter == nullptr) {
+            MMC_LOG_ERROR("Fail to malloc filter");
+            return MMC_MALLOC_FAILED;
+        }
+        objMeta->GetBlobsDesc(blobsDesc, filter);
+        if (blobsDesc.empty()) {
+            MMC_LOG_ERROR("blob for " << src << " to " << dst << " is empty with key : " << key << "," << objMeta);
+            return MMC_UNMATCHED_KEY;
+        }
 
-    auto ret = CopyBlob(objMeta, blobsDesc[0], dst);
-    if (ret != MMC_OK) {
-        MMC_LOG_ERROR("key: " << key << " copy blob failed, ret " << ret);
-        return ret;
-    }
+        auto ret = CopyBlob(objMeta, blobsDesc[0], dst);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("key: " << key << " copy blob failed, ret " << ret);
+            return ret;
+        }
 
-    filter = MmcMakeRef<MmcBlobFilter>(src.rank_, src.mediaType_, NONE);
-    if (filter == nullptr) {
-        MMC_LOG_ERROR("Fail to malloc filter");
-        return MMC_MALLOC_FAILED;
+        filter = MmcMakeRef<MmcBlobFilter>(src.rank_, src.mediaType_, NONE);
+        if (filter == nullptr) {
+            MMC_LOG_ERROR("Fail to malloc filter");
+            return MMC_MALLOC_FAILED;
+        }
+        ret = objMeta->FreeBlobs(key, globalAllocator_, filter);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("key: " << key << " free blob failed, ret " << ret);
+            return ret;
+        }
+        MMC_LOG_INFO("move " << key << " from " << src << " to " << dst << " " << blobsDesc[0] << ", " << objMeta);
     }
-    ret = objMeta->FreeBlobs(key, globalAllocator_, filter);
-    if (ret != MMC_OK) {
-        MMC_LOG_ERROR("key: " << key << " free blob failed, ret " << ret);
-        return ret;
-    }
-
-    MMC_LOG_INFO("move " << key << " from " << src << " to " << dst << " " << blobsDesc[0] << ", " << objMeta);
+    // insert to lru with metaItemMtx
+    metaContainer_->InsertLru(key, dst.mediaType_);
     return MMC_OK;
 }
 
@@ -516,7 +519,13 @@ EvictResult MmcMetaManager::EvictCallBackFunction(const std::string &key, const 
 
     auto future = threadPool_->Enqueue(
         [&](const std::string keyL, const MmcLocation srcL, const MmcLocation dstL) {
-            return MoveBlob(keyL, srcL, dstL);
+            auto ret = MoveBlob(keyL, srcL, dstL);
+            if (ret != MMC_OK) {
+                Remove(keyL);
+                MMC_LOG_WARN("key: " << keyL << " move blob from " << srcL << " to " << dstL << " failed: " << ret
+                                     << ", remove it");
+            }
+            return ret;
         },
         key, src, dst);
     if (!future.valid()) {

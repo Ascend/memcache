@@ -69,7 +69,7 @@ MemCache将所有特性集成到run包中供用户使用，run包格式为 ```me
 
 run包的默认安装根路径为 /usr/local/
 
-安装完成后需要source安装路径下的memfabric_hybrid/set_env.sh
+安装完成后需要source安装路径下的memcache_hybrid/set_env.sh
 
 参考安装命令如下
 
@@ -169,22 +169,14 @@ root@localhost:/# tree /usr/local/lib/python3.11/site-packages/memcache_hybrid
     
 ```
 
-在安装过程中，会默认尝试安装适配当前环境的MemCache的whl包，如果未安装，则在使用python接口前需要用户手动安装(
-安装包路径参考上面目录结构)
+在安装过程中，会默认尝试安装适配当前环境的MemCache的whl包，如果未安装，则在使用python接口前需要用户手动安装(安装包路径参考上面目录结构)
 
-MemCache 默认开启tls通信加密。如果想关闭，需要主动调用`smem_set_conf_store_tls`接口关闭：
-
-```c
-int32_t ret = smem_set_conf_store_tls(false, nullptr, 0);
-```
-
-具体细节详见安全声明章节
-## 安装部署
+## 运行服务
 ### MetaService
 * **python形式**：
   *以下均以python311版本whl包（memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl）为例*
 ```
-1、安装whl包
+1、安装whl包（如在安装run包过程中，已安装whl包，此步骤可省略）
 pip install memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
 
 2、设置配置文件环境变量
@@ -196,29 +188,20 @@ MetaService.main()
 ```
 * **bin形式**：
 ```
-1、安装run包
-run包格式为 memcache_hybrid-${version}_${os}_${arch}.run
-默认安装根路径为 /usr/local/
-参考安装命令如下：
-bash memcache_hybrid-1.0.0_linux_aarch64.run
-
-如果想要自定义安装路径，可以添加--install-path参数
-bash memcache_hybrid-1.0.0_linux_aarch64.run --install-path=${your path}
-如果自定义安装路径，下述 /usr/local 需替换为 ${your path}
-
-2、设置环境变量
+安装run包即完成了相应二进制的部署
+1、设置环境变量
 source /usr/local/memcache_hybrid/set_env.sh
 source /usr/local/memfabric_hybrid/set_env.sh
 export MMC_META_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-meta.conf
 
-3、拉起二进制
+2、拉起二进制
 /usr/local/memcache_hybrid/latest/aarch64-linux/bin/mmc_meta_service
 ```
 
 ### LocalService
 * **whl（python）**：
 ```
-1、安装whl包
+1、安装whl包（如在安装run包过程中，已安装whl包，此步骤可省略）
 pip install memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
 
 2、设置配置文件环境变量

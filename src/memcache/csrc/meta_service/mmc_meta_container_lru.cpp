@@ -25,6 +25,9 @@ namespace ock {
 namespace mmc {
 
 template <typename Key, typename Value> class MmcMetaContainerLRU : public MmcMetaContainer<Key, Value> {
+public:
+    explicit MmcMetaContainerLRU(std::function<MediaType(const Value &)> getTypeFunc) : getTypeFunc_(getTypeFunc) {}
+
 private:
     struct ValueLruItem {
         Value value_;
@@ -33,9 +36,9 @@ private:
     };
     std::unordered_map<Key, ValueLruItem> metaMap_;
     std::list<Key> lruLists_[MEDIA_NONE];
-    MediaType topLayer_ = MEDIA_NONE;
     ock::mf::ReadWriteLock lruLock_;
     ock::mf::ReadWriteLock metaLock_;
+    std::function<MediaType(const Value &)> getTypeFunc_;
 
 public:
     Result Insert(const Key &key, const Value &value) override
@@ -50,19 +53,20 @@ public:
 
         // insert into LRU and create lruItem
         ock::mf::WriteGuard lrucLockGuard(lruLock_);
-        if (topLayer_ == MEDIA_NONE) {
+        MediaType blobType = GetBlobType(value);
+        if (blobType == MEDIA_NONE) {
             MMC_LOG_ERROR("Failed to Insert, no medium registered. ");
             return MMC_ERROR;
         }
-        lruLists_[topLayer_].push_front(key);
-        ValueLruItem lruItem{value, topLayer_, lruLists_[topLayer_].begin()};
+        lruLists_[blobType].push_front(key);
+        ValueLruItem lruItem{value, blobType, lruLists_[blobType].begin()};
 
         // insert into map
         auto ret = metaMap_.emplace(key, lruItem);
         if (ret.second) {
             return MMC_OK;
         }
-        lruLists_[topLayer_].erase(lruItem.lruIter_);
+        lruLists_[blobType].erase(lruItem.lruIter_);
         MMC_LOG_ERROR("Fail to insert " << key << " into MmcMetaContainer. ErrCode: " << MMC_ERROR);
         return MMC_ERROR;
     }
@@ -95,7 +99,7 @@ public:
         }
         auto lruIter = iter->second.lruIter_;
         value = iter->second.value_;
-        if (metaMap_.erase(key) > 0) {
+        if (metaMap_.erase(key) > 0 && iter->second.mediaType_ != MEDIA_NONE) {
             ock::mf::WriteGuard lruLockGuard(lruLock_);
             lruLists_[iter->second.mediaType_].erase(lruIter);
             return MMC_OK;
@@ -127,7 +131,9 @@ public:
         for (auto iter = metaMap_.begin(); iter != metaMap_.end();) {
             if (matchFunc(iter->first, iter->second.value_)) {
                 ock::mf::WriteGuard lruLockGuard(lruLock_);
-                lruLists_[iter->second.mediaType_].erase(iter->second.lruIter_);
+                if (iter->second.mediaType_ != MEDIA_NONE) {
+                    lruLists_[iter->second.mediaType_].erase(iter->second.lruIter_);
+                }
                 iter = metaMap_.erase(iter);
             } else {
                 ++iter;
@@ -155,7 +161,24 @@ public:
             UpdateLRU(iter->first, iter->second);
             return MMC_OK;
         }
-        MMC_LOG_INFO("Promote: Key " << key << " not found in MmcMetaContainer. ErrCode: " << MMC_UNMATCHED_KEY);
+        MMC_LOG_ERROR("Promote: Key " << key << " not found in MmcMetaContainer. ErrCode: " << MMC_UNMATCHED_KEY);
+        return MMC_UNMATCHED_KEY;
+    }
+
+    Result InsertLru(const Key &key, MediaType type)
+    {
+        ock::mf::ReadGuard lockGuard(metaLock_);
+        auto iter = metaMap_.find(key);
+        if (iter != metaMap_.end()) {
+            ock::mf::WriteGuard lockGuard(lruLock_);
+            if (type != MEDIA_NONE) {
+                lruLists_[type].push_front(key);
+                iter->second.mediaType_ = type;
+                iter->second.lruIter_ = lruLists_[type].begin();
+            }
+            return MMC_OK;
+        }
+        MMC_LOG_ERROR("insert lru: Key " << key << " not found. ErrCode: " << MMC_UNMATCHED_KEY);
         return MMC_UNMATCHED_KEY;
     }
 
@@ -195,16 +218,9 @@ public:
             return true;
         }
         if (res == EvictResult::MOVE_DOWN) {
-            auto targetMedium = MoveDown(mediaType);
-            if (targetMedium == MEDIA_NONE) {
-                MMC_LOG_ERROR("Invalid target medium: " << targetMedium);
-                return false;
-            }
+            // 从当前level的lru删去，标记type为NONE，待move完成，再更新回来
             lruLists_[mediaType].erase(iter);
-            lruLists_[targetMedium].push_front(key);
-            mapIter->second.mediaType_ = targetMedium;
-            mapIter->second.lruIter_ = lruLists_[targetMedium].begin();
-            MMC_LOG_INFO("Key " << key << " will be evicted from " << mediaType << " to " << targetMedium << ".");
+            mapIter->second.mediaType_ = MEDIA_NONE;
             return true;
         }
         MMC_LOG_ERROR("Failed to evict Key " << key << ", moveFunc failed.");
@@ -241,20 +257,24 @@ public:
         }
     }
 
-    void RegisterMedium(const MediaType mediaType) override
-    {
-        topLayer_ = std::min(topLayer_, mediaType);
-        MMC_LOG_DEBUG("top layer: " << topLayer_);
-    }
-
 private:
     void UpdateLRU(const Key &key, ValueLruItem &lruItem)
     {
         // 只支持在同层级内部更新
-        ock::mf::WriteGuard lockGuard(lruLock_);
-        lruLists_[lruItem.mediaType_].erase(lruItem.lruIter_);
-        lruLists_[lruItem.mediaType_].push_front(key);
-        lruItem.lruIter_ = lruLists_[lruItem.mediaType_].begin();
+        if (lruItem.mediaType_ != MEDIA_NONE) {
+            ock::mf::WriteGuard lockGuard(lruLock_);
+            lruLists_[lruItem.mediaType_].erase(lruItem.lruIter_);
+            lruLists_[lruItem.mediaType_].push_front(key);
+            lruItem.lruIter_ = lruLists_[lruItem.mediaType_].begin();
+        }
+    }
+
+    MediaType GetBlobType(const Value &value)
+    {
+        if (getTypeFunc_) {
+            return getTypeFunc_(value);
+        }
+        return MEDIA_NONE;
     }
 };
 
@@ -262,9 +282,11 @@ private:
 template class MmcMetaContainer<std::string, MmcMemObjMetaPtr>;
 
 // 工厂函数实现
-template <typename Key, typename Value> MmcRef<MmcMetaContainer<Key, Value>> MmcMetaContainer<Key, Value>::Create()
+template<typename Key, typename Value>
+MmcRef<MmcMetaContainer<Key, Value>> MmcMetaContainer<Key, Value>::Create(
+    std::function<MediaType(const Value &)> GetTypeFunc)
 {
-    return MmcMakeRef<MmcMetaContainerLRU<Key, Value>>().Get();
+    return MmcMakeRef<MmcMetaContainerLRU<Key, Value>>(GetTypeFunc).Get();
 }
 
 }  // namespace mmc

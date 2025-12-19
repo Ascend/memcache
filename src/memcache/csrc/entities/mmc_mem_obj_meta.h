@@ -99,6 +99,8 @@ public:
      */
     MediaType MoveTo(bool down);
 
+    MediaType GetBlobType();
+
     friend std::ostream& operator<<(std::ostream& os, const MmcMemObjMeta& obj)
     {
         os << "MmcMemObjMeta{numBlobs=" << static_cast<int>(obj.numBlobs_) << ",size=" << obj.size_

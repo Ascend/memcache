@@ -137,5 +137,15 @@ MediaType MmcMemObjMeta::MoveTo(bool down)
     return down ? MoveDown(mediaType) : MoveUp(mediaType);
 }
 
+MediaType MmcMemObjMeta::GetBlobType()
+{
+    for (auto blob : blobs_) {
+        if (blob != nullptr) {
+            return static_cast<MediaType>(blob->Type());
+        }
+    }
+    return MediaType::MEDIA_NONE;
+}
+
 }  // namespace mmc
 }  // namespace ock

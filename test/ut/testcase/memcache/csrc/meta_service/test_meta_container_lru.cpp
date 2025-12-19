@@ -28,8 +28,8 @@ protected:
     
     void SetUp() override
     {
-        container = std::make_unique<Container>();
-        container->RegisterMedium(MEDIA_DRAM);
+        auto GetTypeFunc = [](const int &value) -> MediaType { return MEDIA_DRAM; };
+        container = std::make_unique<Container>(GetTypeFunc);
     }
 };
 
