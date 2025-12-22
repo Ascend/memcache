@@ -132,6 +132,14 @@ public:
     virtual int RegisterBuffer(void *buffer, size_t size) = 0;
 
     /**
+     * @brief unregister buffer for zero-copy operations
+     * @param buffer Pointer to the pre-allocated buffer
+     * @param size Number of bytes
+     * @return zero on success, other on error
+     */
+    virtual int UnRegisterBuffer(void *buffer, size_t size) = 0;
+
+    /**
      * @brief Get object data directly into a pre-allocated buffer
      * @param key Key of the object to get
      * @param buffer Pointer to the pre-allocated buffer

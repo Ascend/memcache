@@ -70,6 +70,8 @@ public:
 
     int RegisterBuffer(void *buffer, size_t size) override;
 
+    int UnRegisterBuffer(void *buffer, size_t size) override;
+
     int GetInto(const std::string &key, void *buffer, size_t size, const int32_t direct = 2) override;
 
     std::vector<int> BatchGetInto(const std::vector<std::string> &keys, const std::vector<void *> &buffers,

@@ -84,6 +84,15 @@ PYBIND11_MODULE(_pymmc, m)
             },
             py::arg("buffer_ptr"), py::arg("size"), "Register a memory buffer for direct access operations")
         .def(
+            "unregister_buffer",
+            [](MmcacheStore &self, uintptr_t buffer_ptr, size_t size) {
+                // UnRegister memory buffer for RDMA operations
+                void *buffer = reinterpret_cast<void *>(buffer_ptr);
+                py::gil_scoped_release release;
+                return self.UnRegisterBuffer(buffer, size);
+            },
+            py::arg("buffer_ptr"), py::arg("size"), "UnRegister a memory buffer for direct access operations")
+        .def(
             "get_into",
             [](MmcacheStore &self, const std::string &key, uintptr_t buffer_ptr, size_t size, const int32_t &direct) {
                 py::gil_scoped_release release;

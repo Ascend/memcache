@@ -69,6 +69,8 @@ public:
 
     Result RegisterBuffer(uint64_t addr, uint64_t size);
 
+    Result UnRegisterBuffer(uint64_t addr, uint64_t size);
+
     uint32_t RankId() const
     {
         return rankId_;
@@ -117,7 +119,8 @@ private:
     Result AllocateAndPutBlobs(const std::vector<std::string>& keys, const std::vector<MmcBufferArray>& bufs,
                                const mmc_put_options& options, uint32_t flags, uint64_t operateId,
                                std::vector<int>& batchResult, BatchAllocResponse& allocResponse);
-    void UpdateRegisterMap(uint64_t va, uint64_t size);
+    void InsertRegisterMap(uint64_t va, uint64_t size);
+    void RemoveRegisterMap(uint64_t va, uint64_t size);
     bool QueryInRegisterMap(const mmc_buffer &buf);
     bool QueryInRegisterMap(uint64_t va, uint64_t size);
     int32_t SelectTransportType(const mmc_buffer &buf);

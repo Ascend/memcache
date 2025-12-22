@@ -219,6 +219,8 @@ static mmc_meta_service_t StartMetaService()
 
 TEST_F(TestMmcacheStore, RegisterBufferTest)
 {
+    uint64_t bufferTestSize2M = 1024 * 1024 * 2ULL;
+    uint64_t bufferTestSize4M = 1024 * 1024 * 4ULL;
     std::shared_ptr<ObjectStore> store = ObjectStore::CreateObjectStore();
     void *nonPtr = nullptr;
     int test = 1;
@@ -229,7 +231,7 @@ TEST_F(TestMmcacheStore, RegisterBufferTest)
     ret = store->RegisterBuffer(testPtr, 0);
     EXPECT_NE(ret, 0);
 
-    ret = store->RegisterBuffer(testPtr, 1024 * 1024 * 2);
+    ret = store->RegisterBuffer(testPtr, bufferTestSize2M);
     EXPECT_NE(ret, 0);
 
     auto meta_service = StartMetaService();
@@ -240,7 +242,21 @@ TEST_F(TestMmcacheStore, RegisterBufferTest)
     ret = store->Init(0);
     ASSERT_EQ(ret, 0);
 
-    ret = store->RegisterBuffer(testPtr, 1024 * 1024 * 2);
+    ret = store->RegisterBuffer(testPtr, bufferTestSize2M);
+    EXPECT_EQ(ret, 0);
+
+    int test2 = 1;
+    void *testPtr2 = &test2;
+    ret = store->RegisterBuffer(testPtr2, bufferTestSize2M);
+    EXPECT_EQ(ret, 0);
+
+    ret = store->RegisterBuffer(testPtr, bufferTestSize4M);
+    EXPECT_NE(ret, 0);
+
+    ret = store->UnRegisterBuffer(testPtr, bufferTestSize2M);
+    EXPECT_EQ(ret, 0);
+
+    ret = store->RegisterBuffer(testPtr, bufferTestSize4M);
     EXPECT_EQ(ret, 0);
 
     store->TearDown();

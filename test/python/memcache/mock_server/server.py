@@ -425,6 +425,8 @@ class MmcTest(TestServer):
                                           direct,
                                           rep_conf)
         value = tensor_sum(tensor, sizes)
+        if tensor is not None and device == 'npu':
+            self._store.unregister_buffer(tensor.data_ptr(), mini_block_size * layers_num)
         self.cli_return(str([res, value]))
 
     @result_handler
@@ -448,6 +450,8 @@ class MmcTest(TestServer):
         if device == 'npu':
             self.sync_stream()
         value = tensor_sum(tensor, sizes)
+        if tensor is not None and device == 'npu':
+            self._store.unregister_buffer(tensor.data_ptr(), mini_block_size * layers_num)
         self.cli_return(str([res, value]))
 
     @result_handler
@@ -485,6 +489,9 @@ class MmcTest(TestServer):
         if device == 'npu':
             self.sync_stream()
         tensor_sums = [tensor_sum(block, sizes_) for block, sizes_ in zip(blocks, sizes)]
+        for block in blocks:
+            if block is not None:
+                self._store.unregister_buffer(block.data_ptr(), max(sizes_, default=0) * len(sizes_))
         self.cli_return(str([results, tensor_sums]))
 
     @result_handler
@@ -513,6 +520,9 @@ class MmcTest(TestServer):
         if device == 'npu':
             self.sync_stream()
         tensor_sums = [tensor_sum(block, sizes_) for block, sizes_ in zip(blocks, sizes)]
+        for block in blocks:
+            if block is not None:
+                self._store.unregister_buffer(block.data_ptr(), max(sizes_, default=0) * len(sizes_))
         self.cli_return(str([results, tensor_sums]))
 
     def set_device(self):

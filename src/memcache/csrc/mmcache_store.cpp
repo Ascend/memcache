@@ -164,6 +164,11 @@ int MmcacheStore::RegisterBuffer(void *buffer, size_t size)
     return mmcc_register_buffer(reinterpret_cast<uint64_t>(buffer), size);
 }
 
+int MmcacheStore::UnRegisterBuffer(void *buffer, size_t size)
+{
+    return mmcc_unregister_buffer(reinterpret_cast<uint64_t>(buffer), size);
+}
+
 int MmcacheStore::GetInto(const std::string &key, void *buffer, size_t size, const int32_t direct)
 {
     uint32_t type = 0;

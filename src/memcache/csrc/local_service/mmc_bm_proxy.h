@@ -69,6 +69,7 @@ public:
     Result BatchDataGet(std::vector<void *> &sources, std::vector<void *> &destinations,
                         const std::vector<uint64_t> &sizes, MediaType localMedia);
     Result RegisterBuffer(uint64_t addr, uint64_t size);
+    Result UnRegisterBuffer(uint64_t addr);
 
     Result CopyWait();
 

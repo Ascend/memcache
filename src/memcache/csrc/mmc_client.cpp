@@ -50,6 +50,15 @@ MMC_API int32_t mmcc_register_buffer(uint64_t addr, uint64_t size)
     return MmcClientDefault::GetInstance()->RegisterBuffer(addr, size);
 }
 
+int32_t mmcc_unregister_buffer(uint64_t addr, uint64_t size)
+{
+    MMC_VALIDATE_RETURN(addr != 0, "invalid parma, addr is null", MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(size > 0, "invalid parma, size is zero", MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(MmcClientDefault::GetInstance() != nullptr, "client is not initialize", MMC_CLIENT_NOT_INIT);
+
+    return MmcClientDefault::GetInstance()->UnRegisterBuffer(addr, size);
+}
+
 MMC_API int32_t mmcc_put(const char *key, mmc_buffer *buf, mmc_put_options options, uint32_t flags)
 {
     MMC_VALIDATE_RETURN(key != nullptr, "invalid param, key is null", MMC_INVALID_PARAM);

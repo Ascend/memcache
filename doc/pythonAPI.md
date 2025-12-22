@@ -628,6 +628,24 @@ result = store.register_buffer(buffer_ptr, size)
 - `0`: 成功
 - 其他: 失败
 
+#### unregister_buffer
+
+```python
+result = store.unregister_buffer(buffer_ptr, size)
+```
+
+**功能**: 注销内存缓冲区，用于Device RDMA的加速操作
+
+**参数**:
+
+- `buffer_ptr`: 缓冲区指针
+- `size`: 缓冲区大小
+
+**返回值**:
+
+- `0`: 成功
+- 其他: 失败
+
 ### 使用示例
 
 ```python

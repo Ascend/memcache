@@ -84,6 +84,20 @@ int32_t mmcc_register_buffer(uint64_t addr, uint64_t size);
 - `0`: 成功
 - 其他: 失败
 
+#### mmcc_unregister_buffer
+```c
+int32_t mmcc_unregister_buffer(uint64_t addr, uint64_t size);
+```
+**功能**: 从BM中注销指定地址和大小的内存缓冲区。
+
+**参数**:
+- `addr`: 要注销的内存缓冲区地址
+- `size`: 要注销的内存缓冲区大小
+
+**返回值**:
+- `0`: 成功
+- 其他: 失败
+
 #### mmcc_local_service_id
 ```c
 int32_t mmcc_local_service_id(uint32_t *localServiceId);

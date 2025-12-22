@@ -385,6 +385,16 @@ Result MmcBmProxy::RegisterBuffer(uint64_t addr, uint64_t size)
     return ret;
 }
 
+Result MmcBmProxy::UnRegisterBuffer(uint64_t addr)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto ret = smem_bm_unregister_user_mem(handle_, addr);
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("Failed to unregister mem,  ret:" << ret);
+    }
+    return ret;
+}
+
 Result MmcBmProxy::CopyWait()
 {
     auto ret = smem_bm_wait(handle_);

@@ -42,6 +42,14 @@ void mmcc_uninit(void);
 int32_t mmcc_register_buffer(uint64_t addr, uint64_t size);
 
 /**
+ * @brief unregister from bm, support sdma
+ *
+ * @param addr              [in] unregister addr
+ * @param size              [in] unregister size
+ */
+int32_t mmcc_unregister_buffer(uint64_t addr, uint64_t size);
+
+/**
  * @brief Put data of object with key into Distributed Memory Cache
  * This data operation supports both sync and async
  *

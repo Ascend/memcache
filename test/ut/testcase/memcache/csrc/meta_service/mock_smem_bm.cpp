@@ -9,9 +9,11 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
 */
+#include <map>
 #include "smem_bm.h"
 
 static uint64_t g_spaces[SMEM_MEM_TYPE_BUTT] = {0};
+static std::map<uint64_t, uint64_t> g_registBuffer{};
 
 // 实现所有函数返回0或默认值
 int32_t smem_bm_config_init(smem_bm_config_t *config)
@@ -94,6 +96,23 @@ int32_t smem_bm_copy(smem_bm_t handle, smem_copy_params *params, smem_bm_copy_ty
 
 int32_t smem_bm_register_user_mem(smem_bm_t handle, uint64_t addr, uint64_t size)
 {
+    auto iter = g_registBuffer.find(addr);
+    if (iter != g_registBuffer.end()) {
+        if (iter->second != size) {
+            return -1;
+        }
+        return 0;
+    }
+    g_registBuffer.emplace(std::make_pair(addr, size));
+    return 0;
+}
+
+int32_t smem_bm_unregister_user_mem(smem_bm_t handle, uint64_t addr)
+{
+    auto iter = g_registBuffer.find(addr);
+    if (iter != g_registBuffer.end()) {
+        g_registBuffer.erase(iter);
+    }
     return 0;
 }
 

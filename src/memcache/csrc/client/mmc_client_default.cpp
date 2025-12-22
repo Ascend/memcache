@@ -747,18 +747,38 @@ Result MmcClientDefault::RegisterBuffer(uint64_t addr, uint64_t size)
 {
     auto ret = bmProxy_->RegisterBuffer(addr, size);
     if (ret == MMC_OK) {
-        UpdateRegisterMap(addr, size);
+        InsertRegisterMap(addr, size);
     }
     return ret;
 }
 
-void MmcClientDefault::UpdateRegisterMap(uint64_t va, uint64_t size)
+Result MmcClientDefault::UnRegisterBuffer(uint64_t addr, uint64_t size)
+{
+    auto ret = bmProxy_->UnRegisterBuffer(addr);
+    if (ret == MMC_OK) {
+        RemoveRegisterMap(addr, size);
+    }
+    return ret;
+}
+
+void MmcClientDefault::InsertRegisterMap(uint64_t va, uint64_t size)
 {
     if (va > std::numeric_limits<uint64_t>::max() - size) {
         return;
     }
+    std::lock_guard<std::mutex> guard(mutex_);
     registerSet_.insert((va << MMC_REGISTER_SET_MARK_BIT) | MMC_REGISTER_SET_LEFT_MARK);
     registerSet_.insert((va + size) << MMC_REGISTER_SET_MARK_BIT);
+}
+
+void MmcClientDefault::RemoveRegisterMap(uint64_t va, uint64_t size)
+{
+    if (va > std::numeric_limits<uint64_t>::max() - size) {
+        return;
+    }
+    std::lock_guard<std::mutex> guard(mutex_);
+    registerSet_.erase((va << MMC_REGISTER_SET_MARK_BIT) | MMC_REGISTER_SET_LEFT_MARK);
+    registerSet_.erase((va + size) << MMC_REGISTER_SET_MARK_BIT);
 }
 
 bool MmcClientDefault::QueryInRegisterMap(uint64_t va, uint64_t size)
