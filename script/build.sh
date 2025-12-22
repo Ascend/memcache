@@ -14,9 +14,7 @@ BUILD_TESTS=${2:-OFF}
 BUILD_OPEN_ABI=${3:-OFF}
 BUILD_PYTHON=${4:-ON}
 ENABLE_PTRACER=${5:-ON}
-USE_CANN=${6:-ON}
-BUILD_COMPILER=${7:-gcc}
-BUILD_PACKAGE=${8:-ON}
+BUILD_COMPILER=${6:-gcc}
 
 readonly SCRIPT_FULL_PATH=$(dirname $(readlink -f "$0"))
 readonly PROJECT_FULL_PATH=$(dirname "$SCRIPT_FULL_PATH")
@@ -94,7 +92,6 @@ cmake \
     -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" \
     -DBUILD_PYTHON="${BUILD_PYTHON}" \
     -DENABLE_PTRACER="${ENABLE_PTRACER}" \
-    -DUSE_CANN="${USE_CANN}" \
     -S . -B build/
 
 make install -j32 -C build/
@@ -124,7 +121,6 @@ do
             -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" \
             -DBUILD_PYTHON="${BUILD_PYTHON}" \
             -DENABLE_PTRACER="${ENABLE_PTRACER}" \
-            -DUSE_CANN="${USE_CANN}" \
             -S . -B build/
         make -j5 -C build
     fi
@@ -145,13 +141,5 @@ done
 mkdir -p "${PROJ_DIR}/output/memcache/wheel"
 cp "${PROJ_DIR}"/src/memcache/python/dist/*.whl "${PROJ_DIR}/output/memcache/wheel"
 rm -rf "${PROJ_DIR}"/src/memcache/python/dist
-
-if [ "${BUILD_PACKAGE}" == "ON" ]; then
-    bash "${PROJ_DIR}"/script/run_pkg_maker/make_run.sh RELEASE ON
-    rm -rf "${PROJ_DIR}"/package
-    mkdir -p "${PROJ_DIR}"/package
-    cp "${PROJ_DIR}"/output/memcache/wheel/*.whl "${PROJ_DIR}/package"
-    cp "${PROJ_DIR}"/output/*.run "${PROJ_DIR}"/package
-fi
 
 cd ${CURRENT_DIR}

@@ -36,7 +36,6 @@ build_open_abi = os.getenv("BUILD_OPEN_ABI", "OFF")
 build_mode = os.getenv("BUILD_MODE", "RELEASE")
 build_compiler = os.getenv("BUILD_COMPILER", "gcc")
 enable_ptracer = os.getenv("ENABLE_PTRACER", "ON")
-use_cann = os.getenv("USE_CANN", "ON")
 python3_executable = os.getenv("PYTHON3_EXECUTABLE", "/usr/local/bin/python3")
 
 
@@ -89,7 +88,6 @@ class CMakeBuildExt(build_ext):
                 f"-DBUILD_OPEN_ABI={build_open_abi}",
                 f"-DBUILD_COMPILER={build_compiler}",
                 f"-DENABLE_PTRACER={enable_ptracer}",
-                f"-DUSE_CANN={use_cann}",
                 "-DBUILD_PYTHON=ON",
                 "-DBUILD_TESTS=OFF",
             ]

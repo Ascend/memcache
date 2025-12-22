@@ -41,7 +41,6 @@ option(BUILD_GIT_COMMIT "build library version with commit" ON)
 option(BUILD_GIT_COMMIT_GEN_FILE "generate commit log file" ON)
 option(BUILD_PYTHON "build python file" ON)
 option(ENABLE_PTRACER "build ptracer" OFF)
-option(USE_CANN "BM implemented using CANN." ON)
 option(BUILD_CPP_EXAMPLE "Compile and package the c++ example." OFF)
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -97,11 +96,6 @@ endif ()
 
 if (ENABLE_PTRACER STREQUAL "ON")
     add_definitions(-DENABLE_PTRACER=ON)
-endif ()
-
-if (USE_CANN STREQUAL "ON")
-    add_definitions(-DUSE_CANN=ON)
-    message("USE_CANN IS ON.")
 endif ()
 
 if (NOT BUILD_OPEN_ABI STREQUAL "ON")

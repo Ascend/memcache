@@ -91,7 +91,7 @@ function parse_script_args()
         --install-path=*)
             install_path_flag=y
             target_dir=$(echo $1 | cut -d"=" -f2-)
-            target_dir=${target_dir}/memfabric_hybrid
+            target_dir=${target_dir}/memcache_hybrid
             shift
         ;;
         --uninstall)
@@ -111,9 +111,7 @@ function parse_script_args()
             shift
         ;;
         --*)
-            print "ERROR" "Unsupported parameter: $1"
-            print_help
-            exit 1
+            shift
         ;;
         *)
             break
@@ -126,29 +124,6 @@ function check_owner()
 {
     local cur_owner=$(whoami)
 
-    if [ "${ASCEND_TOOLKIT_HOME}" == "" ]; then
-        print "ERROR" "please check env ASCEND_TOOLKIT_HOME is set"
-        exit 1
-    fi
-
-    if [ "${ASCEND_HOME_PATH}" == "" ]; then
-        print "ERROR" "please check env ASCEND_HOME_PATH is set"
-        exit 1
-    else
-        cann_path=${ASCEND_HOME_PATH}
-    fi
-
-    if [ ! -d "${cann_path}" ]; then
-        print "ERROR" "can not find ${cann_path}"
-        exit 1
-    fi
-
-    cann_owner=$(stat -c %U "${cann_path}")
-    if [ "${cann_owner}" != "${cur_owner}" ]; then
-        print "ERROR" "cur_owner is not same with CANN"
-        exit 1
-    fi
-
     if [[ "${cur_owner}" != "root" && "${install_flag}" == "y" ]]; then
         default_install_dir="${HOME}/memcache_hybrid"
     fi
@@ -156,7 +131,7 @@ function check_owner()
     if [ "${install_path_flag}" == "y" ]; then
         default_install_dir="${target_dir}"
     fi
-    print "INFO" "Check owner success"
+    print "INFO" "Check owner success."
 }
 
 function delete_install_files()
@@ -313,7 +288,9 @@ function install_to_path()
     wheel_dir="${install_dir}"/"${pkg_arch}"-"${os1}"/wheel
     python_version=$(python3 -c "import sys; print(''.join(map(str, sys.version_info[:2])))")
 
+    install_wheel_package "${wheel_dir}" mf_smem "${python_version}"
     install_wheel_package "${wheel_dir}" memcache_hybrid "${python_version}"
+    install_wheel_package "${wheel_dir}" mf_adapter "${python_version}"
 }
 
 function generate_set_env()
