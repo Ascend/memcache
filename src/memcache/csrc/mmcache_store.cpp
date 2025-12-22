@@ -715,6 +715,43 @@ int MmcacheStore::Put(const std::string &key, mmc_buffer &buffer, const Replicat
     return ret;
 }
 
+
+int MmcacheStore::PutBatch(const std::vector<std::string> &keys, std::vector<mmc_buffer> &buffers,
+                           const ReplicateConfig &replicateConfig)
+{
+    const size_t count = keys.size();
+    MMC_VALIDATE_RETURN(count > 0, "key vector is empty", 0);
+    MMC_VALIDATE_RETURN(count <= MAX_BATCH_OP_COUNT, "key vector length exceeds limit" << MAX_BATCH_OP_COUNT,
+        MMC_INVALID_PARAM);
+
+    std::vector<int> results(count, -1);
+    if (buffers.size() != count) {
+        MMC_LOG_ERROR("Input vector sizes mismatch: keys=" << keys.size() << ", buffers=" << buffers.size());
+        return MMC_INVALID_PARAM;
+    }
+
+    const char *keyArray[count];
+    mmc_buffer bufferArray[count];
+    for (size_t i = 0; i < count; ++i) {
+        keyArray[i] = keys[i].c_str();
+        bufferArray[i] = buffers[i];
+    }
+
+    mmc_put_options options{};
+    MMC_ASSERT_RETURN(CopyPutOptions(replicateConfig, options), MMC_INVALID_PARAM);
+    TP_TRACE_BEGIN(TP_MMC_PY_BATCH_PUT);
+    mmcc_batch_put(keyArray, count, bufferArray, options, ALLOC_RANDOM, results.data());
+    TP_TRACE_END(TP_MMC_PY_BATCH_PUT, 0);
+    for (size_t i = 0; i < count; i++) {
+        results[i] = ReturnWrapper(results[i], keys[i]);
+        if (results[i] != MMC_OK) {
+            return results[i];
+        }
+    }
+    return MMC_OK;
+}
+
+
 mmc_buffer MmcacheStore::Get(const std::string &key)
 {
     mmc_data_info info;
@@ -746,5 +783,48 @@ mmc_buffer MmcacheStore::Get(const std::string &key)
     return buffer;
 }
 
+std::vector<mmc_buffer> MmcacheStore::GetBatch(const std::vector<std::string> &keys)
+{
+    size_t count = keys.size();
+    MMC_VALIDATE_RETURN(count > 0, "key vector is empty", {});
+    MMC_VALIDATE_RETURN(count <= MAX_BATCH_OP_COUNT, "key vector length exceeds limit" << MAX_BATCH_OP_COUNT,
+        {});
+
+    std::vector<int> results(count, -1);
+    std::vector<mmc_buffer> buffers(count, {0, 0, 0, 0});
+    const char *keyArray[count];
+
+    // 1. Query KeyInfo for all keys
+    auto keyInfos = BatchGetKeyInfo(keys);
+
+    // 2. alloc memory and assign value to the buffers
+    for (size_t i = 0; i < count; ++i) {
+        auto keyInfo = keyInfos[i];
+        keyArray[i] = keys[i].c_str();
+        const auto dataPtr = new (std::nothrow) char[keyInfo.Size()];
+        if (dataPtr == nullptr) {
+            // Release the newly allocated memory and set the addr of buffers to 0.
+            for (size_t j = 0; j < i; ++j) {
+                auto tmpPtr = reinterpret_cast<char *>(buffers[j].addr);
+                delete[] tmpPtr;
+                buffers[j].addr = 0;
+                buffers[j].len = 0;
+            }
+            MMC_LOG_ERROR("Failed to allocate dynamic memory for key: " << keys[i].c_str());
+            return buffers;
+        }
+        buffers[i] = {
+            .addr = reinterpret_cast<uint64_t>(dataPtr),
+            .type = MEDIA_DRAM,
+            .offset = 0,
+            .len = static_cast<uint64_t>(keyInfo.Size()),
+        };
+    }
+    // 3. call batch get api
+    TP_TRACE_BEGIN(TP_MMC_PY_BATCH_GET);
+    auto ret = mmcc_batch_get(keyArray, count, buffers.data(), 0, results.data());
+    TP_TRACE_END(TP_MMC_PY_BATCH_GET, ret);
+    return buffers;
+}
 }  // namespace mmc
 }  // namespace ock

@@ -119,7 +119,13 @@ public:
     // bellow only python api use
     mmc_buffer Get(const std::string &key);
 
+    std::vector<mmc_buffer> GetBatch(const std::vector<std::string> &key);
+
     int Put(const std::string &key, mmc_buffer &buffer, const ReplicateConfig &replicateConfig = {});
+
+    int PutBatch(const std::vector<std::string> &keys,
+                 std::vector<mmc_buffer> &buffers,
+                 const ReplicateConfig &replicateConfig);
 
 private:
     int CheckInput(size_t batchSize, const std::vector<std::vector<void *>> &buffers,

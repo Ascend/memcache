@@ -10,7 +10,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-__all__ = ['DistributedObjectStore', 'ReplicateConfig', 'KeyInfo', 'MetaService']
+__all__ = ["DistributedObjectStore", "ReplicateConfig", "KeyInfo", "MetaService"]
 
 import os
 import sys

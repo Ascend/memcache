@@ -43,9 +43,15 @@ class TestClient:
 
     def put(self, key, value):
         return self.execute("put", [key, value.decode('utf-8')])
+    
+    def put_batch(self, keys, values):
+        return self.execute("put_batch", [keys, values])
 
     def get(self, key):
         return self.execute("get", [key]).encode('utf-8')
+
+    def get_batch(self, keys):
+        return self.execute("get_batch", keys)
 
     def put_from(self, key, size: int, media: int):
         return self.execute("put_from", [key, size, media])

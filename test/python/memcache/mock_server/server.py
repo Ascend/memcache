@@ -213,7 +213,9 @@ class MmcTest(TestServer):
             CliCommand("close_mmc", "destruct memcache", self.close_mmc, 0),
             CliCommand("get_local_service_id", "get local service id", self.get_local_service_id, 0),
             CliCommand("put", "put data in bytes format: [key] [data]", self.put, 2),
+            CliCommand("put_batch", "put batch datas in bytes format: [keys] [values]", self.put_batch, 2),
             CliCommand("get", "get data in bytes format: [key]", self.get, 1),
+            CliCommand("get_batch", "get batch datas in bytes format: `keys: List[str]`", self.get_batch, 1),
             CliCommand("put_from", "put data from a buffer: [key] [size] [media(0:cpu 1:npu)]", self.put_from, 3),
             CliCommand("get_into", "get data into a buffer: [key] [size] [media(0:cpu 1:npu)]", self.get_into, 3),
             CliCommand("batch_get_into", "batch put data: [keys] [sizes] [media(0:cpu 1:npu)]", self.batch_get_into, 3),
@@ -267,6 +269,17 @@ class MmcTest(TestServer):
             rep_conf.preferredLocalServiceIDs = preferred_ranks
         res = self._store.put(key, data, rep_conf)
         self.cli_return(res)
+    
+    @result_handler
+    def put_batch(self, keys: List[str], values: List[bytes], replica_num: int | None = None, 
+                  preferred_ranks: List[int] | None = None):
+        rep_conf = ReplicateConfig()
+        if replica_num is not None:
+            rep_conf.replicaNum = replica_num
+        if preferred_ranks is not None:
+            rep_conf.preferredLocalServiceIDs = preferred_ranks
+        res = self._store.put_batch(keys, values, rep_conf)
+        self.cli_return(res)
 
     @result_handler
     def put_from(self, key: str, size: int, media: int, replica_num: int | None = None,
@@ -296,6 +309,11 @@ class MmcTest(TestServer):
     def get(self, key: str):
         res = self._store.get(key)
         self.cli_return(res)
+
+    @result_handler
+    def get_batch(self, keys: List[str]):
+        values = self._store.get_batch(keys)
+        self.cli_return(values)
 
     @result_handler
     def get_into(self, key: str, size: int, media: int):

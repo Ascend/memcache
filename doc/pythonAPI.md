@@ -296,6 +296,39 @@ result = store.put(key, data, replicateConfig=defaultConfig)
 - `0`: 成功
 - 其他: 失败
 
+#### put_batch
+
+```python
+def put_batch(self, keys: List[str], values: List[bytes], replicateConfig: ReplicateConfig = None) -> int
+```
+
+**功能**: 在单个批处理操作中存储多个对象。
+
+**参数**:
+
+- `keys` (List[str]): 对象标识符列表
+- `values` (List[bytes]): 要存储的二进制数据列表
+- `replicateConfig` (ReplicateConfig, optional): 所有对象的复制配置
+
+
+**返回值**:
+
+- `int`: 状态码 (0: 成功, 非零: 失败错误码)
+
+**示例:**
+
+<details>
+<summary>点击展开：put_batch示例</summary>
+
+```python
+keys = ["key1", "key2", "key3"]
+values = [b"value1", b"value2", b"value3"]
+result = store.put_batch(keys, values)
+assert result == 0, f"put_batch failed: {result}"
+```
+
+</details>
+
 #### put_from
 
 ```python
@@ -407,6 +440,37 @@ data = store.get(key)
 
 - 成功时返回数据字节串
 - 失败时返回空字节串
+
+#### get_batch
+
+```python
+def get_batch(self, keys: List[str]) -> List[bytes]
+```
+
+**功能**: 在单个batch操作中检索多个对象。
+
+**参数**:
+
+- `keys`(List[str]): 要检索的对象标识符列表
+
+**返回值**:
+
+- `List[bytes]`: 检索到的二进制数据列表
+- 成功时返回二进制数据列表，失败时返回空二进制数据列表
+
+**示例:**
+
+<details>
+<summary>点击展开：get_batch示例</summary>
+
+```python
+keys = ["key1", "key2", "key3"]
+values = store.get_batch(keys)
+for key, value in zip(keys, values):
+    print(f"{key}: {len(value)} bytes")
+```
+
+</details>
 
 #### get_into
 

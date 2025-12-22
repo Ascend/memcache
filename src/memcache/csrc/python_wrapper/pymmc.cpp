@@ -237,6 +237,35 @@ PYBIND11_MODULE(_pymmc, m)
                 return self.Put(key, buffer, replicateConfig);
             },
             py::arg("key"), py::arg("buf"), py::arg("replicateConfig") = defaultConfig)
+        .def("put_batch",
+            [](MmcacheStore &self,
+            const std::vector<std::string> &keys,
+            const std::vector<py::buffer> &buffers,
+            const ReplicateConfig &replicateConfig) {
+                // Convert pybuffers to spans without copying
+                std::vector<py::buffer_info> infos;
+                std::vector<mmc_buffer> bufs;
+                infos.reserve(buffers.size());
+                bufs.reserve(buffers.size());
+
+                for (const auto &buf : buffers) {
+                    infos.emplace_back(buf.request(false));
+                    const auto &info = infos.back();
+                    bufs.emplace_back(
+                        mmc_buffer{
+                            .addr = reinterpret_cast<uint64_t>(info.ptr),
+                            .type = MEDIA_DRAM,
+                            .offset = 0,
+                            .len = static_cast<uint64_t>(info.size)
+                        }
+                    );
+                }
+                py::gil_scoped_release release;
+                return self.PutBatch(keys, bufs, replicateConfig);
+            },
+            py::arg("keys"),
+            py::arg("values"),
+            py::arg("replicateConfig") = defaultConfig)
         .def("get", [](MmcacheStore &self, const std::string &key) {
             mmc_buffer buffer = self.Get(key);
             py::gil_scoped_acquire acquire_gil;
@@ -246,6 +275,27 @@ PYBIND11_MODULE(_pymmc, m)
                 auto dataPtr = reinterpret_cast<char *>(buffer.addr);
                 std::shared_ptr<char[]> dataSharedPtr(dataPtr, [](char *p) { delete[] p; });
                 return py::bytes(dataPtr, buffer.len);
-            }
-        });
+            }})
+        .def("get_batch", [](MmcacheStore &self, const std::vector<std::string> &keys) {
+            const auto kNullString = pybind11::bytes("\\0", 0);
+            {
+                py::gil_scoped_release release_gil;
+                auto bufferArray = self.GetBatch(keys);
+
+                py::gil_scoped_acquire acquire_gil;
+                std::vector<pybind11::bytes> results;
+                results.reserve(keys.size());
+
+                for (size_t i = 0; i < keys.size(); ++i) {
+                    mmc_buffer buffer = bufferArray[i];
+                    if (buffer.addr == 0) {
+                        results.emplace_back(kNullString);
+                        continue;
+                    }
+                    auto dataPtr = reinterpret_cast<char *>(buffer.addr);
+                    std::shared_ptr<char[]> dataSharedPtr(dataPtr, [](char *p) { delete[] p; });
+                    results.emplace_back(py::bytes(dataPtr, buffer.len));
+                }
+                return results;
+            }});
 }
