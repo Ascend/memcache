@@ -12,7 +12,7 @@
 #include <iostream>
 #include "gtest/gtest.h"
 #include "mmc_ref.h"
-#include "mmc_meta_service_default.h"
+#include "mmc_meta_service.h"
 #include "mmc_local_service_default.h"
 #include "mmc_msg_client_meta.h"
 #include "mmc_locality_strategy.h"
@@ -67,8 +67,8 @@ TEST_F(TestBmInit, Init)
     metaServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
-    auto metaServiceDefault = MmcMakeRef<MmcMetaServiceDefault>("testMetaService");
-    MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
+    auto metaServiceDefault = MmcMakeRef<MmcMetaService>("testMetaService");
+    MmcMetaServicePtr metaServicePtr = Convert<MmcMetaService, MmcMetaService>(metaServiceDefault);
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig1 = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};

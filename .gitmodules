@@ -14,3 +14,15 @@
 	path = 3rdparty/log/spdlog
 	url = https://github.com/gabime/spdlog.git
 	branch = tags/v1.15.3
+[submodule "3rdparty/cpp-httplib"]
+	path = 3rdparty/cpp-httplib
+	url = https://github.com/yhirose/cpp-httplib.git
+	branch = tags/v0.28.0
+[submodule "3rdparty/nlohmann/json"]
+	path = 3rdparty/nlohmann/json
+	url = https://github.com/nlohmann/json.git
+    branch = tags/v3.12.0
+[submodule "3rdparty/prometheus-cpp-lite"]
+	path = 3rdparty/prometheus-cpp-lite
+	url = https://github.com/biaks/prometheus-cpp-lite.git
+	branch = master

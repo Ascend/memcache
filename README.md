@@ -83,7 +83,7 @@ MemCache核心能力是提供大容量内存池和高性能的H2D、D2H、**D2RH
 以下是本项目未来计划开发以及正在开发的功能：
 
 - [ ] (规划中)
-- [ ] (开发中)
+- [ ] metaservice基于restful的集群管理、数据查询、指标查询接口，对接prometheus和grafana (开发中)
 - [ ] (已完成 ✅)
 
 ## 🚀快速入门
@@ -96,12 +96,12 @@ MemCache核心能力是提供大容量内存池和高性能的H2D、D2H、**D2RH
 
 ## 📑学习教程
 
-- [C接口](./doc/mamcached_api.md)：C接口介绍以及C接口对应的API列表
-- [python接口](./doc/pythonAPI.md)：python接口介绍以及python接口对应的API列表
+- [C接口](doc/mamcache_c_api.md)：C接口介绍以及C接口对应的API列表
+- [python接口](doc/memcache_python_api.md)：python接口介绍以及python接口对应的API列表
 
 ## 📦软件硬件配套说明
 
-[MemCache Conf](./doc/memcached_config.md)：MemCache将MetaService和LocalService的公共配置部分抽取为配置文件
+[MemCache Conf](doc/memcache_config.md)：MemCache将MetaService和LocalService的公共配置部分抽取为配置文件
 
 ## 📝相关信息
 

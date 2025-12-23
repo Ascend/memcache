@@ -128,7 +128,7 @@ Result MetaNetClient::HandleBlobCopy(const NetContextPtr& context)
 
 Result MetaNetClient::HandlePing(const NetContextPtr &context)
 {
-    std::string str{(char *)context->Data(), context->DataLen()};
+    std::string str{static_cast<char *>(context->Data()), context->DataLen()};
     NetMsgUnpacker unpacker(str);
     PingMsg req;
     req.Deserialize(unpacker);
@@ -139,7 +139,7 @@ Result MetaNetClient::HandlePing(const NetContextPtr &context)
     recv.Serialize(packer);
     std::string serializedData = packer.String();
     uint32_t retSize = serializedData.length();
-    return context->Reply(req.msgId, const_cast<char *>(serializedData.c_str()), retSize);
+    return context->Reply(req.msgId, serializedData.c_str(), retSize);
 }
 
 Result MetaNetClient::HandleLinkBroken(const NetLinkPtr &link)

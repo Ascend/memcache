@@ -9,59 +9,67 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
 */
-#ifndef MEM_FABRIC_MMC_META_SERVICE_H
-#define MEM_FABRIC_MMC_META_SERVICE_H
+#ifndef MEM_FABRIC_MMC_META_SERVICE_DEFAULT_H
+#define MEM_FABRIC_MMC_META_SERVICE_DEFAULT_H
 
-#include "mmc_common_includes.h"
 #include "mmc_def.h"
+#include "mmc_global_allocator.h"
+#include "mmc_meta_net_server.h"
 #include "mmc_meta_mgr_proxy.h"
+#include "smem_config_store.h"
 
 namespace ock {
 namespace mmc {
-/**
- * Meta service is the global service of managing object meta,
- * i.e. key to bm management, include bm mount/unmount, space allocator, object lifecycle management
- *
- * This is the abstract class of Meta Service
- */
 class MmcMetaService : public MmcReferable {
 public:
-    /**
-     * @brief Start the meta service
-     *
-     * @param options      [in] option of meta service
-     * @return 0 if successful
-     */
-    virtual Result Start(const mmc_meta_service_config_t &options) = 0;
+    explicit MmcMetaService(const std::string& name) : name_(name), options_{} {}
 
-    /**
-     * @brief Stop the meta service
-     */
-    virtual void Stop() = 0;
+    Result Start(const mmc_meta_service_config_t &options);
 
-    /**
-     * @brief Get the name of meta service
-     *
-     * @return name
-     */
-    virtual const std::string &Name() const = 0;
+    void Stop();
 
-    /**
-     * @brief Get the meta service config of meta service
-     *
-     * @return config
-     */
-    virtual const mmc_meta_service_config_t &Options() const = 0;
+    Result BmRegister(uint32_t rank, std::vector<uint16_t> mediaType, std::vector<uint64_t> bm,
+                      std::vector<uint64_t> capacity, std::map<std::string, MmcMemBlobDesc>& blobMap);
 
-    /**
-     * @brief Get the meta manager proxy
-     *
-     * @return proxy manager
-     */
-    virtual const MmcMetaMgrProxyPtr& GetMetaMgrProxy() const = 0;
+    Result BmUnregister(uint32_t rank, uint16_t mediaType);
+
+    Result ClearResource(uint32_t rank);
+
+    const std::string &Name() const;
+
+    const mmc_meta_service_config_t &Options() const;
+
+    const MmcMetaMgrProxyPtr& GetMetaMgrProxy() const;
+
+private:
+    MetaNetServerPtr metaNetServer_;
+    MmcMetaMgrProxyPtr metaMgrProxy_;
+    MMCMetaBackUpMgrPtr metaBackUpMgrPtr_;
+
+    std::mutex mutex_;
+    bool started_ = false;
+    std::string name_;
+    mmc_meta_service_config_t options_;
+    std::unordered_map<uint32_t, std::unordered_set<uint16_t>> rankMediaTypeMap_;
+    ock::smem::StorePtr confStore_ = nullptr;
 };
-using MmcMetaServicePtr = MmcRef<MmcMetaService>;
+inline const std::string &MmcMetaService::Name() const
+{
+    return name_;
+}
+
+inline const mmc_meta_service_config_t &MmcMetaService::Options() const
+{
+    return options_;
+}
+
+inline const MmcMetaMgrProxyPtr& MmcMetaService::GetMetaMgrProxy() const
+{
+    return metaMgrProxy_;
+}
+
+using MmcMetaServiceDefaultPtr = MmcRef<MmcMetaService>;
 }  // namespace mmc
 }  // namespace ock
 
-#endif  // MEM_FABRIC_MMC_META_SERVICE_H
+#endif  // MEM_FABRIC_MMC_META_SERVICE_DEFAULT_H

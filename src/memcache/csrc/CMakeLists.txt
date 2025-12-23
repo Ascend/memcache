@@ -34,7 +34,11 @@ include_directories(
         ${PROJECT_UTIL_SRC_BASE}/ptracer/include
         ${PROJECT_ACCLINKS_SRC_BASE}/include
         ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/include/
-        ${PROJECT_SOURCE_DIR}/3rdparty/log/spdlog/include/
+        ${PROJECT_3RDPARTY_SRC_DIR}/log/spdlog/include
+        ${PROJECT_3RDPARTY_SRC_DIR}/cpp-httplib
+        ${PROJECT_3RDPARTY_SRC_DIR}/nlohmann/json/single_include/
+        ${PROJECT_3RDPARTY_SRC_DIR}/prometheus-cpp-lite/simpleapi/include
+        ${PROJECT_3RDPARTY_SRC_DIR}/prometheus-cpp-lite/core/include
 )
 
 if (BUILD_TESTS STREQUAL "ON")

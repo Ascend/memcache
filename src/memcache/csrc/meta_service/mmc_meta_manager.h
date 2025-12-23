@@ -20,8 +20,6 @@
 #include "mmc_global_allocator.h"
 #include "mmc_mem_obj_meta.h"
 #include "mmc_meta_container.h"
-#include "mmc_meta_service.h"
-#include "mmc_msg_packer.h"
 #include "mmc_meta_backup_mgr.h"
 #include "mmc_meta_net_server.h"
 #include "mmc_thread_pool.h"
@@ -165,6 +163,11 @@ public:
     Result Unmount(const MmcLocation &loc);
 
     /**
+     * @brief Get all segment info: rank, medium, size, used size...
+     */
+    nlohmann::json GetAllSegmentInfo() const;
+
+    /**
      * @brief Check if a meta object (key) is in memory
      * @param key          [in] key of the meta object
      */
@@ -176,6 +179,12 @@ public:
      * @param queryInfo      [out] the query info of the meta object
      */
     Result Query(const std::string &key, MemObjQueryInfo &queryInfo);
+
+    /**
+     * @brief Get all keys
+     * @param keys           [out] vector to store all keys
+     */
+    Result GetAllKeys(std::vector<std::string>& keys);
 
     /**
      * @brief check and evict meta objects

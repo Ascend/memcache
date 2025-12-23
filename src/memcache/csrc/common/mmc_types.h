@@ -14,7 +14,7 @@
 
 #include <cstdint>
 #include <atomic>
-#include <iostream>
+#include <sstream>
 #include <vector>
 
 #include <mmc_def.h>
@@ -105,11 +105,18 @@ inline MediaType MoveDown(MediaType mediaType)
 inline std::ostream& operator<<(std::ostream& os, MediaType type)
 {
     switch (type) {
-        case MEDIA_DRAM: os << "MEDIA_DRAM"; break;
-        case MEDIA_HBM: os << "MEDIA_HBM"; break;
+        case MEDIA_DRAM: os << "DRAM"; break;
+        case MEDIA_HBM: os << "HBM"; break;
         default: os << "UNKNOWN"; break;
     }
     return os;
+}
+
+inline std::string MediumTypeToString(const MediaType& mediaType)
+{
+    std::ostringstream oss;
+    oss << mediaType;
+    return oss.str();
 }
 
 enum class EvictResult {

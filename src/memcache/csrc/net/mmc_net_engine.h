@@ -45,7 +45,7 @@ class NetContext : public MmcReferable {
 public:
     ~NetContext() override = default;
 
-    virtual int32_t Reply(int16_t responseCode, char *respData, uint32_t &respDataLen) = 0;
+    virtual int32_t Reply(int16_t responseCode, const char *respData, uint32_t &respDataLen) = 0;
 
     /**
      * @brief Get seq number of request
@@ -93,7 +93,7 @@ public:
             resp.Serialize(packer);
             std::string serializedData = packer.String();
             uint32_t retSize = serializedData.length();
-            return Reply(opCode, const_cast<char* >(serializedData.c_str()), retSize);
+            return Reply(opCode, serializedData.c_str(), retSize);
         }
     }
 

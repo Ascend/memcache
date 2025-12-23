@@ -12,6 +12,8 @@
 #ifndef MEM_FABRIC_MMC_BLOB_ALLOCATOR_H
 #define MEM_FABRIC_MMC_BLOB_ALLOCATOR_H
 
+#include "nlohmann/json.hpp"
+
 #include "mmc_mem_blob.h"
 #include "mmc_spinlock.h"
 
@@ -75,6 +77,17 @@ public:
     std::pair<uint64_t, uint64_t> GetUsageInfo()
     {
         return std::make_pair(capacity_, allocatedSize_);
+    }
+
+    nlohmann::json GetInfo() const
+    {
+        nlohmann::json info;
+        info["rank"] = rank_;
+        info["medium"] = MediumTypeToString(mediaType_);
+        info["bmAddr"] = bmAddr_;
+        info["capacity"] = capacity_;
+        info["allocatedSize"] = allocatedSize_;
+        return info;
     }
 
 private:

@@ -9,10 +9,10 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
 */
-#include "mmc_meta_service_default.h"
+#include "mmc_meta_service.h"
 
 #include "mmc_ref.h"
-#include "mmc_meta_mgr_proxy_default.h"
+#include "mmc_meta_mgr_proxy.h"
 #include "mmc_meta_net_server.h"
 #include "mmc_smem_bm_helper.h"
 #include "spdlogger4c.h"
@@ -21,7 +21,7 @@
 
 namespace ock {
 namespace mmc {
-Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
+Result MmcMetaService::Start(const mmc_meta_service_config_t &options)
 {
     const int threadCountBase = 4;
     std::lock_guard<std::mutex> guard(mutex_);
@@ -55,7 +55,7 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
         MMC_RETURN_ERROR(metaBackUpMgrPtr_->Start(defaultPtr), "metaBackUpMgr start failed");
     }
 
-    metaMgrProxy_ = MmcMakeRef<MmcMetaMgrProxyDefault>(metaNetServer_).Get();
+    metaMgrProxy_ = MmcMakeRef<MmcMetaMgrProxy>(metaNetServer_).Get();
     MMC_RETURN_ERROR(metaMgrProxy_->Start(MMC_DATA_TTL_MS, options.evictThresholdHigh, options.evictThresholdLow),
                      "Failed to start meta mgr proxy of meta service " << name_);
 
@@ -71,8 +71,8 @@ Result MmcMetaServiceDefault::Start(const mmc_meta_service_config_t &options)
     return MMC_OK;
 }
 
-Result MmcMetaServiceDefault::BmRegister(uint32_t rank, std::vector<uint16_t> mediaType, std::vector<uint64_t> bm,
-                                         std::vector<uint64_t> capacity, std::map<std::string, MmcMemBlobDesc>& blobMap)
+Result MmcMetaService::BmRegister(uint32_t rank, std::vector<uint16_t> mediaType, std::vector<uint64_t> bm,
+                                  std::vector<uint64_t> capacity, std::map<std::string, MmcMemBlobDesc> &blobMap)
 {
     std::lock_guard<std::mutex> guard(mutex_);
     if (!started_) {
@@ -112,7 +112,7 @@ Result MmcMetaServiceDefault::BmRegister(uint32_t rank, std::vector<uint16_t> me
     return MMC_OK;
 }
 
-Result MmcMetaServiceDefault::BmUnregister(uint32_t rank, uint16_t mediaType)
+Result MmcMetaService::BmUnregister(uint32_t rank, uint16_t mediaType)
 {
     std::lock_guard<std::mutex> guard(mutex_);
     if (!started_) {
@@ -134,7 +134,7 @@ Result MmcMetaServiceDefault::BmUnregister(uint32_t rank, uint16_t mediaType)
     return MMC_OK;
 }
 
-Result MmcMetaServiceDefault::ClearResource(uint32_t rank)
+Result MmcMetaService::ClearResource(uint32_t rank)
 {
     if (!started_) {
         MMC_LOG_ERROR("MetaService (" << name_ << ") is not started.");
@@ -157,7 +157,7 @@ Result MmcMetaServiceDefault::ClearResource(uint32_t rank)
     return MMC_OK;
 }
 
-void MmcMetaServiceDefault::Stop()
+void MmcMetaService::Stop()
 {
     std::lock_guard<std::mutex> guard(mutex_);
     if (!started_) {

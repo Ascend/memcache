@@ -41,15 +41,14 @@ git submodule update --remote 3rdparty/memfabric_hybrid
 3. 编译
 
 ```
-bash script/build_and_pack_run.sh --build_mode RELEASE --build_python ON --use_cann ON
+bash script/build_and_pack_run.sh --build_mode RELEASE --build_python ON
 
 ```
 
-- build_and_pack_run.sh支持3个参数,按顺序分别是<build_mode> <build_python> <use_cann>
+- build_and_pack_run.sh支持3个参数,按顺序分别是<build_mode> <build_python>
 - build_mode:编译类型,可填RELEASE或DEBUG
 - build_python:是否编译python的whl包,可填ON或OFF
-- use_cann: 编译需要CANN dependency。
-- 不填入参数情况下,默认执行build_and_pack_run.sh RELEASE ON ON
+- 不填入参数情况下,默认执行build_and_pack_run.sh RELEASE ON
 
 4. ut运行
 
@@ -64,6 +63,8 @@ bash script/run_ut.sh
 MemCache将所有特性集成到run包中供用户使用，run包格式为 ```memcache_hybrid-${version}_${os}_${arch}.run```
 
 其中，versin表示MemCache的版本；os表示操作系统，如linux；arch表示架构，如x86或aarch64
+
+注意：MemCache运行时依赖MemFabric，需要先参考[MemFabric使用指导](https://gitcode.com/Ascend/memfabric_hybrid/blob/master/doc/build.md)完成MemFabric的安装。
 
 ### run包安装
 
@@ -162,9 +163,7 @@ root@localhost:/# tree /usr/local/lib/python3.11/site-packages/memcache_hybrid
 │   └── meta_service_leader_election.cpython-311.pyc
 ├── _pymmc.cpython-311-aarch64-linux-gnu.so
 ├── lib
-│   ├── libmf_hybm_core.so
 │   ├── libmf_memcache.so
-│   └── libmf_smem.so
 └── meta_service_leader_election.py
     
 ```

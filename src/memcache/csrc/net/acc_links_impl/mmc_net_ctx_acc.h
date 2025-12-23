@@ -22,7 +22,7 @@ class NetContextAcc final : public NetContext {
 public:
     explicit NetContextAcc(const TcpReqContext &ctx) : realContext(ctx) {}
 
-    int32_t Reply(int16_t responseCode, char *respData, uint32_t &respDataLen) override;
+    int32_t Reply(int16_t responseCode, const char *respData, uint32_t &respDataLen) override;
 
     uint32_t SeqNo() const override;
 
@@ -39,7 +39,7 @@ private:
 };
 using NetContextAccPtr = MmcRef<NetContextAcc>;
 
-inline int32_t NetContextAcc::Reply(int16_t responseCode, char *respData, uint32_t &respDataLen)
+inline int32_t NetContextAcc::Reply(int16_t responseCode, const char *respData, uint32_t &respDataLen)
 {
     /* step2: copy data */
     TcpDataBufPtr dataBuf = new (std::nothrow)ock::acc::AccDataBuffer(respDataLen);

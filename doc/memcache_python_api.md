@@ -49,12 +49,12 @@ CLASSES
      |      __init__(self: _pymmc.DistributedObjectStore) -> None
      |
      |  batch_get_into(...)
-     |      batch_get_into(self: _pymmc.DistributedObjectStore, keys: List[str], buffer_ptrs: List[int], sizes: List[int], direct: int = <MmcCopyDirect.SMEMB_COPY_G2H: 2>) -> List[int]
+     |      batch_get_into(self: _pymmc.DistributedObjectStore, keys: List[str], buffer_ptrs: List[int], sizes: List[int], direct: int = <BmCopyType.G2H: 2>) -> List[int]
      |
      |      Get object data directly into pre-allocated buffers for multiple keys
      |
      |  batch_get_into_layers(...)
-     |      batch_get_into_layers(self: _pymmc.DistributedObjectStore, keys: List[str], buffer_ptrs: List[List[int]], sizes: List[List[int]], direct: int = <MmcCopyDirect.SMEMB_COPY_G2H: 2>) -> List[int]
+     |      batch_get_into_layers(self: _pymmc.DistributedObjectStore, keys: List[str], buffer_ptrs: List[List[int]], sizes: List[List[int]], direct: int = <BmCopyType.G2H: 2>) -> List[int]
      |
      |  batch_get_key_info(...)
      |      batch_get_key_info(self: _pymmc.DistributedObjectStore, keys: List[str]) -> List[_pymmc.KeyInfo]
@@ -65,12 +65,12 @@ CLASSES
      |      Check if multiple objects exist. Returns list of results: 1 if exists, 0 if not exists, -1 if error
      |
      |  batch_put_from(...)
-     |      batch_put_from(self: _pymmc.DistributedObjectStore, keys: List[str], buffer_ptrs: List[int], sizes: List[int], direct: int = <MmcCopyDirect.SMEMB_COPY_H2G: 3>, replicateConfig: _pymmc.ReplicateConfig = <_pymmc.ReplicateConfig object at 0xffffa0b46230>) -> List[int]
+     |      batch_put_from(self: _pymmc.DistributedObjectStore, keys: List[str], buffer_ptrs: List[int], sizes: List[int], direct: int = <BmCopyType.H2G: 3>, replicateConfig: _pymmc.ReplicateConfig = <_pymmc.ReplicateConfig object at 0xffffa0b46230>) -> List[int]
      |
      |      Put object data directly from pre-allocated buffers for multiple keys
      |
      |  batch_put_from_layers(...)
-     |      batch_put_from_layers(self: _pymmc.DistributedObjectStore, keys: List[str], buffer_ptrs: List[List[int]], sizes: List[List[int]], direct: int = <MmcCopyDirect.SMEMB_COPY_H2G: 3>, replicateConfig: _pymmc.ReplicateConfig = <_pymmc.ReplicateConfig object at 0xffffa0b467f0>) ->
+     |      batch_put_from_layers(self: _pymmc.DistributedObjectStore, keys: List[str], buffer_ptrs: List[List[int]], sizes: List[List[int]], direct: int = <BmCopyType.H2G: 3>, replicateConfig: _pymmc.ReplicateConfig = <_pymmc.ReplicateConfig object at 0xffffa0b467f0>) ->
  List[int]
      |
      |  close(...)
@@ -80,12 +80,12 @@ CLASSES
      |      get(self: _pymmc.DistributedObjectStore, arg0: str) -> bytes
      |
      |  get_into(...)
-     |      get_into(self: _pymmc.DistributedObjectStore, key: str, buffer_ptr: int, size: int, direct: int = <MmcCopyDirect.SMEMB_COPY_G2H: 2>) -> int
+     |      get_into(self: _pymmc.DistributedObjectStore, key: str, buffer_ptr: int, size: int, direct: int = <BmCopyType.G2H: 2>) -> int
      |
      |      Get object data directly into a pre-allocated buffer
      |
      |  get_into_layers(...)
-     |      get_into_layers(self: _pymmc.DistributedObjectStore, key: str, buffer_ptrs: List[int], sizes: List[int], direct: int = <MmcCopyDirect.SMEMB_COPY_G2H: 2>) -> int
+     |      get_into_layers(self: _pymmc.DistributedObjectStore, key: str, buffer_ptrs: List[int], sizes: List[int], direct: int = <BmCopyType.G2H: 2>) -> int
      |
      |  get_key_info(...)
      |      get_key_info(self: _pymmc.DistributedObjectStore, arg0: str) -> _pymmc.KeyInfo
@@ -105,12 +105,12 @@ CLASSES
      |      put(self: _pymmc.DistributedObjectStore, key: str, buf: buffer, replicateConfig: _pymmc.ReplicateConfig = <_pymmc.ReplicateConfig object at 0xffffa0b285b0>) -> int
      |
      |  put_from(...)
-     |      put_from(self: _pymmc.DistributedObjectStore, key: str, buffer_ptr: int, size: int, direct: int = <MmcCopyDirect.SMEMB_COPY_H2G: 3>, replicateConfig: _pymmc.ReplicateConfig = <_pymmc.ReplicateConfig object at 0xffffa0b45ef0>) -> int
+     |      put_from(self: _pymmc.DistributedObjectStore, key: str, buffer_ptr: int, size: int, direct: int = <BmCopyType.H2G: 3>, replicateConfig: _pymmc.ReplicateConfig = <_pymmc.ReplicateConfig object at 0xffffa0b45ef0>) -> int
      |
      |      Put object data directly from a pre-allocated buffer
      |
      |  put_from_layers(...)
-     |      put_from_layers(self: _pymmc.DistributedObjectStore, key: str, buffer_ptrs: List[int], sizes: List[int], direct: int = <MmcCopyDirect.SMEMB_COPY_H2G: 3>, replicateConfig: _pymmc.ReplicateConfig = <_pymmc.ReplicateConfig object at 0xffffa0b464f0>) -> int
+     |      put_from_layers(self: _pymmc.DistributedObjectStore, key: str, buffer_ptrs: List[int], sizes: List[int], direct: int = <BmCopyType.H2G: 3>, replicateConfig: _pymmc.ReplicateConfig = <_pymmc.ReplicateConfig object at 0xffffa0b464f0>) -> int
      |
      |  register_buffer(...)
      |      register_buffer(self: _pymmc.DistributedObjectStore, buffer_ptr: int, size: int) -> int
@@ -597,6 +597,19 @@ results = store.remove_batch(keys)
     - `0`: 成功
     - 其他: 错误
 
+#### remove_all
+
+```python
+result = store.remove_all()
+```
+
+**功能**: 删除内存池中所有的key
+
+**返回值**:
+
+- `0`: 成功
+- 其他: 失败
+
 #### is_exist
 
 ```python
@@ -726,14 +739,14 @@ store.close()
 
 ## 文档中涉及到的结构体含义
 
-### MmcCopyDirect 枚举类型
+### BmCopyType 枚举类型
 
 用于指定数据拷贝方向的枚举类型：
 
-- `SMEMB_COPY_H2G`: 从主机内存到全局内存
-- `SMEMB_COPY_L2G`: 从卡上内存到全局内存
-- `SMEMB_COPY_G2H`: 从全局内存到主机内存
-- `SMEMB_COPY_G2L`: 从全局内存到卡上内存
+- `H2G`: 从主机内存到全局内存
+- `L2G`: 从卡上内存到全局内存
+- `G2H`: 从全局内存到主机内存
+- `G2L`: 从全局内存到卡上内存
 
 ## 数据结构
 

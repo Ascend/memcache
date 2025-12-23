@@ -13,6 +13,7 @@
 #include "mmc_meta_manager.h"
 
 #include "mmc_logger.h"
+#include "mmc_meta_metric_manager.h"
 #include "mmc_types.h"
 
 namespace ock {
@@ -50,6 +51,8 @@ Result MmcMetaManager::Get(const std::string& key, uint64_t operateId, MmcBlobFi
         break;  // 只需返回一个
     }
     objMeta.numBlobs_ = objMeta.blobs_.size();
+
+    MmcMetaMetricManager::GetInstance().IncrementGetCounter();
     return MMC_OK;
 }
 
@@ -158,6 +161,8 @@ Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOp
         objMeta.size_ = tempMetaObj->Size();
         tempMetaObj->GetBlobsDesc(objMeta.blobs_);
         objMeta.numBlobs_ = objMeta.blobs_.size();
+
+        MmcMetaMetricManager::GetInstance().IncrementAllocCounter();
     }
     return ret;
 }
@@ -206,6 +211,8 @@ Result MmcMetaManager::Remove(const std::string &key)
     MmcMemObjMetaPtr objMeta;
     MMC_RETURN_ERROR(metaContainer_->Erase(key, objMeta), "remove: Fail to erase from container!");
     PushRemoveList(key, objMeta);
+
+    MmcMetaMetricManager::GetInstance().IncrementRemoveCounter();
     return MMC_OK;
 }
 
@@ -350,6 +357,11 @@ Result MmcMetaManager::Unmount(const MmcLocation &loc)
     return ret;
 }
 
+nlohmann::json MmcMetaManager::GetAllSegmentInfo() const
+{
+    return globalAllocator_->GetAllSegmentInfo();
+}
+
 Result MmcMetaManager::Query(const std::string &key, MemObjQueryInfo &queryInfo)
 {
     MmcMemObjMetaPtr objMeta;
@@ -373,6 +385,14 @@ Result MmcMetaManager::Query(const std::string &key, MemObjQueryInfo &queryInfo)
     queryInfo.size_ = objMeta->Size();
     queryInfo.prot_ = objMeta->Prot();
     queryInfo.valid_ = true;
+    return MMC_OK;
+}
+
+Result MmcMetaManager::GetAllKeys(std::vector<std::string>& keys)
+{
+    MMC_VALIDATE_RETURN(metaContainer_ != nullptr, "meta container not initialized! ", MMC_NOT_INITIALIZED);
+
+    metaContainer_->GetAllKeys(keys);
     return MMC_OK;
 }
 

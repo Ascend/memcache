@@ -153,6 +153,15 @@ public:
         }
     }
 
+    void GetAllKeys(std::vector<Key>& keys) override
+    {
+        ock::mf::ReadGuard lockGuard(metaLock_);
+        keys.reserve(metaMap_.size());
+        for (const auto& pair : metaMap_) {
+            keys.push_back(pair.first);
+        }
+    }
+
     Result Promote(const Key &key)
     {
         ock::mf::ReadGuard lockGuard(metaLock_);

@@ -14,7 +14,6 @@
 
 #include <memory>
 
-#include "mmc_meta_common.h"
 #include "mmc_ref.h"
 
 namespace ock {
@@ -31,6 +30,7 @@ public:
     virtual void EraseIf(std::function<bool(const Key&, const Value&)> matchFunc) = 0;
     virtual void IterateIf(std::function<bool(const Key&, const Value&)> matchFunc,
                            std::map<Key, Value>& matchedValues) = 0;
+    virtual void GetAllKeys(std::vector<Key>& keys) = 0;
     virtual Result Promote(const Key& key) = 0;
     virtual Result InsertLru(const Key& key, MediaType type) = 0;
     virtual void MultiLevelElimination(const uint16_t evictThresholdHigh, const uint16_t evictThresholdLow,

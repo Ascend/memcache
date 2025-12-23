@@ -12,6 +12,8 @@
 #ifndef MEM_FABRIC_MMC_GLOBAL_ALLOCATOR_H
 #define MEM_FABRIC_MMC_GLOBAL_ALLOCATOR_H
 
+#include "nlohmann/json.hpp"
+
 #include "mmc_blob_allocator.h"
 #include "mmc_locality_strategy.h"
 #include "mmc_read_write_lock.h"
@@ -296,6 +298,22 @@ public:
             }
         }
         return results;
+    }
+
+    nlohmann::json GetAllSegmentInfo()
+    {
+        globalAllocLock_.LockRead();
+        nlohmann::json segmentArray = nlohmann::json::array();
+        for (const auto &[fst, snd] : allocators_) {
+            const auto &allocator = snd;
+            if (allocator == nullptr) {
+                MMC_LOG_ERROR("allocator is nullptr");
+                continue;
+            }
+            segmentArray.push_back(allocator->GetInfo());
+        }
+        globalAllocLock_.UnlockRead();
+        return segmentArray;
     }
 
 private:

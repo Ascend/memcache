@@ -177,6 +177,7 @@ public:
         using namespace ConfConstant;
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
         AddStrConf(OCK_MMC_META_SERVICE_CONFIG_STORE_URL, VNoCheck::Create(), 0);
+        AddStrConf(OCK_MMC_META_SERVICE_HTTP_URL, VNoCheck::Create(), 0);
         AddBoolConf(OCK_MMC_META_HA_ENABLE, VNoCheck::Create());
         AddStrConf(OCK_MMC_LOG_LEVEL, VNoCheck::Create());
         AddStrConf(OCK_MMC_LOG_PATH, VStrLength::Create(OCK_MMC_LOG_PATH.first, PATH_MAX_LEN));
@@ -217,6 +218,8 @@ public:
             config.discoveryURL, DISCOVERY_URL_SIZE);
         SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_CONFIG_STORE_URL),
             config.configStoreURL, DISCOVERY_URL_SIZE);
+        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_HTTP_URL),
+            config.httpURL, DISCOVERY_URL_SIZE);
 
         config.haEnable = GetBool(ConfConstant::OCK_MMC_META_HA_ENABLE);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);

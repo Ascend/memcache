@@ -12,6 +12,8 @@
 #ifndef MEM_FABRIC_MMC_MEM_BLOB_H
 #define MEM_FABRIC_MMC_MEM_BLOB_H
 
+#include "nlohmann/json.hpp"
+
 #include "mmc_blob_state.h"
 #include "mmc_common_includes.h"
 #include "mmc_meta_lease_manager.h"
@@ -32,6 +34,27 @@ struct MemObjQueryInfo {
     MemObjQueryInfo(const uint64_t size, const uint16_t prot, const uint8_t numBlobs, const bool valid)
         : size_(size), prot_(prot), numBlobs_(numBlobs), valid_(valid)
     {
+    }
+    
+    nlohmann::json toJson(const std::string& key) const
+    {
+        nlohmann::json queryInfo;
+        queryInfo["key"] = key;
+        queryInfo["size"] = size_;
+        queryInfo["prot"] = prot_;
+        queryInfo["numBlobs"] = numBlobs_;
+        queryInfo["valid"] = valid_;
+
+        nlohmann::json blobsArray = nlohmann::json::array();
+        for (uint32_t i = 0; i < numBlobs_; i++) {
+            nlohmann::json blobJson;
+            blobJson["rank"] = blobRanks_[i];
+            blobJson["medium"] = MediumTypeToString(static_cast<MediaType>(blobTypes_[i]));
+            blobsArray.push_back(blobJson);
+        }
+        queryInfo["blobs"] = blobsArray;
+        
+        return queryInfo;
     }
 };
 

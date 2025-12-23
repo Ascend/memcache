@@ -10,10 +10,9 @@
  * See the Mulan PSL v2 for more details.
 */
 #include "mmc_meta_net_server.h"
-#include "mmc_meta_service.h"
 #include "mmc_msg_base.h"
 #include "mmc_msg_client_meta.h"
-#include "mmc_meta_service_default.h"
+#include "mmc_meta_service.h"
 #include "mmc_ptracer.h"
 
 namespace ock {
@@ -99,13 +98,12 @@ Result ock::mmc::MetaNetServer::Start(NetEngineOptions &options)
 
 Result MetaNetServer::HandleBmRegister(const NetContextPtr &context)
 {
-    auto metaServiceDefaultPtr = Convert<MmcMetaService, MmcMetaServiceDefault>(metaService_);
-    MMC_ASSERT_RETURN(metaServiceDefaultPtr != nullptr, MMC_ERROR);
+    MMC_ASSERT_RETURN(metaService_ != nullptr, MMC_ERROR);
     MMC_ASSERT_RETURN(context != nullptr, MMC_ERROR);
     BmRegisterRequest req;
     context->GetRequest<BmRegisterRequest>(req);
     TP_TRACE_BEGIN(TP_MMC_META_BM_REGISTER);
-    auto result = metaServiceDefaultPtr->BmRegister(req.rank_, req.mediaType_, req.addr_, req.capacity_, req.blobMap_);
+    auto result = metaService_->BmRegister(req.rank_, req.mediaType_, req.addr_, req.capacity_, req.blobMap_);
     TP_TRACE_END(TP_MMC_META_BM_REGISTER, result);
     MMC_LOG_INFO("HandleBmRegister rank:" << req.rank_ << ", rebuild blob size " << req.blobMap_.size()
                                           << ", ret:" << result);
@@ -116,14 +114,14 @@ Result MetaNetServer::HandleBmRegister(const NetContextPtr &context)
 
 Result MetaNetServer::HandleBmUnregister(const NetContextPtr &context)
 {
-    auto metaServiceDefaultPtr = Convert<MmcMetaService, MmcMetaServiceDefault>(metaService_);
+    MMC_ASSERT_RETURN(metaService_ != nullptr, MMC_ERROR);
     BmUnregisterRequest req;
     Response resp;
     resp.ret_ = MMC_OK;
     context->GetRequest<BmUnregisterRequest>(req);
     for (auto type : req.mediaType_) {
         TP_TRACE_BEGIN(TP_MMC_META_BM_UNREGISTER);
-        auto result = metaServiceDefaultPtr->BmUnregister(req.rank_, type);
+        auto result = metaService_->BmUnregister(req.rank_, type);
         TP_TRACE_END(TP_MMC_META_BM_UNREGISTER, result);
         MMC_LOG_INFO("HandleBmUnregister rank:" << req.rank_ << ", media:" << type << ", ret:" << result);
         if (result != MMC_OK) {
@@ -147,7 +145,7 @@ Result MetaNetServer::HandlePing(const NetContextPtr &context)
     recv.Serialize(packer);
     std::string serializedData = packer.String();
     uint32_t retSize = serializedData.length();
-    return context->Reply(req.msgId, const_cast<char *>(serializedData.c_str()), retSize);
+    return context->Reply(req.msgId, serializedData.c_str(), retSize);
 }
 
 Result MetaNetServer::HandleNewLink(const NetLinkPtr &link)
@@ -159,10 +157,10 @@ Result MetaNetServer::HandleNewLink(const NetLinkPtr &link)
 Result MetaNetServer::HandleLinkBroken(const NetLinkPtr &link)
 {
     MMC_LOG_INFO(name_ << " link broken");
-    auto metaServiceDefaultPtr = Convert<MmcMetaService, MmcMetaServiceDefault>(metaService_);
+    MMC_ASSERT_RETURN(metaService_ != nullptr, MMC_ERROR);
     int32_t rankId = link->Id();
     TP_TRACE_BEGIN(TP_MMC_META_CLEAR_RESOURCE);
-    auto ret = metaServiceDefaultPtr->ClearResource(rankId);
+    auto ret = metaService_->ClearResource(rankId);
     TP_TRACE_END(TP_MMC_META_CLEAR_RESOURCE, ret);
     return ret;
 }

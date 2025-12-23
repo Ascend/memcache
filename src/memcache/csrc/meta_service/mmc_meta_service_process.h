@@ -14,7 +14,8 @@
 
 #include "mmc_leader_election.h"
 #include "mmc_configuration.h"
-#include "mmc_meta_service_default.h"
+#include "mmc_http_server.h"
+#include "mmc_meta_service.h"
 
 
 namespace ock {
@@ -41,11 +42,13 @@ private:
     static void RegisterSignal();
     static void SignalInterruptHandler(const int signal);
     static int InitLogger(const mmc_meta_service_config_t& options);
+    int StartHttpServer();
     void Exit();
 
     mmc_meta_service_config_t config_{};
-    MmcMetaServiceDefault *metaService_{};
+    MmcMetaService *metaService_{};
     MmcMetaServiceLeaderElection *leaderElection_{};
+    MmcHttpServer *httpServer_{};
 };
 
 } // namespace mmc

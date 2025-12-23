@@ -12,7 +12,7 @@
 #include <iostream>
 #include "gtest/gtest.h"
 #include "mmc_ref.h"
-#include "mmc_meta_service_default.h"
+#include "mmc_meta_service.h"
 #include "mmc_local_service_default.h"
 #include "mmc_msg_client_meta.h"
 #include "mmc_locality_strategy.h"
@@ -67,9 +67,8 @@ TEST_F(TestMmcMetaService, Init)
     metaServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
-    auto metaServiceDefault = MmcMakeRef<MmcMetaServiceDefault>("testMetaService");
-    MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
-    ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
+    auto metaService = MmcMakeRef<MmcMetaService>("testMetaService");
+    ASSERT_TRUE(metaService->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
     localServiceConfig.logLevel = INFO_LEVEL;
@@ -97,7 +96,7 @@ TEST_F(TestMmcMetaService, Init)
     ASSERT_TRUE(respAlloc.blobs_.size() == 1);
     ASSERT_TRUE(respAlloc.blobs_[0].size_ == SIZE_32K);
     localServicePtr->Stop();
-    metaServicePtr->Stop();
+    metaService->Stop();
 }
 
 TEST_F(TestMmcMetaService, ExistRequest)
@@ -115,9 +114,8 @@ TEST_F(TestMmcMetaService, ExistRequest)
     metaServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
-    auto metaServiceDefault = MmcMakeRef<MmcMetaServiceDefault>("testMetaService");
-    MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
-    ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
+    auto metaService = MmcMakeRef<MmcMetaService>("testMetaService");
+    ASSERT_TRUE(metaService->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
     localServiceConfig.logLevel = INFO_LEVEL;
@@ -152,7 +150,7 @@ TEST_F(TestMmcMetaService, ExistRequest)
     ASSERT_TRUE(respNotExist.ret_ != MMC_OK);
 
     localServicePtr->Stop();
-    metaServicePtr->Stop();
+    metaService->Stop();
 }
 
 TEST_F(TestMmcMetaService, BatchExistRequest)
@@ -170,9 +168,8 @@ TEST_F(TestMmcMetaService, BatchExistRequest)
     metaServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
-    auto metaServiceDefault = MmcMakeRef<MmcMetaServiceDefault>("testMetaService");
-    MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
-    ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
+    auto metaService = MmcMakeRef<MmcMetaService>("testMetaService");
+    ASSERT_TRUE(metaService->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
     localServiceConfig.logLevel = INFO_LEVEL;
@@ -226,7 +223,7 @@ TEST_F(TestMmcMetaService, BatchExistRequest)
     CheckReturn(allNotExistKeys, std::vector<Result>(5, MMC_UNMATCHED_KEY));
 
     localServicePtr->Stop();
-    metaServicePtr->Stop();
+    metaService->Stop();
 }
 
 TEST_F(TestMmcMetaService, QueryRequest)
@@ -244,9 +241,8 @@ TEST_F(TestMmcMetaService, QueryRequest)
     metaServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
-    auto metaServiceDefault = MmcMakeRef<MmcMetaServiceDefault>("testMetaService");
-    MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
-    ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
+    auto metaService = MmcMakeRef<MmcMetaService>("testMetaService");
+    ASSERT_TRUE(metaService->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
     localServiceConfig.logLevel = INFO_LEVEL;
@@ -284,7 +280,7 @@ TEST_F(TestMmcMetaService, QueryRequest)
     ASSERT_TRUE(respQueryNone.queryInfo_.valid_ == false);
 
     localServicePtr->Stop();
-    metaServicePtr->Stop();
+    metaService->Stop();
 }
 
 TEST_F(TestMmcMetaService, BatchQueryRequest)
@@ -302,9 +298,8 @@ TEST_F(TestMmcMetaService, BatchQueryRequest)
     metaServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
-    auto metaServiceDefault = MmcMakeRef<MmcMetaServiceDefault>("testMetaService");
-    MmcMetaServicePtr metaServicePtr = Convert<MmcMetaServiceDefault, MmcMetaService>(metaServiceDefault);
-    ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
+    auto metaService     = MmcMakeRef<MmcMetaService>("testMetaService");
+    ASSERT_TRUE(metaService->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
     localServiceConfig.logLevel = INFO_LEVEL;
@@ -369,5 +364,5 @@ TEST_F(TestMmcMetaService, BatchQueryRequest)
     CheckReturn(allNotExistKeys);
 
     localServicePtr->Stop();
-    metaServicePtr->Stop();
+    metaService->Stop();
 }

@@ -28,7 +28,7 @@
 #include "mmc_configuration.h"
 #include "mmc_env.h"
 #include "mmc_logger.h"
-#include "mmc_meta_service_default.h"
+#include "mmc_meta_service.h"
 #include "mmc_ptracer.h"
 
 
@@ -79,15 +79,21 @@ int MmcMetaServiceProcess::MainForPython()
             "leader_election", META_POD_NAME, META_NAMESPACE, META_LEASE_NAME);
         if (leaderElection_ == nullptr || leaderElection_->Start(config_) != MMC_OK) {
             std::cerr << "Error, failed to start meta service leader election." << std::endl;
+            Exit();
             return -1;
         }
     }
 
-    metaService_ = new (std::nothrow)MmcMetaServiceDefault("meta_service");
+    metaService_ = new (std::nothrow)MmcMetaService("meta_service");
     if (metaService_ == nullptr || metaService_->Start(config_) != MMC_OK) {
-        delete leaderElection_;
-        leaderElection_ = nullptr;
         std::cerr << "Error, failed to start MmcMetaService." << std::endl;
+        Exit();
+        return -1;
+    }
+
+    if (StartHttpServer() != MMC_OK) {
+        std::cerr << "Error, failed to start the HTTP Service." << std::endl;
+        Exit();
         return -1;
     }
 
@@ -101,7 +107,6 @@ int MmcMetaServiceProcess::MainForPython()
 
     return 0;
 }
-
 
 bool MmcMetaServiceProcess::CheckIsRunning()
 {
@@ -223,6 +228,46 @@ int MmcMetaServiceProcess::InitLogger(const mmc_meta_service_config_t& options)
     return 0;
 }
 
+int MmcMetaServiceProcess::StartHttpServer()
+{
+    MMC_VALIDATE_RETURN(metaService_ != nullptr, "metaService not been initialized", MMC_ERROR);
+    auto metaMgrProxyPtr = metaService_->GetMetaMgrProxy();
+    MMC_VALIDATE_RETURN(metaMgrProxyPtr != nullptr, "metaMgrProxy is nullptr", MMC_ERROR);
+    auto metaManagerPtr = metaMgrProxyPtr->GetMetaManager();
+    MMC_VALIDATE_RETURN(metaManagerPtr != nullptr, "metaManager is nullptr", MMC_ERROR);
+
+    std::string httpUrl = config_.httpURL;
+    const size_t colonPos = httpUrl.find(':');
+    if (colonPos == std::string::npos) {
+        MMC_LOG_ERROR("Invalid http URL: colon not found.");
+        return MMC_INVALID_PARAM;
+    }
+    std::string host = httpUrl.substr(0, colonPos);
+    std::string portStr = httpUrl.substr(colonPos + 1);
+    uint16_t port;
+
+    try {
+        port = static_cast<uint16_t>(std::stoul(portStr));
+    } catch (const std::invalid_argument&) {
+        MMC_LOG_ERROR("Invalid http URL: port is not a valid number.");
+        return MMC_INVALID_PARAM;
+    } catch (const std::out_of_range&) {
+        MMC_LOG_ERROR("Invalid http URL: port out of range.");
+        return MMC_INVALID_PARAM;
+    }
+
+    MMC_LOG_INFO("Starting HTTP server on " << host << ":" << port);
+
+    try {
+        httpServer_ = new MmcHttpServer(host, port, metaManagerPtr);
+        httpServer_->Start();
+        return MMC_OK;
+    } catch (const std::exception& e) {
+        MMC_LOG_ERROR("Failed to start HTTP server: " << e.what());
+        return MMC_ERROR;
+    }
+}
+
 void MmcMetaServiceProcess::Exit()
 {
     if (metaService_ != nullptr) {
@@ -230,6 +275,9 @@ void MmcMetaServiceProcess::Exit()
     }
     if (leaderElection_ != nullptr) {
         leaderElection_->Stop();
+    }
+    if (httpServer_ != nullptr) {
+        httpServer_->Stop();
     }
     ptracer_uninit();
 }

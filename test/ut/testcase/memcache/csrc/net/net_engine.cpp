@@ -55,7 +55,7 @@ int32_t HandleTestRequest(NetContextPtr &ctx)
     recv.Serialize(packer);
     std::string serializedData = packer.String();
     uint32_t retSize = serializedData.length();
-    return ctx->Reply(0, const_cast<char* >(serializedData.c_str()), retSize);
+    return ctx->Reply(0, serializedData.c_str(), retSize);
 }
 
 
@@ -71,7 +71,7 @@ int32_t HandleTestRequest2(NetContextPtr &ctx)
     recv.Serialize(packer);
     std::string serializedData = packer.String();
     uint32_t retSize = serializedData.length();
-    return ctx->Reply(1, const_cast<char* >(serializedData.c_str()), retSize);
+    return ctx->Reply(1, serializedData.c_str(), retSize);
 }
 
 int32_t HandleTestLinkServer(const NetLinkPtr &link)

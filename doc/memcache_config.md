@@ -6,6 +6,7 @@
 |-----------------------------------------|------------|-------------------------|---------------------------|-------------------------------------------------------------------------------------------------------|
 | ock.mmc.meta_service_url                | string     | tcp://127.0.0.1:5000    | tcp://\<ip>\<port>        | port in [1025, 65535]                                                                                 |
 | ock.mmc.meta_service.config_store_url   | string     | tcp://127.0.0.1:6000    | tcp://\<ip>\<port>        | port in [1025, 65535]                                                                                 |
+| ock.mmc.meta_service.metrics_url        | string     | 127.0.0.1:8000          | \<ip>\<port>              | port in [1025, 65535]                                                                                 |
 | ock.mmc.meta.ha.enable                  | bool       | false                   | true/false                | enable meta service master/backup HA in k8s cluster                                                   |
 | ock.mmc.log_level                       | string     | info                    | debug/info/warn/error     | log level                                                                                             |
 | ock.mmc.log_path                        | string     | .                       | relative or absolute path | log path, the absolute path is start with '/'                                                         |

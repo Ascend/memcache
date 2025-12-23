@@ -9,11 +9,11 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
 */
-#include "mmc_meta_mgr_proxy_default.h"
+#include "mmc_meta_mgr_proxy.h"
 
 namespace ock {
 namespace mmc {
-Result MmcMetaMgrProxyDefault::Alloc(const AllocRequest &req, AllocResponse &resp)
+Result MmcMetaMgrProxy::Alloc(const AllocRequest &req, AllocResponse &resp)
 {
     metaMangerPtr_->CheckAndEvict();
     MmcMemMetaDesc objMeta;
@@ -32,7 +32,7 @@ Result MmcMetaMgrProxyDefault::Alloc(const AllocRequest &req, AllocResponse &res
     return MMC_OK;
 }
 
-Result MmcMetaMgrProxyDefault::BatchAlloc(const BatchAllocRequest &req, BatchAllocResponse &resp)
+Result MmcMetaMgrProxy::BatchAlloc(const BatchAllocRequest &req, BatchAllocResponse &resp)
 {
     metaMangerPtr_->CheckAndEvict();
     resp.results_.resize(req.keys_.size());
@@ -62,7 +62,7 @@ Result MmcMetaMgrProxyDefault::BatchAlloc(const BatchAllocRequest &req, BatchAll
     return MMC_OK;
 }
 
-Result MmcMetaMgrProxyDefault::UpdateState(const UpdateRequest& req, Response& resp)
+Result MmcMetaMgrProxy::UpdateState(const UpdateRequest& req, Response& resp)
 {
     MmcLocation loc{req.rank_, static_cast<MediaType>(req.mediaType_)};
     Result ret = metaMangerPtr_->UpdateState(req.key_, loc, req.actionResult_, req.operateId_);
@@ -70,7 +70,7 @@ Result MmcMetaMgrProxyDefault::UpdateState(const UpdateRequest& req, Response& r
     return MMC_OK;
 }
 
-Result MmcMetaMgrProxyDefault::BatchUpdateState(const BatchUpdateRequest& req, BatchUpdateResponse& resp)
+Result MmcMetaMgrProxy::BatchUpdateState(const BatchUpdateRequest& req, BatchUpdateResponse& resp)
 {
     const size_t keyCount = req.keys_.size();
     if (keyCount != req.ranks_.size() || keyCount != req.mediaTypes_.size()) {
@@ -91,7 +91,7 @@ Result MmcMetaMgrProxyDefault::BatchUpdateState(const BatchUpdateRequest& req, B
     return MMC_OK;
 }
 
-Result MmcMetaMgrProxyDefault::Get(const GetRequest& req, AllocResponse& resp)
+Result MmcMetaMgrProxy::Get(const GetRequest& req, AllocResponse& resp)
 {
     MmcMemMetaDesc objMeta;
     MmcBlobFilterPtr filterPtr = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, READABLE);
@@ -109,7 +109,7 @@ Result MmcMetaMgrProxyDefault::Get(const GetRequest& req, AllocResponse& resp)
     return MMC_OK;
 }
 
-Result MmcMetaMgrProxyDefault::BatchGet(const BatchGetRequest& req, BatchAllocResponse& resp)
+Result MmcMetaMgrProxy::BatchGet(const BatchGetRequest& req, BatchAllocResponse& resp)
 {
     resp.numBlobs_.resize(req.keys_.size(), 0);
     resp.prots_.resize(req.keys_.size(), 0);
@@ -138,7 +138,7 @@ Result MmcMetaMgrProxyDefault::BatchGet(const BatchGetRequest& req, BatchAllocRe
     return MMC_OK;
 }
 
-Result MmcMetaMgrProxyDefault::BatchExistKey(const BatchIsExistRequest& req, BatchIsExistResponse& resp)
+Result MmcMetaMgrProxy::BatchExistKey(const BatchIsExistRequest& req, BatchIsExistResponse& resp)
 {
     resp.results_.reserve(req.keys_.size());
     for (size_t i = 0; i < req.keys_.size(); ++i) {
