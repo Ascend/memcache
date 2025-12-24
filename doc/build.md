@@ -10,17 +10,7 @@
 - python 3.11.10
 - pybind11 2.10.3
 
-#### (编译选择CANN依赖时)需要NPU固件驱动和CANN包
-
-run包只能安装到npu环境上，且依赖于NPU固件驱动和CANN包，具体版本依赖详见下面的软件硬件配套说明
-
-请在环境上提前安装NPU固件驱动和CANN包([环境安装参考链接](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/81RC1alpha002/softwareinst/instg/instg_0000.html))
-
-安装完成后需要配置CANN环境变量([参考安装Toolkit开发套件包的第三步配置环境变量](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/81RC1alpha002/softwareinst/instg/instg_0008.html))
-
 ## 编译
-
-MemCache编译不依赖CANN和HDK.
 
 1. 下载代码
 
@@ -168,12 +158,14 @@ root@localhost:/# tree /usr/local/lib/python3.11/site-packages/memcache_hybrid
     
 ```
 
-在安装过程中，会默认尝试安装适配当前环境的MemCache的whl包，如果未安装，则在使用python接口前需要用户手动安装(安装包路径参考上面目录结构)
+在安装过程中，会默认尝试安装适配当前环境的MemCache的whl包，如果未安装，则在使用python接口前需要用户手动安装(安装包路径参考上面目录结构中的whl包路径)
 
 ## 运行服务
 ### MetaService
-* **python形式**：
-  *以下均以python311版本whl包（memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl）为例*
+
+ 👆 NOTE：运行前需要根据 [MetaService配置项](./memcache_config.md) 对配置文件 /usr/local/memcache_hybrid/latest/config/mmc-meta.conf 进行相关配置，该文件可以放置到任意可访问的路径
+
+* **python形式**：*以下均以python311版本whl包（memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl）为例*
 ```
 1、安装whl包（如在安装run包过程中，已安装whl包，此步骤可省略）
 pip install memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
@@ -198,6 +190,7 @@ export MMC_META_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-meta.co
 ```
 
 ### LocalService
+ 👆 NOTE：运行前需要根据 [LocalService配置项](./memcache_config.md) 对配置文件 /usr/local/memcache_hybrid/latest/config/mmc-local.conf 进行相关配置，该文件可以放置到任意可访问的路径
 * **whl（python）**：
 ```
 1、安装whl包（如在安装run包过程中，已安装whl包，此步骤可省略）
@@ -220,6 +213,9 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${libmf_memcache.so path}
 
 注：如果其所在路径已经在 PATH 或 LD_LIBRARY_PATH，则无需此步骤
 
-3、调用API
+3、设置配置文件环境变量
+export MMC_LOCAL_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-local.conf
+
+4、调用相关API
 
 ```
