@@ -9,12 +9,12 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-BUILD_MODE=${1:-RELEASE}
-BUILD_TESTS=${2:-OFF}
-BUILD_OPEN_ABI=${3:-OFF}
-BUILD_PYTHON=${4:-ON}
-ENABLE_PTRACER=${5:-ON}
-BUILD_COMPILER=${6:-gcc}
+export BUILD_MODE=${1:-RELEASE}
+export BUILD_TESTS=${2:-OFF}
+export BUILD_OPEN_ABI=${3:-OFF}
+export BUILD_PYTHON=${4:-ON}
+export ENABLE_PTRACER=${5:-ON}
+export BUILD_COMPILER=${6:-gcc}
 
 readonly SCRIPT_FULL_PATH=$(dirname $(readlink -f "$0"))
 readonly PROJECT_FULL_PATH=$(dirname "$SCRIPT_FULL_PATH")
@@ -131,6 +131,8 @@ do
     cd "${PROJ_DIR}/src/memcache/python"
     rm -rf build memcache_hybrid.egg-info
     export LD_LIBRARY_PATH="${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib":$LD_LIBRARY_PATH # fix `auditwheel repair` failed
+    export LD_LIBRARY_PATH="${FABRIC_PROJ_DIR}/output/smem/lib64":$LD_LIBRARY_PATH # fix `auditwheel repair` failed
+    export LD_LIBRARY_PATH="${FABRIC_PROJ_DIR}/output/hybm/lib64":$LD_LIBRARY_PATH # fix `auditwheel repair` failed
     python3 setup.py bdist_wheel
 
     if [ -z "${multiple_python}" ];then
