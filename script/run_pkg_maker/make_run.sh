@@ -9,12 +9,14 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
+BUILD_TEST=${1:-BUILD_TEST}
+
 set -e
 readonly BASH_PATH=$(dirname $(readlink -f "$0"))
 CURRENT_DIR=$(pwd)
 PROJECT_DIR=${BASH_PATH}/../..
 
-cd ${BASH_PATH}
+cd "${BASH_PATH}"
 
 # get commit id
 GIT_COMMIT=`git rev-parse HEAD` || true
@@ -40,33 +42,30 @@ VERSION="${VERSION:-1.0.0}"
 OUTPUT_DIR=${BASH_PATH}/../../output
 
 rm -rf ${PKG_DIR}
-mkdir -p ${PKG_DIR}/${ARCH_OS}
-mkdir ${PKG_DIR}/${ARCH_OS}/bin
-mkdir ${PKG_DIR}/${ARCH_OS}/include
-mkdir ${PKG_DIR}/${ARCH_OS}/lib64
-mkdir ${PKG_DIR}/${ARCH_OS}/wheel
-mkdir ${PKG_DIR}/${ARCH_OS}/script
+mkdir -p ${PKG_DIR}/"${ARCH_OS}"
+mkdir ${PKG_DIR}/"${ARCH_OS}"/bin
+mkdir ${PKG_DIR}/"${ARCH_OS}"/include
+mkdir ${PKG_DIR}/"${ARCH_OS}"/lib64
+mkdir ${PKG_DIR}/"${ARCH_OS}"/wheel
 mkdir ${PKG_DIR}/config
-mkdir -p ${PKG_DIR}/${ARCH_OS}/include/memcache
-mkdir -p ${PKG_DIR}/${ARCH_OS}/script/mock_server
 
 # memcache
-cp -r ${OUTPUT_DIR}/memcache/include/* ${PKG_DIR}/${ARCH_OS}/include/memcache
-cp ${OUTPUT_DIR}/memcache/lib64/* ${PKG_DIR}/${ARCH_OS}/lib64/
-cp ${OUTPUT_DIR}/memcache/bin/* ${PKG_DIR}/${ARCH_OS}/bin/
-cp ${OUTPUT_DIR}/memcache/wheel/*.whl ${PKG_DIR}/${ARCH_OS}/wheel/
+cp -r "${OUTPUT_DIR}"/memcache/include/cpp ${PKG_DIR}/"${ARCH_OS}"/include/
+cp "${OUTPUT_DIR}"/memcache/lib64/lib* ${PKG_DIR}/"${ARCH_OS}"/lib64/
+cp "${OUTPUT_DIR}"/memcache/bin/* ${PKG_DIR}/"${ARCH_OS}"/bin/
+cp "${OUTPUT_DIR}"/memcache/wheel/*.whl ${PKG_DIR}/"${ARCH_OS}"/wheel/
+cp "${PROJECT_DIR}"/config/* ${PKG_DIR}/config
 
-cp ${PROJECT_DIR}/config/* ${PKG_DIR}/config
-cp -r ${PROJECT_DIR}/test/k8s_deploy ${PKG_DIR}/${ARCH_OS}/script
-cp -r ${PROJECT_DIR}/example/python/interactive_app.py ${PKG_DIR}/${ARCH_OS}/script
-cp ${PROJECT_DIR}/test/python/memcache/mock_server/server.py ${PKG_DIR}/${ARCH_OS}/script/mock_server
-cp ${PROJECT_DIR}/test/python/memcache/mock_server/smem_bm/smem_bm_server.py ${PKG_DIR}/${ARCH_OS}/script/mock_server
-cp -r ${PROJECT_DIR}/test/python/memcache/ha ${PKG_DIR}/${ARCH_OS}/script
+if [ "$BUILD_TEST" = "ON" ]; then
+    mkdir -p ${PKG_DIR}/"${ARCH_OS}"/script/mock_server
+    cp "${PROJECT_DIR}"/test/python/memcache/mock_server/server.py ${PKG_DIR}/"${ARCH_OS}"/script/mock_server
+    cp "${PROJECT_DIR}"/test/python/memcache/mock_server/smem_bm/smem_bm_server.py ${PKG_DIR}/"${ARCH_OS}"/script/mock_server
+fi
 
 mkdir -p ${PKG_DIR}/script
 
-cp ${BASH_PATH}/install.sh ${PKG_DIR}/script/
-cp ${BASH_PATH}/uninstall.sh ${PKG_DIR}/script/
+cp "${BASH_PATH}"/install.sh ${PKG_DIR}/script/
+cp "${BASH_PATH}"/uninstall.sh ${PKG_DIR}/script/
 
 # generate version.info
 touch ${PKG_DIR}/version.info
@@ -79,11 +78,11 @@ EOF
 
 # make run
 FILE_NAME=${PKG_DIR}-${VERSION}_${OS_NAME}_${ARCH}
-tar -cvf ${FILE_NAME}.tar.gz ${PKG_DIR}/
-cat run_header.sh ${FILE_NAME}.tar.gz > ${FILE_NAME}.run
-mv ${FILE_NAME}.run ${OUTPUT_DIR}
+tar -cvf "${FILE_NAME}".tar.gz ${PKG_DIR}/
+cat run_header.sh "${FILE_NAME}".tar.gz > "${FILE_NAME}".run
+mv "${FILE_NAME}".run "${OUTPUT_DIR}"
 
 rm -rf ${PKG_DIR}
-rm -rf ${FILE_NAME}.tar.gz
+rm -rf "${FILE_NAME}".tar.gz
 
-cd ${CURRENT_DIR}
+cd "${CURRENT_DIR}"

@@ -15,12 +15,14 @@ CURRENT_DIR=$(pwd)
 
 BUILD_MODE="RELEASE"
 BUILD_PYTHON="ON"
+BUILD_TEST="OFF"
 
 show_help() {
     echo "Usage: $0 [options]"
     echo "Options:"
     echo "  --build_mode <mode>     Set build mode (RELEASE/DEBUG/ASAN), default: RELEASE"
     echo "  --build_python <ON/OFF> Enable/disable Python build, default: ON"
+    echo "  --build_test <ON/OFF>   Enable/disable package test utilities, default: OFF"
     echo "  --help                  Show this help message"
     echo ""
     echo "Example:"
@@ -36,6 +38,10 @@ while [[ "$#" -gt 0 ]]; do
             ;;
         --build_python)
             BUILD_PYTHON="$2"
+            shift 2
+            ;;
+        --build_test)
+            BUILD_TEST="$2"
             shift 2
             ;;
         --help)
@@ -54,15 +60,10 @@ done
 echo "BUILD_MODE: $BUILD_MODE"
 echo "BUILD_PYTHON: $BUILD_PYTHON"
 
-cd ${ROOT_PATH}
-SPDLOG_SRC=${ROOT_PATH}/../3rdparty/log/spdlog/src
-if [ ! -d "${SPDLOG_SRC}" ]; then
-    git submodule init
-    git submodule update
-fi
+cd "${ROOT_PATH}"
 
 bash build.sh "${BUILD_MODE}" OFF OFF "${BUILD_PYTHON}" ON
 
-bash run_pkg_maker/make_run.sh "${BUILD_PYTHON}"
+bash run_pkg_maker/make_run.sh "${BUILD_TEST}"
 
-cd ${CURRENT_DIR}
+cd "${CURRENT_DIR}"

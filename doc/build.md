@@ -35,10 +35,10 @@ bash script/build_and_pack_run.sh --build_mode RELEASE --build_python ON
 
 ```
 
-- build_and_pack_run.sh支持3个参数,按顺序分别是<build_mode> <build_python>
-- build_mode:编译类型,可填RELEASE或DEBUG
-- build_python:是否编译python的whl包,可填ON或OFF
-- 不填入参数情况下,默认执行build_and_pack_run.sh RELEASE ON
+- build_and_pack_run.sh支持3个参数，分别是<build_mode> <build_python> <build_test>
+- build_mode: 编译类型，可填RELEASE或DEBUG，默认RELEASE
+- build_python: 是否编译python的whl包，可填ON或OFF，默认ON
+- build_test: 是否打包测试工具，可填ON或OFF，默认OFF
 
 4. ut运行
 
@@ -75,58 +75,19 @@ source /usr/local/memcache_hybrid/set_env.sh
 bash memcache_hybrid-1.0.0_linux_aarch64.run --install-path=${your path}
 ```
 
-默认安装完成后目录结构如下
+安装的run包可以通过如下命令查看版本（此处以默认安装路径为例）
 
 ```
-
-/usr/local/memcache_hybrid/
-├── 1.0.0
-│   ├── aarch64-linux
-│   │   ├── bin
-│   │   │   └── mmc_meta_service
-│   │   ├── include
-│   │   │   └── memcache
-│   │   │       ├── cpp
-│   │   │       │   └── mmcache.h
-│   │   │       ├── mmc.h
-│   │   │       ├── mmc_client.h
-│   │   │       ├── mmc_def.h
-│   │   │       └── mmc_service.h
-│   │   ├── lib64
-│   │   │   ├── _pymmc.cpython-311-aarch64-linux-gnu.so
-│   │   │   └── libmf_memcache.so
-│   │   ├── logs
-│   │   │   ├── mmc-meta-audit.log
-│   │   │   └── mmc-meta.log
-│   │   ├── script
-│   │   │   ├── ha
-│   │   │   │   └── test-mmc-meta-ha.py
-│   │   │   ├── k8s_deploy
-│   │   │   │   ├── account-role-demo.yaml
-│   │   │   │   ├── local-pods-demo.yaml
-│   │   │   │   ├── meta-cluster-ip-demo.yaml
-│   │   │   │   ├── meta-lease-lock-demo.yaml
-│   │   │   │   └── meta-pods-demo.yaml
-│   │   │   └── mock_server
-│   │   │       ├── server.py
-│   │   │       └── smem_bm_server.py
-│   │   └── wheel
-│   │       └── memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
-│   ├── config
-│   │   ├── mmc-local.conf
-│   │   └── mmc-meta.conf
-│   ├── uninstall.sh
-│   └── version.info
-├── latest -> 1.0.0
-└── set_env.sh
-
-
+root@localhost:/# cat /usr/local/memcache_hybrid/latest/version.info
+Version:1.0.0
+Platform:aarch64
+Kernel:linux
+CommitId:91b4ed50d42874dc21fa71917ab84e6824b2f7b7
 ```
 
-安装的python包如下
+安装的python包可以通过如下命令查看版本
 
 ```text
-
 root@localhost:# pip show memcache_hybrid
 Name: memcache_hybrid
 Version: 1.0.0
@@ -138,24 +99,6 @@ License: Apache License Version 2.0
 Location: /usr/local/lib/python3.11/site-packages
 Requires:
 Required-by:
-```
-
-python 包文件内容
-
-```text
-
-root@localhost:/# tree /usr/local/lib/python3.11/site-packages/memcache_hybrid
-/usr/local/lib/python3.11/site-packages/memcache_hybrid
-├── VERSION
-├── __init__.py
-├── __pycache__
-│   ├── __init__.cpython-311.pyc
-│   └── meta_service_leader_election.cpython-311.pyc
-├── _pymmc.cpython-311-aarch64-linux-gnu.so
-├── lib
-│   ├── libmf_memcache.so
-└── meta_service_leader_election.py
-    
 ```
 
 在安装过程中，会默认尝试安装适配当前环境的MemCache的whl包，如果未安装，则在使用python接口前需要用户手动安装(安装包路径参考上面目录结构中的whl包路径)
