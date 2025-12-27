@@ -14,7 +14,7 @@ MemCache是针对LLM推理、GR推理场景设计的高性能分布式KVCache存
 - **支持多副本**：单个对象支持多副本放置到不同的LocalService，默认是单副本，支持put接口指定副本数量。
 - **高带宽低时延**：使用 [MemFabric](https://gitcode.com/Ascend/memfabric_hybrid)
   作为多级内存和异构网络传输的底座，在Ascend硬件上，基于device_rdma(A2)、device_sdma(A3)、host_rdma(A2/A3)
-  等路径提供OneCopy跨机跨介质数据直接访问能力，满足高带宽，低时延的读写性能述求。
+  等路径提供OneCopy跨机跨介质数据直接访问能力，满足高带宽，低时延的读写性能述求。在鲲鹏硬件上，支持host_urma(K5)。
 - **支持扩缩容**：支持LocalService动态加入和移除
 - **HA能力**：在K8S集群中，MetaService支持多活能力，支持元数据恢复，提供尽力而为的HA能力。
 <div align="center">

@@ -36,7 +36,7 @@ constexpr uint64_t DRAM_SIZE_ALIGNMENT = 2097152; // 2MB
 constexpr uint64_t HBM_SIZE_ALIGNMENT = 2097152; // 2MB
 
 const std::string LOG_LEVEL_ENUM_STR = "debug||info||warn||error";
-const std::string LOCAL_SERVER_PROTOCAL_ENUM_STR = "host_rdma||host_tcp||device_rdma||device_sdma";
+const std::string LOCAL_SERVER_PROTOCAL_ENUM_STR = "host_rdma||host_urma||host_tcp||device_rdma||device_sdma";
 
 // 定义单位与字节的转换关系
 enum class MemUnit {
@@ -279,6 +279,7 @@ public:
             VIntRange::Create(OCK_MMC_CLIENT_TIMEOUT_SECONDS.first, MIN_TIMEOUT_SEC, MAX_TIMEOUT_SEC));
         AddIntConf(OCK_MMC_CLIENT_READ_THREAD_POOL_SIZE,
             VIntRange::Create(OCK_MMC_CLIENT_READ_THREAD_POOL_SIZE.first, MIN_THREAD_POOL_SIZE, MAX_THREAD_POOL_SIZE));
+        AddBoolConf(OCK_MMC_CLIENT_AGGREGATE_IO, VNoCheck::Create(), 0);
         AddIntConf(OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE,
             VIntRange::Create(OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE.first, MIN_THREAD_POOL_SIZE, MAX_THREAD_POOL_SIZE));
 
@@ -325,6 +326,7 @@ public:
         config.rpcRetryTimeOut = static_cast<uint32_t>(GetInt(ConfConstant::OKC_MMC_CLIENT_RETRY_MILLISECONDS));
         config.timeOut = static_cast<uint32_t>(GetInt(ConfConstant::OCK_MMC_CLIENT_TIMEOUT_SECONDS));
         config.readThreadPoolNum = static_cast<uint32_t>(GetInt(ConfConstant::OCK_MMC_CLIENT_READ_THREAD_POOL_SIZE));
+        config.aggregateIO = GetBool(ConfConstant::OCK_MMC_CLIENT_AGGREGATE_IO);
         config.writeThreadPoolNum = static_cast<uint32_t>(GetInt(ConfConstant::OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE));
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         StringToLower(logLevelStr);

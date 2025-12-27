@@ -17,6 +17,7 @@
 #include "mmc_def.h"
 #include "mmc_env.h"
 #include "mmc_service.h"
+#include "mmc_thread_pool.h"
 
 using namespace ock::mmc;
 static mmc_local_service_t g_localService;
@@ -26,6 +27,8 @@ static bool mmcInit = false;
 
 MMC_API int32_t mmc_init(const mmc_init_config *config)
 {
+    static constexpr int32_t PROCESS_NICE = -5;
+    MmcThreadPool::TrySetProcessNice(PROCESS_NICE);
     MMC_VALIDATE_RETURN(config != nullptr, "config is null", MMC_INVALID_PARAM);
     MMC_VALIDATE_RETURN(config->deviceId <= MAX_DEVICE_ID,
         "Invalid param deviceId: " << config->deviceId, MMC_INVALID_PARAM);

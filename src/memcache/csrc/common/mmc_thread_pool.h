@@ -23,6 +23,7 @@
 #include <type_traits>
 #include <pthread.h>
 #include <string>
+#include <sys/resource.h>
 #include "mmc_logger.h"
 #include "mmc_types.h"
 #include "mmc_ref.h"
@@ -38,9 +39,51 @@ template<typename F, typename... Args>
 using invoke_result_t = typename std::invoke_result<F, Args...>::type;
 #endif
 
+constexpr int32_t MIN_NICE = -20;
+constexpr int32_t MAX_NICE = 19;
+
 class MmcThreadPool  : public MmcReferable {
 public:
     MmcThreadPool(std::string name, size_t numThreads) : mmcPoolName(name), numThreads(numThreads), stop(false) {}
+
+    static inline void TrySetProcessNice(int nice_value)
+    {
+        if (nice_value < MIN_NICE || nice_value > MAX_NICE) {
+            return;
+        }
+        int result = setpriority(PRIO_PROCESS, 0, nice_value);
+        if (result != 0) {
+            MMC_LOG_WARN("Failed to set process nice to " << nice_value << " (errno=" << errno
+                                                          << "): " << strerror(errno));
+        }
+    }
+
+    static inline int32_t NextCpu() noexcept
+    {
+        auto num_cpus = static_cast<int32_t>(sysconf(_SC_NPROCESSORS_ONLN));
+        if (num_cpus <= 0) {
+            num_cpus = 1;
+        }
+        static std::atomic<int32_t> nextId{0};
+        if (nextId.fetch_add(1) > std::numeric_limits<int16_t>::max() - 1) {
+            nextId.store(0);
+        }
+        return nextId.load() % num_cpus;
+    }
+
+    static inline void TrySetThreadAffinityAndPriority()
+    {
+        static thread_local bool initialized = false;
+        if (initialized) {
+            return;
+        }
+        initialized = true;
+        cpu_set_t cpus;
+        CPU_ZERO(&cpus);
+        CPU_SET(NextCpu(), &cpus);
+        pthread_setaffinity_np(pthread_self(), sizeof(cpus), &cpus);
+        setpriority(PRIO_PROCESS, 0, MIN_NICE);
+    }
 
     int32_t Start()
     {
@@ -50,6 +93,7 @@ public:
         }
         for (size_t i = 0; i < numThreads; ++i) {
             workers.emplace_back([this] {
+                TrySetThreadAffinityAndPriority();
                 while (true) {
                     std::function<void()> task;
                     {

@@ -46,6 +46,7 @@ Result MmcClientDefault::Start(const mmc_client_config_t &config)
     MMC_RETURN_ERROR(threadPool_->Start(), "thread pool start failed");
 
     readThreadPool_ = MmcMakeRef<MmcThreadPool>("read_pool", config.readThreadPoolNum);
+    aggregateIO_ = config.aggregateIO;
     MMC_ASSERT_RETURN(readThreadPool_ != nullptr, MMC_MALLOC_FAILED);
     MMC_RETURN_ERROR(readThreadPool_->Start(), "read thread pool start failed");
 
@@ -420,6 +421,9 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const st
             shift += MmcBufSize(*buf);
         }
 
+        if (aggregateIO_ && (i != (keys.size() - 1))) {
+            continue;
+        }
         auto future = readThreadPool_->Enqueue(
             [&](std::vector<void *> sourcesL, std::vector<void *> destinationsL, const std::vector<uint64_t> sizesL,
                 MediaType localMediaL) -> int32_t {

@@ -370,6 +370,9 @@ class MmcTest(TestServer):
         if client_config.protocol == 'host_rdma':
             op_type = bm.BmDataOpType.HOST_RDMA
             config.flags = 0
+        elif client_config.protocol == 'host_urma':
+            op_type = bm.BmDataOpType.HOST_URMA
+            config.flags = 0
         elif client_config.protocol == 'host_tcp':
             op_type = bm.BmDataOpType.HOST_TCP
             config.flags = 0
