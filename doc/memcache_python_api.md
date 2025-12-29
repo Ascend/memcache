@@ -247,7 +247,7 @@ store = DistributedObjectStore()
 #### init
 
 ```python
-result = store.init(device_id)
+result = store.init(device_id, init_bm=true)
 ```
 
 **功能**: 初始化分布式内存缓存客户端
@@ -255,6 +255,7 @@ result = store.init(device_id)
 **参数**:
 
 - `device_id`: 使用HBM时的NPU卡用户ID（支持ASCEND_RT_VISIBLE_DEVICES映射）
+- `init_bm`: 是否初始化BM提供内存，默认值为 true。设 false 时将启动纯client模式
 
 **返回值**:
 

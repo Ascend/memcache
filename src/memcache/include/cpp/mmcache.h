@@ -113,9 +113,10 @@ public:
     /**
      * @brief init the object store
      * @param deviceId the device id where the process is located
+     * @param initBm client only if set false
      * @return zero on success, other on error
      */
-    virtual int Init(const uint32_t deviceId) = 0;
+    virtual int Init(const uint32_t deviceId, bool initBm = true) = 0;
 
     /**
      * @brief uninit the object store

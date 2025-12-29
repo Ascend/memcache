@@ -20,6 +20,7 @@ extern "C" {
 
 typedef struct {
     uint32_t deviceId;
+    bool initBm;
 } mmc_init_config;
 
 /**

@@ -147,9 +147,9 @@ std::shared_ptr<ObjectStore> ObjectStore::CreateObjectStore()
     return std::make_shared<MmcacheStore>();
 }
 
-int MmcacheStore::Init(const uint32_t deviceId)
+int MmcacheStore::Init(const uint32_t deviceId, const bool initBm)
 {
-    mmc_init_config config{deviceId};
+    mmc_init_config config{deviceId, initBm};
     return mmc_init(&config);
 }
 

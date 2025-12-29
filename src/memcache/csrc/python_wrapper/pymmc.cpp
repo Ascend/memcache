@@ -63,7 +63,8 @@ PYBIND11_MODULE(_pymmc, m)
     // Define the MmcacheStore class
     py::class_<MmcacheStore>(m, "DistributedObjectStore")
         .def(py::init<>())
-        .def("init", &MmcacheStore::Init, py::call_guard<py::gil_scoped_release>(), py::arg("device_id"))
+        .def("init", &MmcacheStore::Init, py::call_guard<py::gil_scoped_release>(),
+            py::arg("device_id"), py::arg("init_bm") = true)
         .def("remove", &MmcacheStore::Remove, py::call_guard<py::gil_scoped_release>())
         .def("remove_batch", &MmcacheStore::BatchRemove, py::call_guard<py::gil_scoped_release>())
         .def("remove_all", &MmcacheStore::RemoveAll, py::call_guard<py::gil_scoped_release>())

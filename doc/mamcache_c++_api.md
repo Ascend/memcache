@@ -16,12 +16,13 @@ static std::shared_ptr<ObjectStore> CreateObjectStore();
 
 #### Init
 ```c++
-virtual int Init(const uint32_t deviceId) = 0;
+virtual int Init(const uint32_t deviceId, bool initBm = true) = 0;
 ```
 **功能**: 初始化当前存储实例，绑定到指定设备。
 
 **参数**:
 - `deviceId`: 目标设备ID
+- `initBm`: 是否初始化BM提供内存，默认值为 true。设 false 时将启动纯client模式
 
 **返回值**:
 - `0`：成功

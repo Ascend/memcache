@@ -64,7 +64,7 @@ public:
     MmcacheStore();
     ~MmcacheStore() override;
 
-    int Init(const uint32_t deviceId) override;
+    int Init(const uint32_t deviceId, const bool initBm = true) override;
 
     int TearDown() override;
 

@@ -65,8 +65,10 @@ MMC_API int32_t mmc_init(const mmc_init_config *config)
 
     MMC_VALIDATE_RETURN(configManager.ValidateLocalServiceConfig(localServiceConfig) == MMC_OK,
         "Invalid local service config", MMC_INVALID_PARAM);
-    g_localService = mmcs_local_service_start(&localServiceConfig);
-    MMC_VALIDATE_RETURN(g_localService != nullptr, "failed to create or start local service", MMC_ERROR);
+    if (config->initBm) {
+        g_localService = mmcs_local_service_start(&localServiceConfig);
+        MMC_VALIDATE_RETURN(g_localService != nullptr, "failed to create or start local service", MMC_ERROR);
+    }
 
     mmc_client_config_t clientConfig{};
     configManager.GetClientConfig(clientConfig);
