@@ -269,10 +269,10 @@ Result MmcBmProxy::BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
         MMC_LOG_ERROR("buff size is " << bufArr.Buffers().size());
         return MMC_ERROR;
     }
-    uint32_t count = bufArr.Buffers().size();
-    void *sources[count];
-    void *destinations[count];
-    uint64_t dataSizes[count];
+    uint32_t count = static_cast<uint32_t>(bufArr.Buffers().size());
+    std::vector<void*> sources(count);
+    std::vector<void*> destinations(count);
+    std::vector<uint64_t> dataSizes(count);
     smem_bm_copy_type type = bufArr.Buffers()[0].type == MEDIA_DRAM ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
     for (size_t i = 0; i < count; ++i) {
         auto buf = &bufArr.Buffers()[i];
@@ -281,7 +281,7 @@ Result MmcBmProxy::BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
         dataSizes[i] = buf->len;
         shift += MmcBufSize(*buf);
     }
-    smem_batch_copy_params batch_params = {sources, destinations, dataSizes, count};
+    smem_batch_copy_params batch_params = {sources.data(), destinations.data(), dataSizes.data(), count};
     return smem_bm_copy_batch(handle_, &batch_params, type, 0);
 }
 
@@ -301,10 +301,10 @@ Result MmcBmProxy::BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
         MMC_LOG_ERROR("buff size is " << bufArr.Buffers().size());
         return MMC_ERROR;
     }
-    uint32_t count = bufArr.Buffers().size();
-    void *sources[count];
-    void *destinations[count];
-    uint64_t dataSizes[count];
+    uint32_t count = static_cast<uint32_t>(bufArr.Buffers().size());
+    std::vector<void*> sources(count);
+    std::vector<void*> destinations(count);
+    std::vector<uint64_t> dataSizes(count);
     smem_bm_copy_type type = bufArr.Buffers()[0].type == MEDIA_DRAM ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
     for (size_t i = 0; i < count; ++i) {
         auto buf = &bufArr.Buffers()[i];
@@ -313,7 +313,7 @@ Result MmcBmProxy::BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& 
         dataSizes[i] = buf->len;
         shift += MmcBufSize(*buf);
     }
-    smem_batch_copy_params batch_params = {sources, destinations, dataSizes, count};
+    smem_batch_copy_params batch_params = {sources.data(), destinations.data(), dataSizes.data(), count};
     return smem_bm_copy_batch(handle_, &batch_params, type, 0);
 }
 
@@ -343,6 +343,7 @@ Result MmcBmProxy::BatchDataPut(std::vector<void *> &sources, std::vector<void *
     auto ret = smem_bm_copy_batch(handle_, &batch_params, type, 0);
     TP_TRACE_END(TP_MMC_LOCAL_BATCH_PUT, ret);
     TP_TRACE_RECORD(TP_MMC_LOCAL_BATCH_PUT_SIZE, totalSize * 1000ULL, 0);
+    (void)totalSize;
     return ret;
 }
 
@@ -372,6 +373,7 @@ Result MmcBmProxy::BatchDataGet(std::vector<void *> &sources, std::vector<void *
     auto ret = smem_bm_copy_batch(handle_, &batch_params, type, 0);
     TP_TRACE_END(TP_MMC_LOCAL_BATCH_GET, ret);
     TP_TRACE_RECORD(TP_MMC_LOCAL_BATCH_GET_SIZE, totalSize * 1000ULL, 0);
+    (void)totalSize;
     return ret;
 }
 

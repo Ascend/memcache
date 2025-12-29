@@ -16,7 +16,12 @@
 
 #include "mmc_logger.h"
 #include "mmc_meta_metric_manager.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstack-usage="
+#pragma GCC diagnostic ignored "-Wfloat-equal"
 #include "mmc_http_server.h"
+#pragma GCC diagnostic pop
 
 constexpr int HTTP_INIT_WAIT_MILLISECONDS = 100;
 

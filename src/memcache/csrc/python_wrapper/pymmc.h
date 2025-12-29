@@ -12,8 +12,12 @@
 #ifndef MMC_PYMMC_H
 #define MMC_PYMMC_H
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#pragma GCC diagnostic pop
+
 #include <csignal>
 #include <mutex>
 #include <string>

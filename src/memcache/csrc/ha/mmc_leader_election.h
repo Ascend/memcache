@@ -17,7 +17,11 @@
 #include <mutex>
 #include <thread>
 #include <atomic>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #include <pybind11/stl.h>
+#pragma GCC diagnostic pop
 
 #include "mmc_types.h"
 

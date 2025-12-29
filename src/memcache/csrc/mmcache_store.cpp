@@ -415,8 +415,8 @@ std::vector<int> MmcacheStore::BatchPutFrom(const std::vector<std::string> &keys
         default: MMC_LOG_ERROR("Failed to batch put by type " << direct); return results;
     }
 
-    const char *keyArray[count];
-    mmc_buffer bufferArray[count];
+    std::vector<const char *> keyArray(count);
+    std::vector<mmc_buffer> bufferArray(count);
     for (size_t i = 0; i < count; ++i) {
         keyArray[i] = keys[i].c_str();
         bufferArray[i] = {.addr = reinterpret_cast<uint64_t>(buffers[i]),
@@ -428,7 +428,7 @@ std::vector<int> MmcacheStore::BatchPutFrom(const std::vector<std::string> &keys
     mmc_put_options options{};
     MMC_ASSERT_RETURN(CopyPutOptions(replicateConfig, options), results);
     TP_TRACE_BEGIN(TP_MMC_PY_BATCH_PUT);
-    mmcc_batch_put(keyArray, count, bufferArray, options, ALLOC_RANDOM, results.data());
+    mmcc_batch_put(keyArray.data(), count, bufferArray.data(), options, ALLOC_RANDOM, results.data());
     TP_TRACE_END(TP_MMC_PY_BATCH_PUT, 0);
     for (size_t i = 0; i < count; i++) {
         results[i] = ReturnWrapper(results[i], keys[i]);
@@ -457,8 +457,8 @@ std::vector<int> MmcacheStore::BatchGetInto(const std::vector<std::string> &keys
         default: MMC_LOG_ERROR("Failed to batch get by type " << direct); return results;
     }
 
-    const char *keyArray[count];
-    mmc_buffer bufferArray[count];
+    std::vector<const char *> keyArray(count);
+    std::vector<mmc_buffer> bufferArray(count);
     for (size_t i = 0; i < count; ++i) {
         keyArray[i] = keys[i].c_str();
         bufferArray[i] = {.addr = reinterpret_cast<uint64_t>(buffers[i]),
@@ -467,8 +467,9 @@ std::vector<int> MmcacheStore::BatchGetInto(const std::vector<std::string> &keys
                           .len = static_cast<uint64_t>(sizes[i])};
     }
     TP_TRACE_BEGIN(TP_MMC_PY_BATCH_GET);
-    auto ret = mmcc_batch_get(keyArray, count, bufferArray, 0, results.data());
+    auto ret = mmcc_batch_get(keyArray.data(), count, bufferArray.data(), 0, results.data());
     TP_TRACE_END(TP_MMC_PY_BATCH_GET, ret);
+    (void)ret;
     return results;
 }
 
@@ -561,6 +562,7 @@ std::vector<int> MmcacheStore::BatchPutFromLayers(const std::vector<std::string>
     GetBufferArrays(batchSize, type, buffers, sizes, bufferArrays);
     auto ret = MmcClientDefault::GetInstance()->BatchPut(keys, bufferArrays, options, ALLOC_RANDOM, results);
     TP_TRACE_END(TP_MMC_PY_BATCH_PUT_LAYERS, ret);
+    (void)ret;
     for (size_t i = 0; i < batchSize; i++) {
         results[i] = ReturnWrapper(results[i], keys[i]);
     }
@@ -650,6 +652,7 @@ std::vector<int> MmcacheStore::BatchGetIntoLayers(const std::vector<std::string>
     GetBufferArrays(batchSize, type, buffers, sizes, bufferArrays);
     auto ret = MmcClientDefault::GetInstance()->BatchGet(keys, bufferArrays, 0, results);
     TP_TRACE_END(TP_MMC_PY_BATCH_GET_LAYERS, ret);
+    (void)ret;
     return results;
 }
 
@@ -730,8 +733,8 @@ int MmcacheStore::PutBatch(const std::vector<std::string> &keys, std::vector<mmc
         return MMC_INVALID_PARAM;
     }
 
-    const char *keyArray[count];
-    mmc_buffer bufferArray[count];
+    std::vector<const char *> keyArray(count);
+    std::vector<mmc_buffer> bufferArray(count);
     for (size_t i = 0; i < count; ++i) {
         keyArray[i] = keys[i].c_str();
         bufferArray[i] = buffers[i];
@@ -740,7 +743,7 @@ int MmcacheStore::PutBatch(const std::vector<std::string> &keys, std::vector<mmc
     mmc_put_options options{};
     MMC_ASSERT_RETURN(CopyPutOptions(replicateConfig, options), MMC_INVALID_PARAM);
     TP_TRACE_BEGIN(TP_MMC_PY_BATCH_PUT);
-    mmcc_batch_put(keyArray, count, bufferArray, options, ALLOC_RANDOM, results.data());
+    mmcc_batch_put(keyArray.data(), count, bufferArray.data(), options, ALLOC_RANDOM, results.data());
     TP_TRACE_END(TP_MMC_PY_BATCH_PUT, 0);
     for (size_t i = 0; i < count; i++) {
         results[i] = ReturnWrapper(results[i], keys[i]);
@@ -792,7 +795,7 @@ std::vector<mmc_buffer> MmcacheStore::GetBatch(const std::vector<std::string> &k
 
     std::vector<int> results(count, -1);
     std::vector<mmc_buffer> buffers(count, {0, 0, 0, 0});
-    const char *keyArray[count];
+    std::vector<const char *> keyArray(count);
 
     // 1. Query KeyInfo for all keys
     auto keyInfos = BatchGetKeyInfo(keys);
@@ -822,8 +825,9 @@ std::vector<mmc_buffer> MmcacheStore::GetBatch(const std::vector<std::string> &k
     }
     // 3. call batch get api
     TP_TRACE_BEGIN(TP_MMC_PY_BATCH_GET);
-    auto ret = mmcc_batch_get(keyArray, count, buffers.data(), 0, results.data());
+    auto ret = mmcc_batch_get(keyArray.data(), count, buffers.data(), 0, results.data());
     TP_TRACE_END(TP_MMC_PY_BATCH_GET, ret);
+    (void)ret;
     return buffers;
 }
 }  // namespace mmc

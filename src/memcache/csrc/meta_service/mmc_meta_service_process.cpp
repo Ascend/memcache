@@ -19,8 +19,13 @@
 #include <iostream>
 #include <mutex>
 #include <unistd.h>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #include <pybind11/embed.h>
 #include <pybind11/numpy.h>
+#pragma GCC diagnostic pop
+
 #include "spdlogger4c.h"
 #include "spdlogger.h"
 #include "mf_out_logger.h"

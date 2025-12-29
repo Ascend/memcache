@@ -238,6 +238,7 @@ Result MetaNetServer::HandleBatchUpdate(const NetContextPtr &context)
     TP_TRACE_BEGIN(TP_MMC_META_BATCH_UPDATE);
     auto ret = metaMgrProxy->BatchUpdateState(req, resp);
     TP_TRACE_END(TP_MMC_META_BATCH_UPDATE, ret);
+    (void)ret;
     MMC_LOG_INFO("HandleBatchUpdate keys (size " << req.keys_.size() << ") finish: " << Join(req.keys_));
 
     return context->Reply(req.msgId, resp);
@@ -268,6 +269,7 @@ Result MetaNetServer::HandleBatchGet(const NetContextPtr &context)
     TP_TRACE_BEGIN(TP_MMC_META_BATCH_GET);
     auto ret = metaMgrProxy->BatchGet(req, resp);
     TP_TRACE_END(TP_MMC_META_BATCH_GET, ret);
+    (void)ret;
     MMC_LOG_DEBUG("HandleBatchGet keys (size  " << req.keys_.size() << ") finish: " << Join(req.keys_));
 
     return context->Reply(req.msgId, resp);
@@ -298,6 +300,7 @@ Result MetaNetServer::HandleBatchRemove(const NetContextPtr &context)
     TP_TRACE_BEGIN(TP_MMC_META_BATCH_REMOVE);
     auto ret = metaMgrProxy->BatchRemove(req, resp);
     TP_TRACE_END(TP_MMC_META_BATCH_REMOVE, ret);
+    (void)ret;
     MMC_LOG_DEBUG("HandleBatchRemove keys (size  " << req.keys_.size() << ") finish: " << Join(req.keys_));
 
     return context->Reply(req.msgId, resp);
@@ -313,6 +316,7 @@ Result MetaNetServer::HandleRemoveAll(const NetContextPtr &context)
     TP_TRACE_BEGIN(TP_MMC_META_REMOVE_ALL);
     auto ret = metaMgrProxy->RemoveAll(req, resp);
     TP_TRACE_END(TP_MMC_META_REMOVE_ALL, ret);
+    (void)ret;
     MMC_LOG_DEBUG("HandleRemoveAll finished");
 
     return context->Reply(req.msgId, resp);
@@ -343,6 +347,7 @@ Result MetaNetServer::HandleBatchIsExist(const NetContextPtr &context)
     TP_TRACE_BEGIN(TP_MMC_META_BATCH_EXIST);
     auto ret = metaMgrProxy->BatchExistKey(req, resp);
     TP_TRACE_END(TP_MMC_META_BATCH_EXIST, ret);
+    (void)ret;
     MMC_LOG_DEBUG("HandleBatchIsExist keys (size " << req.keys_.size() << ") finish: " << Join(req.keys_));
 
     return context->Reply(req.msgId, resp);
@@ -358,6 +363,7 @@ Result MetaNetServer::HandleQuery(const NetContextPtr &context)
     TP_TRACE_BEGIN(TP_MMC_META_QUERY);
     auto ret = metaMgrProxy->Query(req, resp);
     TP_TRACE_END(TP_MMC_META_QUERY, ret);
+    (void)ret;
     MMC_LOG_DEBUG("HandleQuery key " << req.key_ << " finish.");
 
     return context->Reply(req.msgId, resp);
@@ -373,6 +379,7 @@ Result MetaNetServer::HandleBatchQuery(const NetContextPtr &context)
     TP_TRACE_BEGIN(TP_MMC_META_BATCH_QUERY);
     auto ret = metaMgrProxy->BatchQuery(req, resp);
     TP_TRACE_END(TP_MMC_META_BATCH_QUERY, ret);
+    (void)ret;
     MMC_LOG_INFO("HandleBatchQuery keys (size " << req.keys_.size() << ") finish: " << Join(req.keys_));
 
     return context->Reply(req.msgId, resp);
