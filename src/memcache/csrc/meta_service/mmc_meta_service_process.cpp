@@ -134,23 +134,26 @@ bool MmcMetaServiceProcess::CheckIsRunning()
 
 int MmcMetaServiceProcess::LoadConfig()
 {
-    if (MMC_META_CONF_PATH.empty()) {
-        std::cerr << "MMC_META_CONFIG_PATH is not set." << std::endl;
-        return -1;
-    }
-    const auto confPath = MMC_META_CONF_PATH;
     MetaServiceConfig configManager;
-    if (!configManager.LoadFromFile(confPath)) {
-        std::cerr << "Failed to load config from file" << std::endl;
-        return -1;
-    }
-    const std::vector<std::string> validationError = configManager.ValidateConf();
-    if (!validationError.empty()) {
-        std::cerr << "Wrong configuration in file <" << confPath << ">, because of following mistakes:" << std::endl;
-        for (auto &item : validationError) {
-            std::cout << item << std::endl;
+    if (MMC_META_CONF_PATH.empty()) {
+        std::cout << "[WARNING] MMC_META_CONFIG_PATH is not set. "
+        << "All configuration items use default values." << std::endl;
+    } else {
+        // Read configuration from config file
+        const auto confPath = MMC_META_CONF_PATH;
+        if (!configManager.LoadFromFile(confPath)) {
+            std::cerr << "Failed to load config from file" << std::endl;
+            return -1;
         }
-        return -1;
+        const std::vector<std::string> validationError = configManager.ValidateConf();
+        if (!validationError.empty()) {
+            std::cerr << "Wrong configuration in file <" << confPath
+            << ">, because of following mistakes:" << std::endl;
+            for (auto &item : validationError) {
+                std::cout << item << std::endl;
+            }
+            return -1;
+        }
     }
     configManager.GetMetaServiceConfig(config_);
     if (MetaServiceConfig::ValidateTLSConfig(config_.accTlsConfig) != MMC_OK) {
