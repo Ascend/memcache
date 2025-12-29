@@ -44,9 +44,17 @@ dos2unix "$MOCKCPP_PATH/src/JmpCodeX86.h"
 dos2unix "$MOCKCPP_PATH/src/JmpOnlyApiHook.cpp"
 dos2unix "$MOCKCPP_PATH/src/UnixCodeModifier.cpp"
 dos2unix $TEST_3RD_PATCH_PATH/*.patch
+if command -v ninja &> /dev/null; then
+    export GENERATOR="Ninja"
+    export MAKE_CMD=ninja
+else
+    export GENERATOR="Unix Makefiles"
+    export MAKE_CMD=make
+fi
 
-cmake -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_TESTS=ON -DBUILD_OPEN_ABI=ON -DBUILD_COMPILER=gcc -S . -B ${BUILD_PATH}
-make install -j32 -C ${BUILD_PATH}
+echo "cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_TESTS=ON -DBUILD_OPEN_ABI=ON -DBUILD_COMPILER=gcc -S . -B ${BUILD_PATH}"
+cmake -G "$GENERATOR" -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_TESTS=ON -DBUILD_OPEN_ABI=ON -DBUILD_COMPILER=gcc -S . -B ${BUILD_PATH}
+${MAKE_CMD} install -j32 -C ${BUILD_PATH}
 export LD_LIBRARY_PATH=$MEMCACHE_LIB_PATH:$SMEM_LIB_PATH:$HYBM_LIB_PATH:$MOCK_CANN_PATH/driver/lib64:$LD_LIBRARY_PATH
 export ASCEND_HOME_PATH=$MOCK_CANN_PATH
 export ASAN_OPTIONS="detect_stack_use_after_return=1:allow_user_poisoning=1"

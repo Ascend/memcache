@@ -83,8 +83,15 @@ export LD_LIBRARY_PATH=$PYTHON_HOME/lib:$LD_LIBRARY_PATH
 export PATH=$PYTHON_HOME/bin:$BACK_PATH_EVN
 export CMAKE_PREFIX_PATH=$PYTHON_HOME
 export PYTHON3_EXECUTABLE=$(which python3)
-
+if command -v ninja &> /dev/null; then
+    export GENERATOR="Ninja"
+    export MAKE_CMD=ninja
+else
+    export GENERATOR="Unix Makefiles"
+    export MAKE_CMD=make
+fi
 cmake \
+    -G "$GENERATOR" \
     -DPython3_EXECUTABLE=$PYTHON3_EXECUTABLE \
     -DCMAKE_BUILD_TYPE="${BUILD_MODE}" \
     -DBUILD_COMPILER="${BUILD_COMPILER}" \
@@ -94,7 +101,7 @@ cmake \
     -DENABLE_PTRACER="${ENABLE_PTRACER}" \
     -S . -B build/
 
-make install -j32 -C build/
+${MAKE_CMD} install -j32 -C build/
 
 FABRIC_PROJ_DIR=${PROJ_DIR}/3rdparty/memfabric_hybrid
 
@@ -114,6 +121,7 @@ do
         rm -rf build/
         mkdir -p build/
         cmake \
+            -G "$GENERATOR" \
             -DPython3_EXECUTABLE=$PYTHON3_EXECUTABLE \
             -DCMAKE_BUILD_TYPE="${BUILD_MODE}" \
             -DBUILD_COMPILER="${BUILD_COMPILER}" \
@@ -122,7 +130,7 @@ do
             -DBUILD_PYTHON="${BUILD_PYTHON}" \
             -DENABLE_PTRACER="${ENABLE_PTRACER}" \
             -S . -B build/
-        make -j5 -C build
+        ${MAKE_CMD} -j5 -C build
     fi
 
     cd "${PROJ_DIR}"

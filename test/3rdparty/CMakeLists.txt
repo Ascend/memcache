@@ -22,9 +22,17 @@ if(EXISTS ${CHECK_FILE_LINKS})
     message("-- googletest: has been built, ignored")
     return()
 endif()
-
+find_program(NINJA_EXE NAMES ninja)
+set(GENERATOR "Unix Makefiles")
+if(NINJA_EXE)
+    set(MAKE_CMD ninja)
+    set(GENERATOR "Ninja")
+else()
+    set(MAKE_CMD make)
+endif()
 message("-- googletest: will build it")
 set(THIRD_PARTY_CMAKE_ARGS
+        -G "${GENERATOR}"
         -DCMAKE_C_COMPILER=gcc
         -DCMAKE_CXX_COMPILER=g++
         -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
@@ -36,7 +44,7 @@ set(THIRD_PARTY_CMAKE_ARGS
         -DCMAKE_BUILD_TYPE=RELEASE
         -DCMAKE_INSTALL_LIBDIR=${INSTALL_DIR}/lib
         -DCMAKE_INSTALL_BINDIR=${INSTALL_DIR}/bin
-        -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}/)
+        -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR})
 
 ######################################################################
 # Google Test and Google Mock
@@ -85,7 +93,8 @@ externalproject_add(mock_cpp
         LOG_DOWNLOAD On
         LOG_CONFIGURE On
         LOG_BUILD On
-        LOG_INSTALL On)
+        LOG_INSTALL On
+        BUILD_BYPRODUCTS ${PROJECT_3RDPARTY_BIN_DIR}/mockcpp/lib/libmockcpp.a)
 
 macro(TARGET_MOCKCPP_HEADER target)
     add_dependencies(${target} mock_cpp)

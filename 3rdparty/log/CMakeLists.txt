@@ -14,16 +14,77 @@ if(EXISTS ${CHECK_FILE_LINKS})
     message(STATUS "spdlog: ${CHECK_FILE_LINKS}")
     message(STATUS "spdlog: has been built, ignored")
 else()
-    # create dir
-    exec_program(mkdir ${BUILD_DIR} ARGS -p ${BUILD_DIR})
-    exec_program(mkdir ${BUILD_DIR} ARGS -p ${INSTALL_DIR})
+    # Create directories
+    execute_process(
+            COMMAND mkdir -p ${BUILD_DIR}
+            RESULT_VARIABLE MKDIR1_RESULT
+            OUTPUT_VARIABLE MKDIR1_OUT
+            ERROR_VARIABLE MKDIR1_ERR
+    )
+    if(NOT MKDIR1_RESULT EQUAL 0)
+        message(FATAL_ERROR "Failed to create directory: ${BUILD_DIR}\nstdout: ${MKDIR1_OUT}\nstderr: ${MKDIR1_ERR}")
+    endif()
 
-    # configure
-    exec_program(cmake ${BUILD_DIR} ARGS -DCMAKE_BUILD_TYPE=${SPDLOG_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${SOURCE_DIR})
+    execute_process(
+            COMMAND mkdir -p ${INSTALL_DIR}
+            RESULT_VARIABLE MKDIR2_RESULT
+            OUTPUT_VARIABLE MKDIR2_OUT
+            ERROR_VARIABLE MKDIR2_ERR
+    )
+    if(NOT MKDIR2_RESULT EQUAL 0)
+        message(FATAL_ERROR "Failed to create directory: ${INSTALL_DIR}\nstdout: ${MKDIR2_OUT}\nstderr: ${MKDIR2_ERR}")
+    endif()
 
-    # make and make install
-    exec_program(make ${BUILD_DIR} ARGS clean)
-    exec_program(make ${BUILD_DIR} ARGS install -j8)
+    # Detect ninja
+    find_program(NINJA_EXE NAMES ninja)
+    set(GENERATOR "Unix Makefiles")
+    if(NINJA_EXE)
+        set(MAKE_CMD ninja)
+        set(GENERATOR "Ninja")
+    else()
+        set(MAKE_CMD make)
+    endif()
 
-    message("-- spdlog: has been success installed")
+    # Configure
+    execute_process(
+            COMMAND cmake
+            -G "${GENERATOR}"
+            -DCMAKE_BUILD_TYPE=${SPDLOG_BUILD_TYPE}
+            -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+            -S ${SOURCE_DIR}
+            -B ${BUILD_DIR}
+            WORKING_DIRECTORY ${BUILD_DIR}
+            RESULT_VARIABLE CMAKE_RESULT
+            OUTPUT_VARIABLE CMAKE_OUT
+            ERROR_VARIABLE CMAKE_ERR
+    )
+    if(NOT CMAKE_RESULT EQUAL 0)
+        message(FATAL_ERROR "CMake configure failed!\nstdout: ${CMAKE_OUT}\nstderr: ${CMAKE_ERR}")
+    endif()
+
+    # Clean
+    execute_process(
+            COMMAND ${MAKE_CMD} clean
+            WORKING_DIRECTORY ${BUILD_DIR}
+            RESULT_VARIABLE CLEAN_RESULT
+            OUTPUT_VARIABLE CLEAN_OUT
+            ERROR_VARIABLE CLEAN_ERR
+    )
+    if(NOT CLEAN_RESULT EQUAL 0)
+        message(FATAL_ERROR "${MAKE_CMD} clean failed!\nstdout: ${CLEAN_OUT}\nstderr: ${CLEAN_ERR}")
+    endif()
+
+    # Install
+    execute_process(
+            COMMAND ${MAKE_CMD} install -j8
+            WORKING_DIRECTORY ${BUILD_DIR}
+            RESULT_VARIABLE INSTALL_RESULT
+            OUTPUT_VARIABLE INSTALL_OUT
+            ERROR_VARIABLE INSTALL_ERR
+    )
+    if(NOT INSTALL_RESULT EQUAL 0)
+        message(FATAL_ERROR "${MAKE_CMD} install failed!\nstdout: ${INSTALL_OUT}\nstderr: ${INSTALL_ERR}")
+    endif()
+
+    message("-- spdlog: has been success installed by ${MAKE_CMD}")
 endif()
