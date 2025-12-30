@@ -107,9 +107,10 @@ MemCache核心能力是提供大容量内存池和高性能的H2D、D2H、**D2RH
 - [编译部署](./doc/build.md)：介绍组件编译和安装教程。
 - [配置文件](doc/memcache_config.md)：涉及MetaService、LocalService公共配置
 - [样例执行](./example/examples.md)：介绍如何端到端执行样例代码，包括C++和Python样例。
+- [最佳实践]：推出中...
 ## 📑学习教程
 
-- [C接口](doc/mamcache_c_api.md)：C接口介绍以及C接口对应的API列表
+- [C++接口](doc/mamcache_c++_api.md)：C++接口介绍以及C++接口对应的API列表
 - [python接口](doc/memcache_python_api.md)：python接口介绍以及python接口对应的API列表
 
 ## 📦软件硬件配套说明
