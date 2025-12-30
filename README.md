@@ -110,7 +110,7 @@ MemCache核心能力是提供大容量内存池和高性能的H2D、D2H、**D2RH
 - [最佳实践]：推出中...
 ## 📑学习教程
 
-- [C++接口](doc/mamcache_c++_api.md)：C++接口介绍以及C++接口对应的API列表
+- [c++接口](doc/mamcache_c++_api.md)：C++接口介绍以及C++接口对应的API列表
 - [python接口](doc/memcache_python_api.md)：python接口介绍以及python接口对应的API列表
 
 ## 📦软件硬件配套说明
