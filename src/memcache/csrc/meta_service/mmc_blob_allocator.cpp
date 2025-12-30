@@ -160,9 +160,9 @@ Result MmcBlobAllocator::BuildFromBlobs(std::map<std::string, MmcMemBlobDesc> &b
         }
 
         if (it->second.mediaType_ != mediaType_) {
-             ++it;
             MMC_LOG_WARN("rebuild blob not match, allocator mediaType: " << mediaType_ << ", blob mediaType: "
                                                                          << it->second.mediaType_);
+            ++it;
             continue;
         }
         uint64_t gva = it->second.gva_;

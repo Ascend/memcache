@@ -22,7 +22,7 @@ virtual int Init(const uint32_t deviceId, bool initBm = true) = 0;
 
 **参数**:
 - `deviceId`: 目标设备ID
-- `initBm`: 是否初始化BM提供内存，默认值为 true。设 false 时将启动纯client模式
+- `initBm`: 是否初始化BM提供内存，默认值为 true。设 false 时将启动纯client模式，不支持数据读写操作
 
 **返回值**:
 - `0`：成功

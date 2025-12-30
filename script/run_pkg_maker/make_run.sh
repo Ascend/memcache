@@ -9,7 +9,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-BUILD_TEST=${1:-BUILD_TEST}
+BUILD_TEST=${1:-OFF}
 
 set -e
 readonly BASH_PATH=$(dirname $(readlink -f "$0"))

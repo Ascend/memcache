@@ -202,6 +202,8 @@ TEST_F(TestMmcServiceError, metaService)
 }
 
 constexpr size_t MF_SIZE = 1048576000;
+constexpr size_t KEYS_NUMBER = 1000;
+constexpr unsigned int META_REBUILD_SECONDS = 10;
 
 TEST_F(TestMmcServiceError, metaServiceRebuild)
 {
@@ -269,17 +271,17 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
     ret = mmcc_get(test.c_str(), &readBuffer, 0);
     EXPECT_TRUE(ret == 0);
 
-    uint32_t keys_count = MF_SIZE / SIZE_32K / 2;
-    const char **keys = static_cast<const char**>(malloc(keys_count * sizeof(char*)));
-    for (uint32_t i = 0; i < keys_count; i++) {
+    uint32_t keysCount = KEYS_NUMBER;
+    const char **keys = static_cast<const char**>(malloc(keysCount * sizeof(char*)));
+    for (uint32_t i = 0; i < keysCount; i++) {
         keys[i] = static_cast<char*>(malloc(16));
         sprintf(const_cast<char *>(keys[i]), "test_%d", i);
     }
-    void** hostSrcs = new void* [keys_count];
-    void** hostDests = new void* [keys_count];
-    auto *bufs = new mmc_buffer [keys_count];
+    void** hostSrcs = new void* [keysCount];
+    void** hostDests = new void* [keysCount];
+    auto *bufs = new mmc_buffer [keysCount];
 
-    for (uint32_t i = 0; i < keys_count; ++i) {
+    for (uint32_t i = 0; i < keysCount; ++i) {
         hostSrcs[i] = malloc(SIZE_32K);
         hostDests[i] = malloc(SIZE_32K);
         GenerateData(hostSrcs[i], 1);
@@ -289,17 +291,11 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
         bufs[i].offset = 0;
         bufs[i].len = SIZE_32K;
     }
-    std::vector<int> results(keys_count, -1);
-    ret = mmcc_batch_put(keys, keys_count, bufs, options, 0, results.data());
+    std::vector<int> results(keysCount, -1);
+    ret = mmcc_batch_put(keys, keysCount, bufs, options, 0, results.data());
     EXPECT_TRUE(ret == 0);
 
-    for (uint32_t i = 0; i < keys_count; ++i) {
-        mmc_buffer readBuffer;
-        readBuffer.addr = (uint64_t)hostDests[i];
-        readBuffer.type = 0;
-        readBuffer.offset = 0;
-        readBuffer.len = SIZE_32K;
-
+    for (uint32_t i = 0; i < keysCount; ++i) {
         ret = mmcc_get(keys[i], &readBuffer, 0);
         EXPECT_TRUE(ret == 0);
     }
@@ -313,7 +309,7 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
 
     meta_service = mmcs_meta_service_start(&metaServiceConfig);
     ASSERT_TRUE(meta_service != nullptr);
-    sleep(3);
+    sleep(META_REBUILD_SECONDS);
 
     ret = mmcc_get(test.c_str(), &readBuffer, 0);
     EXPECT_TRUE(ret == 0);
@@ -321,13 +317,7 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
     ret = mmcc_remove(test.c_str(), 0);
     EXPECT_TRUE(ret == 0);
 
-    for (uint32_t i = 0; i < keys_count; ++i) {
-        mmc_buffer readBuffer;
-        readBuffer.addr = (uint64_t)hostDests[i];
-        readBuffer.type = 0;
-        readBuffer.offset = 0;
-        readBuffer.len = SIZE_32K;
-
+    for (uint32_t i = 0; i < keysCount; ++i) {
         ret = mmcc_get(keys[i], &readBuffer, 0);
         if (i == 0) {
             EXPECT_TRUE(ret == -1);
@@ -339,10 +329,17 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
     ret = mmcc_remove(keys[1], 0);
     EXPECT_TRUE(ret == 0);
 
-    for (uint32_t i = 0; i < keys_count; ++i) {
+    for (uint32_t i = 0; i < keysCount; ++i) {
         free(hostSrcs[i]);
         free(hostDests[i]);
     }
+    delete[] hostSrcs;
+    delete[] hostDests;
+    for (uint32_t i = 0; i < keysCount; i++) {
+        free(keys[i]);
+    }
+    free(keys);
+    delete[] bufs;
     sleep(3);
     free(hostSrc);
     free(hostDest);

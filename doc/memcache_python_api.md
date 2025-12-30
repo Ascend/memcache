@@ -255,7 +255,7 @@ result = store.init(device_id, init_bm=true)
 **参数**:
 
 - `device_id`: 使用HBM时的NPU卡用户ID（支持ASCEND_RT_VISIBLE_DEVICES映射）
-- `init_bm`: 是否初始化BM提供内存，默认值为 true。设 false 时将启动纯client模式
+- `init_bm`: 是否初始化BM提供内存，默认值为 true。设 false 时将启动纯client模式，不支持数据读写操作
 
 **返回值**:
 

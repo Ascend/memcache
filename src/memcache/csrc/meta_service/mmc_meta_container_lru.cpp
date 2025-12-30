@@ -97,11 +97,11 @@ public:
             MMC_LOG_INFO("Key " << key << " not found in MmcMetaContainer. ErrCode: " << MMC_UNMATCHED_KEY);
             return MMC_UNMATCHED_KEY;
         }
-        auto lruIter = iter->second.lruIter_;
-        value = iter->second.value_;
-        if (metaMap_.erase(key) > 0 && iter->second.mediaType_ != MEDIA_NONE) {
+        auto valueItem = iter->second;
+        value = valueItem.value_;
+        if (metaMap_.erase(key) > 0 && valueItem.mediaType_ != MEDIA_NONE) {
             ock::mf::WriteGuard lruLockGuard(lruLock_);
-            lruLists_[iter->second.mediaType_].erase(lruIter);
+            lruLists_[valueItem.mediaType_].erase(valueItem.lruIter_);
             return MMC_OK;
         }
         MMC_LOG_ERROR("Fail to erase " << key << " from MmcMetaContainer. ErrCode: " << MMC_ERROR);

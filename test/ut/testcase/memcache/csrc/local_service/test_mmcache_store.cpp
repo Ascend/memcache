@@ -195,6 +195,9 @@ TEST_F(TestMmcacheStore, Init)
     // 3、stop
     store->TearDown();
     mmcs_meta_service_stop(meta_service);
+    for (const auto buffer : buffers) {
+        free(buffer);
+    }
 }
 
 static mmc_meta_service_t StartMetaService()

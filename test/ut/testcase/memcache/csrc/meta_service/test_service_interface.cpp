@@ -165,6 +165,8 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     mmcs_local_service_stop(local_service);
     mmcc_uninit();
     mmcs_meta_service_stop(meta_service);
+
+    delete[] c_keys;
 }
 
 TEST_F(TestMmcServiceInterface, metaServiceStart)
