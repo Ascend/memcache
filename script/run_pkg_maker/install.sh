@@ -294,9 +294,9 @@ function install_to_path()
 function generate_set_env()
 {
     cat > "${default_install_dir}/set_env.sh" <<EOF
-PYTHON_LIB_DIR=$(python3 -c 'import sys,os;print(os.path.join(sys.prefix,"lib"))')
+PYTHON_LIB_DIR=\$(python3 -c 'import sys,os;print(os.path.join(sys.prefix,"lib"))')
 export MEMCACHE_HYBRID_HOME_PATH=${default_install_dir}/latest
-export LD_LIBRARY_PATH=${default_install_dir}/latest/${pkg_arch}-${os1}/lib64:${PYTHON_LIB_DIR}:\$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=${default_install_dir}/latest/${pkg_arch}-${os1}/lib64:\${PYTHON_LIB_DIR}:\$LD_LIBRARY_PATH
 export PATH=${default_install_dir}/latest/${pkg_arch}-${os1}/bin:\$PATH
 EOF
 }
