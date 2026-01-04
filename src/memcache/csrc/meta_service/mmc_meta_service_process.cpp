@@ -70,8 +70,8 @@ int MmcMetaServiceProcess::MainForPython()
     ptracer_config_t ptraceConfig{.tracerType = 1, .dumpFilePath = "/var/log/memfabric_hybrid"};
     const auto result = ptracer_init(&ptraceConfig);
     if (result != MMC_OK) {
-        std::cerr << "init ptracer module failed, result: " << result << std::endl;
-        return -1;
+        std::cout << "Warning, init ptracer module failed, result: " << result
+                  << ", error msg: " << ptracer_get_last_err_msg() << std::endl;
     }
 
     if (InitLogger(config_)) {
