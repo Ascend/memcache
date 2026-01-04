@@ -24,6 +24,8 @@
 
 #include "mmc_define.h"
 
+#define PID_TID " [" << getpid() << "-" << syscall(SYS_gettid) << "]"
+
 namespace ock {
 namespace mmc {
 #define OBJ_MAX_LOG_FILE_SIZE 20971520 // 每个日志文件的最大大小
@@ -107,9 +109,9 @@ public:
         struct tm localTime {};
         if (strftime(strTime, sizeof strTime, "%Y-%m-%d %H:%M:%S.", localtime_r(&timeStamp, &localTime)) != 0) {
             std::cout << strTime << std::setw(MICROSECOND_WIDTH) << std::setfill('0') << tv.tv_usec << " "
-                      << LogLevelDesc(level) << " " << syscall(SYS_gettid) << " " << oss.str() << std::endl;
+                      << LogLevelDesc(level) << PID_TID << oss.str() << std::endl;
         } else {
-            std::cout << " Invalid time " << LogLevelDesc(level) << " " << syscall(SYS_gettid) << " " << oss.str()
+            std::cout << " Invalid time " << LogLevelDesc(level) << PID_TID << oss.str()
                       << std::endl;
         }
 #else
@@ -125,7 +127,7 @@ public:
         }
     }
 
-    int32_t GetLogLevel(const std::string &logLevelDesc)
+    int32_t GetLogLevel(const std::string &logLevelDesc) const
     {
         for (uint32_t count = DEBUG_LEVEL; count < BUTT_LEVEL; count++) {
             if (logLevelDesc == logLevelDesc_[count]) {
@@ -164,32 +166,31 @@ private:
     ExternalLog logFunc_ = nullptr;
     ExternalAuditLog auditLogFunc_ = nullptr;
 
-    const char *logLevelDesc_[BUTT_LEVEL] = {"debug", "info", "warn", "error"};
+    const char *logLevelDesc_[BUTT_LEVEL] = {"DEBUG", "INFO", "WARN", "ERROR"};
 };
 }  // namespace mmc
 }  // namespace ock
 
 // macro for log
-#ifndef MMC_LOG_FILENAME_SHORT
 #define MMC_LOG_FILENAME_SHORT (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-#endif
+#define MMC_LOG_FORMAT "[MMC " << MMC_LOG_FILENAME_SHORT << ":" << __LINE__ << " " << __FUNCTION__ << "] "
 #define MMC_OUT_LOG(LEVEL, ARGS)                                                      \
     do {                                                                              \
         std::ostringstream oss;                                                       \
-        oss << "[MMC " << MMC_LOG_FILENAME_SHORT << ":" << __LINE__ << "] " << ARGS;  \
+        oss << MMC_LOG_FORMAT << ARGS;                                                \
         ock::mmc::MmcOutLogger::Instance().Log(LEVEL, oss);                           \
     } while (0)
 #define MMC_OUT_AUDIT_LOG(MSG)                                                        \
     do {                                                                              \
         std::ostringstream oss;                                                       \
-        oss << "[MMC " << MMC_LOG_FILENAME_SHORT << ":" << __LINE__ << "] " << (MSG); \
+        oss << MMC_LOG_FORMAT << (MSG);                                               \
         ock::mmc::MmcOutLogger::Instance().AuditLog(oss);                             \
     } while (0)
-#define MMC_LOG_ERROR_WITH_ERRCODE(ARGS, ERRCODE)                                                                  \
-    do {                                                                                                           \
-        std::ostringstream oss;                                                                                    \
-        oss << "[MMC " << MMC_LOG_FILENAME_SHORT << ":" << __LINE__ << "] " << ARGS << ", error code " << ERRCODE; \
-        ock::mmc::MmcOutLogger::Instance().Log(ock::mmc::ERROR_LEVEL, oss);                                        \
+#define MMC_LOG_ERROR_WITH_ERRCODE(ARGS, ERRCODE)                                     \
+    do {                                                                              \
+        std::ostringstream oss;                                                       \
+        oss << MMC_LOG_FORMAT << ARGS << ", error code " << ERRCODE;                  \
+        ock::mmc::MmcOutLogger::Instance().Log(ock::mmc::ERROR_LEVEL, oss);           \
     } while (0)
 
 

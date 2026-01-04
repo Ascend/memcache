@@ -23,10 +23,10 @@ namespace mmc {
 
 static constexpr int MAX_CONF_ITEM_COUNT = 100;
 
-void StringToLower(std::string &str)
+void StringToUpper(std::string &str)
 {
     for (char &c : str) {
-        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
     }
 }
 

@@ -59,12 +59,18 @@ public:
 
 class VStrEnum : public Validator {
 public:
-    static ValidatorPtr Create(const std::string& name, const std::string& enumStr)
+    static ValidatorPtr Create(const std::string& name, const std::string& enumStr, const bool caseSensitive = false)
     {
-        return {new (std::nothrow) VStrEnum(name, enumStr)};
+        return {new (std::nothrow) VStrEnum(name, enumStr, caseSensitive)};
     }
 
-    VStrEnum(const std::string& name, std::string  enumStr) : Validator(name), mEnumString(std::move(enumStr)) {}
+    VStrEnum(const std::string& name, std::string enumStr, const bool caseSensitive = false)
+        : Validator(name), mEnumString(std::move(enumStr)), caseSensitive(caseSensitive)
+    {
+        if (!caseSensitive) {
+            std::transform(mEnumString.begin(), mEnumString.end(), mEnumString.begin(), tolower);
+        }
+    }
 
     ~VStrEnum() override = default;
 
@@ -90,10 +96,15 @@ public:
             return false;
         }
 
+        std::string valueFormatted = value;
+        if (!caseSensitive) {
+            std::transform(valueFormatted.begin(), valueFormatted.end(), valueFormatted.begin(), tolower);
+        }
+
         // create ||rc||tcp||xx||
         // find ||rc||
         std::string tmp = "||" + mEnumString + "||";
-        if (tmp.find("||" + value + "||") == std::string::npos) {
+        if (tmp.find("||" + valueFormatted + "||") == std::string::npos) {
             mErrMsg = "Invalid value for <" + mName + ">, it should be one of " + mEnumString;
             return false;
         }
@@ -102,6 +113,7 @@ public:
 
 private:
     std::string mEnumString;
+    bool caseSensitive;
 };
 
 class VStrInSet : public Validator {

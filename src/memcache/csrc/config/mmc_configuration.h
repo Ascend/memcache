@@ -57,7 +57,7 @@ enum class ConfValueType {
     VUINT64 = 4,
 };
 
-void StringToLower(std::string &str);
+void StringToUpper(std::string &str);
 
 class Configuration;
 using ConfigurationPtr = MmcRef<Configuration>;
@@ -225,8 +225,8 @@ public:
 
         config.haEnable = GetBool(ConfConstant::OCK_MMC_META_HA_ENABLE);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
-        StringToLower(logLevelStr);
-        config.logLevel = ock::mmc::MmcOutLogger::Instance().GetLogLevel(logLevelStr);
+        StringToUpper(logLevelStr);
+        config.logLevel = MmcOutLogger::Instance().GetLogLevel(logLevelStr);
 
         SafeCopy(GetLogPath(GetString(ConfConstant::OCK_MMC_LOG_PATH)), config.logPath, PATH_MAX_SIZE);
 
@@ -319,7 +319,7 @@ public:
         config.localHBMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first, MEM_2MB_BYTES);
         auto protocol = std::string(config.dataOpType);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
-        StringToLower(logLevelStr);
+        StringToUpper(logLevelStr);
         config.logLevel = MmcOutLogger::Instance().GetLogLevel(logLevelStr);
         GetAccTlsConfig(config.accTlsConfig);
         GetHcomTlsConfig(config.hcomTlsConfig);
@@ -336,7 +336,7 @@ public:
         config.aggregateIO = GetBool(ConfConstant::OCK_MMC_CLIENT_AGGREGATE_IO);
         config.writeThreadPoolNum = static_cast<uint32_t>(GetInt(ConfConstant::OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE));
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
-        StringToLower(logLevelStr);
+        StringToUpper(logLevelStr);
         config.logLevel = MmcOutLogger::Instance().GetLogLevel(logLevelStr);
         GetAccTlsConfig(config.tlsConfig);
     }
