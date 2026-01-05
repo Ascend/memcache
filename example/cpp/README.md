@@ -19,8 +19,8 @@ memfabric_hybrid参考安装命令
 git
 
 ```bash
-bash memfabric_hybrid-1.0.0_linux_aarch64.run
-bash memcache_hybrid-1.0.0_linux_aarch64.run
+bash memfabric_hybrid-1.0.0_linux_aarch64.run # 修改为实际的安装包名
+bash memcache_hybrid-1.0.0_linux_aarch64.run  # 修改为实际的安装包名
 source /usr/local/memfabric_hybrid/set_env.sh
 source /usr/local/memcache_hybrid/set_env.sh
 ```

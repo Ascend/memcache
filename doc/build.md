@@ -66,40 +66,26 @@ run包的默认安装根路径为 /usr/local/
 参考安装命令如下
 
 ```bash
-bash memcache_hybrid-1.0.0_linux_aarch64.run
+bash memcache_hybrid-1.0.0_linux_aarch64.run # 请修改为实际路径和文件名
 source /usr/local/memcache_hybrid/set_env.sh
 ```
 
 如果想要自定义安装路径，可以添加--install-path参数
 
 ```bash
-bash memcache_hybrid-1.0.0_linux_aarch64.run --install-path=${your path}
+bash memcache_hybrid-1.0.0_linux_aarch64.run --install-path=${your path}  # 请修改为实际路径和文件名
 ```
 
 安装的run包可以通过如下命令查看版本（此处以默认安装路径为例）
 
 ```
-root@localhost:/# cat /usr/local/memcache_hybrid/latest/version.info
-Version:1.0.0
-Platform:aarch64
-Kernel:linux
-CommitId:91b4ed50d42874dc21fa71917ab84e6824b2f7b7
+ cat /usr/local/memcache_hybrid/latest/version.info
 ```
 
 安装的python包可以通过如下命令查看版本
 
 ```text
-root@localhost:# pip show memcache_hybrid
-Name: memcache_hybrid
-Version: 1.0.0
-Summary: python api for memcache
-Home-page: https://gitcode.com/Ascend/memcache
-Author:
-Author-email:
-License: Apache License Version 2.0
-Location: /usr/local/lib/python3.11/site-packages
-Requires:
-Required-by:
+pip show memcache_hybrid
 ```
 
 在安装过程中，会默认尝试安装适配当前环境的MemCache的whl包，如果未安装，则在使用python接口前需要用户手动安装(安装包路径参考上面目录结构中的whl包路径)
@@ -112,7 +98,7 @@ Required-by:
 * **python形式**：*以下均以python311版本whl包（memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl）为例*
 ```
 1、安装whl包（如在安装run包过程中，已安装whl包，此步骤可省略）
-pip install memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
+pip install memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl # 修改为实际的安装包名
 
 2、设置配置文件环境变量
 export MMC_META_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-meta.conf
@@ -138,7 +124,7 @@ export MMC_META_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-meta.co
 * **whl（python）**：
 ```
 1、安装whl包（如在安装run包过程中，已安装whl包，此步骤可省略）
-pip install memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl
+pip install memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl # 修改为实际的安装包名
 
 2、设置配置文件环境变量
 export MMC_LOCAL_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-local.conf

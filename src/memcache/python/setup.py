@@ -13,6 +13,7 @@
 """python api for memcache_hybrid."""
 
 import os
+import sys
 import platform
 import glob
 import subprocess
@@ -29,8 +30,8 @@ def check_env_flag(name: str, default: str = "") -> bool:
 
 # 消除whl压缩包的时间戳差异
 os.environ["SOURCE_DATE_EPOCH"] = "0"
-
-current_version = os.getenv("MEMCACHE_VERSION", "1.0.0")
+# 已经check
+current_version = os.getenv("MEMCACHE_VERSION")
 is_manylinux = check_env_flag("IS_MANYLINUX", "FALSE")
 build_open_abi = os.getenv("BUILD_OPEN_ABI", "OFF")
 build_mode = os.getenv("BUILD_MODE", "RELEASE")
@@ -120,7 +121,7 @@ setup(
     description="python api for memcache_hybrid",
     packages=find_namespace_packages(exclude=("tests*",)),
     url="https://gitcode.com/Ascend/memcache",
-    license="Apache License Version 2.0",
+    license="Mulan PSL v2",
     python_requires=">=3.7",
     zip_safe=False,
     package_data={"memcache_hybrid": ["_pymmc.cpython*.so", "lib/**", "VERSION"]},
