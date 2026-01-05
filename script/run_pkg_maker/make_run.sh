@@ -38,7 +38,7 @@ OS_NAME=$(uname -s | awk '{print tolower($0)}')
 ARCH_OS=${ARCH}-${OS_NAME}
 
 PKG_DIR="memcache_hybrid"
-VERSION="${VERSION:-1.0.0}"
+VERSION="$(cat ${PROJECT_DIR}/VERSION | tr -d '[:space:]')"
 OUTPUT_DIR=${BASH_PATH}/../../output
 
 rm -rf ${PKG_DIR}

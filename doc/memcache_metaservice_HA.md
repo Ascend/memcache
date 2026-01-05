@@ -116,14 +116,14 @@ CONTAINER ID    IMAGE                           COMMAND                   CREATE
 │   └── libhcom.so
 ├── logs
 │   └── logs
-└── memfabric_hybrid-1.0.0_linux_aarch64.run
-└── memcache_hybrid-1.0.0_linux_aarch64.run
+└── memfabric_hybrid-1.0.0_linux_aarch64.run  # 请修改为实际路径和文件名
+└── memcache_hybrid-1.0.0_linux_aarch64.run   # 请修改为实际路径和文件名
 ```
 
 #### 2.1 配置文件
 先往config目录下拷贝一份配置文件模板（配置文件可以通过安装run包方式获取）
 ```shell
-bash memcache_hybrid-1.0.0_linux_aarch64.run
+bash memcache_hybrid-1.0.0_linux_aarch64.run  # 请修改为实际路径和文件名
 cp -rf /usr/local/memcache_hybrid/latest/config/* /home/meta/config
 ```
 

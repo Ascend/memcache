@@ -41,7 +41,7 @@ cd ${ROOT_PATH}/..
 PROJ_DIR=$(pwd)
 
 rm -rf ./build ./output
-
+mkdir -p "${PROJ_DIR}/output"
 mkdir build/
 
 if [ "${BUILD_PYTHON}" != "ON" ]; then
@@ -50,17 +50,18 @@ if [ "${BUILD_PYTHON}" != "ON" ]; then
     BUILD_PYTHON=ON
 fi
 
-export MEMCACHE_VERSION="${VERSION:-1.0.0}"
-
+VERSION="$(cat VERSION | tr -d '[:space:]')"
+export MEMCACHE_VERSION="${VERSION}"
+echo "VERSION IS ${VERSION}"
 GIT_COMMIT=`git rev-parse HEAD` || true
 {
   echo "memcache_hybrid version info:"
   echo "memcache_hybrid version: ${MEMCACHE_VERSION}"
   echo "git: ${GIT_COMMIT}"
-} > VERSION
+} > "${PROJ_DIR}/output/VERSION"
 
-cp VERSION "${PROJ_DIR}/src/memcache/python/memcache_hybrid/"
-rm -f VERSION
+cp "${PROJ_DIR}/output/VERSION" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/"
+rm -f "${PROJ_DIR}/output/VERSION"
 
 readonly BACK_PATH_EVN=$PATH
 
