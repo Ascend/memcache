@@ -22,7 +22,7 @@
 namespace shm {
 
 #define LOG_ERROR(ARGS) std::cout << "[SHM][ERROR] " << ARGS << std::endl
-#define LOG_INFO(ARGS) std::cout << "[SHM][INFO] " << ARGS << std::endl
+#define LOG_INFO(ARGS)  std::cout << "[SHM][INFO] " << ARGS << std::endl
 
 class Func {
 public:
@@ -65,8 +65,7 @@ inline bool Func::Realpath(std::string &path)
     return true;
 }
 
-inline bool Func::LibraryRealPath(const std::string &libDirPath, const std::string &libName,
-                                  std::string &realPath)
+inline bool Func::LibraryRealPath(const std::string &libDirPath, const std::string &libName, std::string &realPath)
 {
     std::string tmpFullPath = libDirPath;
     if (!Realpath(tmpFullPath)) {
@@ -90,13 +89,13 @@ inline bool Func::LibraryRealPath(const std::string &libDirPath, const std::stri
 
 #define DL_LOAD_SYM(TARGET_FUNC_VAR, TARGET_FUNC_TYPE, FILE_HANDLE, SYMBOL_NAME)       \
     do {                                                                               \
-        (TARGET_FUNC_VAR) = (TARGET_FUNC_TYPE)dlsym(FILE_HANDLE, SYMBOL_NAME);           \
-        if ((TARGET_FUNC_VAR) == nullptr) {                                              \
+        (TARGET_FUNC_VAR) = (TARGET_FUNC_TYPE)dlsym(FILE_HANDLE, SYMBOL_NAME);         \
+        if ((TARGET_FUNC_VAR) == nullptr) {                                            \
             LOG_ERROR("Failed to call dlsym to load SYMBOL_NAME, error" << dlerror()); \
             dlclose(FILE_HANDLE);                                                      \
             return false;                                                              \
         }                                                                              \
     } while (0)
-}  // namespace shm
+} // namespace shm
 
-#endif  // SHMEM_SHM_DEFINE_H
+#endif // SHMEM_SHM_DEFINE_H

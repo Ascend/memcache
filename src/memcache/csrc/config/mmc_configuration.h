@@ -33,21 +33,14 @@ namespace ock {
 namespace mmc {
 constexpr uint32_t CONF_MUST = 1;
 constexpr uint64_t DRAM_SIZE_ALIGNMENT = 2097152; // 2MB
-constexpr uint64_t HBM_SIZE_ALIGNMENT = 2097152; // 2MB
+constexpr uint64_t HBM_SIZE_ALIGNMENT = 2097152;  // 2MB
 
 const std::string BOOL_ENUM_STR = "false||true";
 const std::string LOG_LEVEL_ENUM_STR = "debug||info||warn||error";
 const std::string LOCAL_SERVER_PROTOCAL_ENUM_STR = "host_rdma||host_urma||host_tcp||device_rdma||device_sdma";
 
 // 定义单位与字节的转换关系
-enum class MemUnit {
-    B,
-    KB,
-    MB,
-    GB,
-    TB,
-    UNKNOWN
-};
+enum class MemUnit { B, KB, MB, GB, TB, UNKNOWN };
 
 enum class ConfValueType {
     VINT = 0,
@@ -69,11 +62,11 @@ public:
 
     // forbid copy operation
     Configuration(const Configuration &) = delete;
-    Configuration &operator = (const Configuration &) = delete;
+    Configuration &operator=(const Configuration &) = delete;
 
     // forbid move operation
     Configuration(const Configuration &&) = delete;
-    Configuration &operator = (const Configuration &&) = delete;
+    Configuration &operator=(const Configuration &&) = delete;
 
     bool LoadFromFile(const std::string &filePath);
 
@@ -93,16 +86,16 @@ public:
     bool SetWithTypeAutoConvert(const std::string &key, const std::string &value);
 
     void AddIntConf(const std::pair<std::string, int> &pair, const ValidatorPtr &validator = nullptr,
-        uint32_t flag = CONF_MUST);
+                    uint32_t flag = CONF_MUST);
     void AddStrConf(const std::pair<std::string, std::string> &pair, const ValidatorPtr &validator = nullptr,
-        uint32_t flag = CONF_MUST);
+                    uint32_t flag = CONF_MUST);
     void AddBoolConf(const std::pair<std::string, bool> &pair, const ValidatorPtr &validator = nullptr,
-        uint32_t flag = CONF_MUST);
+                     uint32_t flag = CONF_MUST);
     void AddUInt64Conf(const std::pair<std::string, uint64_t> &pair, const ValidatorPtr &validator = nullptr,
-        uint32_t flag = CONF_MUST);
+                       uint32_t flag = CONF_MUST);
     void AddConverter(const std::string &key, const ConverterPtr &converter);
     void AddPathConf(const std::pair<std::string, std::string> &pair, const ValidatorPtr &validator = nullptr,
-        uint32_t flag = CONF_MUST);
+                     uint32_t flag = CONF_MUST);
     std::vector<std::string> ValidateConf();
     void GetAccTlsConfig(mmc_tls_config &tlsConfig);
     void GetHcomTlsConfig(mmc_tls_config &tlsConfig);
@@ -122,11 +115,11 @@ public:
 private:
     bool SetWithStrAutoConvert(const std::string &key, const std::string &value);
     uint64_t ParseMemSize(const std::string &memStr);
-    MemUnit ParseMemUnit(const std::string& unit);
+    MemUnit ParseMemUnit(const std::string &unit);
 
     void SetValidator(const std::string &key, const ValidatorPtr &validator, uint32_t flag);
 
-    template <class T>
+    template<class T>
     static void AddValidateError(const ValidatorPtr &validator, std::vector<std::string> &errors, const T &iter)
     {
         if (validator == nullptr) {
@@ -137,8 +130,8 @@ private:
             errors.push_back(validator->ErrorMessage());
         }
     }
-    void ValidateOneType(const std::string &key, const ValidatorPtr &validator,
-        std::vector<std::string> &errors, ConfValueType &vType);
+    void ValidateOneType(const std::string &key, const ValidatorPtr &validator, std::vector<std::string> &errors,
+                         ConfValueType &vType);
 
     void ValidateItem(const std::string &itemKey, std::vector<std::string> &errors);
 
@@ -182,14 +175,19 @@ public:
         AddBoolConf(OCK_MMC_META_HA_ENABLE, VStrEnum::Create(OCK_MMC_META_HA_ENABLE.first, BOOL_ENUM_STR), 0);
         AddStrConf(OCK_MMC_LOG_LEVEL, VStrEnum::Create(OCK_MMC_LOG_LEVEL.first, LOG_LEVEL_ENUM_STR), 0);
         AddStrConf(OCK_MMC_LOG_PATH, VStrLength::Create(OCK_MMC_LOG_PATH.first, PATH_MAX_LEN), 0);
-        AddIntConf(OCK_MMC_LOG_ROTATION_FILE_SIZE, VIntRange::Create(OCK_MMC_LOG_ROTATION_FILE_SIZE.first,
-            MIN_LOG_ROTATION_FILE_SIZE, MAX_LOG_ROTATION_FILE_SIZE), 0);
-        AddIntConf(OCK_MMC_LOG_ROTATION_FILE_COUNT, VIntRange::Create(OCK_MMC_LOG_ROTATION_FILE_COUNT.first,
-            MIN_LOG_ROTATION_FILE_COUNT, MAX_LOG_ROTATION_FILE_COUNT), 0);
+        AddIntConf(OCK_MMC_LOG_ROTATION_FILE_SIZE,
+                   VIntRange::Create(OCK_MMC_LOG_ROTATION_FILE_SIZE.first, MIN_LOG_ROTATION_FILE_SIZE,
+                                     MAX_LOG_ROTATION_FILE_SIZE),
+                   0);
+        AddIntConf(OCK_MMC_LOG_ROTATION_FILE_COUNT,
+                   VIntRange::Create(OCK_MMC_LOG_ROTATION_FILE_COUNT.first, MIN_LOG_ROTATION_FILE_COUNT,
+                                     MAX_LOG_ROTATION_FILE_COUNT),
+                   0);
         AddIntConf(OKC_MMC_EVICT_THRESHOLD_HIGH,
-            VIntRange::Create(OKC_MMC_EVICT_THRESHOLD_HIGH.first, MIN_EVICT_THRESHOLD, MAX_EVICT_THRESHOLD), 0);
+                   VIntRange::Create(OKC_MMC_EVICT_THRESHOLD_HIGH.first, MIN_EVICT_THRESHOLD, MAX_EVICT_THRESHOLD), 0);
         AddIntConf(OKC_MMC_EVICT_THRESHOLD_LOW,
-            VIntRange::Create(OKC_MMC_EVICT_THRESHOLD_LOW.first, MIN_EVICT_THRESHOLD, MAX_EVICT_THRESHOLD - 1), 0);
+                   VIntRange::Create(OKC_MMC_EVICT_THRESHOLD_LOW.first, MIN_EVICT_THRESHOLD, MAX_EVICT_THRESHOLD - 1),
+                   0);
 
         AddBoolConf(OCK_MMC_TLS_ENABLE, VStrEnum::Create(OCK_MMC_TLS_ENABLE.first, BOOL_ENUM_STR), 0);
         AddStrConf(OCK_MMC_TLS_CA_PATH, VStrLength::Create(OCK_MMC_TLS_CA_PATH.first, TLS_PATH_MAX_LEN), 0);
@@ -198,8 +196,8 @@ public:
         AddStrConf(OCK_MMC_TLS_KEY_PATH, VStrLength::Create(OCK_MMC_TLS_KEY_PATH.first, TLS_PATH_MAX_LEN), 0);
         AddStrConf(OCK_MMC_TLS_KEY_PASS_PATH, VStrLength::Create(OCK_MMC_TLS_KEY_PASS_PATH.first, TLS_PATH_MAX_LEN), 0);
         AddStrConf(OCK_MMC_TLS_PACKAGE_PATH, VStrLength::Create(OCK_MMC_TLS_PACKAGE_PATH.first, TLS_PATH_MAX_LEN), 0);
-        AddStrConf(OCK_MMC_TLS_DECRYPTER_PATH,
-            VStrLength::Create(OCK_MMC_TLS_DECRYPTER_PATH.first, TLS_PATH_MAX_LEN), 0);
+        AddStrConf(OCK_MMC_TLS_DECRYPTER_PATH, VStrLength::Create(OCK_MMC_TLS_DECRYPTER_PATH.first, TLS_PATH_MAX_LEN),
+                   0);
 
         AddBoolConf(OCK_MMC_CS_TLS_ENABLE, VStrEnum::Create(OCK_MMC_CS_TLS_ENABLE.first, BOOL_ENUM_STR), 0);
         AddStrConf(OCK_MMC_CS_TLS_CA_PATH, VStrLength::Create(OCK_MMC_CS_TLS_CA_PATH.first, TLS_PATH_MAX_LEN), 0);
@@ -207,21 +205,19 @@ public:
         AddStrConf(OCK_MMC_CS_TLS_CERT_PATH, VStrLength::Create(OCK_MMC_CS_TLS_CERT_PATH.first, TLS_PATH_MAX_LEN), 0);
         AddStrConf(OCK_MMC_CS_TLS_KEY_PATH, VStrLength::Create(OCK_MMC_CS_TLS_KEY_PATH.first, TLS_PATH_MAX_LEN), 0);
         AddStrConf(OCK_MMC_CS_TLS_KEY_PASS_PATH,
-            VStrLength::Create(OCK_MMC_CS_TLS_KEY_PASS_PATH.first, TLS_PATH_MAX_LEN), 0);
-        AddStrConf(OCK_MMC_CS_TLS_PACKAGE_PATH,
-            VStrLength::Create(OCK_MMC_CS_TLS_PACKAGE_PATH.first, TLS_PATH_MAX_LEN), 0);
+                   VStrLength::Create(OCK_MMC_CS_TLS_KEY_PASS_PATH.first, TLS_PATH_MAX_LEN), 0);
+        AddStrConf(OCK_MMC_CS_TLS_PACKAGE_PATH, VStrLength::Create(OCK_MMC_CS_TLS_PACKAGE_PATH.first, TLS_PATH_MAX_LEN),
+                   0);
         AddStrConf(OCK_MMC_CS_TLS_DECRYPTER_PATH,
-            VStrLength::Create(OCK_MMC_CS_TLS_DECRYPTER_PATH.first, TLS_PATH_MAX_LEN), 0);
+                   VStrLength::Create(OCK_MMC_CS_TLS_DECRYPTER_PATH.first, TLS_PATH_MAX_LEN), 0);
     }
 
     void GetMetaServiceConfig(mmc_meta_service_config_t &config)
     {
-        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_URL),
-            config.discoveryURL, DISCOVERY_URL_SIZE);
-        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_CONFIG_STORE_URL),
-            config.configStoreURL, DISCOVERY_URL_SIZE);
-        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_HTTP_URL),
-            config.httpURL, DISCOVERY_URL_SIZE);
+        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_URL), config.discoveryURL, DISCOVERY_URL_SIZE);
+        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_CONFIG_STORE_URL), config.configStoreURL,
+                 DISCOVERY_URL_SIZE);
+        SafeCopy(GetString(ConfConstant::OCK_MMC_META_SERVICE_HTTP_URL), config.httpURL, DISCOVERY_URL_SIZE);
 
         config.haEnable = GetBool(ConfConstant::OCK_MMC_META_HA_ENABLE);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
@@ -239,7 +235,7 @@ public:
     }
 };
 
-class ClientConfig final: public Configuration {
+class ClientConfig final : public Configuration {
 public:
     void LoadDefault() override
     {
@@ -254,8 +250,8 @@ public:
         AddStrConf(OCK_MMC_TLS_KEY_PATH, VStrLength::Create(OCK_MMC_TLS_KEY_PATH.first, TLS_PATH_MAX_LEN), 0);
         AddStrConf(OCK_MMC_TLS_KEY_PASS_PATH, VStrLength::Create(OCK_MMC_TLS_KEY_PASS_PATH.first, TLS_PATH_MAX_LEN), 0);
         AddStrConf(OCK_MMC_TLS_PACKAGE_PATH, VStrLength::Create(OCK_MMC_TLS_PACKAGE_PATH.first, TLS_PATH_MAX_LEN), 0);
-        AddStrConf(OCK_MMC_TLS_DECRYPTER_PATH,
-            VStrLength::Create(OCK_MMC_TLS_DECRYPTER_PATH.first, TLS_PATH_MAX_LEN), 0);
+        AddStrConf(OCK_MMC_TLS_DECRYPTER_PATH, VStrLength::Create(OCK_MMC_TLS_DECRYPTER_PATH.first, TLS_PATH_MAX_LEN),
+                   0);
 
         AddBoolConf(OCK_MMC_CS_TLS_ENABLE, VStrEnum::Create(OCK_MMC_CS_TLS_ENABLE.first, BOOL_ENUM_STR), 0);
         AddStrConf(OCK_MMC_CS_TLS_CA_PATH, VStrLength::Create(OCK_MMC_CS_TLS_CA_PATH.first, TLS_PATH_MAX_LEN), 0);
@@ -263,47 +259,47 @@ public:
         AddStrConf(OCK_MMC_CS_TLS_CERT_PATH, VStrLength::Create(OCK_MMC_CS_TLS_CERT_PATH.first, TLS_PATH_MAX_LEN), 0);
         AddStrConf(OCK_MMC_CS_TLS_KEY_PATH, VStrLength::Create(OCK_MMC_CS_TLS_KEY_PATH.first, TLS_PATH_MAX_LEN), 0);
         AddStrConf(OCK_MMC_CS_TLS_KEY_PASS_PATH,
-            VStrLength::Create(OCK_MMC_CS_TLS_KEY_PASS_PATH.first, TLS_PATH_MAX_LEN), 0);
-        AddStrConf(OCK_MMC_CS_TLS_PACKAGE_PATH,
-            VStrLength::Create(OCK_MMC_CS_TLS_PACKAGE_PATH.first, TLS_PATH_MAX_LEN), 0);
+                   VStrLength::Create(OCK_MMC_CS_TLS_KEY_PASS_PATH.first, TLS_PATH_MAX_LEN), 0);
+        AddStrConf(OCK_MMC_CS_TLS_PACKAGE_PATH, VStrLength::Create(OCK_MMC_CS_TLS_PACKAGE_PATH.first, TLS_PATH_MAX_LEN),
+                   0);
         AddStrConf(OCK_MMC_CS_TLS_DECRYPTER_PATH,
-            VStrLength::Create(OCK_MMC_CS_TLS_DECRYPTER_PATH.first, TLS_PATH_MAX_LEN), 0);
+                   VStrLength::Create(OCK_MMC_CS_TLS_DECRYPTER_PATH.first, TLS_PATH_MAX_LEN), 0);
 
         AddIntConf(OKC_MMC_LOCAL_SERVICE_WORLD_SIZE,
-            VIntRange::Create(OKC_MMC_LOCAL_SERVICE_WORLD_SIZE.first, MIN_WORLD_SIZE, MAX_WORLD_SIZE), 0);
+                   VIntRange::Create(OKC_MMC_LOCAL_SERVICE_WORLD_SIZE.first, MIN_WORLD_SIZE, MAX_WORLD_SIZE), 0);
         AddStrConf(OKC_MMC_LOCAL_SERVICE_BM_IP_PORT, VNoCheck::Create(), 0);
         AddStrConf(OKC_MMC_LOCAL_SERVICE_PROTOCOL,
-            VStrEnum::Create(OKC_MMC_LOCAL_SERVICE_PROTOCOL.first, LOCAL_SERVER_PROTOCAL_ENUM_STR), 1); // REQUIED
+                   VStrEnum::Create(OKC_MMC_LOCAL_SERVICE_PROTOCOL.first, LOCAL_SERVER_PROTOCAL_ENUM_STR),
+                   1);                                                      // REQUIED
         AddStrConf(OKC_MMC_LOCAL_SERVICE_DRAM_SIZE, VNoCheck::Create(), 1); // REQUIED
-        AddStrConf(OKC_MMC_LOCAL_SERVICE_HBM_SIZE, VNoCheck::Create(), 1); // REQUIED
-        
+        AddStrConf(OKC_MMC_LOCAL_SERVICE_HBM_SIZE, VNoCheck::Create(), 1);  // REQUIED
+
         // HCOM TLS config
         AddStrConf(OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL, VNoCheck::Create(), 0);
         AddBoolConf(OCK_MMC_HCOM_TLS_ENABLE, VStrEnum::Create(OCK_MMC_HCOM_TLS_ENABLE.first, BOOL_ENUM_STR), 0);
-        AddStrConf(OCK_MMC_HCOM_TLS_CA_PATH,
-            VStrLength::Create(OCK_MMC_HCOM_TLS_CA_PATH.first, TLS_PATH_MAX_LEN), 0);
-        AddStrConf(OCK_MMC_HCOM_TLS_CRL_PATH,
-            VStrLength::Create(OCK_MMC_HCOM_TLS_CRL_PATH.first, TLS_PATH_MAX_LEN), 0);
-        AddStrConf(OCK_MMC_HCOM_TLS_CERT_PATH,
-            VStrLength::Create(OCK_MMC_HCOM_TLS_CERT_PATH.first, TLS_PATH_MAX_LEN), 0);
-        AddStrConf(OCK_MMC_HCOM_TLS_KEY_PATH,
-            VStrLength::Create(OCK_MMC_HCOM_TLS_KEY_PATH.first, TLS_PATH_MAX_LEN), 0);
+        AddStrConf(OCK_MMC_HCOM_TLS_CA_PATH, VStrLength::Create(OCK_MMC_HCOM_TLS_CA_PATH.first, TLS_PATH_MAX_LEN), 0);
+        AddStrConf(OCK_MMC_HCOM_TLS_CRL_PATH, VStrLength::Create(OCK_MMC_HCOM_TLS_CRL_PATH.first, TLS_PATH_MAX_LEN), 0);
+        AddStrConf(OCK_MMC_HCOM_TLS_CERT_PATH, VStrLength::Create(OCK_MMC_HCOM_TLS_CERT_PATH.first, TLS_PATH_MAX_LEN),
+                   0);
+        AddStrConf(OCK_MMC_HCOM_TLS_KEY_PATH, VStrLength::Create(OCK_MMC_HCOM_TLS_KEY_PATH.first, TLS_PATH_MAX_LEN), 0);
         AddStrConf(OCK_MMC_HCOM_TLS_KEY_PASS_PATH,
-            VStrLength::Create(OCK_MMC_HCOM_TLS_KEY_PASS_PATH.first, TLS_PATH_MAX_LEN), 0);
+                   VStrLength::Create(OCK_MMC_HCOM_TLS_KEY_PASS_PATH.first, TLS_PATH_MAX_LEN), 0);
         AddStrConf(OCK_MMC_HCOM_TLS_DECRYPTER_PATH,
-            VStrLength::Create(OCK_MMC_HCOM_TLS_DECRYPTER_PATH.first, TLS_PATH_MAX_LEN), 0);
-        
+                   VStrLength::Create(OCK_MMC_HCOM_TLS_DECRYPTER_PATH.first, TLS_PATH_MAX_LEN), 0);
+
         AddIntConf(OKC_MMC_CLIENT_RETRY_MILLISECONDS,
                    VIntRange::Create(OKC_MMC_CLIENT_RETRY_MILLISECONDS.first, MIN_RETRY_MS, MAX_RETRY_MS), 0);
         AddIntConf(OCK_MMC_CLIENT_TIMEOUT_SECONDS,
-            VIntRange::Create(OCK_MMC_CLIENT_TIMEOUT_SECONDS.first, MIN_TIMEOUT_SEC, MAX_TIMEOUT_SEC), 0);
-        AddIntConf(OCK_MMC_CLIENT_READ_THREAD_POOL_SIZE,
-            VIntRange::Create(OCK_MMC_CLIENT_READ_THREAD_POOL_SIZE.first,
-            MIN_THREAD_POOL_SIZE, MAX_THREAD_POOL_SIZE), 0);
+                   VIntRange::Create(OCK_MMC_CLIENT_TIMEOUT_SECONDS.first, MIN_TIMEOUT_SEC, MAX_TIMEOUT_SEC), 0);
+        AddIntConf(
+            OCK_MMC_CLIENT_READ_THREAD_POOL_SIZE,
+            VIntRange::Create(OCK_MMC_CLIENT_READ_THREAD_POOL_SIZE.first, MIN_THREAD_POOL_SIZE, MAX_THREAD_POOL_SIZE),
+            0);
         AddBoolConf(OCK_MMC_CLIENT_AGGREGATE_IO, VStrEnum::Create(OCK_MMC_CLIENT_AGGREGATE_IO.first, BOOL_ENUM_STR), 0);
-        AddIntConf(OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE,
-            VIntRange::Create(OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE.first,
-            MIN_THREAD_POOL_SIZE, MAX_THREAD_POOL_SIZE), 0);
+        AddIntConf(
+            OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE,
+            VIntRange::Create(OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE.first, MIN_THREAD_POOL_SIZE, MAX_THREAD_POOL_SIZE),
+            0);
     }
 
     void GetLocalServiceConfig(mmc_local_service_config_t &config)
@@ -364,12 +360,12 @@ public:
             return MMC_INVALID_PARAM;
         }
 
-        MMC_VALIDATE_RETURN(ValidateTLSConfig(config.accTlsConfig) == MMC_OK,
-            "Invalid acc_link TLS config", MMC_INVALID_PARAM);
-        MMC_VALIDATE_RETURN(ValidateTLSConfig(config.hcomTlsConfig) == MMC_OK,
-            "Invalid hcom TLS config", MMC_INVALID_PARAM);
-        MMC_VALIDATE_RETURN(ValidateTLSConfig(config.configStoreTlsConfig) == MMC_OK,
-            "Invalid config store TLS config", MMC_INVALID_PARAM);
+        MMC_VALIDATE_RETURN(ValidateTLSConfig(config.accTlsConfig) == MMC_OK, "Invalid acc_link TLS config",
+                            MMC_INVALID_PARAM);
+        MMC_VALIDATE_RETURN(ValidateTLSConfig(config.hcomTlsConfig) == MMC_OK, "Invalid hcom TLS config",
+                            MMC_INVALID_PARAM);
+        MMC_VALIDATE_RETURN(ValidateTLSConfig(config.configStoreTlsConfig) == MMC_OK, "Invalid config store TLS config",
+                            MMC_INVALID_PARAM);
 
         return MMC_OK;
     }

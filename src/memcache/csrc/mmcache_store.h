@@ -123,8 +123,7 @@ public:
 
     int Put(const std::string &key, mmc_buffer &buffer, const ReplicateConfig &replicateConfig = {});
 
-    int PutBatch(const std::vector<std::string> &keys,
-                 std::vector<mmc_buffer> &buffers,
+    int PutBatch(const std::vector<std::string> &keys, std::vector<mmc_buffer> &buffers,
                  const ReplicateConfig &replicateConfig);
 
 private:
@@ -138,7 +137,7 @@ private:
     static int ReturnWrapper(const int result, const std::string &key);
 };
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
 #endif

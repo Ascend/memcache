@@ -60,13 +60,13 @@ enum LOCAL_META_OPCODE_RESP : int16_t {
     ML_IS_EXIST_RESP = 4, /* unused */
     ML_BATCH_IS_EXIST_RESP = 5,
     ML_BATCH_REMOVE_RESP = 6,
-    ML_BM_UNREGISTER_RESP = 7,  /* unused */
+    ML_BM_UNREGISTER_RESP = 7, /* unused */
     ML_BATCH_ALLOC_RESP = 8,
     ML_QUERY_RESP = 9,
     ML_BATCH_QUERY_RESP = 10,
     ML_BATCH_UPDATE_RESP = 11,
 };
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEMFABRIC_MMC_MSG_BASE_H
+#endif // MEMFABRIC_MMC_MSG_BASE_H

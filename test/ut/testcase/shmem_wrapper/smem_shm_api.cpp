@@ -94,4 +94,4 @@ int32_t SmemApi::LoadLibrary(const std::string &libDirPath)
     LOG_INFO("loaded library: " << gSmemFileName << " success.");
     return 0;
 }
-}  // namespace shm
+} // namespace shm

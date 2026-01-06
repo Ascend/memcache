@@ -15,11 +15,11 @@
 #include <stdint.h>
 
 #define DISCOVERY_URL_SIZE 1024
-#define PATH_MAX_SIZE 1024
-#define PROTOCOL_SIZE 64
+#define PATH_MAX_SIZE      1024
+#define PROTOCOL_SIZE      64
 #define MAX_BATCH_OP_COUNT 16384
-#define TLS_PATH_SIZE 256
-#define TLS_PATH_MAX_LEN (TLS_PATH_SIZE - 1)
+#define TLS_PATH_SIZE      256
+#define TLS_PATH_MAX_LEN   (TLS_PATH_SIZE - 1)
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,7 +29,7 @@ typedef void *mmc_meta_service_t;
 typedef void *mmc_local_service_t;
 typedef void *mmc_client_t;
 #ifndef MMC_OUT_LOGGER
-typedef void (*ExternalLog)(int level, const char* msg);
+typedef void (*ExternalLog)(int level, const char *msg);
 #endif
 
 typedef struct {
@@ -44,7 +44,7 @@ typedef struct {
 } mmc_tls_config;
 
 typedef struct {
-    char discoveryURL[DISCOVERY_URL_SIZE]; /* composed by schema and url, e.g. tcp:// or etcd:// or zk:// */
+    char discoveryURL[DISCOVERY_URL_SIZE];   /* composed by schema and url, e.g. tcp:// or etcd:// or zk:// */
     char configStoreURL[DISCOVERY_URL_SIZE]; /* composed by schema and url, e.g. tcp:// or etcd:// or zk:// */
     char httpURL[DISCOVERY_URL_SIZE];
     bool haEnable;
@@ -61,7 +61,7 @@ typedef struct {
 typedef struct {
     char discoveryURL[DISCOVERY_URL_SIZE];
     uint32_t deviceId;
-    uint32_t rankId;  // bmRankId: BM全局统一编号
+    uint32_t rankId; // bmRankId: BM全局统一编号
     uint32_t worldSize;
     char bmIpPort[DISCOVERY_URL_SIZE];
     char bmHcomUrl[DISCOVERY_URL_SIZE];
@@ -122,4 +122,4 @@ typedef struct {
 }
 #endif
 
-#endif  //__MEMFABRIC_MMC_DEF_H__
+#endif //__MEMFABRIC_MMC_DEF_H__

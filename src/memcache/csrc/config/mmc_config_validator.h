@@ -28,15 +28,30 @@ public:
     ~Validator() override = default;
 
     virtual bool Initialize() = 0;
-    virtual bool Validate(const std::string&) { return true; }
+    virtual bool Validate(const std::string &)
+    {
+        return true;
+    }
 
-    virtual bool Validate(int) { return true; }
+    virtual bool Validate(int)
+    {
+        return true;
+    }
 
-    virtual bool Validate(float) { return true; }
+    virtual bool Validate(float)
+    {
+        return true;
+    }
 
-    virtual bool Validate(long unsigned) { return true; }
+    virtual bool Validate(long unsigned)
+    {
+        return true;
+    }
 
-    const std::string& ErrorMessage() { return mErrMsg; }
+    const std::string &ErrorMessage()
+    {
+        return mErrMsg;
+    }
 
 protected:
     explicit Validator(std::string name) : mName(std::move(name)) {}
@@ -48,23 +63,29 @@ using ValidatorPtr = MmcRef<Validator>;
 
 class VNoCheck : public Validator {
 public:
-    static ValidatorPtr Create(const std::string& name = "") { return {new (std::nothrow) VNoCheck(name)}; }
+    static ValidatorPtr Create(const std::string &name = "")
+    {
+        return {new (std::nothrow) VNoCheck(name)};
+    }
 
-    explicit VNoCheck(const std::string& name) : Validator(name) {}
+    explicit VNoCheck(const std::string &name) : Validator(name) {}
 
     ~VNoCheck() override = default;
 
-    bool Initialize() override { return true; }
+    bool Initialize() override
+    {
+        return true;
+    }
 };
 
 class VStrEnum : public Validator {
 public:
-    static ValidatorPtr Create(const std::string& name, const std::string& enumStr, const bool caseSensitive = false)
+    static ValidatorPtr Create(const std::string &name, const std::string &enumStr, const bool caseSensitive = false)
     {
         return {new (std::nothrow) VStrEnum(name, enumStr, caseSensitive)};
     }
 
-    VStrEnum(const std::string& name, std::string enumStr, const bool caseSensitive = false)
+    VStrEnum(const std::string &name, std::string enumStr, const bool caseSensitive = false)
         : Validator(name), mEnumString(std::move(enumStr)), caseSensitive(caseSensitive)
     {
         if (!caseSensitive) {
@@ -87,7 +108,7 @@ public:
         return true;
     }
 
-    bool Validate(const std::string& value) override
+    bool Validate(const std::string &value) override
     {
         // if value has ||
         // for example rc||tcp
@@ -118,14 +139,12 @@ private:
 
 class VStrInSet : public Validator {
 public:
-    static ValidatorPtr Create(const std::string& name, const std::string& enumStr)
+    static ValidatorPtr Create(const std::string &name, const std::string &enumStr)
     {
         return {new (std::nothrow) VStrInSet(name, enumStr)};
     }
 
-    VStrInSet(const std::string& name, std::string enumStr) : Validator(name), mEnumString(std::move(enumStr))
-    {
-    }
+    VStrInSet(const std::string &name, std::string enumStr) : Validator(name), mEnumString(std::move(enumStr)) {}
 
     ~VStrInSet() override = default;
 
@@ -139,11 +158,11 @@ public:
         return true;
     }
 
-    bool Validate(const std::string& value) override
+    bool Validate(const std::string &value) override
     {
         std::vector<std::string> validValues;
         SplitStr(value, "|", validValues);
-        for (const auto& item : validValues) {
+        for (const auto &item : validValues) {
             if (validEnumSet.find(item) == validEnumSet.end()) {
                 mErrMsg = "Invalid value for <" + mName + ">, it should be one of " + mEnumString;
                 return false;
@@ -159,15 +178,21 @@ private:
 
 class VStrNotNull : public Validator {
 public:
-    static ValidatorPtr Create(const std::string& name) { return {new (std::nothrow) VStrNotNull(name)}; }
+    static ValidatorPtr Create(const std::string &name)
+    {
+        return {new (std::nothrow) VStrNotNull(name)};
+    }
 
-    explicit VStrNotNull(const std::string& name) : Validator(name) {};
+    explicit VStrNotNull(const std::string &name) : Validator(name) {};
 
     ~VStrNotNull() override = default;
 
-    bool Initialize() override { return true; }
+    bool Initialize() override
+    {
+        return true;
+    }
 
-    bool Validate(const std::string& value) override
+    bool Validate(const std::string &value) override
     {
         if (value.empty()) {
             mErrMsg = "Invalid value for <" + mName + ">, it should not be empty";
@@ -179,38 +204,42 @@ public:
 
 class VStrLength : public Validator {
 public:
-    static ValidatorPtr Create(const std::string& name, const unsigned long lenLimit)
+    static ValidatorPtr Create(const std::string &name, const unsigned long lenLimit)
     {
         return {new (std::nothrow) VStrLength(name, lenLimit)};
     }
 
-    explicit VStrLength(const std::string& name, const unsigned long lenLimit)
+    explicit VStrLength(const std::string &name, const unsigned long lenLimit)
         : Validator(name), mLengthLimit(lenLimit) {};
 
     ~VStrLength() override = default;
 
-    bool Initialize() override { return true; }
+    bool Initialize() override
+    {
+        return true;
+    }
 
-    bool Validate(const std::string& value) override
+    bool Validate(const std::string &value) override
     {
         if (value.length() > mLengthLimit) {
             mErrMsg = "String length exceeds limit for <" + mName + ">, it should be no longer than " +
-                std::to_string(mLengthLimit);
+                      std::to_string(mLengthLimit);
             return false;
         }
         return true;
     }
+
 private:
     unsigned long mLengthLimit;
 };
 
 class VIntRange : public Validator {
 public:
-    static ValidatorPtr Create(const std::string& name, const int& start, const int& end)
+    static ValidatorPtr Create(const std::string &name, const int &start, const int &end)
     {
         return {new (std::nothrow) VIntRange(name, start, end)};
     }
-    VIntRange(const std::string& name, const int& start, const int& end) : Validator(name), mStart(start), mEnd(end) {};
+    VIntRange(const std::string &name, const int &start, const int &end) : Validator(name), mStart(start), mEnd(end) {};
 
     ~VIntRange() override = default;
 
@@ -245,11 +274,11 @@ private:
 
 class VUInt64Range : public Validator {
 public:
-    static ValidatorPtr Create(const std::string& name, const uint64_t& start, const uint64_t& end)
+    static ValidatorPtr Create(const std::string &name, const uint64_t &start, const uint64_t &end)
     {
         return {new (std::nothrow) VUInt64Range(name, start, end)};
     }
-    VUInt64Range(const std::string& name, const uint64_t& start, const uint64_t& end)
+    VUInt64Range(const std::string &name, const uint64_t &start, const uint64_t &end)
         : Validator(name), mStart(start), mEnd(end) {};
 
     ~VUInt64Range() override = default;
@@ -267,7 +296,7 @@ public:
     {
         if (value < mStart || value > mEnd) {
             mErrMsg = "Invalid value for <" + mName + ">, it should be between " + std::to_string(mStart) + "-" +
-                          std::to_string(mEnd);
+                      std::to_string(mEnd);
             return false;
         }
 
@@ -281,18 +310,24 @@ private:
 
 class VPathAccess : public Validator {
 public:
-    static ValidatorPtr Create(const std::string& name, int flag)
+    static ValidatorPtr Create(const std::string &name, int flag)
     {
         return {new (std::nothrow) VPathAccess(name, flag)};
     }
 
-    VPathAccess(const std::string& name, int flag) : Validator(name) { mFlag = flag; }
+    VPathAccess(const std::string &name, int flag) : Validator(name)
+    {
+        mFlag = flag;
+    }
 
     ~VPathAccess() override = default;
 
-    bool Initialize() override { return true; }
+    bool Initialize() override
+    {
+        return true;
+    }
 
-    bool Validate(const std::string& path) override
+    bool Validate(const std::string &path) override
     {
         if (path.empty()) {
             mErrMsg = "Invalid value for " + mName + ", path is empty.";
@@ -316,7 +351,7 @@ public:
                 if (access(tmp.c_str(), F_OK) != 0) {
                     break;
                 }
-                existDeepestDir = std::string(tmp);  // 记录当前存在的路径
+                existDeepestDir = std::string(tmp); // 记录当前存在的路径
             }
             posLeft = posRight + 1;
         }
@@ -324,14 +359,14 @@ public:
     }
 
 private:
-    bool PathCheck(const std::string& existDeepestDir, const std::string& rest, const std::string& path)
+    bool PathCheck(const std::string &existDeepestDir, const std::string &rest, const std::string &path)
     {
         // 检查路径是否合法
         char realBinPath[PATH_MAX + 1] = {0x00};
         if (existDeepestDir.length() > PATH_MAX) {
             return false;
         }
-        char* tmp = realpath(existDeepestDir.c_str(), realBinPath);
+        char *tmp = realpath(existDeepestDir.c_str(), realBinPath);
         if (tmp == nullptr) {
             mErrMsg = "Invalid value (" + path + ") for <" + mName + ">. Permission denied.";
             return false;
@@ -343,7 +378,7 @@ private:
         }
         // 检查待创建路径是否存在禁止字符
         if (!rest.empty()) {
-            for (auto& forbidden : forbiddenWords) {
+            for (auto &forbidden : forbiddenWords) {
                 auto pos = rest.find(forbidden + "/");
                 if (pos != std::string::npos) {
                     mErrMsg = "Invalid value (" + path + ") for <" + mName +
@@ -360,7 +395,7 @@ private:
     int mFlag = 0;
     const std::vector<std::string> forbiddenWords{".."};
 };
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
 #endif

@@ -15,5 +15,5 @@ namespace ock {
 namespace mmc {
 thread_local bool MmcLastError::have_ = false;
 thread_local std::string MmcLastError::msg_;
-}  // namespace smem
-}  // namespace ock
+} // namespace mmc
+} // namespace ock

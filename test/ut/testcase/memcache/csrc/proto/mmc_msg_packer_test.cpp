@@ -13,7 +13,6 @@
 
 #include "mmc_msg_packer.h"
 
-
 using namespace ock::mmc;
 
 class MmcMsgPacker : public testing::Test {

@@ -19,8 +19,8 @@ namespace mmc {
 namespace ConfConstant {
 // add configuration here with default values
 constexpr auto OCK_MMC_META_SERVICE_URL = std::make_pair("ock.mmc.meta_service_url", "tcp://127.0.0.1:5000");
-constexpr auto OCK_MMC_META_SERVICE_CONFIG_STORE_URL = std::make_pair("ock.mmc.meta_service.config_store_url",
-                                                                      "tcp://127.0.0.1:6000");
+constexpr auto OCK_MMC_META_SERVICE_CONFIG_STORE_URL =
+    std::make_pair("ock.mmc.meta_service.config_store_url", "tcp://127.0.0.1:6000");
 constexpr auto OCK_MMC_META_SERVICE_HTTP_URL = std::make_pair("ock.mmc.meta_service.metrics_url", "127.0.0.1:8000");
 constexpr auto OCK_MMC_META_HA_ENABLE = std::make_pair("ock.mmc.meta.ha.enable", false);
 constexpr auto OKC_MMC_EVICT_THRESHOLD_HIGH = std::make_pair("ock.mmc.evict_threshold_high", 70);
@@ -48,13 +48,13 @@ constexpr auto OCK_MMC_CS_TLS_PACKAGE_PATH = std::make_pair("ock.mmc.config_stor
 constexpr auto OCK_MMC_CS_TLS_DECRYPTER_PATH = std::make_pair("ock.mmc.config_store.tls.decrypter.path", "");
 
 constexpr auto OKC_MMC_LOCAL_SERVICE_WORLD_SIZE = std::make_pair("ock.mmc.local_service.world_size", 16);
-constexpr auto OKC_MMC_LOCAL_SERVICE_BM_IP_PORT = std::make_pair("ock.mmc.local_service.config_store_url",
-                                                                 "tcp://127.0.0.1:6000");
+constexpr auto OKC_MMC_LOCAL_SERVICE_BM_IP_PORT =
+    std::make_pair("ock.mmc.local_service.config_store_url", "tcp://127.0.0.1:6000");
 constexpr auto OKC_MMC_LOCAL_SERVICE_PROTOCOL = std::make_pair("ock.mmc.local_service.protocol", "host_rdma");
 constexpr auto OKC_MMC_LOCAL_SERVICE_DRAM_SIZE = std::make_pair("ock.mmc.local_service.dram.size", "128MB");
 constexpr auto OKC_MMC_LOCAL_SERVICE_HBM_SIZE = std::make_pair("ock.mmc.local_service.hbm.size", "0");
-constexpr auto OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL = std::make_pair("ock.mmc.local_service.hcom_url",
-                                                                  "tcp://127.0.0.1:7000");
+constexpr auto OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL =
+    std::make_pair("ock.mmc.local_service.hcom_url", "tcp://127.0.0.1:7000");
 constexpr auto OCK_MMC_HCOM_TLS_ENABLE = std::make_pair("ock.mmc.local_service.hcom.tls.enable", false);
 constexpr auto OCK_MMC_HCOM_TLS_CA_PATH = std::make_pair("ock.mmc.local_service.hcom.tls.ca.path", "");
 constexpr auto OCK_MMC_HCOM_TLS_CRL_PATH = std::make_pair("ock.mmc.local_service.hcom.tls.ca.crl.path", "");
@@ -68,7 +68,7 @@ constexpr auto OCK_MMC_CLIENT_TIMEOUT_SECONDS = std::make_pair("ock.mmc.client.t
 constexpr auto OCK_MMC_CLIENT_READ_THREAD_POOL_SIZE = std::make_pair("ock.mmc.client.read_thread_pool.size", 32);
 constexpr auto OCK_MMC_CLIENT_AGGREGATE_IO = std::make_pair("ock.mmc.client.aggregate.io", false);
 constexpr auto OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE = std::make_pair("ock.mmc.client.write_thread_pool.size", 4);
-}
+} // namespace ConfConstant
 
 constexpr int MIN_LOG_ROTATION_FILE_SIZE = 1;
 constexpr int MAX_LOG_ROTATION_FILE_SIZE = 500;
@@ -94,7 +94,7 @@ constexpr int MAX_TIMEOUT_SEC = 600;
 constexpr int MIN_THREAD_POOL_SIZE = 1;
 constexpr int MAX_THREAD_POOL_SIZE = 64;
 
-constexpr uint64_t MAX_DRAM_SIZE = 1024ULL * 1024ULL * 1024ULL * 1024ULL;  // 1TB
+constexpr uint64_t MAX_DRAM_SIZE = 1024ULL * 1024ULL * 1024ULL * 1024ULL; // 1TB
 constexpr uint64_t MAX_HBM_SIZE = 1024ULL * 1024ULL * 1024ULL * 1024ULL;  // 1TB
 
 constexpr uint64_t KB_MEM_BYTES = 1024ULL;
@@ -108,7 +108,7 @@ constexpr uint64_t MEM_128MB_BYTES = 128ULL * 1024ULL * 1024ULL;
 
 constexpr unsigned long PATH_MAX_LEN = 1023;
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
 #endif

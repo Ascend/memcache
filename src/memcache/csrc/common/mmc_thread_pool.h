@@ -42,7 +42,7 @@ using invoke_result_t = typename std::invoke_result<F, Args...>::type;
 constexpr int32_t MIN_NICE = -20;
 constexpr int32_t MAX_NICE = 19;
 
-class MmcThreadPool  : public MmcReferable {
+class MmcThreadPool : public MmcReferable {
 public:
     MmcThreadPool(std::string name, size_t numThreads) : mmcPoolName(name), numThreads(numThreads), stop(false) {}
 
@@ -157,8 +157,8 @@ public:
         Destroy();
     }
 
-    MmcThreadPool(const MmcThreadPool&) = delete;
-    MmcThreadPool& operator=(const MmcThreadPool&) = delete;
+    MmcThreadPool(const MmcThreadPool &) = delete;
+    MmcThreadPool &operator=(const MmcThreadPool &) = delete;
 
 private:
     std::vector<std::thread> workers;
@@ -171,7 +171,7 @@ private:
 };
 
 using MmcThreadPoolPtr = MmcRef<MmcThreadPool>;
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
 #endif

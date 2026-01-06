@@ -33,10 +33,9 @@ struct MemObjQueryInfo {
     MemObjQueryInfo() : size_(0), prot_(0), numBlobs_(0), valid_(false), blobTypes_{0}, blobRanks_{0} {}
     MemObjQueryInfo(const uint64_t size, const uint16_t prot, const uint8_t numBlobs, const bool valid)
         : size_(size), prot_(prot), numBlobs_(numBlobs), valid_(valid)
-    {
-    }
-    
-    nlohmann::json toJson(const std::string& key) const
+    {}
+
+    nlohmann::json toJson(const std::string &key) const
     {
         nlohmann::json queryInfo;
         queryInfo["key"] = key;
@@ -53,7 +52,7 @@ struct MemObjQueryInfo {
             blobsArray.push_back(blobJson);
         }
         queryInfo["blobs"] = blobsArray;
-        
+
         return queryInfo;
     }
 };
@@ -76,8 +75,7 @@ public:
     MmcMemBlob(const uint32_t &rank, const uint64_t &gva, const uint64_t &size, const MediaType &mediaType,
                const BlobState &state)
         : rank_(rank), gva_(gva), size_(size), mediaType_(mediaType), state_(state), nextBlob_(nullptr)
-    {
-    }
+    {}
     ~MmcMemBlob() override = default;
 
     /**
@@ -152,7 +150,7 @@ public:
 
     inline bool IsLeaseExpired();
 
-    friend std::ostream& operator<<(std::ostream& os, const MmcMemBlob& blob)
+    friend std::ostream &operator<<(std::ostream &os, const MmcMemBlob &blob)
     {
         os << "Blob{rank=" << blob.rank_ << ",gva=" << blob.gva_ << ",size=" << blob.size_
            << ",media=" << static_cast<int>(blob.mediaType_) << ",state=" << static_cast<int>(blob.state_)
@@ -160,13 +158,16 @@ public:
         return os;
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const MmcRef<MmcMemBlob>& blob) { return os << *blob.Get(); }
+    friend std::ostream &operator<<(std::ostream &os, const MmcRef<MmcMemBlob> &blob)
+    {
+        return os << *blob.Get();
+    }
 
     /**
      * 原则：blob由 MmcMemObjMeta 维护生命周期及锁的保护
      */
 
-    Result Backup(const std::string& key);
+    Result Backup(const std::string &key);
 
     Result BackupRemove(const std::string &key);
 
@@ -257,7 +258,7 @@ bool MmcMemBlob::IsLeaseExpired()
     return true;
 }
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_MMC_MEM_BLOB_H
+#endif // MEM_FABRIC_MMC_MEM_BLOB_H

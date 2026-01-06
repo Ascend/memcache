@@ -17,21 +17,13 @@ using namespace ock::smem;
 
 class SmMonotonicTest : public testing::Test {
 public:
-    static void SetUpTestCase()
-    {
-    }
+    static void SetUpTestCase() {}
 
-    static void TearDownTestCase()
-    {
-    }
+    static void TearDownTestCase() {}
 
-    void SetUp() override
-    {
-    }
+    void SetUp() override {}
 
-    void TearDown() override
-    {
-    }
+    void TearDown() override {}
 };
 
 TEST_F(SmMonotonicTest, time_test)

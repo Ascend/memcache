@@ -40,7 +40,7 @@ struct NetEngineOptions {
     uint16_t threadCount = 2;     /* worker thread count */
     uint16_t rankId = UINT16_MAX; /* rank id */
     bool startListener = false;   /* start listener or not */
-    mmc_tls_config tlsOption;         /* TLS communication options */
+    mmc_tls_config tlsOption;     /* TLS communication options */
     int32_t logLevel = 3;
     ExternalLog logFunc = nullptr;
 
@@ -61,12 +61,8 @@ using NetEnginePtr = MmcRef<NetEngine>;
 inline std::string NetEngineOptions::ToString() const
 {
     std::ostringstream oss;
-    oss << "NetEngineOptions [name " << name
-        << ", ip: " << ip << ", port: " << port
-        << ", threadCount: " << threadCount
-        << ", rankId " << rankId
-        << ", startListener: " << startListener
-        << ", tlsEnables: " << tlsOption.tlsEnable
+    oss << "NetEngineOptions [name " << name << ", ip: " << ip << ", port: " << port << ", threadCount: " << threadCount
+        << ", rankId " << rankId << ", startListener: " << startListener << ", tlsEnables: " << tlsOption.tlsEnable
         << "]";
     return oss.str();
 }
@@ -103,4 +99,4 @@ inline Result NetEngineOptions::ExtractIpPortFromUrl(const std::string &url, Net
 } // namespace mmc
 } // namespace ock
 
-#endif  // MEM_FABRIC_MOBS_NET_COMMON_H
+#endif // MEM_FABRIC_MOBS_NET_COMMON_H

@@ -76,7 +76,8 @@ static bool CheckData(void *base, void *ptr)
     int32_t *arr1 = (int32_t *)base;
     int32_t *arr2 = (int32_t *)ptr;
     for (uint32_t i = 0; i < SIZE_32K / sizeof(int); i++) {
-        if (arr1[i] != arr2[i]) return false;
+        if (arr1[i] != arr2[i])
+            return false;
     }
     return true;
 }
@@ -102,8 +103,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
 
     uint64_t totalSize = SIZE_32K * 10;
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma",
-                                                     totalSize, totalSize, 0};
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", totalSize, totalSize, 0};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -148,8 +148,8 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
 
     std::vector<int> results;
     results.resize(keys.size(), -1);
-    const char** c_keys = new (std::nothrow) const char*[keys.size()];
-    for (size_t i = 0 ; i < keys.size(); ++i) {
+    const char **c_keys = new (std::nothrow) const char *[keys.size()];
+    for (size_t i = 0; i < keys.size(); ++i) {
         c_keys[i] = keys[i].c_str();
     }
 
@@ -188,8 +188,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
     ASSERT_TRUE(meta_service != nullptr);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma",
-                                                     104857600, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 104857600, 104857600, 0};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -237,10 +236,10 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     ret = mmcc_remove(test.c_str(), 0);
     ASSERT_TRUE(ret == 0);
 
-    const char* keys[] = {"test1", "test2"};
+    const char *keys[] = {"test1", "test2"};
     uint32_t keys_count = sizeof(keys) / sizeof(keys[0]);
-    void* hostSrcs[keys_count];
-    void* hostDests[keys_count];
+    void *hostSrcs[keys_count];
+    void *hostDests[keys_count];
     mmc_buffer bufs[keys_count];
 
     for (uint32_t i = 0; i < keys_count; ++i) {
@@ -308,7 +307,7 @@ TEST_F(TestMmcServiceInterface, testPutInvalidParam)
     ASSERT_TRUE(ret == ock::mmc::MMC_OK);
 
     mmc_buffer validBuf{(uint64_t)malloc(1024), 0, 0, 1024};
-    const char* emptyKey = "";
+    const char *emptyKey = "";
     mmc_put_options options{0, NATIVE_AFFINITY, 1};
     std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
     ret = mmcc_put(nullptr, &validBuf, options, 0);
@@ -324,12 +323,11 @@ TEST_F(TestMmcServiceInterface, testPutInvalidParam)
     ret = mmcc_put("validKey", &invalidBuf, options, 0);
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
 
-    free((void*)validBuf.addr);
+    free((void *)validBuf.addr);
 }
 
 TEST_F(TestMmcServiceInterface, testBatchOperationsEdgeCases)
 {
-
     int32_t results[2];
     mmc_data_info info[2];
 
@@ -346,13 +344,7 @@ TEST_F(TestMmcServiceInterface, testBatchOperationsEdgeCases)
 
 TEST_F(TestMmcServiceInterface, testBatchQueryInvalidKeys)
 {
-    const char* keys[] = {
-        "validKey1",
-        "",
-        nullptr,
-        "invalid*&^%key",
-        "validKey2"
-    };
+    const char *keys[] = {"validKey1", "", nullptr, "invalid*&^%key", "validKey2"};
     const uint32_t keyCount = sizeof(keys) / sizeof(keys[0]);
     mmc_data_info info[keyCount];
 
@@ -377,7 +369,7 @@ TEST_F(TestMmcServiceInterface, testExistOperations)
     int32_t ret = mmcc_exist("non_existent_key", 0);
     EXPECT_EQ(ret, ock::mmc::MMC_LINK_NOT_FOUND);
 
-    const char* keys[] = {"key1", "key2", "non_existent"};
+    const char *keys[] = {"key1", "key2", "non_existent"};
     int32_t exists[3] = {};
     ret = mmcc_batch_exist(keys, 3, exists, 0);
     ASSERT_EQ(ret, ock::mmc::MMC_LINK_NOT_FOUND);
@@ -396,7 +388,7 @@ TEST_F(TestMmcServiceInterface, testBatchGetErrorHandling)
     ret = mmcc_batch_get(nullptr, 2, nullptr, 0, results1.data());
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
 
-    const char* keys[] = {"test_key"};
+    const char *keys[] = {"test_key"};
     mmc_buffer bufs[1];
     std::vector<int> results2(1, -1);
     ret = mmcc_batch_get(keys, 0, bufs, 0, results2.data());
@@ -406,7 +398,7 @@ TEST_F(TestMmcServiceInterface, testBatchGetErrorHandling)
     ret = mmcc_batch_get(keys, oversize, bufs, 0, results2.data());
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
 
-    const char* validKeys[] = {"key1", "key2"};
+    const char *validKeys[] = {"key1", "key2"};
     mmc_buffer invalidBufs[2] = {{.addr = (uint64_t)malloc(SIZE_32K), .type = 0, .offset = 0, .len = SIZE_32K},
                                  {.addr = 0, .type = 0, .offset = 0, .len = SIZE_32K}};
 
@@ -426,7 +418,7 @@ TEST_F(TestMmcServiceInterface, testBatchGetErrorHandling)
     EXPECT_EQ(invalidBufs[1].addr, 0ULL);
 
     free(data);
-    free((void*)invalidBufs[0].addr);
+    free((void *)invalidBufs[0].addr);
     mmcc_remove("key1", 0);
     mmcc_remove("key2", 0);
 }
@@ -440,11 +432,11 @@ TEST_F(TestMmcServiceInterface, testBatchGetWithPartialData)
     int32_t ret = mmcc_init(&clientConfig);
     ASSERT_EQ(ret, ock::mmc::MMC_OK);
 
-    const char* keys[] = {"partial_key1", "partial_key2", "partial_key3"};
+    const char *keys[] = {"partial_key1", "partial_key2", "partial_key3"};
     const uint32_t keyCount = sizeof(keys) / sizeof(keys[0]);
 
-    void* data1 = malloc(SIZE_32K);
-    void* data3 = malloc(SIZE_32K);
+    void *data1 = malloc(SIZE_32K);
+    void *data3 = malloc(SIZE_32K);
     GenerateData(data1, 1);
     GenerateData(data3, 3);
 
@@ -457,7 +449,7 @@ TEST_F(TestMmcServiceInterface, testBatchGetWithPartialData)
     mmcc_put(keys[2], &writeBuf3, putOpts, 0);
 
     mmc_buffer readBufs[keyCount];
-    void* destData[keyCount];
+    void *destData[keyCount];
 
     for (uint32_t i = 0; i < keyCount; i++) {
         destData[i] = calloc(1, SIZE_32K);
@@ -488,12 +480,8 @@ protected:
     void SetUp() override
     {
         baseMem = new char[CAPACITY];
-        allocator = new ock::mmc::MmcBlobAllocator(
-            0,
-            static_cast<ock::mmc::MediaType>(0),
-            reinterpret_cast<uint64_t>(baseMem),
-            CAPACITY
-        );
+        allocator = new ock::mmc::MmcBlobAllocator(0, static_cast<ock::mmc::MediaType>(0),
+                                                   reinterpret_cast<uint64_t>(baseMem), CAPACITY);
         std::map<std::string, ock::mmc::MmcMemBlobDesc> blobMap;
         allocator->BuildFromBlobs(blobMap);
         allocator->Start();
@@ -507,14 +495,14 @@ protected:
         baseMem = nullptr;
     }
 
-    void CheckAlignment(const ock::mmc::MmcMemBlobPtr& blob)
+    void CheckAlignment(const ock::mmc::MmcMemBlobPtr &blob)
     {
         ASSERT_NE(blob.Get(), nullptr);
         EXPECT_EQ(blob->Gva() % 4096, 0UL);
     }
 
-    ock::mmc::MmcBlobAllocator* allocator;
-    char* baseMem;
+    ock::mmc::MmcBlobAllocator *allocator;
+    char *baseMem;
     static constexpr uint64_t CAPACITY = 4096 * 16;
 };
 
@@ -531,8 +519,8 @@ TEST_F(TestMmcBlobAllocator, testBlobAllocatorEdgeCases)
     ASSERT_EQ(allocator->Release(fullBlob), ock::mmc::MMC_OK);
     ASSERT_EQ(allocator->Release(fullBlob), ock::mmc::MMC_ERROR);
 
-    auto invalidBlob = ock::mmc::MmcMakeRef<ock::mmc::MmcMemBlob>(
-        0, 0xDEADBEEF, 1024, ock::mmc::MediaType(0), ock::mmc::NONE);
+    auto invalidBlob =
+        ock::mmc::MmcMakeRef<ock::mmc::MmcMemBlob>(0, 0xDEADBEEF, 1024, ock::mmc::MediaType(0), ock::mmc::NONE);
     ASSERT_EQ(allocator->Release(invalidBlob), ock::mmc::MMC_ERROR);
 }
 
@@ -574,12 +562,7 @@ TEST_F(TestMmcBlobAllocator, ReleaseCoverage)
     EXPECT_EQ(allocator->Release(nullptr), ock::mmc::MMC_ERROR);
 
     auto invalidAddrBlob = ock::mmc::MmcMakeRef<ock::mmc::MmcMemBlob>(
-        0,
-        static_cast<uint64_t>(0xDEADBEEF),
-        1024,
-        static_cast<ock::mmc::MediaType>(0),
-        ock::mmc::NONE
-    );
+        0, static_cast<uint64_t>(0xDEADBEEF), 1024, static_cast<ock::mmc::MediaType>(0), ock::mmc::NONE);
     EXPECT_EQ(allocator->Release(invalidAddrBlob), ock::mmc::MMC_ERROR);
 
     auto validBlob = allocator->Alloc(1024);

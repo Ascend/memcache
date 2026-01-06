@@ -12,7 +12,7 @@
 #ifndef MEM_FABRIC_HYBRID_MMC_DEFINE_H
 #define MEM_FABRIC_HYBRID_MMC_DEFINE_H
 
-#define MMC_DATA_TTL_MS 2000
+#define MMC_DATA_TTL_MS             2000
 #define MMC_THRESHOLD_PRINT_SECONDS 30
 #define MMC_THREAD_POOL_MAX_THREADS 1024
 
@@ -115,7 +115,7 @@ namespace mmc {
         p = nullptr;   \
     } while (0)
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_HYBRID_MMC_DEFINE_H
+#endif // MEM_FABRIC_HYBRID_MMC_DEFINE_H

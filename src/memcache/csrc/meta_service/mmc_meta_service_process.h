@@ -23,21 +23,20 @@
 
 #include "mmc_meta_service.h"
 
-
 namespace ock {
 namespace mmc {
 
 class MmcMetaServiceProcess {
 public:
-    static MmcMetaServiceProcess& getInstance()
+    static MmcMetaServiceProcess &getInstance()
     {
         static MmcMetaServiceProcess meta;
         return meta;
     }
     MmcMetaServiceProcess() = default;
     ~MmcMetaServiceProcess() = default;
-    MmcMetaServiceProcess(const MmcMetaServiceProcess&) = delete;
-    MmcMetaServiceProcess& operator=(const MmcMetaServiceProcess&) = delete;
+    MmcMetaServiceProcess(const MmcMetaServiceProcess &) = delete;
+    MmcMetaServiceProcess &operator=(const MmcMetaServiceProcess &) = delete;
 
     int MainForExecutable();
     int MainForPython();
@@ -47,7 +46,7 @@ private:
     int LoadConfig();
     static void RegisterSignal();
     static void SignalInterruptHandler(const int signal);
-    static int InitLogger(const mmc_meta_service_config_t& options);
+    static int InitLogger(const mmc_meta_service_config_t &options);
     int StartHttpServer();
     void Exit();
 

@@ -23,7 +23,6 @@ ret = acl.rt.set_device(count - 1)
 print("set_device returned: {}".format(ret))
 
 
-
 class TestExample(unittest.TestCase):
     kv = {
         "key_1": b"some data",
@@ -58,7 +57,7 @@ class TestExample(unittest.TestCase):
             print(retrieved_data)
             self.assertEqual(retrieved_data, v)
 
-        time.sleep(3) # wait for the lease to expire
+        time.sleep(3)  # wait for the lease to expire
 
         # test batch remove
         rm_res = self._distributed_object_store.remove_batch(list(self.kv.keys()))

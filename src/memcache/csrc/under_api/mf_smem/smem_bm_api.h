@@ -273,7 +273,7 @@ private:
     static smemBmPtrFunc gSmemBmPtr;
     static smemBmCopyFunc gSmemBmCopy;
 };
-}
-}
+} // namespace mmc
+} // namespace ock
 
-#endif  // __SMEM_HYBM_CORE_API_H__
+#endif // __SMEM_HYBM_CORE_API_H__

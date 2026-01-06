@@ -21,8 +21,8 @@ namespace prometheus {
 namespace simpleapi {
 auto registry_ptr = std::make_shared<Registry>();
 Registry &registry = *registry_ptr;
-}
-}
+} // namespace simpleapi
+} // namespace prometheus
 
 constexpr int FP_OUTPUT_PRECISION = 2;
 
@@ -35,20 +35,19 @@ MmcMetaMetricManager::MmcMetaMetricManager()
       getCounter_("memcache_get_operations_total", "Total number of get operations"),
       evictCounter_("memcache_evict_operations_total", "Total number of eviction operations"),
       keyCountGauge_("memcache_stored_keys", "Current number of stored keys")
-{
-}
+{}
 
 std::string MmcMetaMetricManager::GetSummary() const
 {
     std::ostringstream oss;
-    
+
     oss << "=== MemCache Metrics Summary ===" << std::endl;
     oss << std::fixed << std::setprecision(FP_OUTPUT_PRECISION);
-    
+
     oss << "Allocation Operations: " << allocCounter_.value() << std::endl;
     oss << "Remove Operations: " << removeCounter_.value() << std::endl;
     oss << "Get Operations: " << getCounter_.value() << std::endl;
-    
+
     return oss.str();
 }
 
@@ -60,5 +59,5 @@ std::string MmcMetaMetricManager::GetPrometheusSummary()
     return ss.str();
 }
 
-}
-}
+} // namespace mmc
+} // namespace ock

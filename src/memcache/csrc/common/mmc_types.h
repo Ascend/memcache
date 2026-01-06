@@ -52,7 +52,7 @@ enum MmcErrorCode : int32_t {
     MMC_META_BACKUP_ERROR = -3105,
 };
 
-inline std::ostream& operator<<(std::ostream& os, MmcErrorCode errCode)
+inline std::ostream &operator<<(std::ostream &os, MmcErrorCode errCode)
 {
     os << std::to_string(static_cast<int32_t>(errCode));
     return os;
@@ -72,7 +72,7 @@ constexpr uint32_t UN128 = 128;
 constexpr uint32_t UN65536 = 65536;
 constexpr uint32_t UN16777216 = 16777216;
 
-constexpr uint32_t MMC_DEFAUT_WAIT_TIME = 120;  // 120s
+constexpr uint32_t MMC_DEFAUT_WAIT_TIME = 120; // 120s
 
 enum MediaType : uint8_t {
     MEDIA_HBM,
@@ -102,17 +102,23 @@ inline MediaType MoveDown(MediaType mediaType)
     }
 }
 
-inline std::ostream& operator<<(std::ostream& os, MediaType type)
+inline std::ostream &operator<<(std::ostream &os, MediaType type)
 {
     switch (type) {
-        case MEDIA_DRAM: os << "DRAM"; break;
-        case MEDIA_HBM: os << "HBM"; break;
-        default: os << "UNKNOWN"; break;
+        case MEDIA_DRAM:
+            os << "DRAM";
+            break;
+        case MEDIA_HBM:
+            os << "HBM";
+            break;
+        default:
+            os << "UNKNOWN";
+            break;
     }
     return os;
 }
 
-inline std::string MediumTypeToString(const MediaType& mediaType)
+inline std::string MediumTypeToString(const MediaType &mediaType)
 {
     std::ostringstream oss;
     oss << mediaType;
@@ -146,7 +152,7 @@ struct MmcLocation {
         return rank_ == other.rank_ && mediaType_ == other.mediaType_;
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const MmcLocation& loc)
+    friend std::ostream &operator<<(std::ostream &os, const MmcLocation &loc)
     {
         os << "loc{rank=" << loc.rank_ << ",media=" << loc.mediaType_ << "}";
         return os;
@@ -189,7 +195,7 @@ inline uint64_t GetSequenceByOperateId(uint64_t operateId)
     return requestUnion.sequence_;
 }
 
-inline uint64_t MmcBufSize(const mmc_buffer& buf)
+inline uint64_t MmcBufSize(const mmc_buffer &buf)
 {
     return buf.len;
 }
@@ -198,29 +204,35 @@ class MmcBufferArray {
 public:
     MmcBufferArray() : totalSize_(0) {}
 
-    explicit MmcBufferArray(const std::vector<mmc_buffer>& buffers) : buffers_(buffers)
+    explicit MmcBufferArray(const std::vector<mmc_buffer> &buffers) : buffers_(buffers)
     {
         totalSize_ = 0;
-        for (const auto& buf : buffers_) {
+        for (const auto &buf : buffers_) {
             totalSize_ += MmcBufSize(buf);
         }
     }
 
-    void AddBuffer(const mmc_buffer& buf)
+    void AddBuffer(const mmc_buffer &buf)
     {
         buffers_.push_back(buf);
         totalSize_ += MmcBufSize(buf);
     }
 
-    const std::vector<mmc_buffer>& Buffers() const { return buffers_; }
-    size_t TotalSize() const { return totalSize_; }
+    const std::vector<mmc_buffer> &Buffers() const
+    {
+        return buffers_;
+    }
+    size_t TotalSize() const
+    {
+        return totalSize_;
+    }
 
 private:
     std::vector<mmc_buffer> buffers_{};
     size_t totalSize_{0};
 };
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEMFABRIC_HYBRID_MMC_TYPES_H
+#endif // MEMFABRIC_HYBRID_MMC_TYPES_H

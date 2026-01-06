@@ -14,8 +14,7 @@
 
 using namespace ock::mmc;
 
-
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
     return MmcMetaServiceProcess::getInstance().MainForExecutable();
 }

@@ -30,9 +30,7 @@ public:
 
 protected:
 };
-MMcNetEngine::MMcNetEngine()
-{
-}
+MMcNetEngine::MMcNetEngine() {}
 
 void MMcNetEngine::SetUp()
 {
@@ -45,7 +43,7 @@ void MMcNetEngine::TearDown()
 }
 int32_t HandleTestRequest(NetContextPtr &ctx)
 {
-    std::cout << "HandleTestRequest ut test" << " context " << ctx.Get() <<std::endl;
+    std::cout << "HandleTestRequest ut test" << " context " << ctx.Get() << std::endl;
     PingMsg recv;
     recv.destRankId = 0;
     recv.msgId = 1;
@@ -58,10 +56,9 @@ int32_t HandleTestRequest(NetContextPtr &ctx)
     return ctx->Reply(0, serializedData.c_str(), retSize);
 }
 
-
 int32_t HandleTestRequest2(NetContextPtr &ctx)
 {
-    std::cout << "HandleTestRequest ut test" << " context " << ctx.Get() <<std::endl;
+    std::cout << "HandleTestRequest ut test" << " context " << ctx.Get() << std::endl;
     PingMsg recv;
     recv.destRankId = 0;
     recv.msgId = 1;

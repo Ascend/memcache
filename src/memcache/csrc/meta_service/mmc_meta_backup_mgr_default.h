@@ -27,10 +27,7 @@
 
 namespace ock {
 namespace mmc {
-enum BackUpOperate {
-    META_BACKUP_ADD = 0,
-    META_BACKUP_REMOVE = 1
-};
+enum BackUpOperate { META_BACKUP_ADD = 0, META_BACKUP_REMOVE = 1 };
 
 struct MetaBackUpOperate {
     uint32_t op_;
@@ -118,14 +115,14 @@ public:
         return MMC_OK;
     }
 
-    Result Load(std::map<std::string, MmcMemBlobDesc>& blobMap) override
+    Result Load(std::map<std::string, MmcMemBlobDesc> &blobMap) override
     {
         return MMC_OK;
     }
 
 private:
-    uint32_t PopMetas2Backup(
-        std::vector<uint32_t>& ops, std::vector<std::string>& keys, std::vector<MmcMemBlobDesc>& blobs);
+    uint32_t PopMetas2Backup(std::vector<uint32_t> &ops, std::vector<std::string> &keys,
+                             std::vector<MmcMemBlobDesc> &blobs);
     void SendBackup2Local();
 
     MetaNetServerPtr metaNetServer_;
@@ -137,6 +134,6 @@ private:
     std::mutex backupListLock_;
     std::list<MetaBackUpOperate> backupList_;
 };
-}
-}
+} // namespace mmc
+} // namespace ock
 #endif // MF_HYBRID_MMC_META_BACKUP_MGR_H

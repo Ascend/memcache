@@ -8,10 +8,10 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-if(BUILD_PYTHON STREQUAL "ON")
+if (BUILD_PYTHON STREQUAL "ON")
     find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
     find_package(pybind11 REQUIRED)
-endif()
+endif ()
 include_directories(
         ${PROJECT_MMC_SRC_BASE}/include/
         ${PROJECT_MMC_SRC_BASE}/include/cpp/
@@ -46,12 +46,12 @@ if (BUILD_TESTS STREQUAL "ON")
             ${PROJECT_SOURCE_DIR}/test/ut/testcase/memcache/include)
 endif ()
 
-if(BUILD_PYTHON STREQUAL "ON")
+if (BUILD_PYTHON STREQUAL "ON")
     include_directories(
-         ${PYTHON_INCLUDE_DIR}
-         ${PYTHON_PYBIND11_HOME}/include/
+            ${PYTHON_INCLUDE_DIR}
+            ${PYTHON_PYBIND11_HOME}/include/
     )
-endif()
+endif ()
 
 ## define src variables
 set(MMC_SRC_COMMON "")
@@ -106,13 +106,13 @@ set_target_properties(mmc_static PROPERTIES OUTPUT_NAME "mf_memcache")
 target_link_libraries(mmc_static PUBLIC pthread acc_tcp_net_static)
 target_link_directories(mmc_static PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib)
 target_link_directories(mmc_static PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib64)
-if(BUILD_PYTHON STREQUAL "ON")
+if (BUILD_PYTHON STREQUAL "ON")
     target_link_libraries(mmc_static PRIVATE pybind11::module Python3::Python)
-endif()
+endif ()
 if (x${CMAKE_BUILD_TYPE} STREQUAL "xDEBUG")
     target_link_libraries(mmc_static PUBLIC pthread libspdlogd.a)
 else (
-    target_link_libraries(mmc_static PUBLIC pthread libspdlog.a)
+        target_link_libraries (mmc_static PUBLIC pthread libspdlog.a)
 )
 endif ()
 
@@ -124,13 +124,13 @@ target_link_directories(mmc_shared PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib
 if (x${CMAKE_BUILD_TYPE} STREQUAL "xDEBUG")
     target_link_libraries(mmc_shared PUBLIC pthread libspdlogd.a)
 else (
-    target_link_libraries(mmc_shared PUBLIC pthread libspdlog.a)
+        target_link_libraries (mmc_shared PUBLIC pthread libspdlog.a)
 )
 endif ()
 
-if(BUILD_PYTHON STREQUAL "ON")
+if (BUILD_PYTHON STREQUAL "ON")
     add_subdirectory(python_wrapper)
-endif()
+endif ()
 add_subdirectory(daemon)
 
 #install

@@ -62,7 +62,7 @@ Result MmcMetaMgrProxy::BatchAlloc(const BatchAllocRequest &req, BatchAllocRespo
     return MMC_OK;
 }
 
-Result MmcMetaMgrProxy::UpdateState(const UpdateRequest& req, Response& resp)
+Result MmcMetaMgrProxy::UpdateState(const UpdateRequest &req, Response &resp)
 {
     MmcLocation loc{req.rank_, static_cast<MediaType>(req.mediaType_)};
     Result ret = metaMangerPtr_->UpdateState(req.key_, loc, req.actionResult_, req.operateId_);
@@ -70,7 +70,7 @@ Result MmcMetaMgrProxy::UpdateState(const UpdateRequest& req, Response& resp)
     return MMC_OK;
 }
 
-Result MmcMetaMgrProxy::BatchUpdateState(const BatchUpdateRequest& req, BatchUpdateResponse& resp)
+Result MmcMetaMgrProxy::BatchUpdateState(const BatchUpdateRequest &req, BatchUpdateResponse &resp)
 {
     const size_t keyCount = req.keys_.size();
     if (keyCount != req.ranks_.size() || keyCount != req.mediaTypes_.size()) {
@@ -91,7 +91,7 @@ Result MmcMetaMgrProxy::BatchUpdateState(const BatchUpdateRequest& req, BatchUpd
     return MMC_OK;
 }
 
-Result MmcMetaMgrProxy::Get(const GetRequest& req, AllocResponse& resp)
+Result MmcMetaMgrProxy::Get(const GetRequest &req, AllocResponse &resp)
 {
     MmcMemMetaDesc objMeta;
     MmcBlobFilterPtr filterPtr = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, READABLE);
@@ -109,7 +109,7 @@ Result MmcMetaMgrProxy::Get(const GetRequest& req, AllocResponse& resp)
     return MMC_OK;
 }
 
-Result MmcMetaMgrProxy::BatchGet(const BatchGetRequest& req, BatchAllocResponse& resp)
+Result MmcMetaMgrProxy::BatchGet(const BatchGetRequest &req, BatchAllocResponse &resp)
 {
     resp.numBlobs_.resize(req.keys_.size(), 0);
     resp.prots_.resize(req.keys_.size(), 0);
@@ -138,7 +138,7 @@ Result MmcMetaMgrProxy::BatchGet(const BatchGetRequest& req, BatchAllocResponse&
     return MMC_OK;
 }
 
-Result MmcMetaMgrProxy::BatchExistKey(const BatchIsExistRequest& req, BatchIsExistResponse& resp)
+Result MmcMetaMgrProxy::BatchExistKey(const BatchIsExistRequest &req, BatchIsExistResponse &resp)
 {
     resp.results_.reserve(req.keys_.size());
     for (size_t i = 0; i < req.keys_.size(); ++i) {
@@ -151,5 +151,5 @@ Result MmcMetaMgrProxy::BatchExistKey(const BatchIsExistRequest& req, BatchIsExi
     return MMC_OK;
 }
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock

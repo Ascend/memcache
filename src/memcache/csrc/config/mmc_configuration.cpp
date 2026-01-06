@@ -80,7 +80,6 @@ bool Configuration::LoadFromFile(const std::string &filePath)
     return true;
 }
 
-
 int32_t Configuration::GetInt(const std::pair<const char *, int32_t> &item)
 {
     GUARD(&mLock, mLock);
@@ -131,7 +130,7 @@ uint64_t Configuration::GetUInt64(const std::pair<const char *, uint64_t> &item)
     return item.second;
 }
 
-uint64_t Configuration::GetUInt64(const char * key, uint64_t defaultValue)
+uint64_t Configuration::GetUInt64(const char *key, uint64_t defaultValue)
 {
     GUARD(&mLock, mLock);
     const auto iter = mUInt64Items.find(key);
@@ -220,7 +219,7 @@ bool Configuration::SetWithTypeAutoConvert(const std::string &key, const std::st
         uint64_t tmp = 0;
         if (!OckStoULL(value, tmp)) {
             std::cerr << "<" << key << "> was empty or in wrong type, it should be a unsigned long long number."
-                << std::endl;
+                      << std::endl;
             return false;
         }
         mUInt64Items[key] = tmp;
@@ -231,11 +230,11 @@ bool Configuration::SetWithTypeAutoConvert(const std::string &key, const std::st
 bool Configuration::SetWithStrAutoConvert(const std::string &key, const std::string &value)
 {
     std::string tempValue = value;
-    if (key == ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE.first
-        || key == ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first) {
+    if (key == ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE.first ||
+        key == ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first) {
         auto memSize = ParseMemSize(tempValue);
         if (memSize == UINT64_MAX) {
-            std::cerr << "DRAM or HBM value (" << tempValue <<") is invalid, "
+            std::cerr << "DRAM or HBM value (" << tempValue << ") is invalid, "
                       << "please check 'ock.mmc.local_service.dram.size' "
                       << "or 'ock.mmc.local_service.hbm.size'" << std::endl;
             return false;
@@ -276,7 +275,7 @@ void Configuration::AddIntConf(const std::pair<std::string, int> &pair, const Va
 }
 
 void Configuration::AddStrConf(const std::pair<std::string, std::string> &pair, const ValidatorPtr &validator,
-    uint32_t flag)
+                               uint32_t flag)
 {
     mStrItems.insert(pair);
     mValueTypes.insert(std::make_pair(pair.first, ConfValueType::VSTRING));
@@ -291,7 +290,7 @@ void Configuration::AddBoolConf(const std::pair<std::string, bool> &pair, const 
 }
 
 void Configuration::AddUInt64Conf(const std::pair<std::string, uint64_t> &pair, const ValidatorPtr &validator,
-    uint32_t flag)
+                                  uint32_t flag)
 {
     mUInt64Items.insert(pair);
     mValueTypes.insert(std::make_pair(pair.first, ConfValueType::VUINT64));
@@ -299,7 +298,7 @@ void Configuration::AddUInt64Conf(const std::pair<std::string, uint64_t> &pair, 
 }
 
 void Configuration::ValidateOneType(const std::string &key, const ValidatorPtr &validator,
-    std::vector<std::string> &errors, ConfValueType &vType)
+                                    std::vector<std::string> &errors, ConfValueType &vType)
 {
     if (validator == nullptr) {
         errors.push_back("Failed to validate <" + key + ">, validator is NULL");
@@ -365,7 +364,7 @@ std::vector<std::string> Configuration::ValidateConf()
 {
     using namespace ConfConstant;
     std::vector<std::string> errors;
-    for (const auto& validate : mValueValidator) {
+    for (const auto &validate : mValueValidator) {
         if (validate.second == nullptr) {
             std::string errorInfo = "The validator of <" + validate.first + "> create failed, maybe out of memory.";
             errors.push_back(errorInfo);
@@ -445,19 +444,19 @@ int Configuration::ValidateTLSConfig(const mmc_tls_config &tlsConfig)
 
     if (!std::string(tlsConfig.crlPath).empty()) {
         MMC_RETURN_ERROR(ValidatePathNotSymlink(tlsConfig.crlPath),
-            "CRL(Certificate Revocation List) file does not exist or is a symlink");
+                         "CRL(Certificate Revocation List) file does not exist or is a symlink");
     }
     if (!std::string(tlsConfig.keyPassPath).empty()) {
         MMC_RETURN_ERROR(ValidatePathNotSymlink(tlsConfig.keyPassPath),
-            "private key passphrase file does not exist or is a symlink");
+                         "private key passphrase file does not exist or is a symlink");
     }
     if (!std::string(tlsConfig.packagePath).empty()) {
         MMC_RETURN_ERROR(ValidatePathNotSymlink(tlsConfig.packagePath),
-            "openssl dynamic library directory does not exist or is a symlink");
+                         "openssl dynamic library directory does not exist or is a symlink");
     }
     if (!std::string(tlsConfig.decrypterLibPath).empty()) {
         MMC_RETURN_ERROR(ValidatePathNotSymlink(tlsConfig.decrypterLibPath),
-            "decrypter library file does not exist or is a symlink");
+                         "decrypter library file does not exist or is a symlink");
     }
 
     return MMC_OK;
@@ -468,18 +467,18 @@ const std::string Configuration::GetBinDir()
     // 处理相对路径：获取当前可执行文件所在目录的父目录
     // 第一步：获取mmc_meta_service路径
     char pathBuf[PATH_MAX] = {0};
-    ssize_t count = readlink("/proc/self/exe", pathBuf, PATH_MAX - 1);  // 预留终止符空间
+    ssize_t count = readlink("/proc/self/exe", pathBuf, PATH_MAX - 1); // 预留终止符空间
     if (count == -1) {
         MMC_LOG_ERROR("mmc meta service not found bin path");
-        return "";  // 错误时返回空字符串，避免后续错误
+        return ""; // 错误时返回空字符串，避免后续错误
     }
-    pathBuf[count] = '\0';  // 确保字符串终止
+    pathBuf[count] = '\0'; // 确保字符串终止
 
     // 第二步：获取可执行文件所在目录
     std::string binPath(pathBuf);
     size_t lastSlash = binPath.find_last_of('/');
     if (lastSlash == std::string::npos) {
-        return "";  // 无效路径
+        return ""; // 无效路径
     }
     std::string exeDir = binPath.substr(0, lastSlash);
     return exeDir;
@@ -531,7 +530,7 @@ uint64_t Configuration::ParseMemSize(const std::string &memStr)
     double num;
     try {
         num = std::stod(numStr);
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
         return UINT64_MAX;
     }
 
@@ -543,33 +542,56 @@ uint64_t Configuration::ParseMemSize(const std::string &memStr)
     // 转换为字节数
     uint64_t bytes;
     switch (unit) {
-        case MemUnit::B:  bytes = static_cast<uint64_t>(num); break;
-        case MemUnit::KB: bytes = static_cast<uint64_t>(num * KB_MEM_BYTES); break;
-        case MemUnit::MB: bytes = static_cast<uint64_t>(num * MB_MEM_BYTES); break;
-        case MemUnit::GB: bytes = static_cast<uint64_t>(num * GB_MEM_BYTES); break;
-        case MemUnit::TB: bytes = static_cast<uint64_t>(num * TB_MEM_BYTES); break;
-        default: bytes = UINT64_MAX;
+        case MemUnit::B:
+            bytes = static_cast<uint64_t>(num);
+            break;
+        case MemUnit::KB:
+            bytes = static_cast<uint64_t>(num * KB_MEM_BYTES);
+            break;
+        case MemUnit::MB:
+            bytes = static_cast<uint64_t>(num * MB_MEM_BYTES);
+            break;
+        case MemUnit::GB:
+            bytes = static_cast<uint64_t>(num * GB_MEM_BYTES);
+            break;
+        case MemUnit::TB:
+            bytes = static_cast<uint64_t>(num * TB_MEM_BYTES);
+            break;
+        default:
+            bytes = UINT64_MAX;
     }
 
     return bytes;
 }
 
 // 转换字符串单位到枚举
-MemUnit Configuration::ParseMemUnit(const std::string& unit)
+MemUnit Configuration::ParseMemUnit(const std::string &unit)
 {
-    if (unit.empty()) { return MemUnit::B; }
+    if (unit.empty()) {
+        return MemUnit::B;
+    }
 
     std::string lowerUnit = unit;
     std::transform(lowerUnit.begin(), lowerUnit.end(), lowerUnit.begin(), ::tolower);
 
-    if (lowerUnit == "b") { return MemUnit::B; }
-    if (lowerUnit == "k" || lowerUnit == "kb") { return MemUnit::KB; }
-    if (lowerUnit == "m" || lowerUnit == "mb") { return MemUnit::MB; }
-    if (lowerUnit == "g" || lowerUnit == "gb") { return MemUnit::GB; }
-    if (lowerUnit == "t" || lowerUnit == "tb") { return MemUnit::TB; }
+    if (lowerUnit == "b") {
+        return MemUnit::B;
+    }
+    if (lowerUnit == "k" || lowerUnit == "kb") {
+        return MemUnit::KB;
+    }
+    if (lowerUnit == "m" || lowerUnit == "mb") {
+        return MemUnit::MB;
+    }
+    if (lowerUnit == "g" || lowerUnit == "gb") {
+        return MemUnit::GB;
+    }
+    if (lowerUnit == "t" || lowerUnit == "tb") {
+        return MemUnit::TB;
+    }
 
     return MemUnit::UNKNOWN;
 }
 
-} // namespace common
+} // namespace mmc
 } // namespace ock

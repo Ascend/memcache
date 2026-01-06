@@ -81,8 +81,8 @@ public:
 private:
     uint64_t size_{};
     uint32_t blobNum_{};
-    std::vector<int> loc_{};   // blob's location
-    std::vector<int> type_{};  // blob's media type
+    std::vector<int> loc_{};  // blob's location
+    std::vector<int> type_{}; // blob's media type
 };
 
 class ReplicateConfig {
@@ -304,6 +304,6 @@ public:
     virtual std::vector<KeyInfo> BatchGetKeyInfo(const std::vector<std::string> &keys) = 0;
 };
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 #endif

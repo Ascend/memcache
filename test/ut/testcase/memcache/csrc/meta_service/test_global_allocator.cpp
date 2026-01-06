@@ -390,7 +390,7 @@ TEST_F(TestMmcGlobalAllocator, AllocWhenEmpty)
     allocReq.numBlobs_ = 1;
     allocReq.preferredRank_.push_back(0);
     allocReq.mediaType_ = MEDIA_DRAM;
-    
+
     Result ret = allocator->Alloc(allocReq, blobs);
     EXPECT_EQ(ret, MMC_ERROR);
     EXPECT_TRUE(blobs.empty());
@@ -475,7 +475,6 @@ TEST_F(TestMmcGlobalAllocator, ReBuild)
     AllocOptions allocReq;
     std::vector<MmcMemBlobPtr> blobs;
 
-
     allocReq.blobSize_ = SIZE_32K;
     allocReq.numBlobs_ = 1;
     allocReq.preferredRank_.push_back(0);
@@ -485,7 +484,6 @@ TEST_F(TestMmcGlobalAllocator, ReBuild)
     for (size_t i = 0; i < 10; i++) {
         ret = allocator->Alloc(allocReq, blobs);
         EXPECT_EQ(ret, MMC_OK);
-
     }
     EXPECT_EQ(blobs.size(), 10U);
     for (size_t i = 0; i < blobs.size(); i++) {
@@ -525,7 +523,6 @@ TEST_F(TestMmcGlobalAllocator, ReBuild)
         EXPECT_EQ(blobs[i]->Type(), blobsCompare[i]->Type());
         EXPECT_EQ(blobs[i]->Gva(), blobsCompare[i]->Gva());
     }
-
 }
 
 TEST_F(TestMmcGlobalAllocator, AllocForce)

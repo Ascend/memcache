@@ -90,7 +90,7 @@ inline bool NetSeqNo::IsResp() const
 {
     return isResp == 1L;
 }
-}
-}
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_MMC_NET_COMMON_ACC_H
+#endif // MEM_FABRIC_MMC_NET_COMMON_ACC_H

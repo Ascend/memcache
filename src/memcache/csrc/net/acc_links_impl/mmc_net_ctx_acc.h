@@ -42,10 +42,10 @@ using NetContextAccPtr = MmcRef<NetContextAcc>;
 inline int32_t NetContextAcc::Reply(int16_t responseCode, const char *respData, uint32_t &respDataLen)
 {
     /* step2: copy data */
-    TcpDataBufPtr dataBuf = new (std::nothrow)ock::acc::AccDataBuffer(respDataLen);
+    TcpDataBufPtr dataBuf = new (std::nothrow) ock::acc::AccDataBuffer(respDataLen);
     MMC_ASSERT_RETURN(dataBuf.Get() != nullptr, MMC_NEW_OBJECT_FAILED);
     MMC_ASSERT_RETURN(dataBuf->AllocIfNeed(), MMC_NEW_OBJECT_FAILED);
-    std::copy_n(respData, respDataLen,  static_cast<char *>(dataBuf->DataPtrVoid()));
+    std::copy_n(respData, respDataLen, static_cast<char *>(dataBuf->DataPtrVoid()));
     dataBuf->SetDataSize(respDataLen);
     return realContext.Reply(responseCode, dataBuf);
 }
@@ -74,7 +74,7 @@ inline void *NetContextAcc::Data() const
 {
     return realContext.DataPtr();
 }
-}
-}
+} // namespace mmc
+} // namespace ock
 
-#endif  // MMC_NET_CTX_ACC_H
+#endif // MMC_NET_CTX_ACC_H

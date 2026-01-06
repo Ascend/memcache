@@ -144,10 +144,10 @@ Result NetEngineAcc::StartInner()
         tlsOpt.tlsPk = options_.tlsOption.keyPath;
         tlsOpt.tlsPkPwd = options_.tlsOption.keyPassPath;
         MMC_RETURN_ERROR(server_->LoadDynamicLib(options_.tlsOption.packagePath),
-            "Failed to load openssl dynamic library");
+                         "Failed to load openssl dynamic library");
         if (!tlsOpt.tlsPkPwd.empty()) {
             MMC_RETURN_ERROR(RegisterDecryptHandler(options_.tlsOption.decrypterLibPath),
-                "Failed to register decrypt handler");
+                             "Failed to register decrypt handler");
         }
     }
 
@@ -172,37 +172,85 @@ Result NetEngineAcc::StopInner()
 static void TraceSendRecord(int16_t opCode, uint64_t diff)
 {
     switch (opCode) {
-        case ML_ALLOC_REQ: TP_TRACE_RECORD(TP_ACC_SEND_ALLOC, diff, 0); break;
-        case ML_UPDATE_REQ: TP_TRACE_RECORD(TP_ACC_SEND_UPDATE, diff, 0); break;
-        case ML_GET_REQ: TP_TRACE_RECORD(TP_ACC_SEND_GET, diff, 0); break;
-        case ML_REMOVE_REQ: TP_TRACE_RECORD(TP_ACC_SEND_REMOVE, diff, 0); break;
-        case ML_IS_EXIST_REQ: TP_TRACE_RECORD(TP_ACC_SEND_EXIST, diff, 0); break;
-        case ML_QUERY_REQ: TP_TRACE_RECORD(TP_ACC_SEND_QUERY, diff, 0); break;
-        case ML_BATCH_IS_EXIST_REQ: TP_TRACE_RECORD(TP_ACC_SEND_EXIST_BAT, diff, 0); break;
-        case ML_BATCH_REMOVE_REQ: TP_TRACE_RECORD(TP_ACC_SEND_REMOVE_BAT, diff, 0); break;
-        case ML_BATCH_GET_REQ: TP_TRACE_RECORD(TP_ACC_SEND_GET_BAT, diff, 0); break;
-        case ML_BATCH_QUERY_REQ: TP_TRACE_RECORD(TP_ACC_SEND_QUERY_BAT, diff, 0); break;
-        case ML_BATCH_ALLOC_REQ: TP_TRACE_RECORD(TP_ACC_SEND_ALLOC_BAT, diff, 0); break;
-        case ML_BATCH_UPDATE_REQ: TP_TRACE_RECORD(TP_ACC_SEND_UPDATE_BAT, diff, 0); break;
-        default: break;
+        case ML_ALLOC_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_ALLOC, diff, 0);
+            break;
+        case ML_UPDATE_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_UPDATE, diff, 0);
+            break;
+        case ML_GET_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_GET, diff, 0);
+            break;
+        case ML_REMOVE_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_REMOVE, diff, 0);
+            break;
+        case ML_IS_EXIST_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_EXIST, diff, 0);
+            break;
+        case ML_QUERY_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_QUERY, diff, 0);
+            break;
+        case ML_BATCH_IS_EXIST_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_EXIST_BAT, diff, 0);
+            break;
+        case ML_BATCH_REMOVE_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_REMOVE_BAT, diff, 0);
+            break;
+        case ML_BATCH_GET_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_GET_BAT, diff, 0);
+            break;
+        case ML_BATCH_QUERY_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_QUERY_BAT, diff, 0);
+            break;
+        case ML_BATCH_ALLOC_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_ALLOC_BAT, diff, 0);
+            break;
+        case ML_BATCH_UPDATE_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_UPDATE_BAT, diff, 0);
+            break;
+        default:
+            break;
     };
 }
 
 static void TraceSendWaitRecord(int16_t opCode, uint64_t diff)
 {
     switch (opCode) {
-        case ML_ALLOC_REQ: TP_TRACE_RECORD(TP_ACC_SEND_WAIT_ALLOC, diff, 0); break;
-        case ML_UPDATE_REQ: TP_TRACE_RECORD(TP_ACC_SEND_WAIT_UPDATE, diff, 0); break;
-        case ML_GET_REQ: TP_TRACE_RECORD(TP_ACC_SEND_WAIT_GET, diff, 0); break;
-        case ML_REMOVE_REQ: TP_TRACE_RECORD(TP_ACC_SEND_WAIT_REMOVE, diff, 0); break;
-        case ML_IS_EXIST_REQ: TP_TRACE_RECORD(TP_ACC_SEND_WAIT_EXIST, diff, 0); break;
-        case ML_QUERY_REQ: TP_TRACE_RECORD(TP_ACC_SEND_WAIT_QUERY, diff, 0); break;
-        case ML_BATCH_IS_EXIST_REQ: TP_TRACE_RECORD(TP_ACC_SEND_WAIT_EXIST_BAT, diff, 0); break;
-        case ML_BATCH_REMOVE_REQ: TP_TRACE_RECORD(TP_ACC_SEND_WAIT_REMOVE_BAT, diff, 0); break;
-        case ML_BATCH_GET_REQ: TP_TRACE_RECORD(TP_ACC_SEND_WAIT_GET_BAT, diff, 0); break;
-        case ML_BATCH_QUERY_REQ: TP_TRACE_RECORD(TP_ACC_SEND_WAIT_QUERY_BAT, diff, 0); break;
-        case ML_BATCH_ALLOC_REQ: TP_TRACE_RECORD(TP_ACC_SEND_WAIT_ALLOC_BAT, diff, 0); break;
-        default: break;
+        case ML_ALLOC_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_WAIT_ALLOC, diff, 0);
+            break;
+        case ML_UPDATE_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_WAIT_UPDATE, diff, 0);
+            break;
+        case ML_GET_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_WAIT_GET, diff, 0);
+            break;
+        case ML_REMOVE_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_WAIT_REMOVE, diff, 0);
+            break;
+        case ML_IS_EXIST_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_WAIT_EXIST, diff, 0);
+            break;
+        case ML_QUERY_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_WAIT_QUERY, diff, 0);
+            break;
+        case ML_BATCH_IS_EXIST_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_WAIT_EXIST_BAT, diff, 0);
+            break;
+        case ML_BATCH_REMOVE_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_WAIT_REMOVE_BAT, diff, 0);
+            break;
+        case ML_BATCH_GET_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_WAIT_GET_BAT, diff, 0);
+            break;
+        case ML_BATCH_QUERY_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_WAIT_QUERY_BAT, diff, 0);
+            break;
+        case ML_BATCH_ALLOC_REQ:
+            TP_TRACE_RECORD(TP_ACC_SEND_WAIT_ALLOC_BAT, diff, 0);
+            break;
+        default:
+            break;
     };
 }
 
@@ -264,14 +312,14 @@ Result NetEngineAcc::Call(uint32_t targetId, int16_t opCode, const char *reqData
     }
 
     /* got response data and deserialize */
-    auto& data = waiter->Data();
+    auto &data = waiter->Data();
     MMC_ASSERT_RETURN(data.Get() != nullptr, MMC_ERROR);
     /* set response code */
 
     /* deserialize */
 
     if (*respData == nullptr) {
-        *respData = (char*) malloc(data->DataLen());
+        *respData = (char *)malloc(data->DataLen());
         if (*respData == nullptr) {
             MMC_LOG_WARN("Failed to malloc resp date length:" << data->DataLen());
             return MMC_MALLOC_FAILED;
@@ -397,7 +445,7 @@ Result NetEngineAcc::HandleNeqRequest(const TcpReqContext &context)
     MMC_LOG_DEBUG("HandleNeqRequest Header " << context.Header().ToString());
     int16_t opCode = context.Header().result;
     MMC_ASSERT_RETURN(opCode < gHandlerSize, MMC_NET_REQ_HANDLE_NO_FOUND);
-    if (reqReceivedHandlers_[opCode]  == nullptr) {
+    if (reqReceivedHandlers_[opCode] == nullptr) {
         /*  client do reply response */
         MMC_ASSERT_RETURN(HandleAllRequests4Response(context) == MMC_OK, MMC_ERROR);
     } else {
@@ -424,7 +472,6 @@ Result NetEngineAcc::HandleNeqRequest(const TcpReqContext &context)
     }
     return MMC_OK;
 }
-
 
 Result NetEngineAcc::HandleMsgSent(TcpMsgSentResult result, const TcpMsgHeader &header, const TcpDataBufPtr &cbCtx)
 {
@@ -557,5 +604,5 @@ Result NetEngineAcc::RegisterDecryptHandler(const std::string &decryptLibPath) c
 
     return MMC_OK;
 }
-}
-}
+} // namespace mmc
+} // namespace ock

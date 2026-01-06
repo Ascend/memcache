@@ -26,7 +26,7 @@ namespace mmc {
 #define DL_LOAD_SYM(TARGET_FUNC_VAR, TARGET_FUNC_TYPE, FILE_HANDLE, SYMBOL_NAME)           \
     do {                                                                                   \
         TARGET_FUNC_VAR = (TARGET_FUNC_TYPE)dlsym(FILE_HANDLE, SYMBOL_NAME);               \
-        if ((TARGET_FUNC_VAR) == nullptr) {                                                  \
+        if ((TARGET_FUNC_VAR) == nullptr) {                                                \
             MMC_LOG_ERROR("Failed to call dlsym to load SYMBOL_NAME, error" << dlerror()); \
             dlclose(FILE_HANDLE);                                                          \
             return MMC_ERROR;                                                              \
@@ -74,8 +74,7 @@ inline bool Func::Realpath(std::string &path)
     return true;
 }
 
-inline Result Func::LibraryRealPath(const std::string &libDirPath, const std::string &libName,
-                                    std::string &realPath)
+inline Result Func::LibraryRealPath(const std::string &libDirPath, const std::string &libName, std::string &realPath)
 {
     std::string tmpFullPath = libDirPath;
     if (!Realpath(tmpFullPath)) {
@@ -109,7 +108,7 @@ inline Result Func::LibraryRealPath(const std::string &libDirPath, const std::st
  * @param path 要校验的路径
  * @return true: 路径存在且不是软链接, false: 路径不存在或是软链接
  */
-inline int ValidatePathNotSymlink(const char* path)
+inline int ValidatePathNotSymlink(const char *path)
 {
     struct stat path_stat{};
 
@@ -139,7 +138,7 @@ inline int ValidatePathNotSymlink(const char* path)
     return MMC_OK;
 }
 
-inline void SafeCopy(const std::string& src, char* dst, const size_t dstSize)
+inline void SafeCopy(const std::string &src, char *dst, const size_t dstSize)
 {
     const size_t count = std::min(src.length(), dstSize - 1);
     std::copy_n(src.c_str(), count, dst);
@@ -155,6 +154,6 @@ inline std::string SafeGetEnv(const char *name) noexcept
     return value;
 }
 
-}  // namespace mmc
-}  // namespace ock
-#endif  // MEM_FABRIC_HYBRID_SMEM_COMMON_FUNC_H
+} // namespace mmc
+} // namespace ock
+#endif // MEM_FABRIC_HYBRID_SMEM_COMMON_FUNC_H

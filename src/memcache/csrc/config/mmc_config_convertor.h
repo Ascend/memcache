@@ -30,7 +30,7 @@ public:
 
 using ConverterPtr = MmcRef<Converter>;
 
-}
-}
+} // namespace mmc
+} // namespace ock
 
 #endif

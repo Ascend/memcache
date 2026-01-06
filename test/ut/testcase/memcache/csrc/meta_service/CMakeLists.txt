@@ -6,7 +6,7 @@ file(GLOB_RECURSE meta_service_src
 )
 ADD_UNIT_TEST(test_meta_service
         FILES ${meta_service_src} ${TEST_SRC_PATHS}/ut_main.cpp
-        INCLUDE_PATHS  ${TEST_INCLUDE_PATHS}
+        INCLUDE_PATHS ${TEST_INCLUDE_PATHS}
         LINK_LIBRARIES ${TEST_DEPEND_LIBS}
         BUILD_FLAGS -fpermissive --coverage
 )
@@ -16,7 +16,7 @@ file(GLOB_RECURSE meta_manager_src
 )
 ADD_UNIT_TEST(test_meta_manager
         FILES ${meta_manager_src} ${TEST_SRC_PATHS}/ut_main.cpp
-        INCLUDE_PATHS  ${TEST_INCLUDE_PATHS}
+        INCLUDE_PATHS ${TEST_INCLUDE_PATHS}
         LINK_LIBRARIES ${TEST_DEPEND_LIBS}
         BUILD_FLAGS -fpermissive --coverage
 )
@@ -26,7 +26,7 @@ file(GLOB_RECURSE global_allocator_src
 )
 ADD_UNIT_TEST(test_global_allocator
         FILES ${global_allocator_src} ${TEST_SRC_PATHS}/ut_main.cpp
-        INCLUDE_PATHS  ${TEST_INCLUDE_PATHS}
+        INCLUDE_PATHS ${TEST_INCLUDE_PATHS}
         LINK_LIBRARIES ${TEST_DEPEND_LIBS}
         BUILD_FLAGS -fpermissive --coverage
 )
@@ -38,7 +38,7 @@ file(GLOB_RECURSE service_interface
 )
 ADD_UNIT_TEST(test_service_interface
         FILES ${service_interface} ${TEST_SRC_PATHS}/ut_main.cpp
-        INCLUDE_PATHS  ${TEST_INCLUDE_PATHS}
+        INCLUDE_PATHS ${TEST_INCLUDE_PATHS}
         LINK_LIBRARIES ${TEST_DEPEND_LIBS}
         BUILD_FLAGS -fpermissive --coverage
 )
@@ -50,7 +50,7 @@ file(GLOB_RECURSE service_error
 )
 ADD_UNIT_TEST(test_service_error
         FILES ${service_error} ${TEST_SRC_PATHS}/ut_main.cpp
-        INCLUDE_PATHS  ${TEST_INCLUDE_PATHS}
+        INCLUDE_PATHS ${TEST_INCLUDE_PATHS}
         LINK_LIBRARIES ${TEST_DEPEND_LIBS}
         BUILD_FLAGS -fpermissive --coverage
 )
@@ -62,7 +62,7 @@ file(GLOB_RECURSE bm_init_src
 )
 ADD_UNIT_TEST(test_bm_init
         FILES ${bm_init_src} ${TEST_SRC_PATHS}/ut_main.cpp
-        INCLUDE_PATHS  ${TEST_INCLUDE_PATHS}
+        INCLUDE_PATHS ${TEST_INCLUDE_PATHS}
         LINK_LIBRARIES ${TEST_DEPEND_LIBS}
         BUILD_FLAGS -fpermissive --coverage
 )
@@ -74,7 +74,7 @@ file(GLOB_RECURSE bm_proxy_src
 )
 ADD_UNIT_TEST(test_bm_proxy
         FILES ${bm_proxy_src} ${TEST_SRC_PATHS}/ut_main.cpp
-        INCLUDE_PATHS  ${TEST_INCLUDE_PATHS}
+        INCLUDE_PATHS ${TEST_INCLUDE_PATHS}
         LINK_LIBRARIES ${TEST_DEPEND_LIBS}
         BUILD_FLAGS -fpermissive --coverage
 )
@@ -84,7 +84,7 @@ file(GLOB_RECURSE global_allocator_thread_src
 )
 ADD_UNIT_TEST(test_global_allocator_thread
         FILES ${global_allocator_thread_src} ${TEST_SRC_PATHS}/ut_main.cpp
-        INCLUDE_PATHS  ${TEST_INCLUDE_PATHS}
+        INCLUDE_PATHS ${TEST_INCLUDE_PATHS}
         LINK_LIBRARIES ${TEST_DEPEND_LIBS}
         BUILD_FLAGS -fpermissive --coverage
 )
@@ -94,7 +94,7 @@ file(GLOB_RECURSE meta_container_lru_src
 )
 ADD_UNIT_TEST(test_meta_container_lru
         FILES ${meta_container_lru_src} ${TEST_SRC_PATHS}/ut_main.cpp
-        INCLUDE_PATHS  ${TEST_INCLUDE_PATHS}
+        INCLUDE_PATHS ${TEST_INCLUDE_PATHS}
         LINK_LIBRARIES ${TEST_DEPEND_LIBS}
         BUILD_FLAGS -fpermissive --coverage
 )

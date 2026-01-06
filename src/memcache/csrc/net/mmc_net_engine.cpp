@@ -20,5 +20,5 @@ NetEnginePtr NetEngine::Create()
     return MmcMakeRef<NetEngineAcc>().Get();
 }
 
-}
-}
+} // namespace mmc
+} // namespace ock

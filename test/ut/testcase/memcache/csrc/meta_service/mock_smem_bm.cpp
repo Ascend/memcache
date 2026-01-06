@@ -21,8 +21,7 @@ int32_t smem_bm_config_init(smem_bm_config_t *config)
     return 0;
 }
 
-int32_t smem_bm_init(const char *storeURL, uint32_t worldSize,
-                     uint16_t deviceId, const smem_bm_config_t *config)
+int32_t smem_bm_init(const char *storeURL, uint32_t worldSize, uint16_t deviceId, const smem_bm_config_t *config)
 {
     return 0;
 }
@@ -37,8 +36,7 @@ uint32_t smem_bm_get_rank_id(void)
     return 0; // 默认返回rank 0
 }
 
-smem_bm_t smem_bm_create(uint32_t id, uint32_t memberSize,
-                         smem_bm_data_op_type dataOpType, uint64_t localDRAMSize,
+smem_bm_t smem_bm_create(uint32_t id, uint32_t memberSize, smem_bm_data_op_type dataOpType, uint64_t localDRAMSize,
                          uint64_t localHBMSize, uint32_t flags)
 {
     g_spaces[SMEM_MEM_TYPE_DEVICE] = localHBMSize;
@@ -68,17 +66,17 @@ uint64_t smem_bm_get_local_mem_size(smem_bm_t handle)
 
 void *smem_bm_ptr(smem_bm_t handle, uint16_t peerRankId)
 {
-    return reinterpret_cast<void*>(0x5678);
+    return reinterpret_cast<void *>(0x5678);
 }
 
-void* smem_bm_ptr_by_mem_type(smem_bm_t handle, smem_bm_mem_type memType, uint16_t peerRankId)
+void *smem_bm_ptr_by_mem_type(smem_bm_t handle, smem_bm_mem_type memType, uint16_t peerRankId)
 {
     if (memType == SMEM_MEM_TYPE_DEVICE) {
-        return reinterpret_cast<void*>(0x200000000);
+        return reinterpret_cast<void *>(0x200000000);
     } else if (memType == SMEM_MEM_TYPE_HOST) {
-        return reinterpret_cast<void*>(0x800000000);
+        return reinterpret_cast<void *>(0x800000000);
     }
-    return reinterpret_cast<void*>(0x5678);
+    return reinterpret_cast<void *>(0x5678);
 }
 
 uint64_t smem_bm_get_local_mem_size_by_mem_type(smem_bm_t handle, smem_bm_mem_type memType)

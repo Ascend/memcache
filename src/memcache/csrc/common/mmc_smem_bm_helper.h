@@ -19,7 +19,7 @@ namespace ock {
 namespace mmc {
 class MmcSmemBmHelper {
 public:
-    static inline smem_bm_data_op_type TransSmemBmDataOpType(const std::string& dataOpType)
+    static inline smem_bm_data_op_type TransSmemBmDataOpType(const std::string &dataOpType)
     {
         if (dataOpType == "device_sdma") {
             return SMEMB_DATA_OP_SDMA;
@@ -39,7 +39,7 @@ public:
         return SMEMB_DATA_OP_BUTT;
     }
 
-    static inline smem_tls_config TransSmemTlsConfig(const mmc_tls_config& config)
+    static inline smem_tls_config TransSmemTlsConfig(const mmc_tls_config &config)
     {
         smem_tls_config smemConfig = {};
         smemConfig.tlsEnable = config.tlsEnable;
@@ -55,6 +55,6 @@ public:
     }
 };
 
-}
-}
+} // namespace mmc
+} // namespace ock
 #endif // MF_HYBRID_MMC_SMEM_BM_HELPER_H

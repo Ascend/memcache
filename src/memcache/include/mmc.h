@@ -64,5 +64,4 @@ void mmc_uninit(void);
 }
 #endif
 
-
 #endif //__MEMFABRIC_MMC_H__

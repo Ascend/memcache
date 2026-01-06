@@ -33,13 +33,12 @@ public:
     void unlock();
 
 private:
-    std::atomic<uint32_t> lock_{0};  // 4 bytes atomic variable
+    std::atomic<uint32_t> lock_{0}; // 4 bytes atomic variable
 };
 
 inline void Spinlock::lock()
 {
-    while (lock_.exchange(1, std::memory_order_acquire)) {
-    }
+    while (lock_.exchange(1, std::memory_order_acquire)) {}
 }
 
 inline void Spinlock::unlock()
@@ -47,7 +46,7 @@ inline void Spinlock::unlock()
     lock_.store(0, std::memory_order_release);
 }
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEMFABRIC_HYBRID_MMC_SPINLOCK_H
+#endif // MEMFABRIC_HYBRID_MMC_SPINLOCK_H

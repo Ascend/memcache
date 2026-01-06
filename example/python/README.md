@@ -5,6 +5,7 @@
 本样例需要在npu环境下编译运行
 
 ### 如果编译选择CANN依赖
+
 首先,请在环境上提前安装NPU固件驱动和CANN包([环境安装参考链接](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/81RC1alpha002/softwareinst/instg/instg_0000.html))
 
 HDK固件驱动需要使用**25.0.RC1**

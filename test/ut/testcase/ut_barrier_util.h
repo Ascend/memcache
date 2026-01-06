@@ -49,6 +49,7 @@ public:
     {
         return smem_shm_control_barrier(barrierHandle);
     }
+
 private:
     smem_shm_t barrierHandle = nullptr;
 };

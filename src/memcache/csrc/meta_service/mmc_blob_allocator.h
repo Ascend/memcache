@@ -42,10 +42,7 @@ struct RangeSizeFirst {
 class MmcBlobAllocator : public MmcReferable {
 public:
     MmcBlobAllocator(const uint32_t rank, const MediaType mediaType, const uint64_t bmAddr, const uint64_t capacity)
-        : rank_(rank),
-          mediaType_(mediaType),
-          bmAddr_(bmAddr),
-          capacity_(capacity)
+        : rank_(rank), mediaType_(mediaType), bmAddr_(bmAddr), capacity_(capacity)
     {
         started_ = false;
         addressTree_[0] = capacity;
@@ -55,7 +52,7 @@ public:
 
     bool CanAlloc(uint64_t blobSize);
     MmcMemBlobPtr Alloc(uint64_t blobSize);
-    Result Release(const MmcMemBlobPtr& blob);
+    Result Release(const MmcMemBlobPtr &blob);
     Result BuildFromBlobs(std::map<std::string, MmcMemBlobDesc> &blobMap);
     void Start()
     {
@@ -95,14 +92,14 @@ private:
     Result ValidateAndAddAllocation(uint64_t offset, uint64_t size);
 
 private:
-    const uint32_t rank_;      /* rank id of the space */
+    const uint32_t rank_;       /* rank id of the space */
     const MediaType mediaType_; /* media type of the space */
-    const uint64_t bmAddr_;        /* bm address */
-    const uint64_t capacity_;  /* capacity of the space */
+    const uint64_t bmAddr_;     /* bm address */
+    const uint64_t capacity_;   /* capacity of the space */
 
     std::map<uint64_t, uint64_t> addressTree_;
     std::set<SpaceRange, RangeSizeFirst> sizeTree_;
-    
+
     volatile bool started_ = false;
     uint64_t allocatedSize_ = 0;
 
@@ -111,7 +108,7 @@ private:
 
 using MmcBlobAllocatorPtr = MmcRef<MmcBlobAllocator>;
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_MMC_BLOB_ALLOCATOR_H
+#endif // MEM_FABRIC_MMC_BLOB_ALLOCATOR_H

@@ -86,5 +86,5 @@ Result MFSmemApi::LoadLibrary(const std::string &libDirPath)
     gLoaded = true;
     return MMC_OK;
 }
-}
-}
+} // namespace mmc
+} // namespace ock

@@ -56,7 +56,7 @@ int32_t aclrtMalloc(void **ptr, size_t count, uint32_t type)
     if (ptr == nullptr) {
         return RETURN_ERROR;
     }
-    *ptr = (void *) START_ADDR;
+    *ptr = (void *)START_ADDR;
     return RETURN_OK;
 }
 
@@ -70,20 +70,19 @@ int32_t aclrtMemcpy(void *dst, size_t destMax, const void *src, size_t count, ui
     return RETURN_OK;
 }
 
-int32_t aclrtMemcpyAsync(void *dst, size_t destMax, const void *src, size_t count, uint32_t kind,
-                         void *stream)
+int32_t aclrtMemcpyAsync(void *dst, size_t destMax, const void *src, size_t count, uint32_t kind, void *stream)
 {
     return RETURN_OK;
 }
 
-int32_t aclrtMemcpy2d(void *dst, size_t dpitch, const void *src, size_t spitch,
-                      size_t width, size_t height, uint32_t kind)
+int32_t aclrtMemcpy2d(void *dst, size_t dpitch, const void *src, size_t spitch, size_t width, size_t height,
+                      uint32_t kind)
 {
     return RETURN_OK;
 }
 
-int32_t aclrtMemcpy2dAsync(void *dst, size_t dpitch, const void *src, size_t spitch,
-                           size_t width, size_t height, uint32_t kind, void *stream)
+int32_t aclrtMemcpy2dAsync(void *dst, size_t dpitch, const void *src, size_t spitch, size_t width, size_t height,
+                           uint32_t kind, void *stream)
 {
     return RETURN_OK;
 }
@@ -129,7 +128,7 @@ int32_t rtIpcOpenMemory(void **ptr, const char *name)
     if (ptr == nullptr) {
         return RETURN_ERROR;
     }
-    *ptr = reinterpret_cast<void*>(0x3200);
+    *ptr = reinterpret_cast<void *>(0x3200);
     return RETURN_OK;
 }
 

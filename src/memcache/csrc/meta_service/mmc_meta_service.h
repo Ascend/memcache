@@ -22,14 +22,14 @@ namespace ock {
 namespace mmc {
 class MmcMetaService : public MmcReferable {
 public:
-    explicit MmcMetaService(const std::string& name) : name_(name), options_{} {}
+    explicit MmcMetaService(const std::string &name) : name_(name), options_{} {}
 
     Result Start(const mmc_meta_service_config_t &options);
 
     void Stop();
 
     Result BmRegister(uint32_t rank, std::vector<uint16_t> mediaType, std::vector<uint64_t> bm,
-                      std::vector<uint64_t> capacity, std::map<std::string, MmcMemBlobDesc>& blobMap);
+                      std::vector<uint64_t> capacity, std::map<std::string, MmcMemBlobDesc> &blobMap);
 
     Result BmUnregister(uint32_t rank, uint16_t mediaType);
 
@@ -39,7 +39,7 @@ public:
 
     const mmc_meta_service_config_t &Options() const;
 
-    const MmcMetaMgrProxyPtr& GetMetaMgrProxy() const;
+    const MmcMetaMgrProxyPtr &GetMetaMgrProxy() const;
 
 private:
     MetaNetServerPtr metaNetServer_;
@@ -63,13 +63,13 @@ inline const mmc_meta_service_config_t &MmcMetaService::Options() const
     return options_;
 }
 
-inline const MmcMetaMgrProxyPtr& MmcMetaService::GetMetaMgrProxy() const
+inline const MmcMetaMgrProxyPtr &MmcMetaService::GetMetaMgrProxy() const
 {
     return metaMgrProxy_;
 }
 
 using MmcMetaServiceDefaultPtr = MmcRef<MmcMetaService>;
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_MMC_META_SERVICE_DEFAULT_H
+#endif // MEM_FABRIC_MMC_META_SERVICE_DEFAULT_H

@@ -29,9 +29,8 @@ constexpr int FIRST_RETRY = 1;
 constexpr int RETRY_LOG_INTERVAL = 10;
 
 using ClientRetryHandler = std::function<int32_t(void)>;
-using ClientReplicateHandler = std::function<int32_t(const std::vector<uint32_t> &ops,
-                                                     const std::vector<std::string> &keys,
-                                                     const std::vector<MmcMemBlobDesc> &blobs)>;
+using ClientReplicateHandler = std::function<int32_t(
+    const std::vector<uint32_t> &ops, const std::vector<std::string> &keys, const std::vector<MmcMemBlobDesc> &blobs)>;
 using ClientBlobCopyHandler = std::function<int32_t(const MmcMemBlobDesc &src, const MmcMemBlobDesc &dst)>;
 class MetaNetClient : public MmcReferable {
 public:
@@ -70,7 +69,7 @@ public:
      * @param timeoutInMilliSecond [in] timeout in millisecond
      * @return
      */
-    template <typename REQ, typename RESP>
+    template<typename REQ, typename RESP>
     Result SyncCall(const REQ &req, RESP &resp, int32_t timeoutInMilliSecond)
     {
         Result ret = MMC_ERROR;
@@ -79,7 +78,7 @@ public:
         auto start = std::chrono::high_resolution_clock::now();
         // 预计算超时时间点（开始时间 + 超时毫秒数）
         const auto timeoutTime = start + std::chrono::milliseconds(timeoutInMilliSecond);
-        int retryCount = 0;  // 记录重试次数
+        int retryCount = 0; // 记录重试次数
         do {
             ret = engine_->Call(rankId_, req.msgId, req, resp, TIMEOUT_60_SECONDS);
             if (ret != MMC_LINK_NOT_FOUND && ret != MMC_TIMEOUT) {
@@ -104,11 +103,11 @@ public:
 
         auto now = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
-        MMC_RETURN_ERROR(ret, "SyncCall failed, retry " << retryCount
-                         << ", and last for " << duration << " milliseconds");
+        MMC_RETURN_ERROR(ret,
+                         "SyncCall failed, retry " << retryCount << ", and last for " << duration << " milliseconds");
 
-        MMC_LOG_DEBUG("SyncCall successfully, retry " << retryCount
-                      << ", and last for " << duration << " milliseconds");
+        MMC_LOG_DEBUG("SyncCall successfully, retry " << retryCount << ", and last for " << duration
+                                                      << " milliseconds");
         return ret;
     }
 
@@ -120,7 +119,7 @@ public:
     bool Status();
 
     void RegisterRetryHandler(const ClientRetryHandler &retryHandler, const ClientReplicateHandler &replicateHandler,
-        const ClientBlobCopyHandler &blobCopyHandler)
+                              const ClientBlobCopyHandler &blobCopyHandler)
     {
         retryHandler_ = retryHandler;
         replicateHandler_ = replicateHandler;
@@ -131,7 +130,7 @@ private:
     Result HandleMetaReplicate(const NetContextPtr &context);
     Result HandlePing(const NetContextPtr &context);
     Result HandleLinkBroken(const NetLinkPtr &link);
-    Result HandleBlobCopy(const NetContextPtr& context);
+    Result HandleBlobCopy(const NetContextPtr &context);
 
 private:
     NetEnginePtr engine_;
@@ -182,6 +181,6 @@ private:
     static std::map<std::string, MmcRef<MetaNetClient>> instances_;
     static std::mutex instanceMutex_;
 };
-}
-}
-#endif  // SMEM_MMC_META_NET_CLIENT_H
+} // namespace mmc
+} // namespace ock
+#endif // SMEM_MMC_META_NET_CLIENT_H

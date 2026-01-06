@@ -38,13 +38,13 @@ void TestMmcThreadPool::TearDown() {}
 
 TEST_F(TestMmcThreadPool, MultiThreadTest)
 {
-    MmcThreadPool pool("mmc", 4);  // 创建4个线程的线程池
+    MmcThreadPool pool("mmc", 4); // 创建4个线程的线程池
     auto ret = pool.Start();
     ASSERT_EQ(ret, MMC_OK);
 
     // 提交带返回值的任务
     auto future1 = pool.Enqueue([](int x) { return x * x; }, 5);
-    auto future2 = pool.Enqueue([](const std::string& s) { return "Hello, " + s + "!"; }, "World");
+    auto future2 = pool.Enqueue([](const std::string &s) { return "Hello, " + s + "!"; }, "World");
 
     // 获取结果
     EXPECT_EQ(future1.get(), 25);

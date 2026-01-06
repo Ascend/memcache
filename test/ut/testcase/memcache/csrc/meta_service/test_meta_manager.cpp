@@ -61,7 +61,7 @@ TEST_F(TestMmcMetaManager, AllocAndFree)
     std::map<std::string, MmcMemBlobDesc> blobMap;
     metaMng->Mount(loc, locInfo, blobMap);
 
-    AllocOptions allocReq{SIZE_32K, 1, MEDIA_DRAM, {0}, 0};  // blobSize, numBlobs, mediaType, preferredRank, flags
+    AllocOptions allocReq{SIZE_32K, 1, MEDIA_DRAM, {0}, 0}; // blobSize, numBlobs, mediaType, preferredRank, flags
     MmcMemMetaDesc objMeta;
     Result ret = metaMng->Alloc("test_string", allocReq, 1, objMeta);
     ASSERT_TRUE(ret == MMC_OK);
@@ -123,7 +123,7 @@ TEST_F(TestMmcMetaManager, GetAndUpdate)
     uint16_t numKeys = 20U;
     std::vector<std::string> keys;
     std::vector<MmcMemMetaDesc> memMetaObjs;
-    AllocOptions allocReq{SIZE_32K, 1, MEDIA_DRAM, {0}, 0};  // blobSize, numBlobs, mediaType, preferredRank, flags
+    AllocOptions allocReq{SIZE_32K, 1, MEDIA_DRAM, {0}, 0}; // blobSize, numBlobs, mediaType, preferredRank, flags
     Result ret;
     for (int i = 0; i < numKeys; ++i) {
         MmcMemMetaDesc objMeta;
@@ -161,7 +161,7 @@ TEST_F(TestMmcMetaManager, LRU)
     uint16_t numKeys = 8U;
     std::vector<std::string> keys;
     std::vector<MmcMemMetaDesc> memMetaObjs;
-    AllocOptions allocReq{SIZE_32K, 1, MEDIA_DRAM, {0}, 0};  // blobSize, numBlobs, mediaType, preferredRank, flags
+    AllocOptions allocReq{SIZE_32K, 1, MEDIA_DRAM, {0}, 0}; // blobSize, numBlobs, mediaType, preferredRank, flags
     Result ret;
     Result writeRet;
 
@@ -195,7 +195,6 @@ TEST_F(TestMmcMetaManager, LRU)
 
 TEST_F(TestMmcMetaManager, AllocAndExistKey)
 {
-
     MmcLocation loc{0, MEDIA_DRAM};
     MmcLocalMemlInitInfo locInfo{0, 1000000};
     uint64_t defaultTtl = 2000;
@@ -230,7 +229,7 @@ TEST_F(TestMmcMetaManager, AllocAndBatchExistKey)
     uint16_t numKeys = 5U;
     std::vector<std::string> keys;
     std::vector<MmcMemMetaDesc> memMetaObjs;
-    AllocOptions allocReq{SIZE_32K, 1, MEDIA_DRAM, {0}, 0};  // blobSize, numBlobs, mediaType, preferredRank, flags
+    AllocOptions allocReq{SIZE_32K, 1, MEDIA_DRAM, {0}, 0}; // blobSize, numBlobs, mediaType, preferredRank, flags
     Result ret = MMC_ERROR;
     for (uint16_t i = 0U; i < numKeys; ++i) {
         MmcMemMetaDesc objMeta;
@@ -260,7 +259,7 @@ TEST_F(TestMmcMetaManager, AllocAndBatchExistKey)
 
     auto CheckReturn = [&metaMng](const std::vector<std::string> &keys, const std::vector<Result> &targetResults) {
         std::vector<Result> results;
-        for (auto& key : keys) {
+        for (auto &key : keys) {
             results.push_back(metaMng->ExistKey(key));
         }
         ASSERT_TRUE(results.size() == targetResults.size());
@@ -339,7 +338,7 @@ TEST_F(TestMmcMetaManager, Alloc_ThresholdEviction)
     metaMng->Mount(loc, locInfo, blobMap);
 
     std::vector<std::string> keys = {"key1", "key2"};
-    for (const auto& key : keys) {
+    for (const auto &key : keys) {
         AllocOptions allocReq{SIZE_32K, 1, MEDIA_DRAM, {0}, 0};
         MmcMemMetaDesc objMeta;
         Result ret = metaMng->Alloc(key, allocReq, 1, objMeta);

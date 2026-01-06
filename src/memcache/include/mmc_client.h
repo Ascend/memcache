@@ -152,8 +152,8 @@ int32_t mmcc_batch_exist(const char **keys, uint32_t keys_count, int32_t *exist_
  * @param flags          [in] Optional flags, reserved
  * @return 0 if successful
  */
-int32_t mmcc_batch_put(const char** keys, uint32_t keys_count, const mmc_buffer* bufs, mmc_put_options& options,
-                       uint32_t flags, int* results);
+int32_t mmcc_batch_put(const char **keys, uint32_t keys_count, const mmc_buffer *bufs, mmc_put_options &options,
+                       uint32_t flags, int *results);
 
 /**
  * @brief Get multiple data objects by keys from Distributed Memory Cache
@@ -165,10 +165,10 @@ int32_t mmcc_batch_put(const char** keys, uint32_t keys_count, const mmc_buffer*
  * @param flags          [in] Optional flags, reserved
  * @return 0 if successful
  */
-int32_t mmcc_batch_get(const char** keys, uint32_t keys_count, mmc_buffer* bufs, uint32_t flags, int* results);
+int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffer *bufs, uint32_t flags, int *results);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  //__MEMFABRIC_MMC_CLIENT_H__
+#endif //__MEMFABRIC_MMC_CLIENT_H__

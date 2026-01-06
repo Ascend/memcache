@@ -20,18 +20,18 @@ extern "C" {
 #endif
 
 typedef void *smem_bm_t;
-#define SMEM_BM_TIMEOUT_MAX     UINT32_MAX /* all timeout must <= UINT32_MAX */
-#define ASYNC_COPY_FLAG (1UL << (0))
+#define SMEM_BM_TIMEOUT_MAX   UINT32_MAX /* all timeout must <= UINT32_MAX */
+#define ASYNC_COPY_FLAG       (1UL << (0))
 #define SMEM_BM_INIT_GVM_FLAG (1ULL << 1ULL) // Init the GVM module, enable to use Host DRAM
-#define SMEM_TLS_PATH_SIZE 256
+#define SMEM_TLS_PATH_SIZE    256
 /**
 * @brief Smem memory type
 */
 typedef enum {
-    SMEM_MEM_TYPE_LOCAL_DEVICE = 0,    /* memory on local device */
-    SMEM_MEM_TYPE_LOCAL_HOST,          /* memory on local host */
-    SMEM_MEM_TYPE_DEVICE,              /* memory on global device */
-    SMEM_MEM_TYPE_HOST,                /* memory on global host */
+    SMEM_MEM_TYPE_LOCAL_DEVICE = 0, /* memory on local device */
+    SMEM_MEM_TYPE_LOCAL_HOST,       /* memory on local host */
+    SMEM_MEM_TYPE_DEVICE,           /* memory on global device */
+    SMEM_MEM_TYPE_HOST,             /* memory on global host */
 
     SMEM_MEM_TYPE_BUTT
 } smem_bm_mem_type;
@@ -50,11 +50,11 @@ typedef enum {
 * @brief Data copy direction
 */
 typedef enum {
-    SMEMB_COPY_L2G = 0,              /* copy data from local hbm to global space */
-    SMEMB_COPY_G2L = 1,              /* copy data from global space to local hbm */
-    SMEMB_COPY_G2H = 2,              /* copy data from global space to local host dram */
-    SMEMB_COPY_H2G = 3,              /* copy data from local host dram to global space */
-    SMEMB_COPY_G2G = 4,               /* copy data from global space to global space */
+    SMEMB_COPY_L2G = 0, /* copy data from local hbm to global space */
+    SMEMB_COPY_G2L = 1, /* copy data from global space to local hbm */
+    SMEMB_COPY_G2H = 2, /* copy data from global space to local host dram */
+    SMEMB_COPY_H2G = 3, /* copy data from local host dram to global space */
+    SMEMB_COPY_G2G = 4, /* copy data from global space to global space */
     /* add here */
     SMEMB_COPY_BUTT
 } smem_bm_copy_type;
@@ -102,8 +102,8 @@ typedef struct {
 } smem_copy_params;
 
 typedef struct {
-    void** sources;
-    void** destinations;
+    void **sources;
+    void **destinations;
     const uint64_t *dataSizes;
     uint32_t batchSize;
 } smem_batch_copy_params;
@@ -112,4 +112,4 @@ typedef struct {
 }
 #endif
 
-#endif  //__MEMFABRIC_SMEM_BM_DEF_H__
+#endif //__MEMFABRIC_SMEM_BM_DEF_H__

@@ -31,5 +31,4 @@
 
 using namespace ock::mmc;
 
-
 #endif

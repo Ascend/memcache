@@ -21,9 +21,9 @@ message(STATUS "in memfabric cmakefile BUILD_FROM_MEMCACHE: ${BUILD_FROM_MEMCACH
 list(GET PROJECT_VERSION_RAW 0 DUMMY)
 string(REPLACE "." ";" VERSION_LIST "${PROJECT_VERSION_RAW}")
 list(LENGTH VERSION_LIST VERSION_LIST_LEN)
-if(NOT VERSION_LIST_LEN EQUAL 3)
+if (NOT VERSION_LIST_LEN EQUAL 3)
     message(FATAL_ERROR "Expected exactly 3 version components, got: ${VERSION_LIST_LEN}")
-endif()
+endif ()
 list(GET VERSION_LIST 0 VERSION_MAJOR)
 list(GET VERSION_LIST 1 VERSION_MINOR)
 list(GET VERSION_LIST 2 VERSION_FIX)
@@ -40,7 +40,7 @@ if (BUILD_COMPILER MATCHES gcc)
     #    set(CMAKE_COMPILER gcc)
 else ()
     set(CMAKE_COMPILER bisheng)
-endif()
+endif ()
 
 if (CMAKE_COMPILER MATCHES bisheng AND DEFINED ENV{ASCEND_HOME_PATH})
     set(ASCEND_HOME_PATH $ENV{ASCEND_HOME_PATH})
@@ -49,7 +49,7 @@ if (CMAKE_COMPILER MATCHES bisheng AND DEFINED ENV{ASCEND_HOME_PATH})
 else ()
     if (CMAKE_COMPILER MATCHES bisheng)
         message(WARNING "ASCEND_HOME_PATH not found! Please run set_env.sh first.")
-    endif()
+    endif ()
     #    set(CMAKE_C_COMPILER gcc)
     #    set(CMAKE_CXX_COMPILER g++)
 endif ()
@@ -79,11 +79,11 @@ message(STATUS "ENABLE_PTRACER = ${ENABLE_PTRACER}")
 message(STATUS "CMAKE_COMPILER = ${CMAKE_COMPILER}")
 message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 find_program(NINJA_EXE NAMES ninja)
-if(NINJA_EXE)
+if (NINJA_EXE)
     set(MAKE_CMD ninja)
-else()
+else ()
     set(MAKE_CMD make)
-endif()
+endif ()
 message(STATUS "MAKE_CMD = ${MAKE_CMD}")
 add_compile_options(-Wunused-variable -Wunused-value -Wcast-align)
 add_compile_options(-fpermissive -Wno-error)
@@ -117,7 +117,7 @@ if (BUILD_TESTS STREQUAL "ON")
     if (NOT CMAKE_COMPILER MATCHES bisheng)
         add_compile_options(-fprofile-arcs -ftest-coverage)
         add_link_options(-lgcov --coverage)
-    endif()
+    endif ()
     set(BUILD_OPEN_ABI "ON")
 endif ()
 
@@ -140,10 +140,10 @@ if (BUILD_GIT_COMMIT STREQUAL "ON")
     if (EXISTS ${GIT_EXECUTABLE})
         # get commit id from file
         execute_process(
-            COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
-            RESULT_VARIABLE GIT_COMMIT_RESULT
-            OUTPUT_VARIABLE GIT_LAST_COMMIT
-            OUTPUT_STRIP_TRAILING_WHITESPACE)
+                COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+                RESULT_VARIABLE GIT_COMMIT_RESULT
+                OUTPUT_VARIABLE GIT_LAST_COMMIT
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
         if (${GIT_COMMIT_RESULT} EQUAL 1)
             set(GIT_LAST_COMMIT "empty")
         endif ()
@@ -182,12 +182,12 @@ else ()
 endif ()
 message(STATUS "install dir ${TARGET_INSTALL_DIR}")
 
-if( (BUILD_PYTHON STREQUAL "ON") OR (BUILD_TESTS STREQUAL "ON") )
+if ((BUILD_PYTHON STREQUAL "ON") OR (BUILD_TESTS STREQUAL "ON"))
     # 获取Python头文件路径
     find_program(PYTHON_EXECUTABLE NAMES python3 python)
-    if(NOT PYTHON_EXECUTABLE)
+    if (NOT PYTHON_EXECUTABLE)
         message(FATAL_ERROR "Python not found")
-    endif()
+    endif ()
 
     execute_process(
             COMMAND ${PYTHON_EXECUTABLE} -c
@@ -206,23 +206,23 @@ if( (BUILD_PYTHON STREQUAL "ON") OR (BUILD_TESTS STREQUAL "ON") )
     set(pybind11_cmake_dir "${PYTHON_PYBIND11_HOME}/share/cmake/pybind11")
 
     # 检查路径是否存在且是目录
-    if(NOT EXISTS "${pybind11_cmake_dir}" OR NOT IS_DIRECTORY "${pybind11_cmake_dir}")
+    if (NOT EXISTS "${pybind11_cmake_dir}" OR NOT IS_DIRECTORY "${pybind11_cmake_dir}")
         message(SEND_ERROR "Can not find pybind11 directory: ${pybind11_cmake_dir}\nPlease 'pip3 install pybind11 or pybind11-dev'")
-    endif()
-endif()
+    endif ()
+endif ()
 
 # 判断环境变量 CMAKE_PREFIX_PATH 是否存在
-if(DEFINED ENV{CMAKE_PREFIX_PATH})
+if (DEFINED ENV{CMAKE_PREFIX_PATH})
     # 如果环境变量存在，将其值赋给 CMake 变量
     set(CMAKE_PREFIX_PATH "$ENV{CMAKE_PREFIX_PATH}")
     list(APPEND CMAKE_PREFIX_PATH "${pybind11_cmake_dir}")
     message(STATUS "CMAKE_PREFIX_PATH is exist, and append: ${pybind11_cmake_dir}")
     message(STATUS "Now CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
-else()
+else ()
     # 如果环境变量不存在，设置 CMake 变量的默认值
     set(CMAKE_PREFIX_PATH "${pybind11_cmake_dir}")
     message(STATUS "Not set CMAKE_PREFIX_PATH, and initialize to: ${CMAKE_PREFIX_PATH}")
-endif()
+endif ()
 
 include_directories(
         ${PROJECT_SMEM_SRC_BASE}/include/host
@@ -250,8 +250,8 @@ if (BUILD_CPP_EXAMPLE)
     add_subdirectory(example/cpp)
 endif ()
 
-if(BUILD_TESTS STREQUAL "ON")
+if (BUILD_TESTS STREQUAL "ON")
     set(CMAKE_CXX_STANDARD 17)
     message(STATUS "BUILD_TESTS = ON, add compile gov")
     add_subdirectory(test)
-endif()
+endif ()

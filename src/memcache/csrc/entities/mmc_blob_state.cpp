@@ -54,12 +54,12 @@ StateTransTable BlobStateMachine::GetGlobalTransTable()
     /**
      * @brief State transition table of mem object meta in meta service
     */
-    StateTransitionItem g_metaStateTransItemTable[] {
+    StateTransitionItem g_metaStateTransItemTable[]{
         {ALLOCATED, MMC_ALLOCATED_OK, ALLOCATED, LeaseAdd}, // prepare write，add <client, reqid> --> lease
         {ALLOCATED, MMC_WRITE_OK, READABLE, LeaseRemove},   // write ok,    remove <client, reqid> --> lease
         {ALLOCATED, MMC_WRITE_FAIL, REMOVING, LeaseRemove}, // write fail,  remove <client, reqid> --> lease
 
-        {ALLOCATED, MMC_REMOVE_START, REMOVING, nullptr},   // remove blob
+        {ALLOCATED, MMC_REMOVE_START, REMOVING, nullptr}, // remove blob
 
         {READABLE, MMC_READ_START, READABLE, LeaseAdd},     // prepare read，add <client, reqid> --> lease
         {READABLE, MMC_READ_FINISH, READABLE, LeaseRemove}, // read finish, remove <client, reqid> --> lease
@@ -72,5 +72,5 @@ StateTransTable BlobStateMachine::GetGlobalTransTable()
     return table;
 }
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock

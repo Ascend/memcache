@@ -14,7 +14,6 @@
 #include "mmc_msg_client_meta.h"
 #include "mmc_bm_proxy.h"
 
-
 namespace ock {
 namespace mmc {
 constexpr int TIMEOUT_THIRTY = 30;
@@ -66,10 +65,9 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
     }
     metaNetClient_->RegisterRetryHandler(
         std::bind(&MmcLocalServiceDefault::RegisterBm, this),
-        std::bind(&MmcLocalServiceDefault::UpdateMetaBackup, this,
-                  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-        std::bind(&MmcLocalServiceDefault::CopyBlob, this, std::placeholders::_1, std::placeholders::_2)
-    );
+        std::bind(&MmcLocalServiceDefault::UpdateMetaBackup, this, std::placeholders::_1, std::placeholders::_2,
+                  std::placeholders::_3),
+        std::bind(&MmcLocalServiceDefault::CopyBlob, this, std::placeholders::_1, std::placeholders::_2));
     started_ = true;
     MMC_LOG_INFO("Started LocalService (" << name_ << ") server " << options_.discoveryURL);
     return MMC_OK;
@@ -94,9 +92,10 @@ void MmcLocalServiceDefault::Stop()
 
 Result MmcLocalServiceDefault::InitBm()
 {
-    mmc_bm_init_config_t initConfig = {options_.deviceId, options_.worldSize, options_.bmIpPort, options_.bmHcomUrl,
-        options_.logLevel, options_.logFunc, options_.flags, options_.hcomTlsConfig, options_.configStoreTlsConfig};
-    mmc_bm_create_config_t createConfig = {options_.createId, options_.worldSize, options_.dataOpType,
+    mmc_bm_init_config_t initConfig = {options_.deviceId,  options_.worldSize,     options_.bmIpPort,
+                                       options_.bmHcomUrl, options_.logLevel,      options_.logFunc,
+                                       options_.flags,     options_.hcomTlsConfig, options_.configStoreTlsConfig};
+    mmc_bm_create_config_t createConfig = {options_.createId,      options_.worldSize,    options_.dataOpType,
                                            options_.localDRAMSize, options_.localHBMSize, options_.flags};
 
     MmcBmProxyPtr bmProxy = MmcBmProxyFactory::GetInstance("bmProxyDefault");
@@ -156,26 +155,23 @@ Result MmcLocalServiceDefault::RegisterBm()
 
     while (chunk_start != end) {
         auto chunk_end = chunk_start;
-        std::advance(chunk_end, std::min(blobRebuildSendMaxCount,
-                                         static_cast<int>(std::distance(chunk_start, end))));
+        std::advance(chunk_end, std::min(blobRebuildSendMaxCount, static_cast<int>(std::distance(chunk_start, end))));
 
         req.blobMap_.insert(chunk_start, chunk_end);
         MMC_LOG_INFO("mmc meta blob rebuild count " << req.blobMap_.size());
         MMC_RETURN_ERROR(SyncCallMeta(req, resp, TIMEOUT_THIRTY), "bm register failed, bmRankId=" << req.rank_);
-        MMC_RETURN_ERROR(resp.ret_,
-                         "bm register failed, bmRankId=" << req.rank_ << ", retCode=" << resp.ret_);
+        MMC_RETURN_ERROR(resp.ret_, "bm register failed, bmRankId=" << req.rank_ << ", retCode=" << resp.ret_);
         chunk_start = chunk_end;
         req.blobMap_.clear();
     }
     MMC_RETURN_ERROR(SyncCallMeta(req, resp, TIMEOUT_THIRTY), "bm register failed, bmRankId=" << req.rank_);
-    MMC_RETURN_ERROR(resp.ret_,
-                     "bm register failed, bmRankId=" << req.rank_ << ", retCode=" << resp.ret_);
+    MMC_RETURN_ERROR(resp.ret_, "bm register failed, bmRankId=" << req.rank_ << ", retCode=" << resp.ret_);
     MMC_LOG_INFO("bm register succeed, bmRankId=" << req.rank_ << ", type num=" << req.mediaType_.size());
     return MMC_OK;
 }
 
-Result MmcLocalServiceDefault::UpdateMetaBackup(
-    const std::vector<uint32_t> &ops, const std::vector<std::string> &keys, const std::vector<MmcMemBlobDesc> &blobs)
+Result MmcLocalServiceDefault::UpdateMetaBackup(const std::vector<uint32_t> &ops, const std::vector<std::string> &keys,
+                                                const std::vector<MmcMemBlobDesc> &blobs)
 {
     std::lock_guard<std::mutex> guard(blobMutex_);
 
@@ -185,8 +181,8 @@ Result MmcLocalServiceDefault::UpdateMetaBackup(
     auto length = keyCount;
     // 检查ops、keys和blobs大小是否一致，避免越界访问
     if (keyCount != blobCount || keyCount != opCount || opCount != blobCount) {
-        MMC_LOG_ERROR("Local service replicate warning, length is not equal: opSize=" << opCount
-            << ", keySize=" << keyCount << ", blobSize=" << blobCount);
+        MMC_LOG_ERROR("Local service replicate warning, length is not equal: opSize="
+                      << opCount << ", keySize=" << keyCount << ", blobSize=" << blobCount);
         length = std::min({opCount, keyCount, blobCount});
     }
 
@@ -204,11 +200,11 @@ Result MmcLocalServiceDefault::UpdateMetaBackup(
         }
     }
 
-    MMC_LOG_DEBUG("Handle " << length <<" metas backup");
+    MMC_LOG_DEBUG("Handle " << length << " metas backup");
     return MMC_OK;
 }
 
-Result MmcLocalServiceDefault::CopyBlob(const MmcMemBlobDesc& src, const MmcMemBlobDesc& dst)
+Result MmcLocalServiceDefault::CopyBlob(const MmcMemBlobDesc &src, const MmcMemBlobDesc &dst)
 {
     MmcBmProxyPtr bmProxy = MmcBmProxyFactory::GetInstance("bmProxyDefault");
     if (bmProxy == nullptr) {
@@ -223,5 +219,5 @@ Result MmcLocalServiceDefault::CopyBlob(const MmcMemBlobDesc& src, const MmcMemB
     }
     return MMC_OK;
 }
-}
-}
+} // namespace mmc
+} // namespace ock

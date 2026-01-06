@@ -29,7 +29,7 @@
 namespace ock {
 namespace mmc {
 #define OBJ_MAX_LOG_FILE_SIZE 20971520 // 每个日志文件的最大大小
-#define OBJ_MAX_LOG_FILE_NUM 50
+#define OBJ_MAX_LOG_FILE_NUM  50
 constexpr int MICROSECOND_WIDTH = 6;
 
 using ExternalLog = void (*)(int, const char *);
@@ -40,7 +40,7 @@ enum LogLevel : int {
     INFO_LEVEL,
     WARN_LEVEL,
     ERROR_LEVEL,
-    BUTT_LEVEL  // no use
+    BUTT_LEVEL // no use
 };
 
 class MmcOutLogger {
@@ -101,18 +101,17 @@ public:
             return;
         }
 
-        struct timeval tv {};
+        struct timeval tv{};
         char strTime[24];
 
         gettimeofday(&tv, nullptr);
         time_t timeStamp = tv.tv_sec;
-        struct tm localTime {};
+        struct tm localTime{};
         if (strftime(strTime, sizeof strTime, "%Y-%m-%d %H:%M:%S.", localtime_r(&timeStamp, &localTime)) != 0) {
             std::cout << strTime << std::setw(MICROSECOND_WIDTH) << std::setfill('0') << tv.tv_usec << " "
                       << LogLevelDesc(level) << PID_TID << oss.str() << std::endl;
         } else {
-            std::cout << " Invalid time " << LogLevelDesc(level) << PID_TID << oss.str()
-                      << std::endl;
+            std::cout << " Invalid time " << LogLevelDesc(level) << PID_TID << oss.str() << std::endl;
         }
 #else
         std::cout << LogLevelDesc(level) << oss.str() << std::endl;
@@ -140,8 +139,8 @@ public:
 
     MmcOutLogger(const MmcOutLogger &) = delete;
     MmcOutLogger(MmcOutLogger &&) = delete;
-    MmcOutLogger& operator=(const MmcOutLogger& other) = delete;
-    MmcOutLogger& operator=(MmcOutLogger &&) = delete;
+    MmcOutLogger &operator=(const MmcOutLogger &other) = delete;
+    MmcOutLogger &operator=(MmcOutLogger &&) = delete;
 
     ~MmcOutLogger()
     {
@@ -168,35 +167,34 @@ private:
 
     const char *logLevelDesc_[BUTT_LEVEL] = {"DEBUG", "INFO", "WARN", "ERROR"};
 };
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
 // macro for log
 #define MMC_LOG_FILENAME_SHORT (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-#define MMC_LOG_FORMAT "[MMC " << MMC_LOG_FILENAME_SHORT << ":" << __LINE__ << " " << __FUNCTION__ << "] "
-#define MMC_OUT_LOG(LEVEL, ARGS)                                                      \
-    do {                                                                              \
-        std::ostringstream oss;                                                       \
-        oss << MMC_LOG_FORMAT << ARGS;                                                \
-        ock::mmc::MmcOutLogger::Instance().Log(LEVEL, oss);                           \
+#define MMC_LOG_FORMAT         "[MMC " << MMC_LOG_FILENAME_SHORT << ":" << __LINE__ << " " << __FUNCTION__ << "] "
+#define MMC_OUT_LOG(LEVEL, ARGS)                            \
+    do {                                                    \
+        std::ostringstream oss;                             \
+        oss << MMC_LOG_FORMAT << ARGS;                      \
+        ock::mmc::MmcOutLogger::Instance().Log(LEVEL, oss); \
     } while (0)
-#define MMC_OUT_AUDIT_LOG(MSG)                                                        \
-    do {                                                                              \
-        std::ostringstream oss;                                                       \
-        oss << MMC_LOG_FORMAT << (MSG);                                               \
-        ock::mmc::MmcOutLogger::Instance().AuditLog(oss);                             \
+#define MMC_OUT_AUDIT_LOG(MSG)                            \
+    do {                                                  \
+        std::ostringstream oss;                           \
+        oss << MMC_LOG_FORMAT << (MSG);                   \
+        ock::mmc::MmcOutLogger::Instance().AuditLog(oss); \
     } while (0)
-#define MMC_LOG_ERROR_WITH_ERRCODE(ARGS, ERRCODE)                                     \
-    do {                                                                              \
-        std::ostringstream oss;                                                       \
-        oss << MMC_LOG_FORMAT << ARGS << ", error code " << ERRCODE;                  \
-        ock::mmc::MmcOutLogger::Instance().Log(ock::mmc::ERROR_LEVEL, oss);           \
+#define MMC_LOG_ERROR_WITH_ERRCODE(ARGS, ERRCODE)                           \
+    do {                                                                    \
+        std::ostringstream oss;                                             \
+        oss << MMC_LOG_FORMAT << ARGS << ", error code " << ERRCODE;        \
+        ock::mmc::MmcOutLogger::Instance().Log(ock::mmc::ERROR_LEVEL, oss); \
     } while (0)
-
 
 #define MMC_LOG_DEBUG(ARGS) MMC_OUT_LOG(ock::mmc::DEBUG_LEVEL, ARGS)
-#define MMC_LOG_INFO(ARGS) MMC_OUT_LOG(ock::mmc::INFO_LEVEL, ARGS)
-#define MMC_LOG_WARN(ARGS) MMC_OUT_LOG(ock::mmc::WARN_LEVEL, ARGS)
+#define MMC_LOG_INFO(ARGS)  MMC_OUT_LOG(ock::mmc::INFO_LEVEL, ARGS)
+#define MMC_LOG_WARN(ARGS)  MMC_OUT_LOG(ock::mmc::WARN_LEVEL, ARGS)
 #define MMC_LOG_ERROR(ARGS) MMC_OUT_LOG(ock::mmc::ERROR_LEVEL, ARGS)
 
 #define MMC_AUDIT_LOG(MSG) MMC_OUT_AUDIT_LOG(MSG)
@@ -225,22 +223,22 @@ private:
         }                                        \
     } while (0)
 
-#define MMC_RETURN_ERROR(result, msg)                        \
-    do {                                                     \
-        auto innerResult = (result);                         \
-        if (UNLIKELY(innerResult != 0)) {                    \
-            MMC_LOG_ERROR_WITH_ERRCODE(msg, innerResult);    \
-            return innerResult;                              \
-        }                                                    \
+#define MMC_RETURN_ERROR(result, msg)                     \
+    do {                                                  \
+        auto innerResult = (result);                      \
+        if (UNLIKELY(innerResult != 0)) {                 \
+            MMC_LOG_ERROR_WITH_ERRCODE(msg, innerResult); \
+            return innerResult;                           \
+        }                                                 \
     } while (0)
 
-#define MMC_FALSE_ERROR(result, msg)                         \
-    do {                                                     \
-        auto innerResult = (result);                         \
-        if (UNLIKELY(!innerResult)) {                        \
-            MMC_LOG_ERROR(msg);                              \
-            return innerResult;                              \
-        }                                                    \
+#define MMC_FALSE_ERROR(result, msg)  \
+    do {                              \
+        auto innerResult = (result);  \
+        if (UNLIKELY(!innerResult)) { \
+            MMC_LOG_ERROR(msg);       \
+            return innerResult;       \
+        }                             \
     } while (0)
 
-#endif  // MEMFABRIC_HYBRID_MMC_LOGGER_H
+#endif // MEMFABRIC_HYBRID_MMC_LOGGER_H

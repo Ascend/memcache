@@ -42,7 +42,7 @@ protected:
     int32_t mRefCount = 0;
 };
 
-template <typename T>
+template<typename T>
 class MmcRef {
 public:
     // constructor
@@ -163,7 +163,7 @@ private:
     T *mObj = nullptr;
 };
 
-template <class Src, class Des>
+template<class Src, class Des>
 static MmcRef<Des> Convert(const MmcRef<Src> &child)
 {
     if (child.Get() != nullptr) {
@@ -172,12 +172,12 @@ static MmcRef<Des> Convert(const MmcRef<Src> &child)
     return nullptr;
 }
 
-template <typename C, typename... ARGS>
+template<typename C, typename... ARGS>
 inline MmcRef<C> MmcMakeRef(ARGS... args)
 {
     return new (std::nothrow) C(args...);
 }
 
-}
-}
-#endif  // MEMFABRIC_HYBRID_MMC_REF_H
+} // namespace mmc
+} // namespace ock
+#endif // MEMFABRIC_HYBRID_MMC_REF_H

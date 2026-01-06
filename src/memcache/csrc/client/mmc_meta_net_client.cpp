@@ -20,7 +20,7 @@ std::map<std::string, MmcRef<MetaNetClient>> MetaNetClientFactory::instances_;
 std::mutex MetaNetClientFactory::instanceMutex_;
 
 MetaNetClient::~MetaNetClient() {}
-MetaNetClient::MetaNetClient(const std::string &serverUrl, const std::string& inputName)
+MetaNetClient::MetaNetClient(const std::string &serverUrl, const std::string &inputName)
     : serverUrl_(serverUrl), name_(inputName)
 {}
 
@@ -109,7 +109,7 @@ Result MetaNetClient::HandleMetaReplicate(const NetContextPtr &context)
     return context->Reply(req.msgId, resp);
 }
 
-Result MetaNetClient::HandleBlobCopy(const NetContextPtr& context)
+Result MetaNetClient::HandleBlobCopy(const NetContextPtr &context)
 {
     BlobCopyRequest req;
     Response resp;
@@ -161,5 +161,5 @@ Result MetaNetClient::HandleLinkBroken(const NetLinkPtr &link)
     }
     return MMC_ERROR;
 }
-}
-}
+} // namespace mmc
+} // namespace ock

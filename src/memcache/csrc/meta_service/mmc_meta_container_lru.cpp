@@ -24,7 +24,8 @@
 namespace ock {
 namespace mmc {
 
-template <typename Key, typename Value> class MmcMetaContainerLRU : public MmcMetaContainer<Key, Value> {
+template<typename Key, typename Value>
+class MmcMetaContainerLRU : public MmcMetaContainer<Key, Value> {
 public:
     explicit MmcMetaContainerLRU(std::function<MediaType(const Value &)> getTypeFunc) : getTypeFunc_(getTypeFunc) {}
 
@@ -47,7 +48,7 @@ public:
         auto iter = metaMap_.find(key);
         if (iter != metaMap_.end()) {
             MMC_LOG_WARN("Fail to insert "
-                          << key << " into MmcMetaContainer. Key already exists. ErrCode: " << MMC_DUPLICATED_OBJECT);
+                         << key << " into MmcMetaContainer. Key already exists. ErrCode: " << MMC_DUPLICATED_OBJECT);
             return MMC_DUPLICATED_OBJECT;
         }
 
@@ -83,13 +84,13 @@ public:
         return MMC_UNMATCHED_KEY;
     }
 
-    Result Erase(const Key& key) override
+    Result Erase(const Key &key) override
     {
         Value value;
         return Erase(key, value);
     }
 
-    Result Erase(const Key& key, Value& value) override
+    Result Erase(const Key &key, Value &value) override
     {
         ock::mf::WriteGuard lockGuard(metaLock_);
         auto iter = metaMap_.find(key);
@@ -113,7 +114,7 @@ public:
         mf::WriteGuard metaGuard(metaLock_);
         mf::WriteGuard lruGuard(lruLock_);
 
-        for (auto& pair : metaMap_) {
+        for (auto &pair : metaMap_) {
             removeFunc(pair.first, pair.second.value_);
         }
 
@@ -125,7 +126,7 @@ public:
         return MMC_OK;
     }
 
-    void EraseIf(std::function<bool(const Key&, const Value&)> matchFunc) override
+    void EraseIf(std::function<bool(const Key &, const Value &)> matchFunc) override
     {
         ock::mf::WriteGuard lockGuard(metaLock_);
         for (auto iter = metaMap_.begin(); iter != metaMap_.end();) {
@@ -141,8 +142,8 @@ public:
         }
     }
 
-    void IterateIf(std::function<bool(const Key&, const Value&)> matchFunc,
-                   std::map<Key, Value>& matchedValues) override
+    void IterateIf(std::function<bool(const Key &, const Value &)> matchFunc,
+                   std::map<Key, Value> &matchedValues) override
     {
         ock::mf::ReadGuard lockGuard(metaLock_);
         for (auto iter = metaMap_.begin(); iter != metaMap_.end();) {
@@ -153,11 +154,11 @@ public:
         }
     }
 
-    void GetAllKeys(std::vector<Key>& keys) override
+    void GetAllKeys(std::vector<Key> &keys) override
     {
         ock::mf::ReadGuard lockGuard(metaLock_);
         keys.reserve(metaMap_.size());
-        for (const auto& pair : metaMap_) {
+        for (const auto &pair : metaMap_) {
             keys.push_back(pair.first);
         }
     }
@@ -216,7 +217,7 @@ public:
         }
 
         // 2、删除map和lru
-        Value& value = mapIter->second.value_;
+        Value &value = mapIter->second.value_;
 
         // 3、回调处理key，value
         EvictResult res = moveFunc(key, value);
@@ -253,16 +254,16 @@ public:
             size_t oriNum = lruLists_[mediaType].size();
             lruLock_.UnLock();
 
-            const size_t numEvictObjs = std::max(
-                std::min(oriNum * (nowThreshold - evictThresholdLow) / evictThresholdHigh, oriNum),
-                static_cast<size_t>(1));
+            const size_t numEvictObjs =
+                std::max(std::min(oriNum * (nowThreshold - evictThresholdLow) / evictThresholdHigh, oriNum),
+                         static_cast<size_t>(1));
 
             for (size_t i = 0; i < numEvictObjs; ++i) {
                 EvictOneLeastRecentlyUsed(moveFunc, mediaType);
             }
 
-            MMC_LOG_INFO("Evicted " << numEvictObjs << " keys from " << mediaType <<
-                ". Number of keys: " << oriNum << " => " << (oriNum - numEvictObjs) << ".");
+            MMC_LOG_INFO("Evicted " << numEvictObjs << " keys from " << mediaType << ". Number of keys: " << oriNum
+                                    << " => " << (oriNum - numEvictObjs) << ".");
         }
     }
 
@@ -292,13 +293,13 @@ template class MmcMetaContainer<std::string, MmcMemObjMetaPtr>;
 
 // 工厂函数实现
 template<typename Key, typename Value>
-MmcRef<MmcMetaContainer<Key, Value>> MmcMetaContainer<Key, Value>::Create(
-    std::function<MediaType(const Value &)> GetTypeFunc)
+MmcRef<MmcMetaContainer<Key, Value>>
+MmcMetaContainer<Key, Value>::Create(std::function<MediaType(const Value &)> GetTypeFunc)
 {
     return MmcMakeRef<MmcMetaContainerLRU<Key, Value>>(GetTypeFunc).Get();
 }
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MF_HYBRID_MMC_META_CONTAINER_LRU_H
+#endif // MF_HYBRID_MMC_META_CONTAINER_LRU_H

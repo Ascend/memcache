@@ -35,25 +35,25 @@ public:
 
     Result Get(const char *key, mmc_buffer *buf, uint32_t flags);
 
-    Result Put(const std::string &key, const MmcBufferArray& bufArr, mmc_put_options &options, uint32_t flags);
+    Result Put(const std::string &key, const MmcBufferArray &bufArr, mmc_put_options &options, uint32_t flags);
 
-    Result Get(const std::string &key, const MmcBufferArray& bufArr, uint32_t flags);
+    Result Get(const std::string &key, const MmcBufferArray &bufArr, uint32_t flags);
 
-    Result BatchPut(const std::vector<std::string>& keys, const std::vector<mmc_buffer>& bufs, mmc_put_options& options,
-                    uint32_t flags, std::vector<int>& batchResult);
+    Result BatchPut(const std::vector<std::string> &keys, const std::vector<mmc_buffer> &bufs, mmc_put_options &options,
+                    uint32_t flags, std::vector<int> &batchResult);
 
-    Result BatchGet(const std::vector<std::string>& keys, std::vector<mmc_buffer>& bufs, uint32_t flags,
-                    std::vector<int>& batchResult);
+    Result BatchGet(const std::vector<std::string> &keys, std::vector<mmc_buffer> &bufs, uint32_t flags,
+                    std::vector<int> &batchResult);
 
-    Result BatchPut(const std::vector<std::string>& keys, const std::vector<MmcBufferArray>& bufArrs,
-                    mmc_put_options& options, uint32_t flags, std::vector<int>& batchResult);
+    Result BatchPut(const std::vector<std::string> &keys, const std::vector<MmcBufferArray> &bufArrs,
+                    mmc_put_options &options, uint32_t flags, std::vector<int> &batchResult);
 
-    Result BatchGet(const std::vector<std::string>& keys, const std::vector<MmcBufferArray>& bufArrs,
-                    uint32_t flags, std::vector<int>& batchResult);
+    Result BatchGet(const std::vector<std::string> &keys, const std::vector<MmcBufferArray> &bufArrs, uint32_t flags,
+                    std::vector<int> &batchResult);
 
     Result Remove(const char *key, uint32_t flags) const;
 
-    Result BatchRemove(const std::vector<std::string>& keys, std::vector<Result>& remove_results, uint32_t flags) const;
+    Result BatchRemove(const std::vector<std::string> &keys, std::vector<Result> &remove_results, uint32_t flags) const;
 
     Result RemoveAll(uint32_t flags) const;
 
@@ -103,22 +103,22 @@ public:
         return MMC_OK;
     }
 
-    static MmcClientDefault* GetInstance()
+    static MmcClientDefault *GetInstance()
     {
         std::lock_guard<std::mutex> lock(gClientHandlerMtx);
         return gClientHandler;
     }
 
 private:
-    explicit MmcClientDefault(const std::string& name) : name_(name) {}
-    explicit MmcClientDefault(const MmcClientDefault&) = delete;
-    MmcClientDefault& operator=(const MmcClientDefault&) = delete;
+    explicit MmcClientDefault(const std::string &name) : name_(name) {}
+    explicit MmcClientDefault(const MmcClientDefault &) = delete;
+    MmcClientDefault &operator=(const MmcClientDefault &) = delete;
 
     inline uint32_t RankId(const affinity_policy &policy);
     Result PrePutHandle(const MmcBufferArray &bufArr, mmc_put_options &options, AllocRequest &request, uint32_t flags);
-    Result AllocateAndPutBlobs(const std::vector<std::string>& keys, const std::vector<MmcBufferArray>& bufs,
-                               const mmc_put_options& options, uint32_t flags, uint64_t operateId,
-                               std::vector<int>& batchResult, BatchAllocResponse& allocResponse);
+    Result AllocateAndPutBlobs(const std::vector<std::string> &keys, const std::vector<MmcBufferArray> &bufs,
+                               const mmc_put_options &options, uint32_t flags, uint64_t operateId,
+                               std::vector<int> &batchResult, BatchAllocResponse &allocResponse);
     void InsertRegisterMap(uint64_t va, uint64_t size);
     void RemoveRegisterMap(uint64_t va, uint64_t size);
     bool QueryInRegisterMap(const mmc_buffer &buf);
@@ -152,7 +152,7 @@ uint32_t MmcClientDefault::RankId(const affinity_policy &policy)
     }
 }
 using MmcClientDefaultPtr = MmcRef<MmcClientDefault>;
-}
-}
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_MMC_CLIENT_DEFAULT_H
+#endif // MEM_FABRIC_MMC_CLIENT_DEFAULT_H

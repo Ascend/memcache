@@ -17,21 +17,13 @@ using namespace ock::mmc;
 
 class MFSmemApiTest : public testing::Test {
 public:
-    static void SetUpTestCase()
-    {
-    }
+    static void SetUpTestCase() {}
 
-    static void TearDownTestCase()
-    {
-    }
+    static void TearDownTestCase() {}
 
-    void SetUp() override
-    {
-    }
+    void SetUp() override {}
 
-    void TearDown() override
-    {
-    }
+    void TearDown() override {}
 };
 
 TEST_F(MFSmemApiTest, smem_bm_api_test)

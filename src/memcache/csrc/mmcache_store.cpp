@@ -37,8 +37,8 @@ static bool CopyPutOptions(const ReplicateConfig &replicateConfig, mmc_put_optio
         return false;
     }
     if (replicateConfig.replicaNum > MAX_BLOB_COPIES) {
-        MMC_LOG_ERROR("replica number " << replicateConfig.replicaNum
-                                        << " exceeds maximum number of copies (" << MAX_BLOB_COPIES << ")");
+        MMC_LOG_ERROR("replica number " << replicateConfig.replicaNum << " exceeds maximum number of copies ("
+                                        << MAX_BLOB_COPIES << ")");
         return false;
     }
     if (replicateConfig.replicaNum == 0) {
@@ -70,9 +70,9 @@ ResourceTracker::ResourceTracker()
     sa.sa_flags = 0;
 
     // Register for common termination signals
-    sigaction(SIGINT, &sa, nullptr);   // Ctrl+C
-    sigaction(SIGTERM, &sa, nullptr);  // kill command
-    sigaction(SIGHUP, &sa, nullptr);   // Terminal closed
+    sigaction(SIGINT, &sa, nullptr);  // Ctrl+C
+    sigaction(SIGTERM, &sa, nullptr); // kill command
+    sigaction(SIGHUP, &sa, nullptr);  // Terminal closed
 
     // Register exit handler
     std::atexit(exitHandler);
@@ -173,12 +173,17 @@ int MmcacheStore::GetInto(const std::string &key, void *buffer, size_t size, con
 {
     uint32_t type = 0;
     switch (direct) {
-        case SMEMB_COPY_G2L: type = MEDIA_HBM; break;
-        case SMEMB_COPY_G2H: type = MEDIA_DRAM; break;
-        default: MMC_LOG_ERROR("Failed to get by type " << direct << " for key " << key); return -1;
+        case SMEMB_COPY_G2L:
+            type = MEDIA_HBM;
+            break;
+        case SMEMB_COPY_G2H:
+            type = MEDIA_DRAM;
+            break;
+        default:
+            MMC_LOG_ERROR("Failed to get by type " << direct << " for key " << key);
+            return -1;
     }
-    mmc_buffer mmcBuffer = {
-        .addr = reinterpret_cast<uint64_t>(buffer), .type = type, .offset = 0, .len = size};
+    mmc_buffer mmcBuffer = {.addr = reinterpret_cast<uint64_t>(buffer), .type = type, .offset = 0, .len = size};
     TP_TRACE_BEGIN(TP_MMC_PY_GET);
     auto res = mmcc_get(key.c_str(), &mmcBuffer, 0);
     TP_TRACE_END(TP_MMC_PY_GET, res);
@@ -198,12 +203,17 @@ int MmcacheStore::PutFrom(const std::string &key, void *buffer, size_t size, con
 {
     uint32_t type = 0;
     switch (direct) {
-        case SMEMB_COPY_L2G: type = MEDIA_HBM; break;
-        case SMEMB_COPY_H2G: type = MEDIA_DRAM; break;
-        default: MMC_LOG_ERROR("Failed to put by type " << direct << " for key " << key); return -1;
+        case SMEMB_COPY_L2G:
+            type = MEDIA_HBM;
+            break;
+        case SMEMB_COPY_H2G:
+            type = MEDIA_DRAM;
+            break;
+        default:
+            MMC_LOG_ERROR("Failed to put by type " << direct << " for key " << key);
+            return -1;
     }
-    mmc_buffer mmcBuffer = {
-        .addr = reinterpret_cast<uint64_t>(buffer), .type = type, .offset = 0, .len = size};
+    mmc_buffer mmcBuffer = {.addr = reinterpret_cast<uint64_t>(buffer), .type = type, .offset = 0, .len = size};
 
     mmc_put_options options{};
     MMC_ASSERT_RETURN(CopyPutOptions(replicateConfig, options), MMC_ERROR);
@@ -217,7 +227,7 @@ int MmcacheStore::PutFrom(const std::string &key, void *buffer, size_t size, con
 int MmcacheStore::Remove(const std::string &key)
 {
     TP_TRACE_BEGIN(TP_MMC_PY_REMOVE);
-    auto ret = mmcc_remove(key.c_str(), 0);  // 0 - success, other - not success
+    auto ret = mmcc_remove(key.c_str(), 0); // 0 - success, other - not success
     TP_TRACE_END(TP_MMC_PY_REMOVE, ret);
     return ret;
 }
@@ -228,13 +238,13 @@ std::vector<int> MmcacheStore::BatchRemove(const std::vector<std::string> &keys)
 
     MMC_VALIDATE_RETURN(!keys.empty(), "key vector is empty", {});
     MMC_VALIDATE_RETURN(keys.size() <= MAX_BATCH_OP_COUNT, "key vector length exceeds limit" << MAX_BATCH_OP_COUNT,
-        {MMC_INVALID_PARAM});
+                        {MMC_INVALID_PARAM});
 
     results.resize(keys.size(), -1);
     const char **c_keys = new (std::nothrow) const char *[keys.size()];
     if (c_keys == nullptr) {
         MMC_LOG_ERROR("Cannot malloc memory for keys!");
-        return results;  // Return vector filled with error code
+        return results; // Return vector filled with error code
     }
     for (size_t i = 0; i < keys.size(); ++i) {
         c_keys[i] = keys[i].c_str();
@@ -246,7 +256,7 @@ std::vector<int> MmcacheStore::BatchRemove(const std::vector<std::string> &keys)
         MMC_LOG_ERROR("remove_batch failed");
         std::fill(results.begin(), results.end(), res);
         delete[] c_keys;
-        return results;  // Return vector filled with error code
+        return results; // Return vector filled with error code
     }
 
     delete[] c_keys;
@@ -257,7 +267,7 @@ int MmcacheStore::RemoveAll()
 {
     MMC_VALIDATE_RETURN(MmcClientDefault::GetInstance() != nullptr, "client is not initialize", MMC_CLIENT_NOT_INIT);
     MMC_RETURN_ERROR(MmcClientDefault::GetInstance()->RemoveAll(0), MmcClientDefault::GetInstance()->Name()
-        << " remove all keys failed!");
+                                                                        << " remove all keys failed!");
     return MMC_OK;
 }
 
@@ -282,13 +292,13 @@ std::vector<int> MmcacheStore::BatchIsExist(const std::vector<std::string> &keys
 
     MMC_VALIDATE_RETURN(!keys.empty(), "key vector is empty", {});
     MMC_VALIDATE_RETURN(keys.size() <= MAX_BATCH_OP_COUNT, "key vector length exceeds limit" << MAX_BATCH_OP_COUNT,
-        {MMC_INVALID_PARAM});
+                        {MMC_INVALID_PARAM});
 
     results.resize(keys.size(), -1);
     const char **c_keys = new (std::nothrow) const char *[keys.size()];
     if (c_keys == nullptr) {
         MMC_LOG_ERROR("Cannot malloc memory for keys!");
-        return results;  // Return vector filled with error code -1
+        return results; // Return vector filled with error code -1
     }
     for (size_t i = 0; i < keys.size(); ++i) {
         c_keys[i] = keys[i].c_str();
@@ -300,7 +310,7 @@ std::vector<int> MmcacheStore::BatchIsExist(const std::vector<std::string> &keys
         MMC_LOG_ERROR("batch_exist failed:" << res);
         std::fill(results.begin(), results.end(), res);
         delete[] c_keys;
-        return results;  // Return vector filled with error code
+        return results; // Return vector filled with error code
     }
 
     for (int &result : results) {
@@ -400,7 +410,7 @@ std::vector<int> MmcacheStore::BatchPutFrom(const std::vector<std::string> &keys
     const size_t count = keys.size();
     MMC_VALIDATE_RETURN(count > 0, "key vector is empty", {});
     MMC_VALIDATE_RETURN(count <= MAX_BATCH_OP_COUNT, "key vector length exceeds limit" << MAX_BATCH_OP_COUNT,
-        {MMC_INVALID_PARAM});
+                        {MMC_INVALID_PARAM});
 
     std::vector<int> results(count, -1);
     if (buffers.size() != count || sizes.size() != count) {
@@ -410,9 +420,15 @@ std::vector<int> MmcacheStore::BatchPutFrom(const std::vector<std::string> &keys
     }
     uint32_t type = 0;
     switch (direct) {
-        case SMEMB_COPY_L2G: type = MEDIA_HBM; break;
-        case SMEMB_COPY_H2G: type = MEDIA_DRAM; break;
-        default: MMC_LOG_ERROR("Failed to batch put by type " << direct); return results;
+        case SMEMB_COPY_L2G:
+            type = MEDIA_HBM;
+            break;
+        case SMEMB_COPY_H2G:
+            type = MEDIA_DRAM;
+            break;
+        default:
+            MMC_LOG_ERROR("Failed to batch put by type " << direct);
+            return results;
     }
 
     std::vector<const char *> keyArray(count);
@@ -442,7 +458,7 @@ std::vector<int> MmcacheStore::BatchGetInto(const std::vector<std::string> &keys
     size_t count = keys.size();
     MMC_VALIDATE_RETURN(count > 0, "key vector is empty", {});
     MMC_VALIDATE_RETURN(count <= MAX_BATCH_OP_COUNT, "key vector length exceeds limit" << MAX_BATCH_OP_COUNT,
-        {MMC_INVALID_PARAM});
+                        {MMC_INVALID_PARAM});
 
     std::vector<int> results(count, -1);
     if (buffers.size() != count || sizes.size() != count) {
@@ -452,9 +468,15 @@ std::vector<int> MmcacheStore::BatchGetInto(const std::vector<std::string> &keys
     }
     uint32_t type = 0;
     switch (direct) {
-        case SMEMB_COPY_G2L: type = MEDIA_HBM; break;
-        case SMEMB_COPY_G2H: type = MEDIA_DRAM; break;
-        default: MMC_LOG_ERROR("Failed to batch get by type " << direct); return results;
+        case SMEMB_COPY_G2L:
+            type = MEDIA_HBM;
+            break;
+        case SMEMB_COPY_G2H:
+            type = MEDIA_DRAM;
+            break;
+        default:
+            MMC_LOG_ERROR("Failed to batch get by type " << direct);
+            return results;
     }
 
     std::vector<const char *> keyArray(count);
@@ -526,7 +548,7 @@ std::vector<int> MmcacheStore::BatchPutFromLayers(const std::vector<std::string>
     const size_t batchSize = keys.size();
     MMC_VALIDATE_RETURN(batchSize > 0, "key vector is empty", {});
     MMC_VALIDATE_RETURN(batchSize <= MAX_BATCH_SIZE, "key vector length exceeds limit" << MAX_BATCH_SIZE,
-        {MMC_INVALID_PARAM});
+                        {MMC_INVALID_PARAM});
 
     std::vector<int> results(batchSize, MMC_INVALID_PARAM);
 
@@ -618,7 +640,7 @@ std::vector<int> MmcacheStore::BatchGetIntoLayers(const std::vector<std::string>
     const size_t batchSize = keys.size();
     MMC_VALIDATE_RETURN(batchSize > 0, "key vector is empty", {});
     MMC_VALIDATE_RETURN(batchSize <= MAX_BATCH_SIZE, "key vector length exceeds limit" << MAX_BATCH_SIZE,
-        {MMC_INVALID_PARAM});
+                        {MMC_INVALID_PARAM});
 
     std::vector<int> results(batchSize, MMC_INVALID_PARAM);
 
@@ -718,14 +740,13 @@ int MmcacheStore::Put(const std::string &key, mmc_buffer &buffer, const Replicat
     return ret;
 }
 
-
 int MmcacheStore::PutBatch(const std::vector<std::string> &keys, std::vector<mmc_buffer> &buffers,
                            const ReplicateConfig &replicateConfig)
 {
     const size_t count = keys.size();
     MMC_VALIDATE_RETURN(count > 0, "key vector is empty", 0);
     MMC_VALIDATE_RETURN(count <= MAX_BATCH_OP_COUNT, "key vector length exceeds limit" << MAX_BATCH_OP_COUNT,
-        MMC_INVALID_PARAM);
+                        MMC_INVALID_PARAM);
 
     std::vector<int> results(count, -1);
     if (buffers.size() != count) {
@@ -753,7 +774,6 @@ int MmcacheStore::PutBatch(const std::vector<std::string> &keys, std::vector<mmc
     }
     return MMC_OK;
 }
-
 
 mmc_buffer MmcacheStore::Get(const std::string &key)
 {
@@ -790,8 +810,7 @@ std::vector<mmc_buffer> MmcacheStore::GetBatch(const std::vector<std::string> &k
 {
     size_t count = keys.size();
     MMC_VALIDATE_RETURN(count > 0, "key vector is empty", {});
-    MMC_VALIDATE_RETURN(count <= MAX_BATCH_OP_COUNT, "key vector length exceeds limit" << MAX_BATCH_OP_COUNT,
-        {});
+    MMC_VALIDATE_RETURN(count <= MAX_BATCH_OP_COUNT, "key vector length exceeds limit" << MAX_BATCH_OP_COUNT, {});
 
     std::vector<int> results(count, -1);
     std::vector<mmc_buffer> buffers(count, {0, 0, 0, 0});
@@ -830,5 +849,5 @@ std::vector<mmc_buffer> MmcacheStore::GetBatch(const std::vector<std::string> &k
     (void)ret;
     return buffers;
 }
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock

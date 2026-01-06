@@ -15,15 +15,16 @@
 #endif
 
 namespace ock {
-    namespace dagger {
-        class Monotonic {
+namespace dagger {
+class Monotonic {
 #ifdef USE_PROCESS_MONOTONIC
-        public:
+public:
 #ifdef __aarch64__
     /*
      * @brief init tick for us
      */
-    template <int32_t FAILURE_RET> static int32_t InitTickUs()
+    template<int32_t FAILURE_RET>
+    static int32_t InitTickUs()
     {
         /* get frequ */
         uint64_t tmpFreq = 0;
@@ -74,7 +75,8 @@ namespace ock {
     }
 
 #elif __x86_64__
-    template <int32_t FAILURE_RET> static int32_t InitTickUs()
+    template<int32_t FAILURE_RET>
+    static int32_t InitTickUs()
     {
         const std::string path = "/proc/cpuinfo";
         const std::string prefix = "model name";
@@ -153,36 +155,37 @@ namespace ock {
 
 #endif /* __x86_64__ || __aarch64__ */
 
-#else /* USE_PROCESS_MONOTONIC */
-        public:
-            template <int32_t FAILURE_RET> static int32_t InitTickUs()
-            {
-                return 0;
-            }
+#else  /* USE_PROCESS_MONOTONIC */
+public:
+    template<int32_t FAILURE_RET>
+    static int32_t InitTickUs()
+    {
+        return 0;
+    }
 
-            static inline uint64_t TimeUs()
-            {
-                struct timespec ts;
-                clock_gettime(CLOCK_MONOTONIC, &ts);
-                return static_cast<uint64_t>(ts.tv_sec * 1000000L + ts.tv_nsec / 1000L);
-            }
+    static inline uint64_t TimeUs()
+    {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        return static_cast<uint64_t>(ts.tv_sec * 1000000L + ts.tv_nsec / 1000L);
+    }
 
-            static inline uint64_t TimeNs()
-            {
-                struct timespec ts;
-                clock_gettime(CLOCK_MONOTONIC, &ts);
-                return static_cast<uint64_t>(ts.tv_sec * 1000000000L + ts.tv_nsec);
-            }
+    static inline uint64_t TimeNs()
+    {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        return static_cast<uint64_t>(ts.tv_sec * 1000000000L + ts.tv_nsec);
+    }
 
-            static inline uint64_t TimeSec()
-            {
-                struct timespec ts;
-                clock_gettime(CLOCK_MONOTONIC, &ts);
-                return static_cast<uint64_t>(ts.tv_sec + ts.tv_nsec / 1000000000L);
-            }
+    static inline uint64_t TimeSec()
+    {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        return static_cast<uint64_t>(ts.tv_sec + ts.tv_nsec / 1000000000L);
+    }
 #endif /* USE_PROCESS_MONOTONIC */
 #ifdef __x86_64__
-        private:
+private:
     /* NN_SplitStr */
     static void NN_SplitStr(const std::string &str, const std::string &separator, std::vector<std::string> &result)
     {
@@ -219,8 +222,8 @@ namespace ock {
         return true;
     }
 #endif
-        };
-    }
-}
+};
+} // namespace dagger
+} // namespace ock
 
 #endif // OCK_HCOM_NET_MONOTONIC_H
