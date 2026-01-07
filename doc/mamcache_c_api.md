@@ -115,7 +115,7 @@ int32_t mmcc_local_service_id(uint32_t *localServiceId);
 ```c
 int32_t mmcc_put(const char *key, mmc_buffer *buf, mmc_put_options options, uint32_t flags);
 ```
-**功能**: 将指定 key 的数据放入分布式内存缓存中。支持同步和异步操作。
+**功能**: 将指定 key 的数据放入分布式内存缓存中。
 
 **参数**:
 
@@ -132,7 +132,7 @@ int32_t mmcc_put(const char *key, mmc_buffer *buf, mmc_put_options options, uint
 ```c
 int32_t mmcc_get(const char *key, mmc_buffer *buf, uint32_t flags);
 ```
-**功能**: 从分布式内存缓存中获取指定 key 的数据。支持同步和异步操作。
+**功能**: 从分布式内存缓存中获取指定 key 的数据。
 
 **参数**:
 
@@ -148,7 +148,7 @@ int32_t mmcc_get(const char *key, mmc_buffer *buf, uint32_t flags);
 ```c
 int32_t mmcc_query(const char *key, mmc_data_info *info, uint32_t flags);
 ```
-**功能**: 查询分布式内存缓存中指定 key 的数据信息。支持同步和异步操作。
+**功能**: 查询分布式内存缓存中指定 key 的数据信息。
 
 **参数**:
 
@@ -164,7 +164,7 @@ int32_t mmcc_query(const char *key, mmc_data_info *info, uint32_t flags);
 ```c
 int32_t mmcc_remove(const char *key, uint32_t flags);
 ```
-**功能**: 从分布式内存缓存中删除指定 key 的对象。支持同步和异步操作。
+**功能**: 从分布式内存缓存中删除指定 key 的对象。
 
 **参数**:
 
@@ -246,7 +246,7 @@ int32_t mmcc_batch_exist(const char **keys, uint32_t keys_count, int32_t *exist_
 int32_t mmcc_batch_put(const char **keys, uint32_t keys_count, const mmc_buffer *bufs,
                        mmc_put_options& options, uint32_t flags);
 ```
-**功能**: 批量将多个数据对象放入分布式内存缓存中。支持同步和异步操作。
+**功能**: 批量将多个数据对象放入分布式内存缓存中。
 
 **参数**:
 - `keys`: 数据对象的键数组
@@ -263,7 +263,7 @@ int32_t mmcc_batch_put(const char **keys, uint32_t keys_count, const mmc_buffer 
 ```c
 int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffer *bufs, uint32_t flags);
 ```
-**功能**: 批量从分布式内存缓存中获取多个数据对象。支持同步和异步操作。
+**功能**: 批量从分布式内存缓存中获取多个数据对象。
 
 **参数**:
 - `keys`: 数据对象的键数组
@@ -411,5 +411,4 @@ TLS配置结构体，包含以下字段：
 ## 注意事项
 
 - 所有键的长度必须小于256个字节
-- 支持同步和异步两种操作模式
 - 批量操作可以提高处理效率
