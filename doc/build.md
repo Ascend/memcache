@@ -53,9 +53,9 @@ bash script/run_ut.sh
 
 MemCache将所有特性集成到run包中供用户使用，run包格式为 ```memcache_hybrid-${version}_${os}_${arch}.run```
 
-其中，versin表示MemCache的版本；os表示操作系统，如linux；arch表示架构，如x86或aarch64
+其中，version表示MemCache的版本；os表示操作系统，如linux；arch表示架构，如x86或aarch64
 
-注意：MemCache运行时依赖MemFabric，需要先参考[MemFabric使用指导](https://gitcode.com/Ascend/memfabric_hybrid/blob/master/doc/build.md)完成MemFabric的安装。
+注意：MemCache运行时依赖MemFabric，需要先参考[MemFabric使用指导](https://gitcode.com/Ascend/memfabric_hybrid/blob/master/doc/installation.md)完成MemFabric的安装。
 
 ### run包安装
 
@@ -63,7 +63,7 @@ run包的默认安装根路径为 /usr/local/
 
 安装完成后需要source安装路径下的memcache_hybrid/set_env.sh
 
-参考安装命令如下
+参考安装命令如下（此处以1.0.0版本为例）
 
 ```bash
 bash memcache_hybrid-1.0.0_linux_aarch64.run # 请修改为实际路径和文件名
