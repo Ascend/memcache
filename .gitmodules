@@ -9,7 +9,7 @@
 [submodule "3rdparty/memfabric_hybrid"]
 	path = 3rdparty/memfabric_hybrid
 	url = https://gitcode.com/Ascend/memfabric_hybrid.git
-	branch = master
+	branch = v1.0.0
 [submodule "3rdparty/log/spdlog"]
 	path = 3rdparty/log/spdlog
 	url = https://github.com/gabime/spdlog.git

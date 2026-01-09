@@ -239,7 +239,7 @@ Result MetaNetServer::HandleBatchUpdate(const NetContextPtr &context)
     auto ret = metaMgrProxy->BatchUpdateState(req, resp);
     TP_TRACE_END(TP_MMC_META_BATCH_UPDATE, ret);
     (void)ret;
-    MMC_LOG_INFO("HandleBatchUpdate keys (size " << req.keys_.size() << ") finish: " << Join(req.keys_));
+    MMC_LOG_DEBUG("HandleBatchUpdate keys (size " << req.keys_.size() << ") finish: " << Join(req.keys_));
 
     return context->Reply(req.msgId, resp);
 }
@@ -380,7 +380,7 @@ Result MetaNetServer::HandleBatchQuery(const NetContextPtr &context)
     auto ret = metaMgrProxy->BatchQuery(req, resp);
     TP_TRACE_END(TP_MMC_META_BATCH_QUERY, ret);
     (void)ret;
-    MMC_LOG_INFO("HandleBatchQuery keys (size " << req.keys_.size() << ") finish: " << Join(req.keys_));
+    MMC_LOG_DEBUG("HandleBatchQuery keys (size " << req.keys_.size() << ") finish: " << Join(req.keys_));
 
     return context->Reply(req.msgId, resp);
 }

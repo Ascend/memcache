@@ -15,6 +15,7 @@ import concurrent.futures
 import dataclasses
 import inspect
 import json
+import logging
 import socket
 import sys
 import threading
@@ -26,6 +27,9 @@ from enum import Enum
 import torch
 
 from memcache_hybrid import DistributedObjectStore, ReplicateConfig
+
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class MmcDirect(Enum):
@@ -41,6 +45,7 @@ class CliCommand:
     cmd_desc: str
     func: Callable
     required_args_num: int
+
 
 class TestServer:
     def __init__(self, ip, port):
@@ -66,33 +71,34 @@ class TestServer:
             self._commands[cmd.cmd_name] = cmd
 
     @staticmethod
-    def _convert_argument(arg_str: str, param_type):
+    def _convert_argument(arg, param_type):
         try:
-            if arg_str == "__NONE__":
+            if arg == "__NONE__":
                 return None
             elif param_type == int:
-                return int(arg_str)
+                return int(arg)
             elif param_type == float:
-                return float(arg_str)
+                return float(arg)
             elif param_type == str:
-                return str(arg_str)
+                return str(arg)
             elif param_type == bool:
-                return arg_str.lower() in ['true', '1', 'yes']
+                return arg.lower() in ['true', '1', 'yes']
             elif param_type == bytes:
-                return bytes(arg_str, 'utf-8')
+                return bytes(arg, 'utf-8')
+            elif param_type == List[bytes]:
+                return [val.encode('utf-8') for val in arg]
             else:
-                # 如果是其他类型，可以使用 ast.literal_eval
-                return ast.literal_eval(arg_str)
-        except (ValueError, SyntaxError):
-            # 如果无法转换，返回原始字符串
-            return arg_str
+                return arg
+        except (ValueError, SyntaxError) as e:
+            logging.error(f"failed to convert to {param_type}, error: {e}")
+            return arg
 
     @staticmethod
     # 解析参数并根据目标函数的参数类型进行转换
-    def _parse_arguments(func, arg_strs):
+    def _parse_arguments(func, args):
         signature = inspect.signature(func)
         parsed_args = []
-        for param, arg in zip(signature.parameters.values(), arg_strs):
+        for param, arg in zip(signature.parameters.values(), args):
             parsed_args.append(TestServer._convert_argument(arg, param.annotation))
         return parsed_args
 
@@ -138,7 +144,7 @@ class TestServer:
                     continue
                 msg = b''.join(buffer_list).decode('utf-8').replace("\0", "").strip()
                 request = json.loads(msg)
-                print(f"received request: {request}")
+                logging.debug("received request: %s", request)
 
                 try:
                     self._execute(request)
@@ -163,7 +169,7 @@ class TestServer:
         self._thread_local.client_socket.send(data)
 
     def _cli_end_line(self):
-        print("send command result")
+        logging.debug("send command result")
         self._thread_local.client_socket.send("\0".encode('utf-8'))
 
     def _help(self):
@@ -187,6 +193,7 @@ def result_handler(func):
             self.cli_print(f"{func.__name__} raised exception: {e}")
 
     return wrapper
+
 
 def tensor_sum(tensor, sizes: List[int] = None):
     if tensor is None:
@@ -215,7 +222,7 @@ class MmcTest(TestServer):
             CliCommand("put", "put data in bytes format: [key] [data]", self.put, 2),
             CliCommand("put_batch", "put batch datas in bytes format: [keys] [values]", self.put_batch, 2),
             CliCommand("get", "get data in bytes format: [key]", self.get, 1),
-            CliCommand("get_batch", "get batch datas in bytes format: `keys: List[str]`", self.get_batch, 1),
+            CliCommand("get_batch", "get batch datas in bytes format: [keys]", self.get_batch, 1),
             CliCommand("put_from", "put data from a buffer: [key] [size] [media(0:cpu 1:npu)]", self.put_from, 3),
             CliCommand("get_into", "get data into a buffer: [key] [size] [media(0:cpu 1:npu)]", self.get_into, 3),
             CliCommand("batch_get_into", "batch put data: [keys] [sizes] [media(0:cpu 1:npu)]", self.batch_get_into, 3),
@@ -224,6 +231,7 @@ class MmcTest(TestServer):
             CliCommand("batch_is_exist", "check if a batch of keys exist: [keys]", self.batch_is_exist, 1),
             CliCommand("remove", "remove data: [key]", self.remove, 1),
             CliCommand("remove_batch", "remove a batch of data: [keys]", self.remove_batch, 1),
+            CliCommand("remove_all", "remove all keys", self.remove_all, 0),
             CliCommand("get_key_info", "get data info of: [key]", self.get_key_info, 1),
             CliCommand("batch_get_key_info", "batch get data info of: [keys]", self.batch_get_key_info, 1),
             CliCommand("put_from_layers", "put data from multiple buffers [key] [sizes] [media(0:cpu 1:npu)]",
@@ -269,9 +277,9 @@ class MmcTest(TestServer):
             rep_conf.preferredLocalServiceIDs = preferred_ranks
         res = self._store.put(key, data, rep_conf)
         self.cli_return(res)
-    
+
     @result_handler
-    def put_batch(self, keys: List[str], values: List[bytes], replica_num: int | None = None, 
+    def put_batch(self, keys: List[str], values: List[bytes], replica_num: int | None = None,
                   preferred_ranks: List[int] | None = None):
         rep_conf = ReplicateConfig()
         if replica_num is not None:
@@ -391,7 +399,7 @@ class MmcTest(TestServer):
         self.cli_return(res)
 
     @result_handler
-    def batch_is_exist(self, keys: list[str]):
+    def batch_is_exist(self, keys: List[str]):
         res = self._store.batch_is_exist(keys)
         self.cli_return(res)
 
@@ -401,8 +409,13 @@ class MmcTest(TestServer):
         self.cli_return(res)
 
     @result_handler
-    def remove_batch(self, keys: list[str]):
+    def remove_batch(self, keys: List[str]):
         res = self._store.remove_batch(keys)
+        self.cli_return(res)
+
+    @result_handler
+    def remove_all(self):
+        res = self._store.remove_all()
         self.cli_return(res)
 
     @result_handler
@@ -411,7 +424,7 @@ class MmcTest(TestServer):
         self.cli_return(res)
 
     @result_handler
-    def batch_get_key_info(self, keys: list[str]):
+    def batch_get_key_info(self, keys: List[str]):
         res = self._store.batch_get_key_info(keys)
         self.cli_return(res)
 
@@ -582,7 +595,7 @@ if __name__ == "__main__":
         _, ip_str, port_str, device_id_str = sys.argv
         server = MmcTest(ip_str, port_str, int(device_id_str))
     else:
-        print("Please input ip and port when starting the process.")
+        logging.error("Please input ip and port when starting the process.")
         sys.exit(1)
-    print(f"Start app_id: {ip_str}:{port_str}")
+    logging.info(f"Start app_id: {ip_str}:{port_str}")
     server.start()
