@@ -426,12 +426,11 @@ Result NetEngineAcc::HandleNewLink(const TcpConnReq &req, const TcpLinkPtr &link
 
     auto newLinkAcc = MmcMakeRef<NetLinkAcc>(peerId, link);
     MMC_ASSERT_RETURN(newLinkAcc != nullptr, MMC_NEW_OBJECT_FAILED);
-    MMC_LOG_INFO("NEW Link");
+    MMC_LOG_DEBUG("NEW Link");
 
     /* add into peer link map */
     peerLinkMap_->Add(peerId, newLinkAcc);
-    MMC_LOG_DEBUG("HandleNewLink with peer id: " << req.rankId);
-    MMC_LOG_INFO("HandleNewLink with peer id: " << req.rankId);
+    MMC_LOG_INFO("HandleNewLink with peer rankId: " << req.rankId);
     Result ret = MMC_OK;
     if (newLinkHandler_ != nullptr) {
         ret = newLinkHandler_(newLinkAcc.Get());

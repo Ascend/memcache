@@ -103,8 +103,8 @@ Result MetaNetServer::HandleBmRegister(const NetContextPtr &context)
     TP_TRACE_BEGIN(TP_MMC_META_BM_REGISTER);
     auto result = metaService_->BmRegister(req.rank_, req.mediaType_, req.addr_, req.capacity_, req.blobMap_);
     TP_TRACE_END(TP_MMC_META_BM_REGISTER, result);
-    MMC_LOG_INFO("HandleBmRegister rank:" << req.rank_ << ", rebuild blob size " << req.blobMap_.size()
-                                          << ", ret:" << result);
+    MMC_LOG_INFO("HandleBmRegister rank: " << req.rank_ << ", rebuild blob size: " << req.blobMap_.size()
+                                           << ", ret: " << result);
     Response resp;
     resp.ret_ = result;
     return context->Reply(req.msgId, resp);
@@ -121,7 +121,8 @@ Result MetaNetServer::HandleBmUnregister(const NetContextPtr &context)
         TP_TRACE_BEGIN(TP_MMC_META_BM_UNREGISTER);
         auto result = metaService_->BmUnregister(req.rank_, type);
         TP_TRACE_END(TP_MMC_META_BM_UNREGISTER, result);
-        MMC_LOG_INFO("HandleBmUnregister rank:" << req.rank_ << ", media:" << type << ", ret:" << result);
+        MMC_LOG_INFO("HandleBmUnregister: " << MmcLocation(req.rank_, static_cast<MediaType>(type))
+                                            << ", ret:" << result);
         if (result != MMC_OK) {
             MMC_LOG_ERROR("HandleBmUnregister rank:" << req.rank_ << ", media:" << type << ", ret:" << result);
             resp.ret_ = result;
@@ -148,13 +149,13 @@ Result MetaNetServer::HandlePing(const NetContextPtr &context)
 
 Result MetaNetServer::HandleNewLink(const NetLinkPtr &link)
 {
-    MMC_LOG_INFO(name_ << " new link");
+    MMC_LOG_INFO(name_ << " new link, id: " << link->Id());
     return MMC_OK;
 }
 
 Result MetaNetServer::HandleLinkBroken(const NetLinkPtr &link)
 {
-    MMC_LOG_INFO(name_ << " link broken");
+    MMC_LOG_DEBUG(name_ << " link broken");
     MMC_ASSERT_RETURN(metaService_ != nullptr, MMC_ERROR);
     int32_t rankId = link->Id();
     TP_TRACE_BEGIN(TP_MMC_META_CLEAR_RESOURCE);

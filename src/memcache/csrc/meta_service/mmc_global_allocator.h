@@ -198,7 +198,7 @@ public:
             return MMC_ERROR;
         }
         allocator->Stop();
-        MMC_LOG_INFO("Stop one bm successfully, bmRankId=" << loc.rank_);
+        MMC_LOG_INFO("Stop one bm successfully, loc: " << loc);
         globalAllocLock_.UnlockRead();
         return MMC_OK;
     }
@@ -225,7 +225,7 @@ public:
             return MMC_INVALID_PARAM;
         }
         allocators_.erase(iter);
-        MMC_LOG_INFO("Unmount one bm successfully, bmRankId=" << loc.rank_);
+        MMC_LOG_DEBUG("Unmount one bm successfully, loc: " << loc);
         globalAllocLock_.UnlockWrite();
         return MMC_OK;
     }
