@@ -10,7 +10,6 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-import ast
 import concurrent.futures
 import dataclasses
 import inspect
@@ -85,13 +84,10 @@ class TestServer:
                 return arg.lower() in ['true', '1', 'yes']
             elif param_type == bytes:
                 return bytes(arg, 'utf-8')
-            elif param_type == List[str]:
-                return arg
             elif param_type == List[bytes]:
                 return [val.encode('utf-8') for val in arg]
             else:
-                logging.warning(f"unknown type: {param_type}, using ast.literal_eval to convert")
-                return ast.literal_eval(arg)
+                return arg
         except (ValueError, SyntaxError) as e:
             logging.error(f"failed to convert to {param_type}, error: {e}")
             return arg
@@ -193,6 +189,7 @@ def result_handler(func):
         try:
             func(self, *args, **kwargs)
         except Exception as e:
+            traceback.print_exc()
             self.cli_print(f"{func.__name__} raised exception: {e}")
 
     return wrapper
@@ -523,7 +520,7 @@ class MmcTest(TestServer):
         if device == 'npu':
             self.sync_stream()
         tensor_sums = [tensor_sum(block, sizes_) for block, sizes_ in zip(blocks, sizes)]
-        for block in blocks:
+        for block, sizes_ in zip(blocks, sizes):
             if block is not None:
                 self._store.unregister_buffer(block.data_ptr(), max(sizes_, default=0) * len(sizes_))
         self.cli_return(str([results, tensor_sums]))
@@ -554,7 +551,7 @@ class MmcTest(TestServer):
         if device == 'npu':
             self.sync_stream()
         tensor_sums = [tensor_sum(block, sizes_) for block, sizes_ in zip(blocks, sizes)]
-        for block in blocks:
+        for block, sizes_ in zip(blocks, sizes):
             if block is not None:
                 self._store.unregister_buffer(block.data_ptr(), max(sizes_, default=0) * len(sizes_))
         self.cli_return(str([results, tensor_sums]))
