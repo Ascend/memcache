@@ -26,7 +26,6 @@ ret = acl.rt.set_device(count - 1)
 print("set_device returned: {}".format(ret))
 
 
-
 class MmcDirect(Enum):
     COPY_L2G = 0
     COPY_G2L = 1
@@ -74,7 +73,7 @@ class TestExample(unittest.TestCase):
             ],
             MmcDirect.COPY_L2G.value
         )
-        self.assertTrue(all(i==0 for i in res))
+        self.assertTrue(all(i == 0 for i in res))
         res = self.store.batch_get_into_layers(
             ["2d-0", "2d-1"],
             [
@@ -87,7 +86,7 @@ class TestExample(unittest.TestCase):
             ],
             MmcDirect.COPY_G2L.value
         )
-        self.assertTrue(all(i==0 for i in res))
+        self.assertTrue(all(i == 0 for i in res))
         self.assertTrue(self.npu_tensor[0][2].eq(self.npu_tensor[0][4]).all())
         self.assertTrue(self.npu_tensor[0][3].eq(self.npu_tensor[0][5]).all())
         print(self.npu_tensor[0][2])
@@ -129,7 +128,7 @@ class TestExample(unittest.TestCase):
             ],
             MmcDirect.COPY_H2G.value
         )
-        self.assertTrue(all(i==0 for i in res))
+        self.assertTrue(all(i == 0 for i in res))
         res = self.store.batch_get_into_layers(
             ["1d-0", "1d-1"],
             [[layer.data_ptr() for layer in block] for block in dst_blocks],
@@ -139,7 +138,7 @@ class TestExample(unittest.TestCase):
             ],
             MmcDirect.COPY_G2H.value
         )
-        self.assertTrue(all(i==0 for i in res))
+        self.assertTrue(all(i == 0 for i in res))
         print(src_blocks)
         print(dst_blocks)
 

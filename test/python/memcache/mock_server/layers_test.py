@@ -12,7 +12,6 @@
 
 from test_case_common import TestClient
 
-
 if __name__ == "__main__":
     client = TestClient("127.0.0.1", 8558)
     number = 64

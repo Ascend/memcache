@@ -39,7 +39,7 @@ public:
         }
         numReaders_--;
         if (numReaders_ == 0) {
-            cv_.notify_one();  // wake up the write thread
+            cv_.notify_one(); // wake up the write thread
         }
     }
 
@@ -56,14 +56,14 @@ public:
     {
         std::unique_lock<std::mutex> lock(mutex_);
         isWriting_ = false;
-        cv_.notify_all();  // wake up all the read threads
+        cv_.notify_all(); // wake up all the read threads
     }
 
 private:
     std::mutex mutex_;
     std::condition_variable cv_;
-    uint16_t numReaders_{0};  // number of current reade threads
-    bool isWriting_{false};   // whether currently have write threads
+    uint16_t numReaders_{0}; // number of current reade threads
+    bool isWriting_{false};  // whether currently have write threads
 };
 
 class ReadLock {
@@ -104,7 +104,7 @@ private:
     ReadWriteLock &rwLock_;
 };
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEMFABRIC_HYBRID_MMC_READWRITELOCK_H
+#endif // MEMFABRIC_HYBRID_MMC_READWRITELOCK_H

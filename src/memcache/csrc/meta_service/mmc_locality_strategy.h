@@ -82,7 +82,7 @@ public:
     }
 
     static Result ForceAssign(const MmcAllocators &allocators, const AllocOptions &allocReq,
-                                  std::vector<MmcMemBlobPtr> &blobs)
+                              std::vector<MmcMemBlobPtr> &blobs)
     {
         if (allocators.empty()) {
             MMC_LOG_ERROR("Cannot allocate blob, allocators empty");
@@ -97,24 +97,24 @@ public:
         location.rank_ = allocReq.preferredRank_.empty() ? 0 : allocReq.preferredRank_[0];
         auto itPrefer = allocators.find(location);
         if (itPrefer == allocators.end()) {
-            MMC_LOG_ERROR("Cannot force assign allocate blob, allocator rank: " << location.rank_
-                << " media type: " << location.mediaType_ << " not found");
+            MMC_LOG_ERROR("Cannot force assign allocate blob, allocator rank: " << location.rank_ << " media type: "
+                                                                                << location.mediaType_ << " not found");
             return MMC_ERROR;
         }
         auto it = itPrefer;
 
         auto allocator = it->second;
         if (allocator == nullptr) {
-            MMC_LOG_ERROR("Cannot force assign allocate blob, allocator rank: " << location.rank_
-                << " media type: " << location.mediaType_ << " is nullptr");
+            MMC_LOG_ERROR("Cannot force assign allocate blob, allocator rank: "
+                          << location.rank_ << " media type: " << location.mediaType_ << " is nullptr");
             return MMC_ERROR;
         }
         MmcMemBlobPtr blob = allocator->Alloc(allocReq.blobSize_);
         if (blob != nullptr) {
             blobs.push_back(blob);
         } else {
-                MMC_LOG_ERROR("Cannot force assign allocate blob, allocator rank: " << location.rank_
-                << " media type: " << location.mediaType_ << " cannot alloc space");
+            MMC_LOG_ERROR("Cannot force assign allocate blob, allocator rank: "
+                          << location.rank_ << " media type: " << location.mediaType_ << " cannot alloc space");
             return MMC_ERROR;
         }
 
@@ -143,7 +143,8 @@ public:
         }
         if (numCandidates < allocReq.numBlobs_) {
             MMC_LOG_ERROR("Not enough allocators for media type: " << allocReq.mediaType_
-                          << ", required: " << allocReq.numBlobs_ << ", available: " << numCandidates);
+                                                                   << ", required: " << allocReq.numBlobs_
+                                                                   << ", available: " << numCandidates);
             return MMC_ERROR;
         }
         std::vector<size_t> indices;

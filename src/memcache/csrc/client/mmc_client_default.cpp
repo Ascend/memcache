@@ -26,7 +26,7 @@ constexpr int32_t MMC_BATCH_TRANSPORT = 1U;
 constexpr int32_t MMC_ASYNC_TRANSPORT = 2U;
 constexpr uint32_t KEY_MAX_LENTH = 256U;
 
-MmcClientDefault* MmcClientDefault::gClientHandler = nullptr;
+MmcClientDefault *MmcClientDefault::gClientHandler = nullptr;
 std::mutex MmcClientDefault::gClientHandlerMtx;
 
 Result MmcClientDefault::Start(const mmc_client_config_t &config)
@@ -55,7 +55,7 @@ Result MmcClientDefault::Start(const mmc_client_config_t &config)
     MMC_RETURN_ERROR(writeThreadPool_->Start(), "write thread pool start failed");
 
     MMC_ASSERT_RETURN(memchr(config.discoveryURL, '\0', DISCOVERY_URL_SIZE) != nullptr, MMC_INVALID_PARAM);
-    auto tmpNetClient  = MetaNetClientFactory::GetInstance(config.discoveryURL, "MetaClientCommon").Get();
+    auto tmpNetClient = MetaNetClientFactory::GetInstance(config.discoveryURL, "MetaClientCommon").Get();
     MMC_ASSERT_RETURN(tmpNetClient != nullptr, MMC_NEW_OBJECT_FAILED);
     if (!tmpNetClient->Status()) {
         NetEngineOptions options;
@@ -66,8 +66,7 @@ Result MmcClientDefault::Start(const mmc_client_config_t &config)
         options.tlsOption = config.tlsConfig;
         options.logLevel = config.logLevel;
         options.logFunc = config.logFunc;
-        MMC_RETURN_ERROR(tmpNetClient->Start(options),
-                         "Failed to start net server of local service " << name_);
+        MMC_RETURN_ERROR(tmpNetClient->Start(options), "Failed to start net server of local service " << name_);
         MMC_RETURN_ERROR(tmpNetClient->Connect(config.discoveryURL),
                          "Failed to connect net server of local service " << name_);
     }
@@ -107,13 +106,12 @@ const std::string &MmcClientDefault::Name() const
     return name_;
 }
 
-Result MmcClientDefault::Put(const char* key, mmc_buffer* buf, mmc_put_options& options, uint32_t flags)
+Result MmcClientDefault::Put(const char *key, mmc_buffer *buf, mmc_put_options &options, uint32_t flags)
 {
     MMC_VALIDATE_RETURN(bmProxy_ != nullptr, "BmProxy is null", MMC_CLIENT_NOT_INIT);
     MMC_VALIDATE_RETURN(metaNetClient_ != nullptr, "MetaNetClient is null", MMC_CLIENT_NOT_INIT);
 
-    if (buf == nullptr || key == nullptr || key[0] == '\0' ||
-        strnlen(key, KEY_MAX_LENTH + 1) == KEY_MAX_LENTH + 1) {
+    if (buf == nullptr || key == nullptr || key[0] == '\0' || strnlen(key, KEY_MAX_LENTH + 1) == KEY_MAX_LENTH + 1) {
         MMC_LOG_ERROR("Invalid arguments");
         return MMC_ERROR;
     }
@@ -190,8 +188,8 @@ Result MmcClientDefault::Put(const std::string &key, const MmcBufferArray &bufAr
     return MMC_OK;
 }
 
-Result MmcClientDefault::BatchPut(const std::vector<std::string>& keys, const std::vector<mmc_buffer>& bufs,
-                                  mmc_put_options& options, uint32_t flags, std::vector<int>& batchResult)
+Result MmcClientDefault::BatchPut(const std::vector<std::string> &keys, const std::vector<mmc_buffer> &bufs,
+                                  mmc_put_options &options, uint32_t flags, std::vector<int> &batchResult)
 {
     MMC_VALIDATE_RETURN(bmProxy_ != nullptr, "BmProxy is null", MMC_CLIENT_NOT_INIT);
     MMC_VALIDATE_RETURN(metaNetClient_ != nullptr, "MetaNetClient is null", MMC_CLIENT_NOT_INIT);
@@ -204,7 +202,7 @@ Result MmcClientDefault::BatchPut(const std::vector<std::string>& keys, const st
 
     std::vector<MmcBufferArray> bufferArrays{};
     bufferArrays.reserve(bufs.size());
-    for (const auto& buf : bufs) {
+    for (const auto &buf : bufs) {
         MmcBufferArray bufArr{};
         bufArr.AddBuffer(buf);
         bufferArrays.emplace_back(bufArr);
@@ -213,15 +211,15 @@ Result MmcClientDefault::BatchPut(const std::vector<std::string>& keys, const st
     return BatchPut(keys, bufferArrays, options, flags, batchResult);
 }
 
-Result MmcClientDefault::BatchPut(const std::vector<std::string>& keys, const std::vector<MmcBufferArray>& bufArrs,
-                                  mmc_put_options& options, uint32_t flags, std::vector<int>& batchResult)
+Result MmcClientDefault::BatchPut(const std::vector<std::string> &keys, const std::vector<MmcBufferArray> &bufArrs,
+                                  mmc_put_options &options, uint32_t flags, std::vector<int> &batchResult)
 {
     MMC_VALIDATE_RETURN(bmProxy_ != nullptr, "BmProxy is null", MMC_CLIENT_NOT_INIT);
     MMC_VALIDATE_RETURN(metaNetClient_ != nullptr, "MetaNetClient is null", MMC_CLIENT_NOT_INIT);
 
     if (keys.empty() || bufArrs.empty() || keys.size() != bufArrs.size()) {
-        MMC_LOG_ERROR("client " << name_ << " batch get failed: keys size:" << keys.size() << ", bufArrs size:"
-                                << bufArrs.size());
+        MMC_LOG_ERROR("client " << name_ << " batch get failed: keys size:" << keys.size()
+                                << ", bufArrs size:" << bufArrs.size());
         return MMC_INVALID_PARAM;
     }
 
@@ -231,7 +229,7 @@ Result MmcClientDefault::BatchPut(const std::vector<std::string>& keys, const st
 
     BatchAllocResponse allocResponse;
     MMC_RETURN_ERROR(AllocateAndPutBlobs(keys, bufArrs, options, flags, operateId, batchResult, allocResponse),
-        "client " << name_ << " allocate and put blobs failed");
+                     "client " << name_ << " allocate and put blobs failed");
 
     // update blob state
     std::vector<BlobActionResult> actionResults;
@@ -239,7 +237,7 @@ Result MmcClientDefault::BatchPut(const std::vector<std::string>& keys, const st
     std::vector<uint16_t> mediaTypes;
     std::vector<std::string> updateKeys;
     for (size_t i = 0; i < keys.size(); ++i) {
-        for (const auto& blob : allocResponse.blobs_[i]) {
+        for (const auto &blob : allocResponse.blobs_[i]) {
             updateKeys.push_back(keys[i]);
             ranks.push_back(blob.rank_);
             mediaTypes.push_back(blob.mediaType_);
@@ -264,10 +262,9 @@ Result MmcClientDefault::BatchPut(const std::vector<std::string>& keys, const st
     return MMC_OK;
 }
 
-Result MmcClientDefault::Get(const char* key, mmc_buffer* buf, uint32_t flags)
+Result MmcClientDefault::Get(const char *key, mmc_buffer *buf, uint32_t flags)
 {
-    if (buf == nullptr || key == nullptr || key[0] == '\0' ||
-        strnlen(key, KEY_MAX_LENTH + 1) == KEY_MAX_LENTH + 1) {
+    if (buf == nullptr || key == nullptr || key[0] == '\0' || strnlen(key, KEY_MAX_LENTH + 1) == KEY_MAX_LENTH + 1) {
         MMC_LOG_ERROR("Invalid arguments");
         return MMC_ERROR;
     }
@@ -277,7 +274,7 @@ Result MmcClientDefault::Get(const char* key, mmc_buffer* buf, uint32_t flags)
     return Get(key, bufArr, flags);
 }
 
-Result MmcClientDefault::Get(const std::string &key, const MmcBufferArray& bufArr, uint32_t flags)
+Result MmcClientDefault::Get(const std::string &key, const MmcBufferArray &bufArr, uint32_t flags)
 {
     MMC_VALIDATE_RETURN(bmProxy_ != nullptr, "BmProxy is null", MMC_CLIENT_NOT_INIT);
     MMC_VALIDATE_RETURN(metaNetClient_ != nullptr, "MetaNetClient is null", MMC_CLIENT_NOT_INIT);
@@ -288,11 +285,11 @@ Result MmcClientDefault::Get(const std::string &key, const MmcBufferArray& bufAr
     MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, response, rpcRetryTimeOut_),
                      "client " << name_ << " get " << key << " failed");
     if (response.numBlobs_ == 0 || response.blobs_.empty()) {
-        MMC_LOG_ERROR("client " << name_ << " get " << key << " failed, numblob is:"
-                      << static_cast<uint64_t>(response.numBlobs_));
+        MMC_LOG_ERROR("client " << name_ << " get " << key
+                                << " failed, numblob is:" << static_cast<uint64_t>(response.numBlobs_));
         return MMC_ERROR;
     }
-    auto& blob = response.blobs_[0];
+    auto &blob = response.blobs_[0];
     auto ret = bmProxy_->BatchGet(bufArr, blob);
 
     auto future = threadPool_->Enqueue(
@@ -317,8 +314,8 @@ Result MmcClientDefault::Get(const std::string &key, const MmcBufferArray& bufAr
     return MMC_OK;
 }
 
-Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, std::vector<mmc_buffer>& bufs, uint32_t flags,
-                                  std::vector<int>& batchResult)
+Result MmcClientDefault::BatchGet(const std::vector<std::string> &keys, std::vector<mmc_buffer> &bufs, uint32_t flags,
+                                  std::vector<int> &batchResult)
 {
     MMC_VALIDATE_RETURN(bmProxy_ != nullptr, "BmProxy is null", MMC_CLIENT_NOT_INIT);
     MMC_VALIDATE_RETURN(metaNetClient_ != nullptr, "MetaNetClient is null", MMC_CLIENT_NOT_INIT);
@@ -330,7 +327,7 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, std::vec
 
     std::vector<MmcBufferArray> bufferArrays{};
     bufferArrays.reserve(bufs.size());
-    for (const auto& buf : bufs) {
+    for (const auto &buf : bufs) {
         MmcBufferArray bufArr{};
         bufArr.AddBuffer(buf);
         bufferArrays.emplace_back(bufArr);
@@ -338,15 +335,15 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, std::vec
     return BatchGet(keys, bufferArrays, flags, batchResult);
 }
 
-Result MmcClientDefault::BatchGet(const std::vector<std::string>& keys, const std::vector<MmcBufferArray>& bufArrs,
-                                  uint32_t flags, std::vector<int>& batchResult)
+Result MmcClientDefault::BatchGet(const std::vector<std::string> &keys, const std::vector<MmcBufferArray> &bufArrs,
+                                  uint32_t flags, std::vector<int> &batchResult)
 {
     MMC_VALIDATE_RETURN(bmProxy_ != nullptr, "BmProxy is null", MMC_CLIENT_NOT_INIT);
     MMC_VALIDATE_RETURN(metaNetClient_ != nullptr, "MetaNetClient is null", MMC_CLIENT_NOT_INIT);
 
     if ((keys.empty() || bufArrs.empty() || keys.size() != bufArrs.size())) {
-        MMC_LOG_ERROR("client " << name_ << " batch get failed: keys size:" << keys.size() << ", bufArrs size:"
-                                << bufArrs.size());
+        MMC_LOG_ERROR("client " << name_ << " batch get failed: keys size:" << keys.size()
+                                << ", bufArrs size:" << bufArrs.size());
         return MMC_INVALID_PARAM;
     }
 
@@ -491,8 +488,8 @@ Result MmcClientDefault::Remove(const char *key, uint32_t flags) const
     return response.ret_;
 }
 
-Result MmcClientDefault::BatchRemove(const std::vector<std::string>& keys,
-                                     std::vector<Result>& remove_results, uint32_t flags) const
+Result MmcClientDefault::BatchRemove(const std::vector<std::string> &keys, std::vector<Result> &remove_results,
+                                     uint32_t flags) const
 {
     MMC_VALIDATE_RETURN(metaNetClient_ != nullptr, "MetaNetClient is null", MMC_CLIENT_NOT_INIT);
 
@@ -500,11 +497,11 @@ Result MmcClientDefault::BatchRemove(const std::vector<std::string>& keys,
     BatchRemoveResponse response;
 
     MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, response, rpcRetryTimeOut_),
-        "client " << name_ << " BatchRemove failed");
+                     "client " << name_ << " BatchRemove failed");
 
     if (response.results_.size() != keys.size()) {
-        MMC_LOG_ERROR("BatchRemove response size mismatch. Expected: "
-                      << keys.size() << ", Got: " << response.results_.size());
+        MMC_LOG_ERROR("BatchRemove response size mismatch. Expected: " << keys.size()
+                                                                       << ", Got: " << response.results_.size());
         std::fill(remove_results.begin(), remove_results.end(), MMC_ERROR);
         return MMC_ERROR;
     }
@@ -521,7 +518,7 @@ Result MmcClientDefault::RemoveAll(uint32_t flags) const
     Response response;
 
     MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, response, rpcRetryTimeOut_),
-        "client " << name_ << " RemoveAll failed");
+                     "client " << name_ << " RemoveAll failed");
 
     return MMC_OK;
 }
@@ -568,7 +565,7 @@ Result MmcClientDefault::BatchIsExist(const std::vector<std::string> &keys, std:
     return MMC_OK;
 }
 
-Result MmcClientDefault::Query(const std::string& key, mmc_data_info& query_info, uint32_t flags) const
+Result MmcClientDefault::Query(const std::string &key, mmc_data_info &query_info, uint32_t flags) const
 {
     MMC_VALIDATE_RETURN(metaNetClient_ != nullptr, "MetaNetClient is null", MMC_CLIENT_NOT_INIT);
 
@@ -609,14 +606,14 @@ Result MmcClientDefault::BatchQuery(const std::vector<std::string> &keys, std::v
                      "client " << name_ << " BatchIsExist failed");
 
     if (response.batchQueryInfos_.size() != keys.size()) {
-        MMC_LOG_ERROR("BatchQuery get a response with mismatched size (" << response.batchQueryInfos_.size()
-                      << "), should get size (" << keys.size() << ").");
+        MMC_LOG_ERROR("BatchQuery get a response with mismatched size ("
+                      << response.batchQueryInfos_.size() << "), should get size (" << keys.size() << ").");
         MemObjQueryInfo info_fill;
         query_infos.resize(keys.size(), {});
         return MMC_ERROR;
     }
 
-    for (const auto& info : response.batchQueryInfos_) {
+    for (const auto &info : response.batchQueryInfos_) {
         mmc_data_info outInfo{};
         outInfo.valid = info.valid_;
         if (!outInfo.valid) {
@@ -636,9 +633,10 @@ Result MmcClientDefault::BatchQuery(const std::vector<std::string> &keys, std::v
     return MMC_OK;
 }
 
-Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& keys,
-    const std::vector<MmcBufferArray>& bufArrs, const mmc_put_options& options, uint32_t flags, uint64_t operateId,
-    std::vector<int>& batchResult, BatchAllocResponse& allocResponse)
+Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string> &keys,
+                                             const std::vector<MmcBufferArray> &bufArrs, const mmc_put_options &options,
+                                             uint32_t flags, uint64_t operateId, std::vector<int> &batchResult,
+                                             BatchAllocResponse &allocResponse)
 {
     std::vector<uint32_t> preferredRank;
     std::copy_if(std::begin(options.preferredLocalServiceIDs), std::end(options.preferredLocalServiceIDs),
@@ -670,9 +668,9 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string>& key
     std::vector<void *> partDst{};
     std::vector<uint64_t> partSize{};
     for (size_t i = 0; i < keys.size(); ++i) {
-        const std::string& key = keys[i];
-        const MmcBufferArray& bufArr = bufArrs[i];
-        const auto& blobs = allocResponse.blobs_[i];
+        const std::string &key = keys[i];
+        const MmcBufferArray &bufArr = bufArrs[i];
+        const auto &blobs = allocResponse.blobs_[i];
         const auto numBlobs = allocResponse.numBlobs_[i];
 
         if (allocResponse.results_[i] != MMC_OK) {
@@ -814,5 +812,5 @@ int32_t MmcClientDefault::SelectTransportType(const mmc_buffer &buf)
     return MMC_BATCH_TRANSPORT;
 }
 
-}
-}
+} // namespace mmc
+} // namespace ock

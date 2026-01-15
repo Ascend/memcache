@@ -18,9 +18,9 @@ target_link_options(mmc_meta_service PRIVATE -pie)
 
 target_link_libraries(mmc_meta_service PUBLIC mmc_shared pthread acc_tcp_net_static)
 
-if(BUILD_PYTHON STREQUAL "ON")
+if (BUILD_PYTHON STREQUAL "ON")
     target_link_libraries(mmc_meta_service PRIVATE pybind11::module Python3::Python)
-endif()
+endif ()
 
 install(TARGETS mmc_meta_service
         RUNTIME DESTINATION ${TARGET_INSTALL_DIR}/memcache/bin

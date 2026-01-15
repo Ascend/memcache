@@ -26,7 +26,6 @@ ret = acl.rt.set_device(count - 1)
 print("set_device returned: {}".format(ret))
 
 
-
 class MmcDirect(Enum):
     COPY_L2G = 0
     COPY_G2L = 1

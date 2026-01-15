@@ -28,7 +28,10 @@ constexpr int HTTP_INIT_WAIT_MILLISECONDS = 100;
 namespace ock {
 namespace mmc {
 
-MmcHttpServer::~MmcHttpServer() { Stop(); }
+MmcHttpServer::~MmcHttpServer()
+{
+    Stop();
+}
 
 void MmcHttpServer::RegisterUrls()
 {
@@ -65,7 +68,7 @@ void MmcHttpServer::RegisterDataManagementEndpoints()
         }
 
         std::ostringstream oss;
-        for (const auto& key : keys) {
+        for (const auto &key : keys) {
             oss << key << "\n";
         }
 
@@ -80,7 +83,7 @@ void MmcHttpServer::RegisterDataManagementEndpoints()
             res.set_content("Missing 'key' parameter", "text/plain");
             return;
         }
-        const std::string& key = key_it->second;
+        const std::string &key = key_it->second;
 
         if (metaMetaManager_ == nullptr) {
             MMC_LOG_ERROR("metaMetaManager_ is nullptr");
@@ -147,9 +150,7 @@ bool MmcHttpServer::Start()
         return true;
     }
 
-    serverThread_ = std::thread([this]() {
-        server_.listen(host_, port_);
-    });
+    serverThread_ = std::thread([this]() { server_.listen(host_, port_); });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(HTTP_INIT_WAIT_MILLISECONDS));
     running_ = true;
@@ -172,5 +173,5 @@ void MmcHttpServer::Stop()
     MMC_LOG_INFO("HTTP server stopped");
 }
 
-}
-}
+} // namespace mmc
+} // namespace ock

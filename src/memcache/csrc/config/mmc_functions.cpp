@@ -85,5 +85,5 @@ void SplitStr(const std::string &str, const std::string &separator, std::vector<
     }
 }
 
-} // namespace common
+} // namespace mmc
 } // namespace ock

@@ -28,7 +28,6 @@ import torch
 
 from memcache_hybrid import DistributedObjectStore, ReplicateConfig
 
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 

@@ -36,13 +36,11 @@
 #include "mmc_meta_service.h"
 #include "mmc_ptracer.h"
 
-
 namespace ock {
 namespace mmc {
 static std::mutex g_exitMtx;
 static std::condition_variable g_exitCv;
 static bool g_processExit = false;
-
 
 int MmcMetaServiceProcess::MainForExecutable()
 {
@@ -80,8 +78,8 @@ int MmcMetaServiceProcess::MainForPython()
     }
 
     if (config_.haEnable) {
-        leaderElection_ = new(std::nothrow)MmcMetaServiceLeaderElection(
-            "leader_election", META_POD_NAME, META_NAMESPACE, META_LEASE_NAME);
+        leaderElection_ = new (std::nothrow)
+            MmcMetaServiceLeaderElection("leader_election", META_POD_NAME, META_NAMESPACE, META_LEASE_NAME);
         if (leaderElection_ == nullptr || leaderElection_->Start(config_) != MMC_OK) {
             std::cerr << "Error, failed to start meta service leader election." << std::endl;
             Exit();
@@ -89,7 +87,7 @@ int MmcMetaServiceProcess::MainForPython()
         }
     }
 
-    metaService_ = new (std::nothrow)MmcMetaService("meta_service");
+    metaService_ = new (std::nothrow) MmcMetaService("meta_service");
     if (metaService_ == nullptr || metaService_->Start(config_) != MMC_OK) {
         std::cerr << "Error, failed to start MmcMetaService." << std::endl;
         Exit();
@@ -142,7 +140,7 @@ int MmcMetaServiceProcess::LoadConfig()
     MetaServiceConfig configManager;
     if (MMC_META_CONF_PATH.empty()) {
         std::cout << "[WARNING] MMC_META_CONFIG_PATH is not set. "
-        << "All configuration items use default values." << std::endl;
+                  << "All configuration items use default values." << std::endl;
     } else {
         // Read configuration from config file
         const auto confPath = MMC_META_CONF_PATH;
@@ -153,7 +151,7 @@ int MmcMetaServiceProcess::LoadConfig()
         const std::vector<std::string> validationError = configManager.ValidateConf();
         if (!validationError.empty()) {
             std::cerr << "Wrong configuration in file <" << confPath
-            << ">, because of following mistakes:" << std::endl;
+                      << ">, because of following mistakes:" << std::endl;
             for (auto &item : validationError) {
                 std::cout << item << std::endl;
             }
@@ -201,17 +199,14 @@ void MmcMetaServiceProcess::SignalInterruptHandler(const int signal)
     g_exitCv.notify_all();
 }
 
-int MmcMetaServiceProcess::InitLogger(const mmc_meta_service_config_t& options)
+int MmcMetaServiceProcess::InitLogger(const mmc_meta_service_config_t &options)
 {
     const std::string logPath = std::string(options.logPath) + "/logs/mmc-meta.log";
     const std::string logAuditPath = std::string(options.logPath) + "/logs/mmc-meta-audit.log";
 
-    std::cout << "Meta service log level " << options.logLevel
-              << ", log path: " << logPath
-              << ", audit log path: " << logAuditPath
-              << ", log rotation file size: " << options.logRotationFileSize
-              << ", log rotation file count: " << options.logRotationFileCount
-              << std::endl;
+    std::cout << "Meta service log level " << options.logLevel << ", log path: " << logPath
+              << ", audit log path: " << logAuditPath << ", log rotation file size: " << options.logRotationFileSize
+              << ", log rotation file count: " << options.logRotationFileCount << std::endl;
 
     auto ret = MmcOutLogger::Instance().SetLogLevel(static_cast<LogLevel>(options.logLevel));
     if (ret != 0) {
@@ -256,10 +251,10 @@ int MmcMetaServiceProcess::StartHttpServer()
 
     try {
         port = static_cast<uint16_t>(std::stoul(portStr));
-    } catch (const std::invalid_argument&) {
+    } catch (const std::invalid_argument &) {
         MMC_LOG_ERROR("Invalid http URL: port is not a valid number.");
         return MMC_INVALID_PARAM;
-    } catch (const std::out_of_range&) {
+    } catch (const std::out_of_range &) {
         MMC_LOG_ERROR("Invalid http URL: port out of range.");
         return MMC_INVALID_PARAM;
     }
@@ -270,7 +265,7 @@ int MmcMetaServiceProcess::StartHttpServer()
         httpServer_ = new MmcHttpServer(host, port, metaManagerPtr);
         httpServer_->Start();
         return MMC_OK;
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
         MMC_LOG_ERROR("Failed to start HTTP server: " << e.what());
         return MMC_ERROR;
     }

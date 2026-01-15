@@ -30,7 +30,7 @@ public:
                          bool isForce) override;
 
     Result Call(uint32_t targetId, int16_t opCode, const char *reqData, uint32_t reqDataLen, char **respData,
-                        uint32_t &respDataLen, int32_t timeoutInSecond) override;
+                uint32_t &respDataLen, int32_t timeoutInSecond) override;
 
     Result Send(uint32_t peerId, const char *reqData, uint32_t reqDataLen, int32_t timeoutInSecond) override;
 
@@ -65,7 +65,7 @@ private:
     int32_t timeoutInSecond_ = 0;
     MmcThreadPoolPtr threadPool_;
 };
-}
-}
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_MMC_NET_ENGINE_ACC_LINKS_H
+#endif // MEM_FABRIC_MMC_NET_ENGINE_ACC_LINKS_H

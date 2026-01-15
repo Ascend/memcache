@@ -167,6 +167,6 @@ private:
     static SmemShmControlAllGatherFunc gSmemShmControlAllGather;
     static SmemShmTopoCanReachFunc gSmemShmTopoCanReach;
 };
-}  // namespace shm
+} // namespace shm
 
-#endif  // SHMEM_MF_HYBRID_API_H
+#endif // SHMEM_MF_HYBRID_API_H

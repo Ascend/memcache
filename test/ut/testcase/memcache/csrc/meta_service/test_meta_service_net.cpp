@@ -86,7 +86,6 @@ TEST_F(TestMmcMetaService, Init)
     PingMsg resp;
     ASSERT_TRUE(localServiceDefault->SyncCallMeta(req, resp, 30) == MMC_OK);
 
-
     AllocRequest reqAlloc;
     reqAlloc.key_ = "test";
     reqAlloc.options_ = AllocOptions(SIZE_32K, 1, MEDIA_HBM, {0}, 0);
@@ -298,7 +297,7 @@ TEST_F(TestMmcMetaService, BatchQueryRequest)
     metaServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
-    auto metaService     = MmcMakeRef<MmcMetaService>("testMetaService");
+    auto metaService = MmcMakeRef<MmcMetaService>("testMetaService");
     ASSERT_TRUE(metaService->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 104857600, 0};
@@ -312,7 +311,7 @@ TEST_F(TestMmcMetaService, BatchQueryRequest)
     ASSERT_TRUE(localServicePtr->Start(localServiceConfig) == MMC_OK);
 
     AllocRequest reqAlloc;
-    std::map<std::string, std::pair<uint32_t, uint8_t>> keyMap;  // key : {size, numBlobs}
+    std::map<std::string, std::pair<uint32_t, uint8_t>> keyMap; // key : {size, numBlobs}
     reqAlloc.options_ = AllocOptions(SIZE_32K, 1, MEDIA_HBM, {0}, 0);
     for (uint16_t i = 0U; i < 3U; ++i) {
         reqAlloc.key_ = "test_" + std::to_string(i);

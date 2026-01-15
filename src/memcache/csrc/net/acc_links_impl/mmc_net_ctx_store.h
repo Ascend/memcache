@@ -65,8 +65,9 @@ public:
         for (auto &i : mHashCtxMap) {
             i.reserve(N1024);
         }
-        MMC_LOG_INFO("Initialized context store, flatten capacity " << mFlatCapacity << ", versionAndSeqMask " <<
-            mSeqNoAndVersionMask << ", seqNoMask " << mSeqNoMask << ", seqNoAndVersionIndex " << mSeqNoAndVersionIndex);
+        MMC_LOG_INFO("Initialized context store, flatten capacity "
+                     << mFlatCapacity << ", versionAndSeqMask " << mSeqNoAndVersionMask << ", seqNoMask " << mSeqNoMask
+                     << ", seqNoAndVersionIndex " << mSeqNoAndVersionIndex);
 
         return MMC_OK;
     }
@@ -89,7 +90,8 @@ public:
      * SER_INVALID_PARAM if param is invalid
      * SER_STORE_SEQ_DUP if seq is duplicated in map
      */
-    template <typename T> Result PutAndGetSeqNo(T *ctx, uint32_t &output)
+    template<typename T>
+    Result PutAndGetSeqNo(T *ctx, uint32_t &output)
     {
         if (UNLIKELY(ctx == nullptr)) {
             return MMC_INVALID_PARAM;
@@ -159,7 +161,8 @@ public:
      * SER_STORE_SEQ_NO_FOUND if seq is not existed, probably removed already
      *
      */
-    template <typename T> Result GetSeqNoAndRemove(uint32_t seqNo, T *&out, bool decreaseRef = true)
+    template<typename T>
+    Result GetSeqNoAndRemove(uint32_t seqNo, T *&out, bool decreaseRef = true)
     {
         NetSeqNo no(0);
         no.wholeSeq = seqNo;
@@ -207,7 +210,8 @@ public:
         return MMC_NET_SEQ_NO_FOUND;
     }
 
-    template <typename T> inline void RemoveSeqNo(uint32_t seqNo)
+    template<typename T>
+    inline void RemoveSeqNo(uint32_t seqNo)
     {
         T *out = nullptr;
         if (UNLIKELY(GetSeqNoAndRemove<T>(seqNo, out) != MMC_OK)) {
@@ -239,7 +243,7 @@ private:
     std::mutex mHashCtxMutex[gHashCount];                           /* mutex to guard unordered_map */
     std::unordered_map<uint32_t, uint64_t> mHashCtxMap[gHashCount]; /* unordered_map to store un-flat */
 };
-}
-}
+} // namespace mmc
+} // namespace ock
 
 #endif // MEM_FABRIC_MMC_NET_CTX_STORE_H

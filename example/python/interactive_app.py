@@ -28,8 +28,6 @@ print("设备数量:", acl.rt.get_device_count())
 ret = acl.rt.set_device(count - 1)
 print("set_device returned: {}".format(ret))
 
-
-
 STORE = DistributedObjectStore()
 DEFAULT_REPLICA_NUMBER = 2
 AVAILABLE_COMMANDS = "'put <key> <value>', 'get <key>', 'remove <key>' or 'quit'/'exit'"

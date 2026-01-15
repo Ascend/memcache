@@ -30,6 +30,7 @@ upper_layer: int = len(block_size)
 key_prefix: str = "key_"
 IS_2D = False
 
+
 def set_device(device_id):
     import acl
     acl.init()
@@ -46,7 +47,7 @@ def tensor_sum(tensor: List[torch.Tensor], sizes: List[int] = None):
     return sum(layer[:size].sum().item() for layer, size in zip(tensor, sizes))
 
 
-def allocate_aligned_tensor(shape, dtype=torch.float32, alignment=2*1024*1024):
+def allocate_aligned_tensor(shape, dtype=torch.float32, alignment=2 * 1024 * 1024):
     num_elements = torch.prod(torch.tensor(shape)).item()
     element_size = torch.finfo(dtype).bits // 8 if dtype.is_floating_point else torch.iinfo(dtype).bits // 8
     total_bytes = num_elements * element_size
@@ -87,7 +88,7 @@ def init_mooncake(device_id: int):
     config = MooncakeConfig(
         device=device_id,
         protocol='ascend',
-        device_name= '',
+        device_name='',
         local_hostname='141.61.41.87',
         metadata_server='P2PHANDSHAKE',
         global_segment_size=1024 * 1024 * 1024 * 1,

@@ -24,11 +24,8 @@ namespace mmc {
 
 class MmcHttpServer {
 public:
-    MmcHttpServer(const std::string& host, const uint16_t port, const MmcMetaManagerPtr& metaMetaManager)
-        : running_(false),
-          host_(host),
-          port_(port),
-          metaMetaManager_(metaMetaManager)
+    MmcHttpServer(const std::string &host, const uint16_t port, const MmcMetaManagerPtr &metaMetaManager)
+        : running_(false), host_(host), port_(port), metaMetaManager_(metaMetaManager)
     {
         RegisterUrls();
     }
@@ -39,10 +36,13 @@ public:
 
     void Stop();
 
-    bool IsRunning() const { return running_; }
+    bool IsRunning() const
+    {
+        return running_;
+    }
 
-    MmcHttpServer(const MmcHttpServer&) = delete;
-    MmcHttpServer& operator=(const MmcHttpServer&) = delete;
+    MmcHttpServer(const MmcHttpServer &) = delete;
+    MmcHttpServer &operator=(const MmcHttpServer &) = delete;
 
 private:
     void RegisterUrls();
@@ -59,7 +59,7 @@ private:
     std::thread serverThread_;
 };
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
 #endif

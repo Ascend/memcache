@@ -38,45 +38,57 @@ struct MmcMemMetaDesc {
     std::vector<MmcMemBlobDesc> blobs_;
 
     MmcMemMetaDesc() = default;
-    MmcMemMetaDesc(const uint16_t& prot, const uint8_t& priority, const uint8_t& numBlobs, const uint64_t& size)
+    MmcMemMetaDesc(const uint16_t &prot, const uint8_t &priority, const uint8_t &numBlobs, const uint64_t &size)
         : prot_(prot), priority_(priority), numBlobs_(numBlobs), size_(size)
     {}
 
-    MmcMemMetaDesc(const uint16_t& prot, const uint8_t& priority, const uint8_t& numBlobs, const uint64_t& size,
-                   const std::vector<MmcMemBlobPtr>& blobs)
+    MmcMemMetaDesc(const uint16_t &prot, const uint8_t &priority, const uint8_t &numBlobs, const uint64_t &size,
+                   const std::vector<MmcMemBlobPtr> &blobs)
         : prot_(prot), priority_(priority), numBlobs_(numBlobs), size_(size)
     {
-        for (const auto& blob : blobs) {
+        for (const auto &blob : blobs) {
             AddBlob(blob);
         }
     }
 
-    void AddBlob(const MmcMemBlobPtr& blob) { blobs_.push_back(blob->GetDesc()); }
-
-    void AddBlobs(const std::vector<MmcMemBlobPtr>& blobs)
+    void AddBlob(const MmcMemBlobPtr &blob)
     {
-        for (const auto& blob : blobs) {
+        blobs_.push_back(blob->GetDesc());
+    }
+
+    void AddBlobs(const std::vector<MmcMemBlobPtr> &blobs)
+    {
+        for (const auto &blob : blobs) {
             AddBlob(blob);
         }
     }
 
-    uint16_t Prot() { return prot_; };
+    uint16_t Prot()
+    {
+        return prot_;
+    };
 
-    uint8_t Priority() { return priority_; };
+    uint8_t Priority()
+    {
+        return priority_;
+    };
 
-    uint8_t NumBlobs() { return numBlobs_; };
+    uint8_t NumBlobs()
+    {
+        return numBlobs_;
+    };
 
-    uint64_t Size() { return size_; };
+    uint64_t Size()
+    {
+        return size_;
+    };
 };
 
 class MmcMetaManager : public MmcReferable {
 public:
     explicit MmcMetaManager(uint64_t defaultTtl, uint16_t evictThresholdHigh, uint16_t evictThresholdLow)
-        : defaultTtlMs_(defaultTtl),
-          evictThresholdHigh_(evictThresholdHigh),
-          evictThresholdLow_(evictThresholdLow)
-        {
-        }
+        : defaultTtlMs_(defaultTtl), evictThresholdHigh_(evictThresholdHigh), evictThresholdLow_(evictThresholdLow)
+    {}
 
     ~MmcMetaManager() override
     {
@@ -118,20 +130,20 @@ public:
      * @param key          [in] key of the meta object
      * @param objMeta      [out] the meta object obtained
      */
-    Result Get(const std::string& key, uint64_t operateId, MmcBlobFilterPtr filterPtr, MmcMemMetaDesc& objMeta);
+    Result Get(const std::string &key, uint64_t operateId, MmcBlobFilterPtr filterPtr, MmcMemMetaDesc &objMeta);
 
     /**
      * @brief Alloc the global memory space and create the meta object
      * @param key          [in] key of the meta object
      * @param metaInfo     [out] the meta object created
      */
-    Result Alloc(const std::string& key, const AllocOptions& allocOpt, uint64_t operateId, MmcMemMetaDesc& objMeta);
+    Result Alloc(const std::string &key, const AllocOptions &allocOpt, uint64_t operateId, MmcMemMetaDesc &objMeta);
 
     /**
      * @brief Update the state
      * @param req          [in] update state request
      */
-    Result UpdateState(const std::string& key, const MmcLocation& loc, const BlobActionResult& actRet,
+    Result UpdateState(const std::string &key, const MmcLocation &loc, const BlobActionResult &actRet,
                        uint64_t operateId);
 
     /**
@@ -152,10 +164,10 @@ public:
      * @param blobMap           [in] if not empty, the allocator will be rebuild from blobMap
      */
     Result Mount(const MmcLocation &loc, const MmcLocalMemlInitInfo &localMemInitInfo,
-        std::map<std::string, MmcMemBlobDesc> &blobMap);
+                 std::map<std::string, MmcMemBlobDesc> &blobMap);
 
-    Result Mount(const std::vector<MmcLocation>& locs, const std::vector<MmcLocalMemlInitInfo>& localMemInitInfos,
-                 std::map<std::string, MmcMemBlobDesc>& blobMap);
+    Result Mount(const std::vector<MmcLocation> &locs, const std::vector<MmcLocalMemlInitInfo> &localMemInitInfos,
+                 std::map<std::string, MmcMemBlobDesc> &blobMap);
     /**
      * @brief unmount the mempool contributor at given location
      * @param loc          [in] location of the mem pool contributor to be unmounted
@@ -184,7 +196,7 @@ public:
      * @brief Get all keys
      * @param keys           [out] vector to store all keys
      */
-    Result GetAllKeys(std::vector<std::string>& keys);
+    Result GetAllKeys(std::vector<std::string> &keys);
 
     /**
      * @brief check and evict meta objects
@@ -195,37 +207,40 @@ public:
     {
         return defaultTtlMs_;
     }
-    
+
     /**
      * @brief copy blob to loc
      */
-    Result ReplicateBlob(const std::string& key, const MmcLocation& loc);
+    Result ReplicateBlob(const std::string &key, const MmcLocation &loc);
 
     /**
      * @brief from src loc copy blob to dst loc, and delete the blobs which belong to src loc
      */
-    Result MoveBlob(const std::string& key, const MmcLocation& src, const MmcLocation& dst);
+    Result MoveBlob(const std::string &key, const MmcLocation &src, const MmcLocation &dst);
 
     // 临时方案
-    void SetMetaNetServer(MetaNetServerPtr metaNetServer) { metaNetServer_ = metaNetServer; }
+    void SetMetaNetServer(MetaNetServerPtr metaNetServer)
+    {
+        metaNetServer_ = metaNetServer;
+    }
 
 private:
-    Result CopyBlob(const MmcMemObjMetaPtr& objMeta, const MmcMemBlobDesc& srcBlob, const MmcLocation& dstLoc);
+    Result CopyBlob(const MmcMemObjMetaPtr &objMeta, const MmcMemBlobDesc &srcBlob, const MmcLocation &dstLoc);
 
-    Result RebuildMeta(std::map<std::string, MmcMemBlobDesc>& blobMap);
+    Result RebuildMeta(std::map<std::string, MmcMemBlobDesc> &blobMap);
 
-    void PushRemoveList(const std::string& key, const MmcMemObjMetaPtr& meta);
+    void PushRemoveList(const std::string &key, const MmcMemObjMetaPtr &meta);
 
-    EvictResult EvictCallBackFunction(const std::string& key, const MmcMemObjMetaPtr& objMeta);
+    EvictResult EvictCallBackFunction(const std::string &key, const MmcMemObjMetaPtr &objMeta);
 
-    inline std::size_t GetIndex(const MmcMemObjMetaPtr& meta) const
+    inline std::size_t GetIndex(const MmcMemObjMetaPtr &meta) const
     {
-        const MmcMemObjMeta* objPtr = meta.Get();
+        const MmcMemObjMeta *objPtr = meta.Get();
         // FNV-1a 哈希算法
         constexpr std::size_t FNV_PRIME = 16777619u;
         constexpr std::size_t FNV_OFFSET = 2166136261u;
         std::size_t hash = FNV_OFFSET;
-        const char* ptr = reinterpret_cast<const char*>(objPtr);
+        const char *ptr = reinterpret_cast<const char *>(objPtr);
         for (size_t i = 0; i < sizeof(MmcMemObjMeta); ++i) {
             hash ^= ptr[i];
             hash *= FNV_PRIME;
@@ -249,7 +264,7 @@ private:
     MmcThreadPoolPtr threadPool_;
 };
 using MmcMetaManagerPtr = MmcRef<MmcMetaManager>;
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_MMC_META_MANAGER_H
+#endif // MEM_FABRIC_MMC_META_MANAGER_H

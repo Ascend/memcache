@@ -21,13 +21,11 @@
 namespace ock {
 namespace mmc {
 
-struct MMCMetaBackUpConf : public MmcReferable {
-};
+struct MMCMetaBackUpConf : public MmcReferable {};
 using MMCMetaBackUpConfPtr = MmcRef<MMCMetaBackUpConf>;
 
 class MMCMetaBackUpMgr : public MmcReferable {
 public:
-
     virtual Result Start(MMCMetaBackUpConfPtr &confPtr) = 0;
 
     virtual void Stop() = 0;
@@ -36,9 +34,9 @@ public:
 
     virtual Result Remove(const std::string &key, MmcMemBlobDesc &blobDesc) = 0;
 
-    virtual Result Load(std::map<std::string, MmcMemBlobDesc>& blobMap) = 0;
+    virtual Result Load(std::map<std::string, MmcMemBlobDesc> &blobMap) = 0;
 };
 using MMCMetaBackUpMgrPtr = MmcRef<MMCMetaBackUpMgr>;
-}
-}
+} // namespace mmc
+} // namespace ock
 #endif // MF_HYBRID_MMC_META_BACKUP_MGR_H

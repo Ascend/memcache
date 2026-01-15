@@ -30,8 +30,8 @@ MMC_API int32_t mmc_init(const mmc_init_config *config)
     static constexpr int32_t PROCESS_NICE = -5;
     MmcThreadPool::TrySetProcessNice(PROCESS_NICE);
     MMC_VALIDATE_RETURN(config != nullptr, "config is null", MMC_INVALID_PARAM);
-    MMC_VALIDATE_RETURN(config->deviceId <= MAX_DEVICE_ID,
-        "Invalid param deviceId: " << config->deviceId, MMC_INVALID_PARAM);
+    MMC_VALIDATE_RETURN(config->deviceId <= MAX_DEVICE_ID, "Invalid param deviceId: " << config->deviceId,
+                        MMC_INVALID_PARAM);
     std::lock_guard<std::mutex> lock(gMmcMutex);
     if (mmcInit) {
         MMC_LOG_INFO("mmc is already init");
@@ -64,7 +64,7 @@ MMC_API int32_t mmc_init(const mmc_init_config *config)
     }
 
     MMC_VALIDATE_RETURN(configManager.ValidateLocalServiceConfig(localServiceConfig) == MMC_OK,
-        "Invalid local service config", MMC_INVALID_PARAM);
+                        "Invalid local service config", MMC_INVALID_PARAM);
     if (config->initBm) {
         g_localService = mmcs_local_service_start(&localServiceConfig);
         MMC_VALIDATE_RETURN(g_localService != nullptr, "failed to create or start local service", MMC_ERROR);

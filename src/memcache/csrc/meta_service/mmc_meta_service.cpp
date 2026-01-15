@@ -31,7 +31,7 @@ Result MmcMetaService::Start(const mmc_meta_service_config_t &options)
     }
     options_ = options;
     MMC_VALIDATE_RETURN(options.evictThresholdHigh > options.evictThresholdLow,
-        "invalid param, evictThresholdHigh must large than evictThresholdLow", MMC_INVALID_PARAM);
+                        "invalid param, evictThresholdHigh must large than evictThresholdLow", MMC_INVALID_PARAM);
 
     metaNetServer_ = MmcMakeRef<MetaNetServer>(this, name_ + "_MetaServer").Get();
     MMC_ASSERT_RETURN(metaNetServer_.Get() != nullptr, MMC_NEW_OBJECT_FAILED);
@@ -127,8 +127,7 @@ Result MmcMetaService::BmUnregister(uint32_t rank, uint16_t mediaType)
         rankMediaTypeMap_[rank].find(mediaType) != rankMediaTypeMap_[rank].end()) {
         rankMediaTypeMap_[rank].erase(mediaType);
     }
-    if (rankMediaTypeMap_.find(rank) != rankMediaTypeMap_.end() &&
-        rankMediaTypeMap_[rank].empty()) {
+    if (rankMediaTypeMap_.find(rank) != rankMediaTypeMap_.end() && rankMediaTypeMap_[rank].empty()) {
         rankMediaTypeMap_.erase(rank);
     }
     return MMC_OK;
@@ -150,7 +149,7 @@ Result MmcMetaService::ClearResource(uint32_t rank)
         mediaTypes = rankMediaTypeMap_[rank];
     }
 
-    for (const auto& mediaType : mediaTypes) {
+    for (const auto &mediaType : mediaTypes) {
         MMC_LOG_INFO("Clear resource {rank, mediaType} -> { " << rank << ", " << mediaType << " }");
         BmUnregister(rank, mediaType);
     }
@@ -171,5 +170,5 @@ void MmcMetaService::Stop()
     started_ = false;
 }
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock

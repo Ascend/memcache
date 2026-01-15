@@ -34,9 +34,9 @@ public:
     ~KVParser();
 
     KVParser(const KVParser &) = delete;
-    KVParser &operator = (const KVParser &) = delete;
+    KVParser &operator=(const KVParser &) = delete;
     KVParser(const KVParser &&) = delete;
-    KVParser &operator = (const KVParser &&) = delete;
+    KVParser &operator=(const KVParser &&) = delete;
 
     Result FromFile(const std::string &filePath);
 

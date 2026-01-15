@@ -86,7 +86,8 @@ static bool CheckData(void *base, void *ptr)
     int32_t *arr1 = (int32_t *)base;
     int32_t *arr2 = (int32_t *)ptr;
     for (uint32_t i = 0; i < SIZE_32K / sizeof(int); i++) {
-        if (arr1[i] != arr2[i]) return false;
+        if (arr1[i] != arr2[i])
+            return false;
     }
     return true;
 }
@@ -104,7 +105,7 @@ TEST_F(TestBmProxy, Copy)
     initConfig.worldSize = 1;
     initConfig.deviceId = 0;
     initConfig.hcomUrl = hcomUrl;
-    
+
     mmc_bm_create_config_t createConfig;
     createConfig.id = 0;
     createConfig.memberSize = 1;
@@ -112,7 +113,7 @@ TEST_F(TestBmProxy, Copy)
     createConfig.localDRAMSize = 0;
     createConfig.localHBMSize = 104857600;
     createConfig.flags = 0;
-    
+
     Result ret = bmProxy->InitBm(initConfig, createConfig);
     EXPECT_EQ(ret, MMC_OK);
 
@@ -195,7 +196,7 @@ TEST_F(TestBmProxy, PutGet_NullBuffer)
 {
     ASSERT_EQ(proxy_->InitBm(initConfig_, createConfig_), MMC_OK);
 
-    mmc_buffer* nullBuf = nullptr;
+    mmc_buffer *nullBuf = nullptr;
     ASSERT_NE(proxy_->Put(nullBuf, 0x1000, 100), MMC_OK);
     ASSERT_NE(proxy_->Get(nullBuf, 0x1000, 100), MMC_OK);
 }
@@ -213,7 +214,7 @@ TEST_F(TestBmProxy, PutGet_1DData)
     ASSERT_EQ(proxy_->Get(&buf, 0x1000, 100), MMC_OK);
     ASSERT_NE(proxy_->Put(&buf, 0x1000, 50), MMC_OK);
 
-    delete[] reinterpret_cast<char*>(buf.addr);
+    delete[] reinterpret_cast<char *>(buf.addr);
 }
 
 TEST_F(TestBmProxy, ConcurrentAccess)
@@ -227,12 +228,11 @@ TEST_F(TestBmProxy, ConcurrentAccess)
         buf.offset = 0;
         buf.len = 100;
 
-        if (proxy_->Put(&buf, 0x1000, 100) == MMC_OK &&
-            proxy_->Get(&buf, 0x1000, 100) == MMC_OK) {
+        if (proxy_->Put(&buf, 0x1000, 100) == MMC_OK && proxy_->Get(&buf, 0x1000, 100) == MMC_OK) {
             successCount++;
         }
 
-        delete[] reinterpret_cast<char*>(buf.addr);
+        delete[] reinterpret_cast<char *>(buf.addr);
     };
 
     std::vector<std::thread> threads;
@@ -240,7 +240,7 @@ TEST_F(TestBmProxy, ConcurrentAccess)
         threads.emplace_back(worker);
     }
 
-    for (auto& t : threads) {
+    for (auto &t : threads) {
         t.join();
     }
 

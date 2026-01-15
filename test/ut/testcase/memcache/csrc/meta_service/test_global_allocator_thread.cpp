@@ -45,7 +45,8 @@ void TestMmcGlobalAllocatorThread::TearDown()
 }
 
 // 被测试的线程函数
-int AllocatorTest(const int worldSize, const int rankId, MmcGlobalAllocatorPtr allocator) {
+int AllocatorTest(const int worldSize, const int rankId, MmcGlobalAllocatorPtr allocator)
+{
     uint64_t size = SIZE_32K * 10;
     MmcLocation loc;
     MmcLocalMemlInitInfo info;
@@ -57,7 +58,7 @@ int AllocatorTest(const int worldSize, const int rankId, MmcGlobalAllocatorPtr a
     Result result = allocator->Mount(loc, info);
     Result result1 = allocator->BuildFromBlobs(loc, blobMap);
     if (result != MMC_OK || result1 != MMC_OK) {
-        std::cout << "allocator mount failed in rank: "<< rankId << std::endl;
+        std::cout << "allocator mount failed in rank: " << rankId << std::endl;
         return -1;
     }
     allocator->Start(loc);
@@ -83,14 +84,14 @@ int AllocatorTest(const int worldSize, const int rankId, MmcGlobalAllocatorPtr a
 
     result = allocator->Alloc(allocReq, blobs1);
     if (result != MMC_OK || blobs1.size() != allocReq.numBlobs_) {
-        std::cout << "2 allocator alloc failed in rank: "<< rankId << std::endl;
+        std::cout << "2 allocator alloc failed in rank: " << rankId << std::endl;
         return -2;
     }
 
     for (auto &blob : blobs) {
         result = allocator->Free(blob);
         if (result != MMC_OK) {
-            std::cout << "1 allocator free failed in rank: "<< rankId << std::endl;
+            std::cout << "1 allocator free failed in rank: " << rankId << std::endl;
             return -3;
         }
     }
@@ -98,7 +99,7 @@ int AllocatorTest(const int worldSize, const int rankId, MmcGlobalAllocatorPtr a
     for (auto &blob : blobs1) {
         result = allocator->Free(blob);
         if (result != MMC_OK) {
-            std::cout << "2 allocator free failed in rank: "<< rankId << std::endl;
+            std::cout << "2 allocator free failed in rank: " << rankId << std::endl;
             return -3;
         }
     }
@@ -110,21 +111,22 @@ int AllocatorTest(const int worldSize, const int rankId, MmcGlobalAllocatorPtr a
 
     result = allocator->Unmount(loc);
     if (result != MMC_OK) {
-        std::cout << "allocator unmount failed in rank: "<< rankId << std::endl;
+        std::cout << "allocator unmount failed in rank: " << rankId << std::endl;
         return -4;
     }
 
     return 0;
 }
 
-TEST(TestMmcGlobalAllocatorThread, AllocatorTest) {
+TEST(TestMmcGlobalAllocatorThread, AllocatorTest)
+{
     MmcGlobalAllocatorPtr allocator = MmcMakeRef<MmcGlobalAllocator>();
 
     std::vector<std::thread> threads;
     int threadNum = 10;
     std::mutex resultsMutex;
     std::vector<int> results(threadNum);
- 
+
     for (int i = 0; i < threadNum; ++i) {
         threads.emplace_back([&, i] {
             int ret = AllocatorTest(threadNum, i, allocator);
@@ -134,12 +136,11 @@ TEST(TestMmcGlobalAllocatorThread, AllocatorTest) {
         });
     }
 
-    for (auto& t : threads) {
+    for (auto &t : threads) {
         t.join();
     }
 
     for (int i = 0; i < threadNum; ++i) {
         EXPECT_EQ(results[i], 0);
     }
-
 }

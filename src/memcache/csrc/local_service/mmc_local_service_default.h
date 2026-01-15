@@ -39,8 +39,8 @@ public:
 
     Result DestroyBm();
 
-    Result UpdateMetaBackup(const std::vector<uint32_t> &ops,
-        const std::vector<std::string> &keys, const std::vector<MmcMemBlobDesc> &blobs);
+    Result UpdateMetaBackup(const std::vector<uint32_t> &ops, const std::vector<std::string> &keys,
+                            const std::vector<MmcMemBlobDesc> &blobs);
 
     Result CopyBlob(const MmcMemBlobDesc &src, const MmcMemBlobDesc &dst);
 
@@ -48,7 +48,7 @@ public:
 
     const mmc_local_service_config_t &Options() const override;
 
-    template <typename REQ, typename RESP>
+    template<typename REQ, typename RESP>
     Result SyncCallMeta(const REQ &req, RESP &resp, int32_t timeoutInSecond)
     {
         return metaNetClient_->SyncCall(req, resp, timeoutInSecond * TIMEOUT_THOUSAND);
@@ -83,7 +83,7 @@ inline MetaNetClientPtr MmcLocalServiceDefault::GetMetaClient() const
 {
     return (getpid() == pid_) ? metaNetClient_ : nullptr;
 }
-}
-}
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_MMC_LOCAL_SERVICE_DEFAULT_H
+#endif // MEM_FABRIC_MMC_LOCAL_SERVICE_DEFAULT_H

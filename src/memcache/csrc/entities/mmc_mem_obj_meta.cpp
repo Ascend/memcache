@@ -9,7 +9,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
 */
- 
+
 #include "mmc_mem_obj_meta.h"
 #include <chrono>
 #include "mmc_global_allocator.h"
@@ -17,9 +17,9 @@
 namespace ock {
 namespace mmc {
 
-static const uint16_t MAX_NUM_BLOB_CHAINS = 5;  // to make sure MmcMemObjMeta <= 64 bytes
+static const uint16_t MAX_NUM_BLOB_CHAINS = 5; // to make sure MmcMemObjMeta <= 64 bytes
 
-Result MmcMemObjMeta::AddBlob(const MmcMemBlobPtr& blob)
+Result MmcMemObjMeta::AddBlob(const MmcMemBlobPtr &blob)
 {
     if (numBlobs_ != 0 && size_ != blob->Size()) {
         MMC_LOG_ERROR("add blob size:" << blob->Size() << " != meta size:" << size_);
@@ -41,12 +41,12 @@ Result MmcMemObjMeta::AddBlob(const MmcMemBlobPtr& blob)
     return MMC_OK;
 }
 
-Result MmcMemObjMeta::RemoveBlobs(const MmcBlobFilterPtr& filter, bool revert)
+Result MmcMemObjMeta::RemoveBlobs(const MmcBlobFilterPtr &filter, bool revert)
 {
     uint8_t oldNumBlobs = numBlobs_;
 
     for (auto iter = blobs_.begin(); iter != blobs_.end();) {
-        auto& blob = *iter;
+        auto &blob = *iter;
         if ((blob != nullptr) && (blob->MatchFilter(filter) ^ revert)) {
             iter = blobs_.erase(iter);
             numBlobs_--;
@@ -96,15 +96,15 @@ std::vector<MmcMemBlobPtr> MmcMemObjMeta::GetBlobs(const MmcBlobFilterPtr &filte
     return blobs;
 }
 
-void MmcMemObjMeta::GetBlobsDesc(std::vector<MmcMemBlobDesc>& blobsDesc, const MmcBlobFilterPtr& filter, bool revert)
+void MmcMemObjMeta::GetBlobsDesc(std::vector<MmcMemBlobDesc> &blobsDesc, const MmcBlobFilterPtr &filter, bool revert)
 {
     std::vector<MmcMemBlobPtr> blobs = GetBlobs(filter, revert);
-    for (const auto& blob : blobs) {
+    for (const auto &blob : blobs) {
         blobsDesc.emplace_back(blob->GetDesc());
     }
 }
 
-Result MmcMemObjMeta::UpdateBlobsState(const std::string& key, const MmcBlobFilterPtr& filter, uint64_t operateId,
+Result MmcMemObjMeta::UpdateBlobsState(const std::string &key, const MmcBlobFilterPtr &filter, uint64_t operateId,
                                        BlobActionResult actRet)
 {
     std::vector<MmcMemBlobPtr> blobs = GetBlobs(filter);
@@ -147,5 +147,5 @@ MediaType MmcMemObjMeta::GetBlobType()
     return MediaType::MEDIA_NONE;
 }
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock

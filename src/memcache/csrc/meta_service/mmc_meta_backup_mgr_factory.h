@@ -18,13 +18,13 @@ namespace ock {
 namespace mmc {
 class MMCMetaBackUpMgrFactory : public MmcReferable {
 public:
-    static MmcRef <MMCMetaBackUpMgr> GetInstance(const std::string inputName = "")
+    static MmcRef<MMCMetaBackUpMgr> GetInstance(const std::string inputName = "")
     {
-        std::lock_guard <std::mutex> lock(instanceMutex_);
+        std::lock_guard<std::mutex> lock(instanceMutex_);
         std::string key = inputName;
         auto it = instances_.find(key);
         if (it == instances_.end()) {
-            MmcRef <MMCMetaBackUpMgrDefault> instance = new(std::nothrow) MMCMetaBackUpMgrDefault();
+            MmcRef<MMCMetaBackUpMgrDefault> instance = new (std::nothrow) MMCMetaBackUpMgrDefault();
             if (instance == nullptr) {
                 MMC_LOG_ERROR("new MetaNetClient failed, probably out of memory");
                 return nullptr;
@@ -36,9 +36,9 @@ public:
     }
 
 private:
-    static std::map <std::string, MmcRef<MMCMetaBackUpMgr>> instances_;
+    static std::map<std::string, MmcRef<MMCMetaBackUpMgr>> instances_;
     static std::mutex instanceMutex_;
 };
-}
-}
+} // namespace mmc
+} // namespace ock
 #endif // MF_HYBRID_MMC_META_BACKUP_MGR_FACTORY_H

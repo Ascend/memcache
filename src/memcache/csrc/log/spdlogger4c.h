@@ -70,7 +70,7 @@ void SPDLOG_AuditLogMessage(const char *msg);
 const char *SPDLOG_GetLastErrorMessage();
 
 int SPDLOG_ResetLogLevel(int logLevel);
-}
-}
+} // namespace mmc
+} // namespace ock
 
 #endif // MEMORYFABRIC_SPDLOGGER_FOR_C_H

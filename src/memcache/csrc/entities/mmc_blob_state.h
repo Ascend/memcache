@@ -40,13 +40,21 @@ enum BlobState : uint8_t {
     NONE,
 };
 
-inline std::ostream& operator<<(std::ostream& os, BlobState type)
+inline std::ostream &operator<<(std::ostream &os, BlobState type)
 {
     switch (type) {
-        case ALLOCATED: os << "ALLOCATED"; break;
-        case READABLE: os << "READABLE"; break;
-        case REMOVING: os << "REMOVING"; break;
-        default: os << "NONE"; break;
+        case ALLOCATED:
+            os << "ALLOCATED";
+            break;
+        case READABLE:
+            os << "READABLE";
+            break;
+        case REMOVING:
+            os << "REMOVING";
+            break;
+        default:
+            os << "NONE";
+            break;
     }
     return os;
 }
@@ -62,7 +70,7 @@ struct BlobStateAction {
  * @brief Block action result, which a part of transition table
  */
 enum BlobActionResult : uint8_t {
-    MMC_ALLOCATED_OK,  // alloc complete
+    MMC_ALLOCATED_OK, // alloc complete
 
     MMC_WRITE_OK,
     MMC_WRITE_FAIL,
@@ -80,7 +88,7 @@ public:
     static StateTransTable GetGlobalTransTable();
 };
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
 #endif

@@ -19,7 +19,7 @@ namespace mmc {
 /**
  * Concurrent map link map
  */
-template <typename LINK_PTR>
+template<typename LINK_PTR>
 class NetLinkMap final : public MmcReferable {
 public:
     /**
@@ -92,7 +92,7 @@ private:
     std::mutex mapMutex_[gSubMapCount];
     std::map<uint32_t, LINK_PTR> linkMaps_[gSubMapCount];
 };
-}
-}
+} // namespace mmc
+} // namespace ock
 
-#endif  // MMC_NET_LINK_H
+#endif // MMC_NET_LINK_H

@@ -21,7 +21,7 @@ constexpr int ROTATION_FILE_COUNT_MAX = 50;
 constexpr mode_t LOG_FILE_CREATE_MODE = 0640;
 constexpr mode_t LOG_FILE_READ_ONLY_MODE = 0440;
 
-int SpdLogger::ValidateParams(int minLogLevel, const std::string& path, int rotationFileSize, int rotationFileCount)
+int SpdLogger::ValidateParams(int minLogLevel, const std::string &path, int rotationFileSize, int rotationFileCount)
 {
     if (minLogLevel < static_cast<int>(LogLevel::TRACE) || minLogLevel >= static_cast<int>(LogLevel::CRITICAL)) {
         gLastErrorMessage = "Invalid min log level, which should be 0,1,2,3,4,5";
@@ -78,9 +78,8 @@ int SpdLogger::Initialize(const std::string &path, int minLogLevel, int rotation
         handlers.before_open = &BeforeOpenCallback;
         handlers.after_open = &AfterOpenCallback;
         handlers.after_close = &AfterCloseCallback;
-        mSPDLogger = spdlog::rotating_logger_mt(logName.c_str(), path,
-                                                rotationFileSize, rotationFileCount,
-                                                true, handlers);
+        mSPDLogger =
+            spdlog::rotating_logger_mt(logName.c_str(), path, rotationFileSize, rotationFileCount, true, handlers);
         if (mSPDLogger == nullptr) {
             gLastErrorMessage = "spdlog logger is not created yet";
             return -1;
@@ -107,8 +106,7 @@ int SpdLogger::Initialize(const std::string &path, int minLogLevel, int rotation
 
 int SpdLogger::SetLogMinLevel(int minLevel)
 {
-    if (minLevel < static_cast<int>(LogLevel::TRACE) ||
-        minLevel > static_cast<int>(LogLevel::CRITICAL)) {
+    if (minLevel < static_cast<int>(LogLevel::TRACE) || minLevel > static_cast<int>(LogLevel::CRITICAL)) {
         gLastErrorMessage = "Invalid log level, which should be 0~5";
         return -1;
     }
@@ -141,4 +139,4 @@ void SpdLogger::AfterCloseCallback(const std::string &filename)
     chmod(filename.c_str(), LOG_FILE_READ_ONLY_MODE);
 }
 
-}
+} // namespace ock::mmc::log

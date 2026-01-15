@@ -99,7 +99,7 @@ spec:
       initContainers:
         - name: change-pod-ip
           image: 127.0.0.1:5000/memcache:1028
-          command: [ "/bin/sh", "-c"]
+          command: [ "/bin/sh", "-c" ]
           args:
             - |
               # 手动修改配置文件

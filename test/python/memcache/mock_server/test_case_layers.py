@@ -12,18 +12,17 @@
 
 from test_case_common import TestClient
 
-
 if __name__ == "__main__":
     client = TestClient("61.47.1.122", 5004)
 
     client.init_mmc()
-    
+
     key_num = 8
     block_num = 16
-    media = 1 # 0 cpu | 1 npu
+    media = 1  # 0 cpu | 1 npu
     start = 15
     end = start + 2
-    
+
     for k in range(start, end):
         keys = []
         for j in range(key_num):

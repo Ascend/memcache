@@ -18,7 +18,7 @@ namespace ock {
 namespace mmc {
 class MmcMetaService;
 using MmcMetaServicePtr = MmcRef<MmcMetaService>;
-}
-}
+} // namespace mmc
+} // namespace ock
 
 #endif // SMEM_MMC_META_COMMON_H

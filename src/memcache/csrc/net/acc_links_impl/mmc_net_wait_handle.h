@@ -78,10 +78,10 @@ public:
         }
 
         /* relative time instead of abs */
-        struct timespec currentTime {};
+        struct timespec currentTime{};
         clock_gettime(CLOCK_MONOTONIC, &currentTime);
 
-        struct timespec futureTime {};
+        struct timespec futureTime{};
         if (currentTime.tv_sec > std::numeric_limits<time_t>::max() - static_cast<time_t>(second)) {
             pthread_mutex_unlock(&mutex_);
             MMC_LOG_ERROR("Time overflow");
@@ -152,7 +152,7 @@ private:
     pthread_mutex_t mutex_ = PTHREAD_MUTEX_INITIALIZER;
     pthread_cond_t cond_{};
 };
-}
-}
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_MMC_NET_WAIT_HANDLE_H
+#endif // MEM_FABRIC_MMC_NET_WAIT_HANDLE_H

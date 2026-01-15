@@ -31,7 +31,7 @@ Result MmcMemBlob::UpdateState(const std::string &key, uint32_t rankId, uint32_t
     }
 
     MMC_LOG_DEBUG("update [" << key << "] state from " << std::to_string(state_) << " to ("
-                            << std::to_string(retIter->second.state_) << ")");
+                             << std::to_string(retIter->second.state_) << ")");
 
     if (state_ == ALLOCATED && ret == MMC_WRITE_OK) {
         MMC_RETURN_ERROR(Backup(key), "memBlob remove use client error");
@@ -92,5 +92,5 @@ Result MmcMemBlob::BackupRemove(const std::string &key)
     return mmcBackupPtr->Remove(key, desc);
 }
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock

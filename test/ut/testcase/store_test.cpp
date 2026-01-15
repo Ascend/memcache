@@ -60,9 +60,7 @@ TEST_F(AccConfigStoreTest, get_block_check)
     std::string value = "get_block_check_value1";
     int getRet = -1;
     std::vector<uint8_t> valueOut;
-    auto task = [&]() {
-        getRet = client->Get(key, valueOut);
-    };
+    auto task = [&]() { getRet = client->Get(key, valueOut); };
 
     std::thread getThread{task};
 
@@ -149,7 +147,6 @@ TEST_F(AccConfigStoreTest, prefix_store_check)
     ASSERT_EQ(value, getValue);
 }
 
-
 TEST_F(AccConfigStoreTest, get_when_server_exit)
 {
     std::string prefix = "/server-exit/";
@@ -160,7 +157,7 @@ TEST_F(AccConfigStoreTest, get_when_server_exit)
     std::string key = "store_check_key_for_server_exit";
     std::string value;
 
-    std::thread child{[&finished, &ret, &store, &key, &value](){
+    std::thread child{[&finished, &ret, &store, &key, &value]() {
         ret = store->Get(key, value);
         finished = true;
     }};
@@ -169,7 +166,7 @@ TEST_F(AccConfigStoreTest, get_when_server_exit)
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
     server = nullptr;
     ock::smem::StoreFactory::DestroyStore("0.0.0.0", port);
-    std::this_thread::sleep_for(std::chrono::seconds (1));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     ASSERT_TRUE(finished.load());
     ASSERT_NE(0, ret.load());

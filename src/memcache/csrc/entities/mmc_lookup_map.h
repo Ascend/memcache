@@ -19,7 +19,8 @@
 namespace ock {
 namespace mmc {
 
-template <typename Key, typename Value, uint32_t numBuckets> class MmcLookupMap {
+template<typename Key, typename Value, uint32_t numBuckets>
+class MmcLookupMap {
     static_assert(numBuckets > 0, "numBuckets must be positive");
     using BucketPtr = std::unordered_map<Key, Value> *;
     using MapIterator = typename std::unordered_map<Key, Value>::iterator;
@@ -73,7 +74,7 @@ public:
         {
             // while current bucket is not the last bucket AND mapIter is at the end of current bucket
             while (curBucket_ != endBucket_ && mapIter_ == curBucket_->end()) {
-                ++curBucket_;  // go to next bucket
+                ++curBucket_; // go to next bucket
                 if (curBucket_ != endBucket_) {
                     mapIter_ = curBucket_->begin();
                 }
@@ -156,7 +157,7 @@ private:
     std::unordered_map<Key, Value> buckets_[numBuckets];
     std::mutex locks_[numBuckets];
 };
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEMFABRIC_HYBRID_MMC_LOOKUP_MAP_H
+#endif // MEMFABRIC_HYBRID_MMC_LOOKUP_MAP_H

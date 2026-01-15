@@ -63,8 +63,8 @@ PYBIND11_MODULE(_pymmc, m)
     // Define the MmcacheStore class
     py::class_<MmcacheStore>(m, "DistributedObjectStore")
         .def(py::init<>())
-        .def("init", &MmcacheStore::Init, py::call_guard<py::gil_scoped_release>(),
-            py::arg("device_id"), py::arg("init_bm") = true)
+        .def("init", &MmcacheStore::Init, py::call_guard<py::gil_scoped_release>(), py::arg("device_id"),
+             py::arg("init_bm") = true)
         .def("remove", &MmcacheStore::Remove, py::call_guard<py::gil_scoped_release>())
         .def("remove_batch", &MmcacheStore::BatchRemove, py::call_guard<py::gil_scoped_release>())
         .def("remove_all", &MmcacheStore::RemoveAll, py::call_guard<py::gil_scoped_release>())
@@ -226,7 +226,8 @@ PYBIND11_MODULE(_pymmc, m)
             },
             py::arg("keys"), py::arg("buffer_ptrs"), py::arg("sizes"), py::arg("direct") = SMEMB_COPY_H2G,
             py::arg("replicateConfig") = defaultConfig)
-        .def("put",
+        .def(
+            "put",
             [](MmcacheStore &self, const std::string &key, const py::buffer &buf,
                const ReplicateConfig &replicateConfig) {
                 py::buffer_info info = buf.request(false);
@@ -238,11 +239,10 @@ PYBIND11_MODULE(_pymmc, m)
                 return self.Put(key, buffer, replicateConfig);
             },
             py::arg("key"), py::arg("buf"), py::arg("replicateConfig") = defaultConfig)
-        .def("put_batch",
-            [](MmcacheStore &self,
-            const std::vector<std::string> &keys,
-            const std::vector<py::buffer> &buffers,
-            const ReplicateConfig &replicateConfig) {
+        .def(
+            "put_batch",
+            [](MmcacheStore &self, const std::vector<std::string> &keys, const std::vector<py::buffer> &buffers,
+               const ReplicateConfig &replicateConfig) {
                 // Convert pybuffers to spans without copying
                 std::vector<py::buffer_info> infos;
                 std::vector<mmc_buffer> bufs;
@@ -252,31 +252,27 @@ PYBIND11_MODULE(_pymmc, m)
                 for (const auto &buf : buffers) {
                     infos.emplace_back(buf.request(false));
                     const auto &info = infos.back();
-                    bufs.emplace_back(
-                        mmc_buffer{
-                            .addr = reinterpret_cast<uint64_t>(info.ptr),
-                            .type = MEDIA_DRAM,
-                            .offset = 0,
-                            .len = static_cast<uint64_t>(info.size)
-                        }
-                    );
+                    bufs.emplace_back(mmc_buffer{.addr = reinterpret_cast<uint64_t>(info.ptr),
+                                                 .type = MEDIA_DRAM,
+                                                 .offset = 0,
+                                                 .len = static_cast<uint64_t>(info.size)});
                 }
                 py::gil_scoped_release release;
                 return self.PutBatch(keys, bufs, replicateConfig);
             },
-            py::arg("keys"),
-            py::arg("values"),
-            py::arg("replicateConfig") = defaultConfig)
-        .def("get", [](MmcacheStore &self, const std::string &key) {
-            mmc_buffer buffer = self.Get(key);
-            py::gil_scoped_acquire acquire_gil;
-            if (buffer.addr == 0) {
-                return py::bytes("");
-            } else {
-                auto dataPtr = reinterpret_cast<char *>(buffer.addr);
-                std::shared_ptr<char[]> dataSharedPtr(dataPtr, [](char *p) { delete[] p; });
-                return py::bytes(dataPtr, buffer.len);
-            }})
+            py::arg("keys"), py::arg("values"), py::arg("replicateConfig") = defaultConfig)
+        .def("get",
+             [](MmcacheStore &self, const std::string &key) {
+                 mmc_buffer buffer = self.Get(key);
+                 py::gil_scoped_acquire acquire_gil;
+                 if (buffer.addr == 0) {
+                     return py::bytes("");
+                 } else {
+                     auto dataPtr = reinterpret_cast<char *>(buffer.addr);
+                     std::shared_ptr<char[]> dataSharedPtr(dataPtr, [](char *p) { delete[] p; });
+                     return py::bytes(dataPtr, buffer.len);
+                 }
+             })
         .def("get_batch", [](MmcacheStore &self, const std::vector<std::string> &keys) {
             const auto kNullString = pybind11::bytes("\\0", 0);
             {
@@ -298,5 +294,6 @@ PYBIND11_MODULE(_pymmc, m)
                     results.emplace_back(py::bytes(dataPtr, buffer.len));
                 }
                 return results;
-            }});
+            }
+        });
 }

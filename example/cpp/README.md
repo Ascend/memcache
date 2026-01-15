@@ -50,6 +50,7 @@ export MMC_LOCAL_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-local.
 # 修改/usr/local/memcache_hybrid/latest/config/mmc-local.conf ock.mmc.local_service.hcom_url 为当前环境正确的ip
 mmc_meta_service &
 ```
+
 ## 运行
 
 设置大页

@@ -23,11 +23,11 @@
 
 namespace ock::mmc::log {
 enum class LogLevel {
-    TRACE    = 0,
-    DEBUG    = 1,
-    INFO     = 2,
-    WARN     = 3,
-    ERROR    = 4,
+    TRACE = 0,
+    DEBUG = 1,
+    INFO = 2,
+    WARN = 3,
+    ERROR = 4,
     CRITICAL = 5,
     LOG_LEVEL_MAX,
 };
@@ -37,13 +37,13 @@ public:
 
     ~SpdLogger() = default;
 
-    static SpdLogger& GetInstance()
+    static SpdLogger &GetInstance()
     {
         static SpdLogger instance;
         return instance;
     }
 
-    static SpdLogger& GetAuditInstance()
+    static SpdLogger &GetAuditInstance()
     {
         static SpdLogger instance;
         return instance;
@@ -57,12 +57,11 @@ public:
     void Flush(void);
 
 private:
-    static int ValidateParams(int minLogLevel, const std::string& path, int rotationFileSize,
-        int rotationFileCount);
+    static int ValidateParams(int minLogLevel, const std::string &path, int rotationFileSize, int rotationFileCount);
 
-    static void BeforeOpenCallback(const std::string& filename);
-    static void AfterOpenCallback(const std::string& filename, std::FILE *file_stream);
-    static void AfterCloseCallback(const std::string& filename);
+    static void BeforeOpenCallback(const std::string &filename);
+    static void AfterOpenCallback(const std::string &filename, std::FILE *file_stream);
+    static void AfterCloseCallback(const std::string &filename);
 
     std::mutex mutex_;
     bool started_ = false;
@@ -73,5 +72,5 @@ private:
     bool mDebugEnabled = false;
     static thread_local std::string gLastErrorMessage;
 };
-}
+} // namespace ock::mmc::log
 #endif // MEMORYFABRIC_SPDLOGGER_FOR_H

@@ -112,7 +112,7 @@ public:
         blobs.clear();
     }
 
-    Result Free(const MmcMemBlobPtr& blob)
+    Result Free(const MmcMemBlobPtr &blob)
     {
         if (blob == nullptr) {
             MMC_LOG_ERROR("Free blob failed, blob is nullptr");
@@ -123,8 +123,8 @@ public:
         const auto iter = allocators_.find(location);
         if (iter == allocators_.end()) {
             globalAllocLock_.UnlockRead();
-            MMC_LOG_ERROR("Free blob failed, location not found, rank: "
-                << location.rank_ << ", mediaType: " << location.mediaType_);
+            MMC_LOG_ERROR("Free blob failed, location not found, rank: " << location.rank_
+                                                                         << ", mediaType: " << location.mediaType_);
             return MMC_INVALID_PARAM;
         }
 
@@ -152,9 +152,8 @@ public:
             return MMC_OK;
         }
 
-        allocators_[loc] =
-            MmcMakeRef<MmcBlobAllocator>(loc.rank_, loc.mediaType_, localMemInitInfo.bmAddr_,
-                                         localMemInitInfo.capacity_);
+        allocators_[loc] = MmcMakeRef<MmcBlobAllocator>(loc.rank_, loc.mediaType_, localMemInitInfo.bmAddr_,
+                                                        localMemInitInfo.capacity_);
 
         MMC_LOG_INFO("Mount bm on " << loc << ", capacity:" << localMemInitInfo.capacity_ << "  successfully");
         globalAllocLock_.UnlockWrite();
@@ -237,8 +236,8 @@ public:
         const auto iter = allocators_.find(location);
         if (iter == allocators_.end()) {
             globalAllocLock_.UnlockRead();
-            MMC_LOG_ERROR("Build from blobs failed, location not found, rank: "
-                << location.rank_ << ", mediaType: " << location.mediaType_);
+            MMC_LOG_ERROR("Build from blobs failed, location not found, rank: " << location.rank_ << ", mediaType: "
+                                                                                << location.mediaType_);
             return MMC_INVALID_PARAM;
         }
 
@@ -256,7 +255,7 @@ public:
     void GetUsedInfo(uint64_t (&totalSize)[MEDIA_NONE], uint64_t (&usedSize)[MEDIA_NONE])
     {
         globalAllocLock_.LockRead();
-        for (auto& allocator : allocators_) {
+        for (auto &allocator : allocators_) {
             auto result = allocator.second->GetUsageInfo();
             totalSize[allocator.first.mediaType_] += result.first;
             usedSize[allocator.first.mediaType_] += result.second;
@@ -285,16 +284,16 @@ public:
         for (int i = MEDIA_NONE - 1; i >= 0; i--) {
             if (usedSize[i] > std::numeric_limits<uint64_t>::max() / LEVEL_BASE ||
                 (level != 0 && (totalSize[i] > std::numeric_limits<uint64_t>::max() / level))) {
-                MMC_LOG_ERROR("overflow: usedSize: " << usedSize[i] << ", LEVEL_BASE: " <<
-                    LEVEL_BASE << ", totalSize: " << totalSize[i] << ", level: " << level);
+                MMC_LOG_ERROR("overflow: usedSize: " << usedSize[i] << ", LEVEL_BASE: " << LEVEL_BASE
+                                                     << ", totalSize: " << totalSize[i] << ", level: " << level);
                 continue;
             }
             if (usedSize[i] * LEVEL_BASE > totalSize[i] * level) {
                 uint16_t nowMemoryThreshold = usedSize[i] * LEVEL_BASE / totalSize[i];
                 results.push_back(static_cast<MediaType>(i));
                 nowMemoryThresholds.push_back(nowMemoryThreshold);
-                MMC_LOG_DEBUG("Medium " << static_cast<MediaType>(i) <<
-                    " need evict, usedSize: " << usedSize[i] << ", totalSize: " << totalSize[i]);
+                MMC_LOG_DEBUG("Medium " << static_cast<MediaType>(i) << " need evict, usedSize: " << usedSize[i]
+                                        << ", totalSize: " << totalSize[i]);
             }
         }
         return results;
@@ -351,7 +350,7 @@ private:
 
 using MmcGlobalAllocatorPtr = MmcRef<MmcGlobalAllocator>;
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_MMC_GLOBAL_ALLOCATOR_H
+#endif // MEM_FABRIC_MMC_GLOBAL_ALLOCATOR_H

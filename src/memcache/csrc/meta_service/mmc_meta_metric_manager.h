@@ -22,27 +22,42 @@ namespace mmc {
 
 class MmcMetaMetricManager {
 public:
-    static MmcMetaMetricManager& GetInstance()
+    static MmcMetaMetricManager &GetInstance()
     {
         static MmcMetaMetricManager staticInstance;
         return staticInstance;
     }
 
-    MmcMetaMetricManager(const MmcMetaMetricManager&) = delete;
-    MmcMetaMetricManager& operator=(const MmcMetaMetricManager&) = delete;
-    MmcMetaMetricManager(MmcMetaMetricManager&&) = delete;
-    MmcMetaMetricManager& operator=(MmcMetaMetricManager&&) = delete;
+    MmcMetaMetricManager(const MmcMetaMetricManager &) = delete;
+    MmcMetaMetricManager &operator=(const MmcMetaMetricManager &) = delete;
+    MmcMetaMetricManager(MmcMetaMetricManager &&) = delete;
+    MmcMetaMetricManager &operator=(MmcMetaMetricManager &&) = delete;
 
     // Get metrics summary in human-readable format
     std::string GetSummary() const;
     // Get metrics summary in prometheus format
     static std::string GetPrometheusSummary();
 
-    void IncrementAllocCounter() { allocCounter_++; }
-    void IncrementRemoveCounter() { removeCounter_++; }
-    void IncrementGetCounter() { getCounter_++; }
-    void IncrementEvictCounter() { evictCounter_++; }
-    void SetKeyCount(const size_t count) { keyCountGauge_ = static_cast<int64_t>(count); }
+    void IncrementAllocCounter()
+    {
+        allocCounter_++;
+    }
+    void IncrementRemoveCounter()
+    {
+        removeCounter_++;
+    }
+    void IncrementGetCounter()
+    {
+        getCounter_++;
+    }
+    void IncrementEvictCounter()
+    {
+        evictCounter_++;
+    }
+    void SetKeyCount(const size_t count)
+    {
+        keyCountGauge_ = static_cast<int64_t>(count);
+    }
 
 private:
     MmcMetaMetricManager();
@@ -55,7 +70,7 @@ private:
     prometheus::simpleapi::gauge_metric_t keyCountGauge_;
 };
 
-}
-}
+} // namespace mmc
+} // namespace ock
 
 #endif

@@ -67,7 +67,7 @@ TEST_F(TestLocalHandler, Alloc)
     std::map<std::string, MmcMemBlobDesc> blobMap;
     metaMng->Mount(loc, locInfo, blobMap);
 
-    AllocOptions allocReq{SIZE_32K, 1, MEDIA_DRAM, {0}, 0};  // blobSize, numBlobs, mediaType, preferredRank, flags
+    AllocOptions allocReq{SIZE_32K, 1, MEDIA_DRAM, {0}, 0}; // blobSize, numBlobs, mediaType, preferredRank, flags
     MmcMemMetaDesc objMeta;
     Result ret = metaMng->Alloc("test_string", allocReq, 1, objMeta);
     ASSERT_TRUE(ret == MMC_OK);
@@ -87,23 +87,19 @@ protected:
     {
         proxy = MmcMakeRef<MmcBmProxy>("test_proxy");
 
-        initConfig = {
-            .deviceId = 0,
-            .worldSize = 4,
-            .ipPort = "127.0.0.1:5000",
-            .hcomUrl = "tcp://127.0.0.1:5001",
-            .logLevel = INFO_LEVEL,
-            .logFunc = nullptr
-        };
-        
-        createConfig = {
-            .id = 12345,
-            .memberSize = 4,
-            .dataOpType = "device_sdma",
-            .localDRAMSize = 0,
-            .localHBMSize = 1024 * 1024 * 2,
-            .flags = 0
-        };
+        initConfig = {.deviceId = 0,
+                      .worldSize = 4,
+                      .ipPort = "127.0.0.1:5000",
+                      .hcomUrl = "tcp://127.0.0.1:5001",
+                      .logLevel = INFO_LEVEL,
+                      .logFunc = nullptr};
+
+        createConfig = {.id = 12345,
+                        .memberSize = 4,
+                        .dataOpType = "device_sdma",
+                        .localDRAMSize = 0,
+                        .localHBMSize = 1024 * 1024 * 2,
+                        .flags = 0};
 
         oneDimBuffer = {.addr = 0x1000, .type = 0, .offset = 0, .len = 1024};
     }
@@ -213,7 +209,7 @@ TEST(MmcBmProxyFactory, GetInstance)
     auto proxy1 = MmcBmProxyFactory::GetInstance("proxy1");
     auto proxy2 = MmcBmProxyFactory::GetInstance("proxy2");
     auto proxy1_again = MmcBmProxyFactory::GetInstance("proxy1");
-    
+
     EXPECT_NE(proxy1.Get(), nullptr);
     EXPECT_NE(proxy2.Get(), nullptr);
     EXPECT_EQ(proxy1.Get(), proxy1_again.Get());

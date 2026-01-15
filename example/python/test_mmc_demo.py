@@ -51,7 +51,7 @@ class TestExample(unittest.TestCase):
         print(retrieved_data)
         self.assertEqual(retrieved_data, self.original_data)
 
-        time.sleep(3) # wait for the lease to expire
+        time.sleep(3)  # wait for the lease to expire
 
         # test remove
         rm_res = self._distributed_object_store.remove(self.key_1)

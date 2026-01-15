@@ -33,8 +33,8 @@ void MMCMetaBackUpMgrDefault::BackupThreadFunc()
             MMC_LOG_INFO("backup thread destroy, thread id " << pthread_self());
             break;
         }
-        MMC_LOG_DEBUG("MMCMetaBackU thread will backup count " << backupList_.size()
-            << " thread id " << pthread_self());
+        MMC_LOG_DEBUG("MMCMetaBackU thread will backup count " << backupList_.size() << " thread id "
+                                                               << pthread_self());
 
         SendBackup2Local();
     }
@@ -73,8 +73,8 @@ void MMCMetaBackUpMgrDefault::SendBackup2Local()
     }
 }
 
-uint32_t MMCMetaBackUpMgrDefault::PopMetas2Backup(
-    std::vector<uint32_t>& ops, std::vector<std::string>& keys, std::vector<MmcMemBlobDesc>& blobs)
+uint32_t MMCMetaBackUpMgrDefault::PopMetas2Backup(std::vector<uint32_t> &ops, std::vector<std::string> &keys,
+                                                  std::vector<MmcMemBlobDesc> &blobs)
 {
     // 清空数组
     ops.clear();
@@ -91,7 +91,7 @@ uint32_t MMCMetaBackUpMgrDefault::PopMetas2Backup(
     uint32_t count = 0;
     auto it = backupList_.begin();
     while (it != backupList_.end()) {
-        const auto& opInfo = *it;
+        const auto &opInfo = *it;
         if (opInfo.desc_.rank_ == rank) {
             ops.push_back(opInfo.op_);
             keys.push_back(opInfo.key_);
@@ -108,5 +108,5 @@ uint32_t MMCMetaBackUpMgrDefault::PopMetas2Backup(
     return rank;
 }
 
-}
-}
+} // namespace mmc
+} // namespace ock

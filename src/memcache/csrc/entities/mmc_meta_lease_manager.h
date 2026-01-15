@@ -40,7 +40,7 @@ public:
     {
         std::unique_lock<std::mutex> lockGuard(leaseMgr.lock_);
         os << "lease={" << leaseMgr.lease_ << ",client:";
-        for (const auto& c : leaseMgr.useClient) {
+        for (const auto &c : leaseMgr.useClient) {
             os << c << ",";
         }
         os << "}";
@@ -67,13 +67,13 @@ uint64_t MmcMetaLeaseManager::GenerateClientId(uint32_t rankId, uint32_t request
 }
 uint32_t MmcMetaLeaseManager::RankId(uint64_t clientId)
 {
-    return static_cast<uint32_t>(clientId >> RANK_ID_BIT_SHIFT);  // 高32位
+    return static_cast<uint32_t>(clientId >> RANK_ID_BIT_SHIFT); // 高32位
 }
 uint32_t MmcMetaLeaseManager::RequestId(uint64_t clientId)
 {
-    return static_cast<uint32_t>(clientId & 0xFFFFFFFF);  // 低32位
+    return static_cast<uint32_t>(clientId & 0xFFFFFFFF); // 低32位
 }
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MF_HYBRID_MMC_META_LEASE_MANAGER_H
+#endif // MF_HYBRID_MMC_META_LEASE_MANAGER_H

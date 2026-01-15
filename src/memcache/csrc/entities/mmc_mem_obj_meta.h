@@ -30,8 +30,7 @@ namespace mmc {
 class MmcMemObjMeta : public MmcReferable {
 public:
     MmcMemObjMeta() = default;
-    MmcMemObjMeta(uint16_t prot, uint8_t priority, std::vector<MmcMemBlobPtr> blobs,
-                  uint64_t size)
+    MmcMemObjMeta(uint16_t prot, uint8_t priority, std::vector<MmcMemBlobPtr> blobs, uint64_t size)
         : prot_(prot), priority_(priority)
     {
         for (auto &blob : blobs) {
@@ -54,8 +53,8 @@ public:
      * @param allocator allocator ptr
      * @return 0 if removed
      */
-    Result FreeBlobs(const std::string &key, MmcGlobalAllocatorPtr &allocator,
-                     const MmcBlobFilterPtr &filter = nullptr, bool doBackupRemove = true);
+    Result FreeBlobs(const std::string &key, MmcGlobalAllocatorPtr &allocator, const MmcBlobFilterPtr &filter = nullptr,
+                     bool doBackupRemove = true);
 
     /**
      * @brief Get the prot
@@ -81,10 +80,10 @@ public:
      */
     std::vector<MmcMemBlobPtr> GetBlobs(const MmcBlobFilterPtr &filter = nullptr, bool revert = false);
 
-    void GetBlobsDesc(std::vector<MmcMemBlobDesc>& blobsDesc, const MmcBlobFilterPtr& filter = nullptr,
+    void GetBlobsDesc(std::vector<MmcMemBlobDesc> &blobsDesc, const MmcBlobFilterPtr &filter = nullptr,
                       bool revert = false);
 
-    Result UpdateBlobsState(const std::string& key, const MmcBlobFilterPtr& filter, uint64_t operateId,
+    Result UpdateBlobsState(const std::string &key, const MmcBlobFilterPtr &filter, uint64_t operateId,
                             BlobActionResult actRet);
 
     /**
@@ -101,30 +100,33 @@ public:
 
     MediaType GetBlobType();
 
-    friend std::ostream& operator<<(std::ostream& os, const MmcMemObjMeta& obj)
+    friend std::ostream &operator<<(std::ostream &os, const MmcMemObjMeta &obj)
     {
         os << "MmcMemObjMeta{numBlobs=" << static_cast<int>(obj.numBlobs_) << ",size=" << obj.size_
            << ",priority=" << static_cast<int>(obj.priority_) << ",prot=" << obj.prot_ << "}";
 
-        for (const auto& blob : obj.blobs_) {
+        for (const auto &blob : obj.blobs_) {
             os << blob;
         }
 
         return os;
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const MmcRef<MmcMemObjMeta>& obj) { return os << *obj.Get(); }
+    friend std::ostream &operator<<(std::ostream &os, const MmcRef<MmcMemObjMeta> &obj)
+    {
+        return os << *obj.Get();
+    }
 
 private:
     Result RemoveBlobs(const MmcBlobFilterPtr &filter = nullptr, bool revert = false);
 
 private:
     /* make sure the size of this class is 64 bytes */
-    uint16_t prot_{0};                         /* prot of the mem object, i.e. accessibility */
-    uint8_t priority_{0};                      /* priority of the memory object, used for eviction */
-    uint8_t numBlobs_{0};                      /* number of blob that the memory object, i.e. replica count */
-    std::list<MmcMemBlobPtr> blobs_;           /* 24 bytes */
-    uint64_t size_{0};                         /* byteSize of each blob */
+    uint16_t prot_{0};               /* prot of the mem object, i.e. accessibility */
+    uint8_t priority_{0};            /* priority of the memory object, used for eviction */
+    uint8_t numBlobs_{0};            /* number of blob that the memory object, i.e. replica count */
+    std::list<MmcMemBlobPtr> blobs_; /* 24 bytes */
+    uint64_t size_{0};               /* byteSize of each blob */
 };
 
 using MmcMemObjMetaPtr = MmcRef<MmcMemObjMeta>;
@@ -149,7 +151,7 @@ inline uint64_t MmcMemObjMeta::Size()
     return size_;
 }
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_MMC_MEM_OBJ_META_H
+#endif // MEM_FABRIC_MMC_MEM_OBJ_META_H

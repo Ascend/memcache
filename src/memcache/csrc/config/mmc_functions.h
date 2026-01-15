@@ -74,9 +74,7 @@ inline bool OckStof(const std::string &str, float &value)
     return true;
 }
 
-const std::unordered_map<std::string, bool> Str2Bool{
-    {"0", false}, {"1", true},
-    {"false", false}, {"true", true}};
+const std::unordered_map<std::string, bool> Str2Bool{{"0", false}, {"1", true}, {"false", false}, {"true", true}};
 
 inline bool IsBool(const std::string &str, bool &value)
 {

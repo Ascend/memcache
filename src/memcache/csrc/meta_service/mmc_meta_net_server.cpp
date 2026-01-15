@@ -24,18 +24,16 @@ std::string Join(const std::vector<std::string> &vec)
         result += "\"" + str + "\", ";
     }
     if (!vec.empty()) {
-        result.pop_back();  // space
-        result.pop_back();  // comma
+        result.pop_back(); // space
+        result.pop_back(); // comma
     }
     result += "]";
     return result;
 }
 
 MetaNetServer::MetaNetServer(const MmcMetaServicePtr &metaService, const std::string inputName)
-    : metaService_(metaService),
-      name_(inputName)
-{
-}
+    : metaService_(metaService), name_(inputName)
+{}
 MetaNetServer::~MetaNetServer() {}
 Result ock::mmc::MetaNetServer::Start(NetEngineOptions &options)
 {
@@ -198,17 +196,15 @@ Result MetaNetServer::HandleBatchAlloc(const NetContextPtr &context)
         return getResult;
     }
 
-    MMC_LOG_INFO("HandleBatchAlloc start. Keys count: " << req.keys_.size()
-                 << ", OperateId: " << req.operateId_
-                 << ", Flags: " << req.flags_);
-    
+    MMC_LOG_INFO("HandleBatchAlloc start. Keys count: " << req.keys_.size() << ", OperateId: " << req.operateId_
+                                                        << ", Flags: " << req.flags_);
+
     auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
     TP_TRACE_BEGIN(TP_MMC_META_BATCH_PUT);
     Result batchResult = metaMgrProxy->BatchAlloc(req, resp);
     TP_TRACE_END(TP_MMC_META_BATCH_PUT, batchResult);
     if (batchResult != MMC_OK) {
-        MMC_LOG_ERROR("BatchAlloc failed. Keys count: " << req.keys_.size()
-                     << ", Error: " << batchResult);
+        MMC_LOG_ERROR("BatchAlloc failed. Keys count: " << req.keys_.size() << ", Error: " << batchResult);
     }
     return context->Reply(req.msgId, resp);
 }
@@ -395,5 +391,5 @@ void MetaNetServer::Stop()
     engine_->Stop();
     started_ = false;
 }
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock

@@ -87,7 +87,7 @@ public:
     {
         if (std::is_pod<RESP>::value) {
             uint32_t retSize = sizeof(RESP);
-            return Reply(opCode, (char*)(&resp), retSize);
+            return Reply(opCode, (char *)(&resp), retSize);
         } else {
             NetMsgPacker packer;
             resp.Serialize(packer);
@@ -219,7 +219,7 @@ public:
      * @param timeoutInSecond [in] timeout in second
      * @return
      */
-    template <typename REQ, typename RESP>
+    template<typename REQ, typename RESP>
     Result Call(uint32_t peerId, int16_t opCode, const REQ &req, RESP &resp, int32_t timeoutInSecond)
     {
         char *respData = nullptr;
@@ -293,7 +293,7 @@ public:
      * @param timeoutInSecond [in] timeout in second
      * @return 0 if successful
      */
-    template <typename REQ>
+    template<typename REQ>
     Result Send(uint32_t peerId, const REQ &req, int32_t timeoutInSecond)
     {
         if (std::is_pod<REQ>::value) {
@@ -383,7 +383,7 @@ inline void NetEngine::RegLinkBrokenHandler(const NetLinkBrokenHandler &h)
     linkBrokenHandler_ = h;
 }
 
-}
-}
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_MMC_NET_ENGINE_H
+#endif // MEM_FABRIC_MMC_NET_ENGINE_H

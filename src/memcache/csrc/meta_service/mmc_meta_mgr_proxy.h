@@ -73,10 +73,10 @@ public:
         return resp.ret_ = metaMangerPtr_->Remove(req.key_);
     }
 
-    Result BatchRemove(const BatchRemoveRequest& req, BatchRemoveResponse& resp)
+    Result BatchRemove(const BatchRemoveRequest &req, BatchRemoveResponse &resp)
     {
         resp.results_.reserve(req.keys_.size());
-        for (const std::string& key : req.keys_) {
+        for (const std::string &key : req.keys_) {
             resp.results_.emplace_back(metaMangerPtr_->Remove(key));
         }
         return MMC_OK;
@@ -87,8 +87,8 @@ public:
         return resp.ret_ = metaMangerPtr_->RemoveAll();
     }
 
-    Result Mount(const std::vector<MmcLocation>& loc, const std::vector<MmcLocalMemlInitInfo>& localMemInitInfo,
-                 std::map<std::string, MmcMemBlobDesc>& blobMap)
+    Result Mount(const std::vector<MmcLocation> &loc, const std::vector<MmcLocalMemlInitInfo> &localMemInitInfo,
+                 std::map<std::string, MmcMemBlobDesc> &blobMap)
     {
         return metaMangerPtr_->Mount(loc, localMemInitInfo, blobMap);
     }
@@ -112,7 +112,7 @@ public:
 
     Result BatchQuery(const BatchQueryRequest &req, BatchQueryResponse &resp)
     {
-        for (const std::string& key : req.keys_) {
+        for (const std::string &key : req.keys_) {
             MemObjQueryInfo queryInfo;
             metaMangerPtr_->Query(key, queryInfo);
             resp.batchQueryInfos_.push_back(queryInfo);
@@ -120,7 +120,7 @@ public:
         return MMC_OK;
     }
 
-    const MmcMetaManagerPtr& GetMetaManager()
+    const MmcMetaManagerPtr &GetMetaManager()
     {
         return metaMangerPtr_;
     }
@@ -134,7 +134,7 @@ private:
 };
 using MmcMetaMgrProxyPtr = MmcRef<MmcMetaMgrProxy>;
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_MMC_META_PROXY_IMPL_H
+#endif // MEM_FABRIC_MMC_META_PROXY_IMPL_H

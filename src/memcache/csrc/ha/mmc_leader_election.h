@@ -31,8 +31,8 @@ namespace mmc {
 #pragma GCC visibility push(default)
 class MmcMetaServiceLeaderElection {
 public:
-    explicit MmcMetaServiceLeaderElection(
-        const std::string &name, const std::string &pod, const std::string &ns, const std::string &lease);
+    explicit MmcMetaServiceLeaderElection(const std::string &name, const std::string &pod, const std::string &ns,
+                                          const std::string &lease);
 
     ~MmcMetaServiceLeaderElection();
 
@@ -60,7 +60,7 @@ private:
 };
 #pragma GCC visibility pop
 
-}  // namespace mmc
-}  // namespace ock
+} // namespace mmc
+} // namespace ock
 
 #endif // MMC_META_SERVICE_HA_H

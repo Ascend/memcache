@@ -24,7 +24,7 @@ class TestClient:
     def __del__(self):
         self._client.close()
 
-    def execute(self, cmd: str, args: list=None):
+    def execute(self, cmd: str, args: list = None):
         request = {
             "cmd": cmd,
             "args": args if args else []
@@ -43,7 +43,7 @@ class TestClient:
 
     def put(self, key, value):
         return self.execute("put", [key, value.decode('utf-8')])
-    
+
     def put_batch(self, keys, values):
         return self.execute("put_batch", [keys, values])
 

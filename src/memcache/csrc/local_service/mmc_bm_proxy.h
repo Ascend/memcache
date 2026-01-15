@@ -52,18 +52,18 @@ public:
     ~MmcBmProxy() override = default;
 
     // 删除拷贝构造函数和赋值运算符
-    MmcBmProxy(const MmcBmProxy&) = delete;
-    MmcBmProxy& operator=(const MmcBmProxy&) = delete;
+    MmcBmProxy(const MmcBmProxy &) = delete;
+    MmcBmProxy &operator=(const MmcBmProxy &) = delete;
 
     Result InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_create_config_t &createConfig);
     void DestroyBm();
     Result Copy(uint64_t srcBmAddr, uint64_t dstBmAddr, uint64_t size, smem_bm_copy_type type);
-    Result Put(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size);
-    Result Get(const mmc_buffer* buf, uint64_t bmAddr, uint64_t size);
-    Result AsyncPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
-    Result AsyncGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
-    Result BatchPut(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
-    Result BatchGet(const MmcBufferArray& bufArr, const MmcMemBlobDesc& blob);
+    Result Put(const mmc_buffer *buf, uint64_t bmAddr, uint64_t size);
+    Result Get(const mmc_buffer *buf, uint64_t bmAddr, uint64_t size);
+    Result AsyncPut(const MmcBufferArray &bufArr, const MmcMemBlobDesc &blob);
+    Result AsyncGet(const MmcBufferArray &bufArr, const MmcMemBlobDesc &blob);
+    Result BatchPut(const MmcBufferArray &bufArr, const MmcMemBlobDesc &blob);
+    Result BatchGet(const MmcBufferArray &bufArr, const MmcMemBlobDesc &blob);
     Result BatchDataPut(std::vector<void *> &sources, std::vector<void *> &destinations,
                         const std::vector<uint64_t> &sizes, MediaType localMedia);
     Result BatchDataGet(std::vector<void *> &sources, std::vector<void *> &destinations,
@@ -96,14 +96,14 @@ public:
 private:
     Result InternalCreateBm(const mmc_bm_create_config_t &createConfig);
 
-    void* gvas_[MEDIA_NONE]{};
+    void *gvas_[MEDIA_NONE]{};
     uint64_t spaces_[MEDIA_NONE];
     smem_bm_t handle_ = nullptr;
     std::string name_;
     bool started_ = false;
     std::mutex mutex_;
     uint32_t bmRankId_;
-    MediaType mediaType_ {MEDIA_NONE};
+    MediaType mediaType_{MEDIA_NONE};
     mmc_bm_create_config_t createConfig_{};
 };
 
@@ -116,12 +116,12 @@ using MmcBmProxyPtr = MmcRef<MmcBmProxy>;
 
 class MmcBmProxyFactory : public MmcReferable {
 public:
-    static MmcBmProxyPtr GetInstance(const std::string& key = "")
+    static MmcBmProxyPtr GetInstance(const std::string &key = "")
     {
         std::lock_guard<std::mutex> lock(instanceMutex_);
         const auto it = instances_.find(key);
         if (it == instances_.end()) {
-            MmcRef<MmcBmProxy> instance = new (std::nothrow)MmcBmProxy("bmProxy");
+            MmcRef<MmcBmProxy> instance = new (std::nothrow) MmcBmProxy("bmProxy");
             if (instance == nullptr) {
                 MMC_LOG_ERROR("new object failed, probably out of memory");
                 return nullptr;
@@ -136,7 +136,7 @@ private:
     static std::map<std::string, MmcRef<MmcBmProxy>> instances_;
     static std::mutex instanceMutex_;
 };
-}
-}
+} // namespace mmc
+} // namespace ock
 
-#endif  // MEM_FABRIC_MMC_BM_PROXY_H
+#endif // MEM_FABRIC_MMC_BM_PROXY_H

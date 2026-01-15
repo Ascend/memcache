@@ -19,8 +19,8 @@ namespace mmc {
 std::string g_leaderElectionModule = "memcache_hybrid.meta_service_leader_election";
 constexpr uint32_t LEASE_RETRY_PERIOD = 3;
 
-MmcMetaServiceLeaderElection::MmcMetaServiceLeaderElection(
-    const std::string &name, const std::string &pod, const std::string &ns, const std::string &lease)
+MmcMetaServiceLeaderElection::MmcMetaServiceLeaderElection(const std::string &name, const std::string &pod,
+                                                           const std::string &ns, const std::string &lease)
     : name_(name), podName_(pod), leaseName_(lease), ns_(ns)
 {}
 
@@ -44,9 +44,8 @@ Result MmcMetaServiceLeaderElection::Start(const mmc_meta_service_config_t &opti
                         "The class named MetaServiceLeaderElection was not found.");
 
         pybind11::object metaServiceLeaderElection = modelModule.attr("MetaServiceLeaderElection");
-        leaderElection_ =
-            metaServiceLeaderElection(this->leaseName_, this->ns_, this->podName_, LEASE_RETRY_PERIOD,
-                options.logLevel, options.logPath);
+        leaderElection_ = metaServiceLeaderElection(this->leaseName_, this->ns_, this->podName_, LEASE_RETRY_PERIOD,
+                                                    options.logLevel, options.logPath);
         MMC_FALSE_ERROR(!leaderElection_.is_none(),
                         "Can not start election before MetaServiceLeaderElection initialized");
         MMC_FALSE_ERROR(pybind11::hasattr(leaderElection_, "update_lease"),
@@ -83,7 +82,7 @@ void MmcMetaServiceLeaderElection::ElectionLoop()
     try {
         while (running_) {
             MMC_LOG_DEBUG("Election loop circle, pod=" << this->podName_ << ",  times=" << ++count);
-            pybind11::gil_scoped_acquire acquire;  // 安全
+            pybind11::gil_scoped_acquire acquire; // 安全
             if (!running_) {
                 pybind11::gil_scoped_release release;
                 break;
@@ -143,7 +142,7 @@ void MmcMetaServiceLeaderElection::RenewLoop()
                 continue;
             }
             MMC_LOG_DEBUG("The leader renew lease loop circle, pod=" << this->podName_ << ",  times=" << ++count);
-            pybind11::gil_scoped_acquire acquire;  // 安全
+            pybind11::gil_scoped_acquire acquire; // 安全
             if (!running_) {
                 pybind11::gil_scoped_release release;
                 break;
@@ -160,7 +159,7 @@ void MmcMetaServiceLeaderElection::RenewLoop()
             pybind11::gil_scoped_release release;
             std::this_thread::sleep_for(std::chrono::seconds(LEASE_RETRY_PERIOD));
         }
-    }  catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         MMC_LOG_ERROR("Renew loop failed: " << typeid(e).name() << ", " << e.what());
     } catch (...) {
         MMC_LOG_ERROR("Renew loop failed due to an unknown error");
@@ -198,5 +197,5 @@ MmcMetaServiceLeaderElection::~MmcMetaServiceLeaderElection()
     this->Stop();
 }
 
-}
-}
+} // namespace mmc
+} // namespace ock

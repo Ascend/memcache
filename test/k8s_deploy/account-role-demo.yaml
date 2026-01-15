@@ -20,12 +20,12 @@ metadata:
   name: role-memcache
   namespace: ns-memcache
 rules:
-  - apiGroups: ["coordination.k8s.io"]
-    resources: ["leases"]
-    verbs: ["get", "create", "update", "patch"]
-  - apiGroups: [""]  # 核心 API 组（Pod 属于此组）
-    resources: ["pods"]
-    verbs: ["get", "patch"]  # 仅需查询（get）和部分更新（patch）权限
+  - apiGroups: [ "coordination.k8s.io" ]
+    resources: [ "leases" ]
+    verbs: [ "get", "create", "update", "patch" ]
+  - apiGroups: [ "" ]  # 核心 API 组（Pod 属于此组）
+    resources: [ "pods" ]
+    verbs: [ "get", "patch" ]  # 仅需查询（get）和部分更新（patch）权限
 
 ---
 # 角色绑定（与pod及lease相同命名空间）

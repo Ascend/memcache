@@ -16,13 +16,14 @@ import argparse
 import re
 from test_case_common import TestClient
 
+
 # 单机测试：执行后查看mismatch是否为0
 # 双击测试：分别执行--put-only和--get-only，对比两侧的hash_value是否一致
 
 
 def byte_size(size):
     """parse string argument with this type"""
-    units = {"B": 1, "KB": 1024, "MB": 1024**2, "GB": 1024**3}
+    units = {"B": 1, "KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3}
     size = size.upper().strip()
     pattern = r"^(\d+(?:\.\d+)?)([A-Z]+)?$"
     match = re.match(pattern, size)
@@ -104,7 +105,7 @@ if __name__ == "__main__":
     for put_idx in range(count + get_offset):
         if perform_puts and put_idx < count:
             key = "test_evict_" + str(put_idx)
-            print(f"[{put_idx+1}/{count}] put data: {key}")
+            print(f"[{put_idx + 1}/{count}] put data: {key}")
             res = client.put_from(key, size, media)
             ret, value = json.loads(res)
             keys.append(key)
@@ -114,7 +115,7 @@ if __name__ == "__main__":
         if perform_gets and put_idx >= get_offset:
             get_idx = put_idx - get_offset
             key = "test_evict_" + str(get_idx)
-            print(f"[{get_idx+1}/{count}] get data: {key}")
+            print(f"[{get_idx + 1}/{count}] get data: {key}")
             res = client.get_into(key, size, media)
             ret, value = json.loads(res)
             if ret != 0:
@@ -124,7 +125,7 @@ if __name__ == "__main__":
                 if ret == 0 and not equals:
                     mismatch += 1
                 print(
-                    f"[{get_idx+1}/{count}] {equals=} {key=} put_value={put_value[get_idx]} get_value={value}"
+                    f"[{get_idx + 1}/{count}] {equals=} {key=} put_value={put_value[get_idx]} get_value={value}"
                 )
                 print()
             else:

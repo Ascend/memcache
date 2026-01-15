@@ -21,7 +21,7 @@
 namespace ock {
 namespace mmc {
 
-constexpr int MAX_CONF_FILE_SIZE = 10485760;  // 10MB
+constexpr int MAX_CONF_FILE_SIZE = 10485760; // 10MB
 constexpr int MAX_LINE_NUMBER = 10000;
 constexpr uint32_t MAX_LINE_LENGTH = 4096;
 

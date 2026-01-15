@@ -72,7 +72,8 @@ static bool CheckData(void *base, void *ptr)
     int32_t *arr1 = (int32_t *)base;
     int32_t *arr2 = (int32_t *)ptr;
     for (uint32_t i = 0; i < SIZE_32K / sizeof(int); i++) {
-        if (arr1[i] != arr2[i]) return false;
+        if (arr1[i] != arr2[i])
+            return false;
     }
     return true;
 }
@@ -153,10 +154,10 @@ TEST_F(TestMmcServiceError, metaService)
     ret = mmcc_remove(test.c_str(), 0);
     ASSERT_TRUE(ret == 0);
 
-    const char* keys[] = {"test1", "test2"};
+    const char *keys[] = {"test1", "test2"};
     uint32_t keys_count = sizeof(keys) / sizeof(keys[0]);
-    void* hostSrcs[keys_count];
-    void* hostDests[keys_count];
+    void *hostSrcs[keys_count];
+    void *hostDests[keys_count];
     mmc_buffer bufs[keys_count];
 
     for (uint32_t i = 0; i < keys_count; ++i) {
@@ -272,14 +273,14 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
     EXPECT_TRUE(ret == 0);
 
     uint32_t keysCount = KEYS_NUMBER;
-    const char **keys = static_cast<const char**>(malloc(keysCount * sizeof(char*)));
+    const char **keys = static_cast<const char **>(malloc(keysCount * sizeof(char *)));
     for (uint32_t i = 0; i < keysCount; i++) {
-        keys[i] = static_cast<char*>(malloc(16));
+        keys[i] = static_cast<char *>(malloc(16));
         sprintf(const_cast<char *>(keys[i]), "test_%d", i);
     }
-    void** hostSrcs = new void* [keysCount];
-    void** hostDests = new void* [keysCount];
-    auto *bufs = new mmc_buffer [keysCount];
+    void **hostSrcs = new void *[keysCount];
+    void **hostDests = new void *[keysCount];
+    auto *bufs = new mmc_buffer[keysCount];
 
     for (uint32_t i = 0; i < keysCount; ++i) {
         hostSrcs[i] = malloc(SIZE_32K);

@@ -17,6 +17,7 @@ from mooncake.engine import TransferEngine  # type: ignore
 METADATA_BYTES_LEN = 24
 BASE_PORT = 8790
 
+
 @dataclass
 class MooncakeConfig:
     device: int
@@ -33,9 +34,9 @@ class Mooncakestore():
     def __init__(self, config: MooncakeConfig):
         self.transfer_engine_ = TransferEngine()
         ret_value = self.transfer_engine_.initialize(config.local_hostname,
-                                               "P2PHANDSHAKE",
-                                               "ascend",
-                                               config.device_name)
+                                                     "P2PHANDSHAKE",
+                                                     "ascend",
+                                                     config.device_name)
         if ret_value != 0:
             raise RuntimeError(
                 f"TransferEngine initialization failed with ret_value: {ret_value}"

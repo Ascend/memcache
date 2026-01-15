@@ -25,7 +25,7 @@ class TestMmcMetaContainerLRU : public Test {
 protected:
     using Container = MmcMetaContainerLRU<std::string, int>;
     std::unique_ptr<Container> container;
-    
+
     void SetUp() override
     {
         auto GetTypeFunc = [](const int &value) -> MediaType { return MEDIA_DRAM; };

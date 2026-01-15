@@ -27,7 +27,7 @@ public:
 
     void Stop();
 
-    template <typename REQ, typename RESP>
+    template<typename REQ, typename RESP>
     Result SyncCall(uint32_t rankId, const REQ &req, RESP &resp, int32_t timeoutInSecond)
     {
         return engine_->Call(rankId, req.msgId, req, resp, timeoutInSecond);
@@ -80,6 +80,6 @@ private:
     std::string name_;
 };
 using MetaNetServerPtr = MmcRef<MetaNetServer>;
-}
-}
-#endif  // SMEM_MMC_META_NET_SERVER_H
+} // namespace mmc
+} // namespace ock
+#endif // SMEM_MMC_META_NET_SERVER_H

@@ -46,7 +46,7 @@ def tensor_sum(tensor: List[torch.Tensor], sizes: List[int] = None):
     return sum(layer[:size].sum().item() for layer, size in zip(tensor, sizes))
 
 
-def allocate_aligned_tensor(shape, dtype=torch.float32, alignment=2*1024*1024):
+def allocate_aligned_tensor(shape, dtype=torch.float32, alignment=2 * 1024 * 1024):
     num_elements = torch.prod(torch.tensor(shape)).item()
     element_size = torch.finfo(dtype).bits // 8 if dtype.is_floating_point else torch.iinfo(dtype).bits // 8
     total_bytes = num_elements * element_size

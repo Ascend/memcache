@@ -28,8 +28,7 @@ struct MmcMemBlobDesc {
     MmcMemBlobDesc() = default;
     MmcMemBlobDesc(const uint32_t &rank, const uint64_t &gva, const uint64_t &size, const uint16_t &mediaType)
         : rank_(rank), size_(size), gva_(gva), mediaType_(mediaType)
-    {
-    }
+    {}
 
     friend bool operator==(const MmcMemBlobDesc &lhs, const MmcMemBlobDesc &rhs)
     {
@@ -42,13 +41,13 @@ struct MmcMemBlobDesc {
         return !(lhs == rhs);
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const MmcMemBlobDesc& blob)
+    friend std::ostream &operator<<(std::ostream &os, const MmcMemBlobDesc &blob)
     {
         os << "blob{size=" << blob.size_ << ",gva=" << blob.gva_ << ",rank=" << blob.rank_
            << ",media=" << blob.mediaType_ << "}";
         return os;
     }
 };
-}
-}
+} // namespace mmc
+} // namespace ock
 #endif // MF_HYBRID_MMC_BLOB_COMMON_H

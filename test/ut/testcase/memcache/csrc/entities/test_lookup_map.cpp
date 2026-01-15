@@ -36,7 +36,8 @@ void TestLookupMap::SetUp() {}
 
 void TestLookupMap::TearDown() {}
 
-TEST_F(TestLookupMap, EmptyMap) {
+TEST_F(TestLookupMap, EmptyMap)
+{
     MmcLookupMap<uint16_t, std::string, 3> emptyMap;
     EXPECT_EQ(emptyMap.begin(), emptyMap.end());
 }

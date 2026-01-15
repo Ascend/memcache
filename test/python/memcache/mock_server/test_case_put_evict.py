@@ -25,7 +25,6 @@ if __name__ == "__main__":
         keys.append(key)
 
         if i % 29 == 0 and i > 0:
-            client.get_into(keys[i - 29], size, 0) 
-        
+            client.get_into(keys[i - 29], size, 0)
 
     client.batch_is_exit(keys)
