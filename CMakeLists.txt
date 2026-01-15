@@ -15,7 +15,6 @@ if (NOT PROJECT_VERSION_RAW MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
     message(FATAL_ERROR "Invalid version format in VERSION file: '${PROJECT_VERSION_RAW}'")
 endif ()
 project(memcache VERSION ${PROJECT_VERSION_RAW} LANGUAGES CXX C)
-add_compile_definitions(PROJECT_VERSION_RAW=\"${PROJECT_VERSION_RAW}\")
 message(STATUS "in memfabric cmakefile BUILD_FROM_MEMCACHE: ${BUILD_FROM_MEMCACHE}, version: ${PROJECT_VERSION_RAW}.")
 
 list(GET PROJECT_VERSION_RAW 0 DUMMY)
@@ -27,9 +26,6 @@ endif()
 list(GET VERSION_LIST 0 VERSION_MAJOR)
 list(GET VERSION_LIST 1 VERSION_MINOR)
 list(GET VERSION_LIST 2 VERSION_FIX)
-add_compile_definitions(VERSION_MAJOR=${VERSION_MAJOR}
-        VERSION_MINOR=${VERSION_MINOR}
-        VERSION_FIX=${VERSION_FIX})
 message(STATUS "VERSION_MAJOR=${VERSION_MAJOR}")
 message(STATUS "VERSION_MINOR=${VERSION_MINOR}")
 message(STATUS "VERSION_FIX=${VERSION_FIX}")
@@ -243,7 +239,10 @@ endforeach ()
 list(REMOVE_DUPLICATES INCLUDE_DIRS)
 
 include_directories(${INCLUDE_DIRS})
-
+add_compile_definitions(PROJECT_VERSION_RAW=\"${PROJECT_VERSION_RAW}\")
+add_compile_definitions(VERSION_MAJOR=${VERSION_MAJOR}
+        VERSION_MINOR=${VERSION_MINOR}
+        VERSION_FIX=${VERSION_FIX})
 add_subdirectory(src)
 
 if (BUILD_CPP_EXAMPLE)
