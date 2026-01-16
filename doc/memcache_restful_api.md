@@ -191,6 +191,32 @@ Remove Operations: 0
 Get Operations: 68
 ```
 
+#### 4.3 ptracer打点数据查询接口
+
+##### 接口URL
+```
+GET /metrics/ptracer
+```
+
+##### 功能描述
+导出metaservice全周期性能打点数据。ptracer数据格式说明可见[ptracer性能打点工具简介](https://gitcode.com/Ascend/memfabric_hybrid/blob/master/doc/ptracer.md)
+
+##### 请求参数
+无
+
+##### 返回结果示例
+```
+TIME                   NAME                                    BEGIN          GOOD_END       BAD_END        ON_FLY         MIN(us)        MAX(us)        AVG(us)        TOTAL(us)      
+2026-01-05 14:57:03    TP_MMC_META_PUT                         8              8              0              0              31.880         131.870        59.379         475.030        
+2026-01-05 14:57:03    TP_MMC_META_BATCH_PUT                   6              6              0              0              66.610         363.770        290.748        1744.490       
+2026-01-05 14:57:03    TP_MMC_META_GET                         8              8              0              0              14.820         62.020         31.398         251.180        
+2026-01-05 14:57:03    TP_MMC_META_BATCH_GET                   6              6              0              0              89.550         107.460        99.183         595.100        
+2026-01-05 14:57:03    TP_MMC_META_UPDATE                      16             16             0              0              11.440         72.290         27.820         445.120        
+2026-01-05 14:57:03    TP_MMC_META_BATCH_UPDATE                12             12             0              0              37.110         125.550        89.261         1071.130       
+2026-01-05 14:57:03    TP_MMC_META_QUERY                       2              2              0              0              6.290          6.940          6.615          13.230         
+2026-01-05 14:57:03    TP_MMC_META_BM_REGISTER                 2              2              0              0              143.980        239.030        191.505        383.010        
+```
+
 ---
 
 ## 错误码说明

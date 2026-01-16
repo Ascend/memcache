@@ -14,6 +14,7 @@
 
 #include "nlohmann/json.hpp"
 
+#include "ptracer.h"
 #include "mmc_logger.h"
 #include "mmc_meta_metric_manager.h"
 
@@ -141,6 +142,19 @@ void MmcHttpServer::RegisterMetricsEndpoint()
 
         res.status = httplib::OK_200;
         res.set_content(result, "text/plain");
+    });
+
+    server_.Get("/metrics/ptracer", [this](const httplib::Request &, httplib::Response &res) {
+        const char* str = ptracer_get_all_tp_string();
+        if (str == nullptr) {
+            MMC_LOG_ERROR("ptracer_get_all_tp_string failed");
+            res.status = httplib::InternalServerError_500;
+            res.set_content("Internal server error", "text/plain");
+            return;
+        }
+
+        res.status = httplib::OK_200;
+        res.set_content(str, "text/plain");
     });
 }
 
