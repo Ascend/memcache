@@ -116,6 +116,7 @@ void MmcBmProxy::DestroyBm()
     }
 
     if (handle_ != nullptr) {
+        smem_bm_leave(handle_, 0);
         smem_bm_destroy(handle_);
         handle_ = nullptr;
         std::fill(gvas_, gvas_ + MEDIA_NONE, nullptr);

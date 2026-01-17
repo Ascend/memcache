@@ -122,7 +122,7 @@ Result MmcMetaService::BmUnregister(uint32_t rank, uint16_t mediaType)
 
     MmcLocation loc{rank, static_cast<MediaType>(mediaType)};
     MMC_RETURN_ERROR(metaMgrProxy_->Unmount(loc), "Unmount loc { " << rank << ", " << mediaType << " } failed");
-    MMC_LOG_INFO("Unmount loc { " << rank << ", " << mediaType << " } finish");
+    MMC_LOG_DEBUG("Unmount loc: " << loc << " finish");
     if (rankMediaTypeMap_.find(rank) != rankMediaTypeMap_.end() &&
         rankMediaTypeMap_[rank].find(mediaType) != rankMediaTypeMap_[rank].end()) {
         rankMediaTypeMap_[rank].erase(mediaType);
@@ -143,7 +143,7 @@ Result MmcMetaService::ClearResource(uint32_t rank)
     {
         std::lock_guard<std::mutex> guard(mutex_);
         if (rankMediaTypeMap_.find(rank) == rankMediaTypeMap_.end()) {
-            MMC_LOG_INFO("Rank " << rank << " has no resources.");
+            MMC_LOG_DEBUG("Rank " << rank << " has no resources.");
             return MMC_OK;
         }
         mediaTypes = rankMediaTypeMap_[rank];

@@ -187,8 +187,8 @@ public:
         const auto iter = allocators_.find(loc);
         if (iter == allocators_.end()) {
             globalAllocLock_.UnlockRead();
-            MMC_LOG_ERROR("location not found, rank: " << loc.rank_ << ", mediaType: " << loc.mediaType_);
-            return MMC_INVALID_PARAM;
+            MMC_LOG_WARN("location not found, rank: " << loc.rank_ << ", mediaType: " << loc.mediaType_);
+            return MMC_OK;
         }
 
         const auto &allocator = iter->second;
@@ -198,7 +198,7 @@ public:
             return MMC_ERROR;
         }
         allocator->Stop();
-        MMC_LOG_INFO("Stop one bm successfully, bmRankId=" << loc.rank_);
+        MMC_LOG_INFO("Stop one bm successfully, loc: " << loc);
         globalAllocLock_.UnlockRead();
         return MMC_OK;
     }
@@ -209,9 +209,9 @@ public:
         auto iter = allocators_.find(loc);
         if (iter == allocators_.end()) {
             globalAllocLock_.UnlockWrite();
-            MMC_LOG_ERROR("Cannot find the given {rank:" << loc.rank_ << ", type:" << loc.mediaType_
+            MMC_LOG_WARN("Cannot find the given {rank:" << loc.rank_ << ", type:" << loc.mediaType_
                                                          << "} in the mem pool");
-            return MMC_INVALID_PARAM;
+            return MMC_OK;
         }
         if (iter->second == nullptr) {
             globalAllocLock_.UnlockWrite();
@@ -225,7 +225,7 @@ public:
             return MMC_INVALID_PARAM;
         }
         allocators_.erase(iter);
-        MMC_LOG_INFO("Unmount one bm successfully, bmRankId=" << loc.rank_);
+        MMC_LOG_DEBUG("Unmount one bm successfully, loc: " << loc);
         globalAllocLock_.UnlockWrite();
         return MMC_OK;
     }

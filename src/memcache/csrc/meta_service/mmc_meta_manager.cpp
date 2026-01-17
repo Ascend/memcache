@@ -171,7 +171,7 @@ Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &lo
     Result ret = metaContainer_->Get(key, metaObj);
     if (ret != MMC_OK || metaObj == nullptr) {
         MMC_LOG_ERROR("UpdateState: Cannot find " << key << " memObjMeta! ret:" << ret
-                                                  << ", action:" << static_cast<uint32_t>(actRet));
+                                                  << ", action:" << static_cast<uint32_t>(actRet) << ", loc:" << loc);
         return MMC_UNMATCHED_KEY;
     }
     MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(loc.rank_, loc.mediaType_, NONE);

@@ -69,7 +69,8 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
                   std::placeholders::_3),
         std::bind(&MmcLocalServiceDefault::CopyBlob, this, std::placeholders::_1, std::placeholders::_2));
     started_ = true;
-    MMC_LOG_INFO("Started LocalService (" << name_ << ") server " << options_.discoveryURL);
+    MMC_LOG_INFO("Started LocalService (" << name_ << ") server " << options_.discoveryURL
+                                          << ", rank: " << options_.rankId);
     return MMC_OK;
 }
 
@@ -77,7 +78,7 @@ void MmcLocalServiceDefault::Stop()
 {
     std::lock_guard<std::mutex> guard(mutex_);
     if (!started_) {
-        MMC_LOG_WARN("MmcClientDefault has not been started");
+        MMC_LOG_WARN("MmcClientDefault has not been started" << ", rank: " << options_.rankId);
         return;
     }
     DestroyBm();
@@ -86,7 +87,8 @@ void MmcLocalServiceDefault::Stop()
     }
     std::lock_guard<std::mutex> guardBlob(blobMutex_);
     blobMap_.clear();
-    MMC_LOG_INFO("Stop MmcClientDefault (" << name_ << ") server " << options_.discoveryURL);
+    MMC_LOG_INFO("Stop MmcClientDefault (" << name_ << ") server " << options_.discoveryURL
+                                           << ", rank: " << options_.rankId);
     started_ = false;
 }
 
