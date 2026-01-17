@@ -484,20 +484,17 @@ Result NetEngineAcc::HandleLinkBroken(const TcpLinkPtr &link) const
 
     const auto peerId = static_cast<uint32_t>(link->UpCtx());
 
-    auto linkAcc = MmcMakeRef<NetLinkAcc>(peerId, link);
-    MMC_ASSERT_RETURN(linkAcc != nullptr, MMC_NEW_OBJECT_FAILED);
-
-    /* add into peer link map */
+    MmcRef<NetLinkAcc> linkAcc = nullptr;
     peerLinkMap_->Find(peerId, linkAcc);
 
-    const auto result = peerLinkMap_->Remove(peerId);
-    if (!result) {
-        MMC_LOG_WARN("Failed to remove link with id " << peerId);
-        return MMC_ERROR;
-    }
     Result ret = MMC_OK;
-    if (linkBrokenHandler_ != nullptr) {
-        MMC_RETURN_ERROR(linkBrokenHandler_(linkAcc.Get()), "Failed to remove link with id " << peerId);
+    if (linkBrokenHandler_ != nullptr && linkAcc.Get() != nullptr && linkAcc->RealLink() != nullptr) {
+        if (linkAcc->RealLink()->Id() == link->Id()) {
+            peerLinkMap_->Remove(peerId);
+            MMC_RETURN_ERROR(linkBrokenHandler_(linkAcc.Get()), "Failed to remove link with id " << peerId);
+        } else {
+            MMC_LOG_WARN("Old linkId: " << linkAcc->RealLink()->Id() << ", rankId: " << peerId);
+        }
     }
     return ret;
 }
