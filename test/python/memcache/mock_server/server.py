@@ -10,7 +10,6 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-import ast
 import concurrent.futures
 import dataclasses
 import inspect
@@ -27,6 +26,7 @@ from enum import Enum
 import torch
 
 from memcache_hybrid import DistributedObjectStore, ReplicateConfig
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -189,6 +189,7 @@ def result_handler(func):
         try:
             func(self, *args, **kwargs)
         except Exception as e:
+            traceback.print_exc()
             self.cli_print(f"{func.__name__} raised exception: {e}")
 
     return wrapper
@@ -197,9 +198,6 @@ def result_handler(func):
 def tensor_sum(tensor, sizes: List[int] = None):
     if tensor is None:
         return 0
-    # 加速求和
-    import torch_npu
-    tensor = tensor.to("npu")
     if sizes is None:
         return tensor.sum().item()
 
@@ -519,7 +517,7 @@ class MmcTest(TestServer):
         if device == 'npu':
             self.sync_stream()
         tensor_sums = [tensor_sum(block, sizes_) for block, sizes_ in zip(blocks, sizes)]
-        for block in blocks:
+        for block, sizes_ in zip(blocks, sizes):
             if block is not None:
                 self._store.unregister_buffer(block.data_ptr(), max(sizes_, default=0) * len(sizes_))
         self.cli_return(str([results, tensor_sums]))
@@ -550,7 +548,7 @@ class MmcTest(TestServer):
         if device == 'npu':
             self.sync_stream()
         tensor_sums = [tensor_sum(block, sizes_) for block, sizes_ in zip(blocks, sizes)]
-        for block in blocks:
+        for block, sizes_ in zip(blocks, sizes):
             if block is not None:
                 self._store.unregister_buffer(block.data_ptr(), max(sizes_, default=0) * len(sizes_))
         self.cli_return(str([results, tensor_sums]))
