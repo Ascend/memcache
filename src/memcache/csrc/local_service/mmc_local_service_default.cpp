@@ -84,6 +84,7 @@ void MmcLocalServiceDefault::Stop()
     DestroyBm();
     if (metaNetClient_ != nullptr) {
         metaNetClient_->Stop();
+        metaNetClient_ = nullptr;
     }
     std::lock_guard<std::mutex> guardBlob(blobMutex_);
     blobMap_.clear();
@@ -124,13 +125,15 @@ Result MmcLocalServiceDefault::DestroyBm()
         }
         type = MoveUp(type);
     }
+    Response resp;
+    // Reverse the initialization order
+    Result ret = SyncCallMeta(req, resp, 30);
     bmProxyPtr_->DestroyBm();
     bmProxyPtr_ = nullptr;
-    Response resp;
-    Result ret = SyncCallMeta(req, resp, 30);
-    MMC_RETURN_ERROR(ret, "bm destroy failed!");
-    MMC_RETURN_ERROR(resp.ret_, "bm destroy failed!");
-    return ret;
+    if (ret || resp.ret_) {
+        MMC_LOG_WARN("unregister ret: " << ret << ", respRet: " << resp.ret_);
+    }
+    return MMC_OK;
 }
 
 Result MmcLocalServiceDefault::RegisterBm()

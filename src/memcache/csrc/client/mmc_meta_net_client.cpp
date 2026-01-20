@@ -76,8 +76,11 @@ void MetaNetClient::Stop()
         MMC_LOG_WARN("MetaNetClient has not been started" << ", rank: " << rankId_);
         return;
     }
+
+    link2Index_ = nullptr;
     if (engine_ != nullptr) {
         engine_->Stop();
+        engine_ = nullptr;
     }
     started_ = false;
 }

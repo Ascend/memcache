@@ -148,13 +148,13 @@ Result MetaNetServer::HandlePing(const NetContextPtr &context)
 
 Result MetaNetServer::HandleNewLink(const NetLinkPtr &link)
 {
-    MMC_LOG_INFO(name_ << " new link");
+    MMC_LOG_INFO(name_ << " new link, " << link->Id());
     return MMC_OK;
 }
 
 Result MetaNetServer::HandleLinkBroken(const NetLinkPtr &link)
 {
-    MMC_LOG_INFO(name_ << " link broken");
+    MMC_LOG_INFO(name_ << " link broken, " << link->Id());
     MMC_ASSERT_RETURN(metaService_ != nullptr, MMC_ERROR);
     int32_t rankId = link->Id();
     TP_TRACE_BEGIN(TP_MMC_META_CLEAR_RESOURCE);

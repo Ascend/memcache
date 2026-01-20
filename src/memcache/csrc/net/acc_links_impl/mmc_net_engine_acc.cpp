@@ -391,11 +391,17 @@ void NetEngineAcc::UnInitialize()
     /* un-initialize ctx store */
     if (ctxStore_ != nullptr) {
         ctxStore_->UnInitialize();
+        ctxStore_ = nullptr;
     }
 
     /* clear link map */
     if (peerLinkMap_ != nullptr) {
         peerLinkMap_->Clear();
+    }
+
+    if (server_ != nullptr) {
+        server_->Stop();
+        server_ = nullptr;
     }
 
     inited_ = false;
