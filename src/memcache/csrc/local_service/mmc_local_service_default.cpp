@@ -69,7 +69,8 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
                   std::placeholders::_3),
         std::bind(&MmcLocalServiceDefault::CopyBlob, this, std::placeholders::_1, std::placeholders::_2));
     started_ = true;
-    MMC_LOG_INFO("Started LocalService (" << name_ << ") server " << options_.discoveryURL);
+    MMC_LOG_INFO("Started LocalService (" << name_ << ") server " << options_.discoveryURL
+                                          << ", rank: " << options_.rankId);
     return MMC_OK;
 }
 
@@ -77,16 +78,18 @@ void MmcLocalServiceDefault::Stop()
 {
     std::lock_guard<std::mutex> guard(mutex_);
     if (!started_) {
-        MMC_LOG_WARN("MmcClientDefault has not been started");
+        MMC_LOG_WARN("MmcClientDefault has not been started" << ", rank: " << options_.rankId);
         return;
     }
     DestroyBm();
     if (metaNetClient_ != nullptr) {
         metaNetClient_->Stop();
+        metaNetClient_ = nullptr;
     }
     std::lock_guard<std::mutex> guardBlob(blobMutex_);
     blobMap_.clear();
-    MMC_LOG_INFO("Stop MmcClientDefault (" << name_ << ") server " << options_.discoveryURL);
+    MMC_LOG_INFO("Stop MmcClientDefault (" << name_ << ") server " << options_.discoveryURL
+                                           << ", rank: " << options_.rankId);
     started_ = false;
 }
 
@@ -122,13 +125,15 @@ Result MmcLocalServiceDefault::DestroyBm()
         }
         type = MoveUp(type);
     }
+    Response resp;
+    // Reverse the initialization order
+    Result ret = SyncCallMeta(req, resp, 30);
     bmProxyPtr_->DestroyBm();
     bmProxyPtr_ = nullptr;
-    Response resp;
-    Result ret = SyncCallMeta(req, resp, 30);
-    MMC_RETURN_ERROR(ret, "bm destroy failed!");
-    MMC_RETURN_ERROR(resp.ret_, "bm destroy failed!");
-    return ret;
+    if (ret || resp.ret_) {
+        MMC_LOG_WARN("unregister ret: " << ret << ", respRet: " << resp.ret_);
+    }
+    return MMC_OK;
 }
 
 Result MmcLocalServiceDefault::RegisterBm()

@@ -73,11 +73,14 @@ void MetaNetClient::Stop()
 {
     std::lock_guard<std::mutex> guard(mutex_);
     if (!started_) {
-        MMC_LOG_WARN("MetaNetClient has not been started");
+        MMC_LOG_WARN("MetaNetClient has not been started" << ", rank: " << rankId_);
         return;
     }
+
+    link2Index_ = nullptr;
     if (engine_ != nullptr) {
         engine_->Stop();
+        engine_ = nullptr;
     }
     started_ = false;
 }
