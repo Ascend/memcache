@@ -91,7 +91,7 @@ MemCache核心能力是提供大容量内存池和高性能的H2D、D2H、**D2RH
 
 ➡️支持中
 
--  MetaService支持基于restful进行集群管理、数据查询、指标查询，支持对接prometheus和grafana
+-  MetaService支持基于[restful](./doc/memcache_restful_api.md)进行集群管理、数据查询、指标查询，支持对接prometheus和grafana
 -  HBM + DRAM + SSD 三级内存池
 
 ✅已支持

@@ -129,7 +129,7 @@ pip install memcache_hybrid-1.0.0-cp311-cp311-linux_aarch64.whl # 修改为实�
 2、设置配置文件环境变量
 export MMC_LOCAL_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-local.conf
 
-3、通过MemCache提供的接口初始化客户端并拉起localservice，执行数据写入、查询、获取、删除等，下面的脚本时一个示例：
+3、通过MemCache提供的接口初始化客户端并拉起localservice，执行数据写入、查询、获取、删除等，下面的脚本是一个示例：
 python3 test_mmc_demo.py
 ```
 

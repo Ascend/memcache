@@ -46,7 +46,7 @@ void MmcHttpServer::RegisterHealthCheckEndpoint()
 {
     server_.Get("/health", [](const httplib::Request &, httplib::Response &res) {
         res.status = httplib::OK_200;
-        res.set_content("OK", "text/plain");
+        res.set_content("OK\n", "text/plain");
     });
 }
 
@@ -107,7 +107,7 @@ void MmcHttpServer::RegisterDataManagementEndpoints()
         }
 
         res.status = httplib::OK_200;
-        res.set_content(queryInfo.toJson(key).dump(), "application/json");
+        res.set_content(queryInfo.toJson(key).dump(4UL), "application/json");
     });
 }
 
@@ -124,7 +124,7 @@ void MmcHttpServer::RegisterSegmentManagementEndpoints()
         const auto result = metaMetaManager_->GetAllSegmentInfo();
 
         res.status = httplib::OK_200;
-        res.set_content(result.dump(), "application/json");
+        res.set_content(result.dump(4UL), "application/json");
     });
 }
 

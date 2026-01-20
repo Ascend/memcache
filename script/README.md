@@ -1,7 +1,7 @@
 ### 1 install dir
 ```
 ${INSTALL_PATH}/
-          |--memfabric_hybrid
+          |--memcache_hybrid
               |-- latest
               |-- set_env.sh
               |-- ${version}
@@ -19,7 +19,7 @@ default ${INSTALL_PATH} is /usr/local/
 
 ### 2 rule of package name
 ```
-memcache-hybrid-${version}_${os}_${arch}.run
+memcache_hybrid-${version}_${os}_${arch}.run
 ```
 
 ### 3 upgrade

@@ -16,7 +16,6 @@
 运行样例前请先编译安装**memfabric_hybrid的run包**,默认安装路径为/usr/local/,然后source安装路径下的set_env.sh
 
 memfabric_hybrid参考安装命令
-git
 
 ```bash
 bash memfabric_hybrid-1.0.0_linux_aarch64.run # 修改为实际的安装包名
@@ -25,9 +24,9 @@ source /usr/local/memfabric_hybrid/set_env.sh
 source /usr/local/memcache_hybrid/set_env.sh
 ```
 
-## 编译
+## 编译样例程序
 
-在当前目录执行如下命令即可
+在当前目录(memcache/example/cpp)执行如下命令即可
 
   ```bash
   mkdir build
@@ -64,7 +63,7 @@ mmc_meta_service &
 执行方式如下,可交互式的执行put，get等操作命令。
 
 ```text
-root@localhost:/home/memfabric_hybrid/example/cpp# ./build/memcache_cpp_test
+root@localhost:/home/memcache_hybrid/example/cpp# ./build/memcache_cpp_test
 | No running processes found in NPU 0                                                            |
 
 | No running processes found in NPU 1                                                            |

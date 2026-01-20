@@ -22,6 +22,12 @@ GET /health
 ##### 请求参数
 无
 
+##### CURL请求示例
+```
+curl http://127.0.0.1:8000/health
+```
+【备注】命令中的127.0.0.1:8000是mmc-meta.conf配置文件中的配置项ock.mmc.meta_service.metrics_url的取值（后面的CURL示例也是一样）。
+
 ##### 返回结果
 - 成功: HTTP 200 OK，返回 "OK"
 - 失败: HTTP 500 Internal Server Error
@@ -42,6 +48,11 @@ GET /get_all_keys
 
 ##### 请求参数
 无
+
+##### CURL请求示例
+```
+curl http://127.0.0.1:8000/get_all_keys
+```
 
 ##### 返回结果示例
 ```
@@ -67,6 +78,12 @@ GET
 | 参数名 | 类型     | 必填 | 描述     |
 |-----|--------|----|--------|
 | key | String | 是  | 要查询的键名 |
+
+##### CURL请求示例
+```
+curl http://127.0.0.1:8000/query_key?key=key_a
+```
+【备注】以"key_a”为例
 
 ##### 返回结果示例
 ```json
@@ -99,6 +116,11 @@ GET /get_all_segments
 
 ##### 请求参数
 无
+
+##### CURL请求示例
+```
+curl http://127.0.0.1:8000/get_all_segments
+```
 
 ##### 返回结果示例
 ```json
@@ -151,6 +173,11 @@ GET /metrics
 ##### 请求参数
 无
 
+##### CURL请求示例
+```
+curl http://127.0.0.1:8000/metrics
+```
+
 ##### 返回结果示例
 ```
 # HELP memcache_alloc_operations_total Total number of allocation operations
@@ -183,6 +210,11 @@ GET /metrics/summary
 ##### 请求参数
 无
 
+##### CURL请求示例
+```
+curl http://127.0.0.1:8000/metrics/summary
+```
+
 ##### 返回结果示例
 ```
 === MemCache Metrics Summary ===
@@ -203,6 +235,11 @@ GET /metrics/ptracer
 
 ##### 请求参数
 无
+
+##### CURL请求示例
+```
+curl http://127.0.0.1:8000/metrics/ptracer
+```
 
 ##### 返回结果示例
 ```
