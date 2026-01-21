@@ -160,7 +160,7 @@ endif ()
 
 set(PROJECT_BUILD_PATH ${PROJECT_BINARY_DIR})
 set(PROJECT_3RDPARTY_SRC_DIR ${PROJECT_SOURCE_DIR}/3rdparty)
-set(PROJECT_3RDPARTY_BIN_DIR ${PROJECT_SOURCE_DIR}/output/3rdparty)
+set(PROJECT_3RDPARTY_BIN_DIR ${PROJECT_BINARY_DIR}/3rdparty)
 set(PROJECT_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/output)
 
 # set src base dir and output dir of memcache

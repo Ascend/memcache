@@ -1,0 +1,26 @@
+*.h    text eol=lf
+*.hpp  text eol=lf
+*.c    text eol=lf
+*.cpp  text eol=lf
+*.cc   text eol=lf
+*.cxx  text eol=lf
+
+*.sh   text eol=lf
+*.py   text eol=lf
+CMakeLists.txt text eol=lf
+*.cmake text eol=lf
+*.patch text eol=lf
+
+*.png  binary
+*.jpg  binary
+*.so   binary
+*.a    binary
+*.dll  binary
+*.exe  binary
+*.lib  binary
+*.obj  binary
+*.o    binary
+
+/build/ export-ignore
+/output/ export-ignore
+/.git/ export-ignore

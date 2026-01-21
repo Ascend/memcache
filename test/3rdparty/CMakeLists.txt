@@ -15,13 +15,6 @@ set(MOCKCPP_INSTALL_DIR ${PROJECT_3RDPARTY_BIN_DIR}/mockcpp)
 
 
 set(CHECK_FILE_LINKS ${INSTALL_DIR}/include/gtest/gtest.h)
-message("-- googletest: check if need to build at ${CHECK_FILE_LINKS}")
-
-if(EXISTS ${CHECK_FILE_LINKS})
-    message("-- googletest: ${CHECK_FILE_LINKS}")
-    message("-- googletest: has been built, ignored")
-    return()
-endif()
 find_program(NINJA_EXE NAMES ninja)
 set(GENERATOR "Unix Makefiles")
 if(NINJA_EXE)
