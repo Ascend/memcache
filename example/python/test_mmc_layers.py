@@ -31,6 +31,7 @@ class MmcDirect(Enum):
     COPY_G2L = 1
     COPY_G2H = 2
     COPY_H2G = 3
+    COPY_AUTO = 9
 
 
 class TestExample(unittest.TestCase):
@@ -97,12 +98,12 @@ class TestExample(unittest.TestCase):
         res = self.store.put_from_layers("not-2d",
                                          [layer.data_ptr() for layer in src_layers],
                                          [3, 4, 5],
-                                         MmcDirect.COPY_H2G.value)
+                                         MmcDirect.COPY_AUTO.value)
         self.assertEqual(res, 0)
         res = self.store.get_into_layers("not-2d",
                                          [layer.data_ptr() for layer in dst_layers],
                                          [3, 4, 5],
-                                         MmcDirect.COPY_G2H.value)
+                                         MmcDirect.COPY_AUTO.value)
         self.assertEqual(res, 0)
         print(dst_layers)
 

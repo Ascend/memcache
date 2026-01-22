@@ -78,7 +78,7 @@ public:
                                   const std::vector<size_t> &sizes, const int32_t direct = 2) override;
 
     int GetIntoLayers(const std::string &key, const std::vector<void *> &buffers, const std::vector<size_t> &sizes,
-                      const int32_t direct = 2) override;
+                      const int32_t direct = 9) override;
 
     std::vector<int> BatchGetIntoLayers(const std::vector<std::string> &keys,
                                         const std::vector<std::vector<void *>> &buffers,
@@ -95,7 +95,7 @@ public:
                                   const ReplicateConfig &replicateConfig = {}) override;
 
     int PutFromLayers(const std::string &key, const std::vector<void *> &buffers, const std::vector<size_t> &sizes,
-                      const int32_t direct = 3, const ReplicateConfig &replicateConfig = {}) override;
+                      const int32_t direct = 9, const ReplicateConfig &replicateConfig = {}) override;
 
     std::vector<int> BatchPutFromLayers(const std::vector<std::string> &keys,
                                         const std::vector<std::vector<void *>> &buffers,
@@ -133,6 +133,8 @@ private:
     void GetBufferArrays(size_t batchSize, uint32_t type, const std::vector<std::vector<void *>> &bufferLists,
                          const std::vector<std::vector<size_t>> &sizeLists,
                          std::vector<ock::mmc::MmcBufferArray> &bufferArrays);
+
+    bool IsInHybmDeviceRange(uint64_t va);
 
     static int ReturnWrapper(const int result, const std::string &key);
 };

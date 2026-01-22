@@ -30,6 +30,9 @@ class TestClient:
     def close_smem_bm(self):
         return self.execute("close_smem_bm")
 
+    def copy_data(self, src_ptr: int, dst_ptr: int, size: int, op_type: str, flag: int):
+        return int(self.execute("copy_data", [src_ptr, dst_ptr, size, op_type, flag]))
+
     def bm_copy_batch(self, src_addrs: list[int], dst_addrs: list[int],
                       sizes: list[int], count: int, op_type: str, flag: int):
         return int(self.execute("bm_copy_batch", [src_addrs, dst_addrs, sizes, count, op_type, flag]))

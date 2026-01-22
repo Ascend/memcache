@@ -55,6 +55,7 @@ typedef enum {
     SMEMB_COPY_G2H = 2, /* copy data from global space to local host dram */
     SMEMB_COPY_H2G = 3, /* copy data from local host dram to global space */
     SMEMB_COPY_G2G = 4, /* copy data from global space to global space */
+    SMEMB_COPY_AUTO = 9,
     /* add here */
     SMEMB_COPY_BUTT
 } smem_bm_copy_type;

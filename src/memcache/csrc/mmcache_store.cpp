@@ -28,6 +28,8 @@ namespace mmc {
 constexpr int MAX_LAYER_NUM = 255;
 constexpr int MAX_BATCH_SIZE = 512;
 constexpr int MAX_KEY_LEN = 256;
+constexpr uint64_t MMC_DEVICE_VA_START = 0x100000000000UL;      // NPU上的地址空间起始: 16T
+constexpr uint64_t MMC_DEVICE_VA_SIZE = 0x80000000000UL;        // NPU上的地址空间范围: 8T
 
 static bool CopyPutOptions(const ReplicateConfig &replicateConfig, mmc_put_options &options)
 {
@@ -495,16 +497,32 @@ std::vector<int> MmcacheStore::BatchGetInto(const std::vector<std::string> &keys
     return results;
 }
 
+bool MmcacheStore::IsInHybmDeviceRange(uint64_t va)
+{
+    return (va >= MMC_DEVICE_VA_START) && (va < (MMC_DEVICE_VA_START + MMC_DEVICE_VA_SIZE));
+}
+
 int MmcacheStore::PutFromLayers(const std::string &key, const std::vector<void *> &buffers,
                                 const std::vector<size_t> &sizes, const int32_t direct,
                                 const ReplicateConfig &replicateConfig)
 {
     MMC_ASSERT_RETURN(MmcClientDefault::GetInstance() != nullptr, MMC_INVALID_PARAM);
-    if (direct != SMEMB_COPY_L2G && direct != SMEMB_COPY_H2G) {
-        MMC_LOG_ERROR("Invalid direct(" << direct << "), only 0 (SMEMB_COPY_L2G) and 3 (SMEMB_COPY_H2G) is supported");
+    if (direct != SMEMB_COPY_L2G && direct != SMEMB_COPY_H2G && direct != SMEMB_COPY_AUTO) {
+        MMC_LOG_ERROR("Invalid direct(" << direct << "), only" \
+                      "0 (SMEMB_COPY_L2G), 3 (SMEMB_COPY_H2G) and 9 (SMEMB_COPY_AUTO) is supported");
         return MMC_INVALID_PARAM;
     }
-    uint32_t type = (direct == SMEMB_COPY_L2G ? MEDIA_HBM : MEDIA_DRAM);
+
+    uint32_t type = MEDIA_DRAM;
+    if (direct == SMEMB_COPY_L2G) {
+        type = MEDIA_HBM;
+    } else if (direct == SMEMB_COPY_H2G) {
+        type = MEDIA_DRAM;
+    } else if (direct == SMEMB_COPY_AUTO) {
+        MMC_ASSERT_RETURN(!buffers.empty(), MMC_INVALID_PARAM);
+        uint64_t va = reinterpret_cast<uint64_t>(buffers[0]);
+        type = IsInHybmDeviceRange(va) ? MEDIA_HBM : MEDIA_DRAM;
+    }
 
     if (key.length() == 0 || key.length() > MAX_KEY_LEN) {
         MMC_LOG_ERROR("Invalid param, key's len (" << key.length() << ") is not between 1 and " << MAX_KEY_LEN);
@@ -595,12 +613,23 @@ std::vector<int> MmcacheStore::BatchPutFromLayers(const std::vector<std::string>
 int MmcacheStore::GetIntoLayers(const std::string &key, const std::vector<void *> &buffers,
                                 const std::vector<size_t> &sizes, const int32_t direct)
 {
-    if (direct != SMEMB_COPY_G2L && direct != SMEMB_COPY_G2H) {
-        MMC_LOG_ERROR("Invalid direct(" << direct << "), only 1 (SMEMB_COPY_G2L) and 2 (SMEMB_COPY_G2H) is supported");
+    if (direct != SMEMB_COPY_G2L && direct != SMEMB_COPY_G2H && direct != SMEMB_COPY_AUTO) {
+        MMC_LOG_ERROR("Invalid direct(" << direct << "), only" \
+                     "1 (SMEMB_COPY_G2L) , 2 (SMEMB_COPY_G2H) and 9 (SMEMB_COPY_AUTO) is supported");
         return MMC_INVALID_PARAM;
     }
     MMC_ASSERT_RETURN(MmcClientDefault::GetInstance() != nullptr, MMC_INVALID_PARAM);
-    uint32_t type = (direct == SMEMB_COPY_G2L ? MEDIA_HBM : MEDIA_DRAM);
+
+    uint32_t type = MEDIA_DRAM;
+    if (direct == SMEMB_COPY_G2L) {
+        type = MEDIA_HBM;
+    } else if (direct == SMEMB_COPY_G2H) {
+        type = MEDIA_DRAM;
+    } else if (direct == SMEMB_COPY_AUTO) {
+        MMC_ASSERT_RETURN(!buffers.empty(), MMC_INVALID_PARAM);
+        uint64_t va = reinterpret_cast<uint64_t>(buffers[0]);
+        type = IsInHybmDeviceRange(va) ? MEDIA_HBM : MEDIA_DRAM;
+    }
 
     if (key.length() == 0 || key.length() > MAX_KEY_LEN) {
         MMC_LOG_ERROR("Invalid param, key's len (" << key.length() << ") is not between 1 and " << MAX_KEY_LEN);

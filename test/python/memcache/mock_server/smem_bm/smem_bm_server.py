@@ -411,6 +411,25 @@ class MmcTest(TestServer):
         self.cli_return(0)
 
     @result_handler
+    def copy_data(self, src_ptr: int, dst_ptr: int, size: int, op_type_str: str, flag: int):
+        if op_type_str == 'H2G':
+            op_type = bm.BmCopyType.H2G
+        elif op_type_str == 'L2G':
+            op_type = bm.BmCopyType.L2G
+        elif op_type_str == 'G2H':
+            op_type = bm.BmCopyType.G2H
+        elif op_type_str == 'G2L':
+            op_type = bm.BmCopyType.G2L
+        elif op_type_str == 'G2G':
+            op_type = bm.BmCopyType.G2G
+        elif op_type_str == 'AUTO':
+            op_type = bm.BmCopyType.AUTO
+        else:
+            raise f"Invalid op type({op_type_str})"
+        ret = self._bm_handle.copy_data(src_ptr, dst_ptr, size, op_type, flag)
+        self.cli_return(ret)
+
+    @result_handler
     def copy_data_batch(self, src_addrs: list[int], dst_addrs: list[int],
                         sizes: list[int], count: int, op_type_str: str, flag: int):
         if op_type_str == 'H2G':
@@ -478,6 +497,7 @@ class MmcTest(TestServer):
             CliCommand("register_memory", "register local memory", self.register_memory, 2),
             CliCommand("calc_gva_sum", "calc gva data sum", self.calc_gva_sum, 2),
             CliCommand("calc_local_memory_sum", "calc local memory data sum", self.calc_local_memory_sum, 1),
+            CliCommand("copy_data", "copy data", self.copy_data, 5),
         ]
         self.register_command(cmds)
 
