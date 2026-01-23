@@ -18,6 +18,7 @@ import logging
 import socket
 import sys
 import threading
+import time
 import traceback
 from functools import wraps
 from typing import Callable, Dict, List
@@ -80,8 +81,6 @@ class TestServer:
                 return float(arg)
             elif param_type == str:
                 return str(arg)
-            elif param_type == bool:
-                return arg.lower() in ['true', '1', 'yes']
             elif param_type == bytes:
                 return bytes(arg, 'utf-8')
             elif param_type == List[bytes]:
@@ -129,7 +128,7 @@ class TestServer:
                 client_socket, _ = self._server_socket.accept()
                 executor.submit(self._handle_client, client_socket)
 
-    def _handle_client(self, client_socket: socket):
+    def _handle_client(self, client_socket: socket.socket):
         self._thread_local.client_socket = client_socket
         buffer_list = []
         try:
@@ -239,9 +238,17 @@ class MmcTest(TestServer):
             CliCommand("get_into_layers", "get data into multiple buffers [key] [sizes] [media(0:cpu 1:npu)]",
                        self.get_into_layers, 3),
             CliCommand("batch_put_from_layers", func=self.batch_put_from_layers, required_args_num=3,
-                       cmd_desc="batch put data from multiple buffers [keys] [sizes] [media(0:cpu 1:npu)]"),
+                cmd_desc="batch put data from multiple buffers [keys] [sizes] [media(0:cpu 1:npu)]"),
             CliCommand("batch_get_into_layers", func=self.batch_get_into_layers, required_args_num=3,
-                       cmd_desc="batch get data into multiple buffers [keys] [sizes] [media(0:cpu 1:npu)]")
+                cmd_desc="batch get data into multiple buffers [keys] [sizes] [media(0:cpu 1:npu)]"),
+            CliCommand("perf_test_put_from", func=self.perf_test_put_from, required_args_num=2,
+                cmd_desc="test put_from performance: [size] [iter_count] [medium] [register] [preferred_rank]"),
+            CliCommand("perf_test_get_into", func=self.perf_test_get_into, required_args_num=2,
+                cmd_desc="test get_into performance: [size] [iter_count] [medium] [register]"),
+            CliCommand("perf_test_put_from_layers", func=self.perf_test_put_from_layers, required_args_num=2,
+                cmd_desc="test put_from_layers performance: [sizes] [iter_count] [medium] [register] [preferred_rank]"),
+            CliCommand("perf_test_get_into_layers", func=self.perf_test_get_into_layers, required_args_num=2,
+                cmd_desc="test get_into_layers performance: [sizes] [iter_count] [medium] [register]"),
         ]
         self.register_command(cmds)
 
@@ -555,6 +562,124 @@ class MmcTest(TestServer):
             if block is not None:
                 self._store.unregister_buffer(block.data_ptr(), max(sizes_, default=0) * len(sizes_))
         self.cli_return(str([results, tensor_sums]))
+
+    @result_handler
+    def perf_test_put_from(self, size: int, iter_count: int, medium: str = 'npu', register: bool = True,
+                           preferred_rank: int | None = None):
+        if medium not in ('cpu', 'npu'):
+            raise RuntimeError(f"Invalid device: {medium}")
+
+        tensor = self.malloc_tensor(mini_block_size=size, device=medium)
+        direct = MmcDirect.COPY_L2G.value if medium == 'npu' else MmcDirect.COPY_H2G.value
+
+        if register:
+            self._store.register_buffer(tensor.data_ptr(), size)
+
+        rep_conf = ReplicateConfig()
+        if preferred_rank is not None:
+            rep_conf.preferredLocalServiceIDs = [preferred_rank]
+
+        res = 0
+        start = time.time()
+        for i in range(iter_count):
+            key = str(i)
+            res = self._store.put_from(key, tensor.data_ptr(), size, direct, rep_conf)
+            if res != 0:
+                logging.error("put_from failed: %s", res)
+                break
+        end = time.time()
+
+        if register:
+            self._store.unregister_buffer(tensor.data_ptr(), size)
+
+        self.cli_return(str([res, end - start]))
+
+    @result_handler
+    def perf_test_get_into(self, size: int, iter_count: int, medium: str = 'npu', register: bool = True):
+        if medium not in ('cpu', 'npu'):
+            raise RuntimeError(f"Invalid device: {medium}")
+
+        tensor = self.malloc_tensor(mini_block_size=size, device=medium)
+        direct = MmcDirect.COPY_G2L.value if medium == 'npu' else MmcDirect.COPY_G2H.value
+
+        if register:
+            self._store.register_buffer(tensor.data_ptr(), size)
+
+        res = 0
+        start = time.time()
+        for i in range(iter_count):
+            key = str(i)
+            res = self._store.get_into(key, tensor.data_ptr(), size, direct)
+            if res != 0:
+                logging.error("get_into failed: %s", res)
+                break
+        end = time.time()
+
+        if register:
+            self._store.unregister_buffer(tensor.data_ptr(), size)
+
+        self.cli_return(str([res, end - start]))
+
+    @result_handler
+    def perf_test_put_from_layers(self, sizes: List[int], iter_count: int, medium: str = 'npu', register: bool = True,
+                                  preferred_rank: int | None = None):
+        if medium not in ('cpu', 'npu'):
+            raise RuntimeError(f"Invalid device: {medium}")
+
+        layers_num = len(sizes)
+        mini_block_size = max(sizes, default=0)
+        tensor = self.malloc_tensor(layer_num=layers_num, mini_block_size=mini_block_size, device=medium)
+        direct = MmcDirect.COPY_L2G.value if medium == 'npu' else MmcDirect.COPY_H2G.value
+
+        if register:
+            self._store.register_buffer(tensor.data_ptr(), mini_block_size * layers_num)
+
+        rep_conf = ReplicateConfig()
+        if preferred_rank is not None:
+            rep_conf.preferredLocalServiceIDs = [preferred_rank]
+
+        res = 0
+        start = time.time()
+        for i in range(iter_count):
+            key = str(i)
+            res = self._store.put_from_layers(key, [layer.data_ptr() for layer in tensor], sizes, direct, rep_conf)
+            if res != 0:
+                logging.error("put_from_layers failed: %s", res)
+                break
+        end = time.time()
+
+        if register:
+            self._store.unregister_buffer(tensor.data_ptr(), mini_block_size * layers_num)
+
+        self.cli_return(str([res, end - start]))
+
+    @result_handler
+    def perf_test_get_into_layers(self, sizes: List[int], iter_count: int, medium: str = 'npu', register: bool = True):
+        if medium not in ('cpu', 'npu'):
+            raise RuntimeError(f"Invalid device: {medium}")
+
+        layers_num = len(sizes)
+        mini_block_size = max(sizes, default=0)
+        tensor = self.malloc_tensor(layer_num=layers_num, mini_block_size=mini_block_size, device=medium)
+        direct = MmcDirect.COPY_G2L.value if medium == 'npu' else MmcDirect.COPY_G2H.value
+
+        if register:
+            self._store.register_buffer(tensor.data_ptr(), mini_block_size * layers_num)
+
+        res = 0
+        start = time.time()
+        for i in range(iter_count):
+            key = str(i)
+            res = self._store.get_into_layers(key, [layer.data_ptr() for layer in tensor], sizes, direct)
+            if res != 0:
+                logging.error("get_into_layers failed: %s", res)
+                break
+        end = time.time()
+
+        if register:
+            self._store.unregister_buffer(tensor.data_ptr(), mini_block_size * layers_num)
+
+        self.cli_return(str([res, end - start]))
 
     def set_device(self):
         import acl
