@@ -94,7 +94,7 @@ virtual int PutFrom(const std::string &key, void *buffer, size_t size, const int
 **功能**: 将 buffer 中的数据写入缓存并关联到 key。
 
 **参数**:
-- `ReplicateConfig`: 副本策略配置
+- `replicateConfig`: 副本策略配置
 - `key`: 数据键（长度 < 256字节）
 - `buffer`: 目标内存地址
 - `size`: 缓冲区容量
@@ -127,7 +127,8 @@ virtual int IsExist(const std::string &key) = 0;
 - `key`: 数据键（长度 < 256字节）
 
 **返回值**:
-- `0`: 成功
+- `1`: 存在
+- `0`: 不存在
 - 其他: 失败
 
 #### GetKeyInfo
@@ -140,11 +141,11 @@ virtual KeyInfo GetKeyInfo(const std::string &key) = 0;
 - `key`: 数据的键，长度小于256个字节
 
 **返回值**:
-返回 KeyInfo 结构体，包含：
-- `key`: 键名
-- `size`: 数据字节数
-- `deviceId`: 数据所属设备 ID
-- `status`: 状态码（0 表示成功，负值表示错误）
+返回 KeyInfo，包含：
+- `size_`: 数据字节数
+- `blobNum_`: 数据副本数
+- `loc_`: 数据副本所在位置列表
+- `type_`: 数据副本所在介质类型列表
 
 ### 4. 批量操作接口
 
@@ -204,10 +205,11 @@ virtual std::vector<int> BatchIsExist(const std::vector<std::string> &keys) = 0;
 **功能**: 批量存在性检查。
 
 **参数**:
-- `keys`: 数据键（长度 < 256字节）
+- `keys`: 数据键列表（每个键长度 < 256字节）
 
 **返回值**:
-- `0`: 成功
+- `1`: 存在
+- `0`: 不存在
 - 其他: 失败
 
 #### BatchGetKeyInfo
@@ -217,11 +219,14 @@ virtual std::vector<KeyInfo> BatchGetKeyInfo(const std::vector<std::string> &key
 **功能**: 批量查询元信息。
 
 **参数**:
-- `keys`: 数据键（长度 < 256字节）
+- `keys`: 数据键列表（每个键长度 < 256字节）
 
 **返回值**:
-- `0`: 成功
-- 其他: 失败
+返回KeyInfo列表，每个KeyInfo包含：
+- `size_`: 数据字节数
+- `blobNum_`: 数据副本数
+- `loc_`: 数据副本所在位置列表
+- `type_`: 数据副本所在介质类型列表
 
 ### 5. 分层张量操作
 
@@ -236,10 +241,10 @@ virtual int PutFromLayers(const std::string &key, const std::vector<void *> &buf
 
 **参数**:
 - `key`: 数据键（长度 < 256字节）
-- `buffers`: 多层内存地址列表，必须与keys一一对应
+- `buffers`: 多层内存地址列表
 - `sizes`: 每层缓冲区容量大小列表，必须与buffers长度一致
 - `direct`: 数据流向
-- `ReplicateConfig`: 副本策略配置
+- `replicateConfig`: 副本策略配置
 
 **返回值**:
 - `0`: 成功
@@ -253,8 +258,8 @@ virtual int GetIntoLayers(const std::string &key, const std::vector<void *> &buf
 **功能**: 从缓存中读取指定键的逻辑对象，并按预定义大小分发到多个目标缓冲区。
 
 **参数**:
-- `keys`: 数据键列表（每个键长度 < 256字节）
-- `buffers`: 多层内存地址列表，必须与keys一一对应
+- `key`: 数据键（长度 < 256字节）
+- `buffers`: 多层内存地址列表
 - `sizes`: 每层缓冲区容量大小列表，必须与buffers长度一致
 - `direct`: 数据流向
 
@@ -276,9 +281,10 @@ virtual std::vector<int> BatchPutFromLayers(const std::vector<std::string> &keys
 - `buffers`: 多层内存地址列表，必须与keys一一对应
 - `sizes`: 每层缓冲区容量大小列表，必须与buffers长度一致
 - `direct`: 数据流向
-- `ReplicateConfig`: 副本策略配置
+- `replicateConfig`: 副本策略配置
 
 **返回值**:
+返回每个key对应的处理结果列表
 - `0`: 成功
 - 其他: 失败
 
@@ -298,6 +304,7 @@ virtual std::vector<int> BatchGetIntoLayers(const std::vector<std::string> &keys
 - `direct`: 数据流向
 
 **返回值**:
+返回每个key对应的处理结果列表
 - `0`: 成功
 - 其他: 失败
 
@@ -325,17 +332,20 @@ virtual int GetLocalServiceId(uint32_t &localServiceId) = 0;
 
 ### KeyInfo
 客户端配置结构体，包含以下字段：
-- `key`: 键名
-- `size`: 数据字节数
-- `deviceId`: 数据所属设备ID
-- `status`: 状态码(0=OK)
+- `size_`: 数据字节数
+- `blobNum_`: 数据副本数
+- `loc_`: 数据副本所在位置列表
+- `type_`: 数据副本所在介质类型列表
 
-## 常量定义
+## smem_bm_copy_type 枚举类型
 
-| 常量 | 值 | 说明 |
-| ------------------- | ---- | --------------------------- |
-| COPY_DEVICE_TO_HOST | 2 | 从设备（如 GPU）复制到主机（CPU）|
-| COPY_HOST_TO_DEVICE | 3 | 从主机（CPU）复制到设备（如 GPU）|
+| 类型 | 值 | 说明 |
+| ------------------- | ---- | -------------------- |
+| SMEMB_COPY_L2G | 0 | 从卡上内存复制到全局内存 |
+| SMEMB_COPY_G2L | 1 | 从全局内存复制到卡上内存 |
+| SMEMB_COPY_G2H | 2 | 从全局内存复制到主机内存 |
+| SMEMB_COPY_H2G | 3 | 从主机内存复制到全局内存 |
+| SMEMB_COPY_G2G | 4 | 从全局内存复制到全局内存 |
 
 ## 错误码
 
@@ -366,6 +376,7 @@ virtual int GetLocalServiceId(uint32_t &localServiceId) = 0;
 | -3102 | 键不匹配      |
 | -3103 | 返回值不匹配    |
 | -3104 | 租约未到期     |
+| -3105 | 元数据备份失败 |
 
 ## 注意事项
 

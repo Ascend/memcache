@@ -214,15 +214,14 @@ int32_t mmcc_batch_remove(const char **keys, uint32_t keys_count, int32_t *remov
 **功能**: 从 BM 中批量删除多个键。
 
 **参数**:
-- `keys`: 要从 BM 中删除的键列表
+- `keys`: 要从 BM 中删除的键列表，每个键长度小于256个字节
 - `keys_count`: 键的数量
 - `remove_results`: 每个删除操作的结果
 - `flags`: 操作标志
 
 **返回值**:
 - `0`: 成功
-- 正值: 发生错误
-- 负值: 其他错误
+- 其他: 失败
 
 #### mmcc_batch_exist
 ```c
@@ -249,7 +248,7 @@ int32_t mmcc_batch_put(const char **keys, uint32_t keys_count, const mmc_buffer 
 **功能**: 批量将多个数据对象放入分布式内存缓存中。
 
 **参数**:
-- `keys`: 数据对象的键数组
+- `keys`: 数据对象的键数组，每个键长度小于256个字节
 - `keys_count`: 数组中键的数量
 - `bufs`: 要放入的数据缓冲区数组
 - `options`: 批量放置操作的选项
@@ -266,7 +265,7 @@ int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffer *bufs,
 **功能**: 批量从分布式内存缓存中获取多个数据对象。
 
 **参数**:
-- `keys`: 数据对象的键数组
+- `keys`: 数据对象的键数组，每个键长度小于256个字节
 - `keys_count`: 数组中键的数量
 - `bufs`: 存储检索数据的数据缓冲区数组
 - `flags`: 可选标志，保留字段
@@ -281,7 +280,7 @@ int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffer *bufs,
 ```c
 int32_t mmc_set_extern_logger(void (*func)(int level, const char *msg));
 ```
-**功能**: 设置外部日志函数，用户可以设置自定义的日志记录函数。在自定义的日志记录函数中，用户可以使用统一的日志工具，这样日志消息就可以写入与调用者相同的日志文件中。如果未设置，acc_links日志消息将被打印到标准输出。
+**功能**: 设置外部日志函数，用户可以设置自定义的日志记录函数。在自定义的日志记录函数中，用户可以使用统一的日志工具，这样日志消息就可以写入与调用者相同的日志文件中。如果未设置，日志消息将被打印到标准输出。
 
 日志级别说明：
 - `0`: DEBUG
@@ -309,7 +308,7 @@ int32_t mmc_set_log_level(int level);
 - `0`: 成功
 - 其他: 失败
 
-### MmcCopyDirect 枚举类型
+### smem_bm_copy_type 枚举类型
 
 用于指定数据拷贝方向的枚举类型：
 - `SMEMB_COPY_H2G`: 从主机内存到全局内存
@@ -323,7 +322,11 @@ int32_t mmc_set_log_level(int level);
 客户端配置结构体，包含以下字段：
 - `discoveryURL`: 发现服务URL
 - `rankId`: Rank ID
+- `rpcRetryTimeOut`: rpc重试超时时间
 - `timeOut`: 超时时间
+- `readThreadPoolNum`: 读线程池线程数
+- `aggregateIO`: 是否聚合IO，默认false
+- `writeThreadPoolNum`: 写线程池线程数
 - `logLevel`: 日志级别
 - `logFunc`: 外部日志函数
 - `tlsConfig`: TLS配置
@@ -336,17 +339,24 @@ int32_t mmc_set_log_level(int level);
 ### mmc_meta_service_config_t
 元数据服务配置结构体，包含以下字段：
 - `discoveryURL`: 发现服务URL
+- `configStoreURL`: config store URL
+- `httpURL`: http服务URL
+- `haEnable`: 是否使能高可用
 - `logLevel`: 日志级别
+- `logPath`: 日志文件保存路径
+- `logRotationFileSize`: 轮转日志文件大小
+- `logRotationFileCount`: 轮转日志文件个数
 - `evictThresholdHigh`: 高水位驱逐阈值
 - `evictThresholdLow`: 低水位驱逐阈值
-- `tlsConfig`: TLS配置
+- `accTlsConfig`: 元数据服务TLS配置
+- `configStoreTlsConfig`: config store的TLS配置
 
 ### mmc_local_service_config_t
 本地服务配置结构体，包含以下字段：
 - `discoveryURL`: 发现服务URL
 - `deviceId`: 设备ID
 - `rankId`: BM全局统一编号
-- `worldSize`: 世界大小
+- `worldSize`: 本地服务的总数
 - `bmIpPort`: BM IP端口
 - `bmHcomUrl`: BM HCOM URL
 - `createId`: 创建ID
@@ -354,20 +364,36 @@ int32_t mmc_set_log_level(int level);
 - `localDRAMSize`: 本地DRAM大小
 - `localHBMSize`: 本地HBM大小
 - `flags`: 标志
-- `tlsConfig`: TLS配置
+- `accTlsConfig`: 本地服务的TLS配置
 - `logLevel`: 日志级别
 - `logFunc`: 外部日志函数
+- `hcomTlsConfig`: 本地服务的TLS配置
+- `configStoreTlsConfig`: config store的TLS配置
 
 ### mmc_buffer
-内存缓冲区结构体，包含内存地址、类型和维度信息。
+内存缓冲区结构体，包含内存地址、类型和长度信息。
+- `addr`: 内存地址
+- `type`: 介质类型，参考MediaType
+- `offset`: 偏移
+- `len`: 缓冲区长度
 
 ### mmc_put_options
-放置操作选项，包含媒体类型和亲和策略。
+放置操作选项，包含介质类型和亲和策略。
+- `mediaType`: 介质类型
+- `policy`: 亲和策略
+- `replicaNum`: 副本数，最大支持8副本
+- `preferredLocalServiceIDs`: 优先本地服务ID
 
 ### mmc_data_info
 数据信息结构体，包含大小、保护标志、blob数量和有效性标志。
+- `size`: 数据大小
+- `prot`: 保护标志
+- `numBlobs`: blob数量
+- `valid`: 有效性标志
+- `ranks`: 各blob所在设备列表
+- `types`: 各blob所在介质类型
 
-### tls_config
+### mmc_tls_config
 TLS配置结构体，包含以下字段：
 - `tlsEnable`: TLS启用标志
 - `caPath`: 根证书文件路径
@@ -407,6 +433,7 @@ TLS配置结构体，包含以下字段：
 | -3102 | 键不匹配      |
 | -3103 | 返回值不匹配    |
 | -3104 | 租约未到期     |
+| -3105 | 元数据备份失败 |
 
 ## 注意事项
 

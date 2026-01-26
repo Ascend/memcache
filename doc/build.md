@@ -31,9 +31,10 @@ git submodule update --remote 3rdparty/memfabric_hybrid
 
 3. 编译
 
+执行如下命令进行编译，编译成功后，会生成run包在output目录下
+
 ```
 bash script/build_and_pack_run.sh --build_mode RELEASE --build_python ON
-
 ```
 
 - build_and_pack_run.sh支持3个参数，分别是<build_mode> <build_python> <build_test>
@@ -88,7 +89,7 @@ bash memcache_hybrid-1.0.0_linux_aarch64.run --install-path=${your path}  # 请�
 pip show memcache_hybrid
 ```
 
-在安装过程中，会默认尝试安装适配当前环境的MemCache的whl包，如果未安装，则在使用python接口前需要用户手动安装(安装包路径参考上面目录结构中的whl包路径)
+在安装过程中，会默认尝试安装适配当前环境的MemCache的whl包，如果未安装，则在使用python接口前需要用户手动安装(如果编译时使用了--build_python ON参数，会生成whl包放在output/memcache/wheel目录下)
 
 ## 运行服务
 ### MetaService
