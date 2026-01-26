@@ -81,6 +81,34 @@ enum BlobActionResult : uint8_t {
     MMC_REMOVE_START
 };
 
+inline std::ostream &operator<<(std::ostream &os, BlobActionResult ret)
+{
+    switch (ret) {
+        case MMC_ALLOCATED_OK:
+            os << "MMC_ALLOCATED_OK";
+            break;
+        case MMC_WRITE_OK:
+            os << "MMC_WRITE_OK";
+            break;
+        case MMC_WRITE_FAIL:
+            os << "MMC_WRITE_FAIL";
+            break;
+        case MMC_READ_START:
+            os << "MMC_READ_START";
+            break;
+        case MMC_READ_FINISH:
+            os << "MMC_READ_FINISH";
+            break;
+        case MMC_REMOVE_START:
+            os << "MMC_REMOVE_START";
+            break;
+        default:
+            os << "UNEXCEPTION";
+            break;
+    }
+    return os;
+}
+
 using StateTransTable = std::unordered_map<BlobState, std::unordered_map<Result, BlobStateAction>>;
 
 class BlobStateMachine : public MmcReferable {

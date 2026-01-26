@@ -747,69 +747,12 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string> &key
 
 Result MmcClientDefault::RegisterBuffer(uint64_t addr, uint64_t size)
 {
-    auto ret = bmProxy_->RegisterBuffer(addr, size);
-    if (ret == MMC_OK) {
-        InsertRegisterMap(addr, size);
-    }
-    return ret;
+    return bmProxy_->RegisterBuffer(addr, size);
 }
 
 Result MmcClientDefault::UnRegisterBuffer(uint64_t addr, uint64_t size)
 {
-    auto ret = bmProxy_->UnRegisterBuffer(addr);
-    if (ret == MMC_OK) {
-        RemoveRegisterMap(addr, size);
-    }
-    return ret;
-}
-
-void MmcClientDefault::InsertRegisterMap(uint64_t va, uint64_t size)
-{
-    if (va > std::numeric_limits<uint64_t>::max() - size) {
-        return;
-    }
-    std::lock_guard<std::mutex> guard(mutex_);
-    registerSet_.insert((va << MMC_REGISTER_SET_MARK_BIT) | MMC_REGISTER_SET_LEFT_MARK);
-    registerSet_.insert((va + size) << MMC_REGISTER_SET_MARK_BIT);
-}
-
-void MmcClientDefault::RemoveRegisterMap(uint64_t va, uint64_t size)
-{
-    if (va > std::numeric_limits<uint64_t>::max() - size) {
-        return;
-    }
-    std::lock_guard<std::mutex> guard(mutex_);
-    registerSet_.erase((va << MMC_REGISTER_SET_MARK_BIT) | MMC_REGISTER_SET_LEFT_MARK);
-    registerSet_.erase((va + size) << MMC_REGISTER_SET_MARK_BIT);
-}
-
-bool MmcClientDefault::QueryInRegisterMap(uint64_t va, uint64_t size)
-{
-    if (va > std::numeric_limits<uint64_t>::max() / 2u) {
-        MMC_LOG_ERROR("va is " << va);
-        return false;
-    }
-    auto it = registerSet_.upper_bound((va << MMC_REGISTER_SET_MARK_BIT) | MMC_REGISTER_SET_LEFT_MARK);
-    return (it != registerSet_.end() && !((*it) & MMC_REGISTER_SET_LEFT_MARK) &&
-            (va + size) <= ((*it) >> MMC_REGISTER_SET_MARK_BIT));
-}
-
-bool MmcClientDefault::QueryInRegisterMap(const mmc_buffer &buf)
-{
-    uint64_t addr = buf.addr;
-    return QueryInRegisterMap(addr, buf.len);
-}
-
-int32_t MmcClientDefault::SelectTransportType(const mmc_buffer &buf)
-{
-    if (bmProxy_->GetDataOpType() == "device_rdma") { // device RDMA暂不支持异步
-        return MMC_BATCH_TRANSPORT;
-    }
-
-    if (QueryInRegisterMap(buf)) {
-        return MMC_ASYNC_TRANSPORT;
-    }
-    return MMC_BATCH_TRANSPORT;
+    return bmProxy_->UnRegisterBuffer(addr);
 }
 
 } // namespace mmc

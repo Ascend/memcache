@@ -26,7 +26,6 @@ Result MmcMemBlob::UpdateState(const std::string &key, uint32_t rankId, uint32_t
     const auto retIter = curStateIter->second.find(ret);
     if (retIter == curStateIter->second.end()) {
         MMC_LOG_ERROR("cannot find " << std::to_string(ret) << " from " << std::to_string(state_));
-
         return MMC_UNMATCHED_RET;
     }
 

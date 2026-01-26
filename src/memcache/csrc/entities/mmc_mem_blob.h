@@ -163,15 +163,14 @@ public:
         return os << *blob.Get();
     }
 
-    /**
-     * 原则：blob由 MmcMemObjMeta 维护生命周期及锁的保护
-     */
-
     Result Backup(const std::string &key);
 
     Result BackupRemove(const std::string &key);
 
 private:
+    /**
+     * 原则：blob由 MmcMemObjMeta 维护生命周期及锁的保护，不涉及被并发处理的情况
+     */
     const uint32_t rank_;              /* rank id of the blob located */
     const uint64_t gva_;               /* global virtual address */
     const uint64_t size_;              /* data size of the blob */

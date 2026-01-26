@@ -119,11 +119,6 @@ private:
     Result AllocateAndPutBlobs(const std::vector<std::string> &keys, const std::vector<MmcBufferArray> &bufs,
                                const mmc_put_options &options, uint32_t flags, uint64_t operateId,
                                std::vector<int> &batchResult, BatchAllocResponse &allocResponse);
-    void InsertRegisterMap(uint64_t va, uint64_t size);
-    void RemoveRegisterMap(uint64_t va, uint64_t size);
-    bool QueryInRegisterMap(const mmc_buffer &buf);
-    bool QueryInRegisterMap(uint64_t va, uint64_t size);
-    int32_t SelectTransportType(const mmc_buffer &buf);
 
     static std::mutex gClientHandlerMtx;
     static MmcClientDefault *gClientHandler;
@@ -139,7 +134,6 @@ private:
     MmcThreadPoolPtr readThreadPool_;
     bool aggregateIO_{false};
     MmcThreadPoolPtr writeThreadPool_;
-    std::set<uint64_t> registerSet_; // va << 1 | is_left
 };
 
 uint32_t MmcClientDefault::RankId(const affinity_policy &policy)

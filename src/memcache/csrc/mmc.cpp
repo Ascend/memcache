@@ -38,12 +38,10 @@ MMC_API int32_t mmc_init(const mmc_init_config *config)
         return MMC_OK;
     }
 
+    // 1. load config
     MMC_VALIDATE_RETURN(!MMC_LOCAL_CONF_PATH.empty(), "MMC_LOCAL_CONFIG_PATH is not set", MMC_INVALID_PARAM);
-
     ClientConfig configManager{};
-
     MMC_VALIDATE_RETURN(configManager.LoadFromFile(MMC_LOCAL_CONF_PATH), "Failed to load client config", MMC_ERROR);
-
     const std::vector<std::string> validationError = configManager.ValidateConf();
     if (!validationError.empty()) {
         MMC_LOG_ERROR("Wrong configuration in file <" << MMC_LOCAL_CONF_PATH << ">, because of following mistakes:");
@@ -53,23 +51,27 @@ MMC_API int32_t mmc_init(const mmc_init_config *config)
         return MMC_INVALID_PARAM;
     }
 
+    // 2. load local service config
     mmc_local_service_config_t localServiceConfig{};
     localServiceConfig.flags = 0;
     localServiceConfig.deviceId = config->deviceId;
     configManager.GetLocalServiceConfig(localServiceConfig);
+    MMC_VALIDATE_RETURN(configManager.ValidateLocalServiceConfig(localServiceConfig) == MMC_OK,
+                        "Invalid local service config", MMC_INVALID_PARAM);
+
     MMC_RETURN_ERROR(ock::mmc::MmcOutLogger::Instance().SetLogLevel(static_cast<LogLevel>(localServiceConfig.logLevel)),
                      "failed to set log level " << localServiceConfig.logLevel);
     if (localServiceConfig.logFunc != nullptr) {
         MmcOutLogger::Instance().SetExternalLogFunction(localServiceConfig.logFunc);
     }
 
-    MMC_VALIDATE_RETURN(configManager.ValidateLocalServiceConfig(localServiceConfig) == MMC_OK,
-                        "Invalid local service config", MMC_INVALID_PARAM);
+    // 3. if provide memory to memory pool, start local service
     if (config->initBm) {
         g_localService = mmcs_local_service_start(&localServiceConfig);
         MMC_VALIDATE_RETURN(g_localService != nullptr, "failed to create or start local service", MMC_ERROR);
     }
 
+    // 4. init client sdk
     mmc_client_config_t clientConfig{};
     configManager.GetClientConfig(clientConfig);
     auto ret = mmcc_init(&clientConfig);
