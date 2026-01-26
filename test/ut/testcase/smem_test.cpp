@@ -191,7 +191,14 @@ TEST_F(TestSmem, two_crad_bm_copy_success)
             exit(5);
         }
 
-        auto handle = smem_bm_create(0, rankCount, SMEMB_DATA_OP_SDMA, 0, UT_CREATE_MEM_SIZE, 0);
+        smem_bm_create_option_t options{};
+        options.localDRAMSize = 0;
+        options.maxDramSize = 0;
+        options.localHBMSize = UT_CREATE_MEM_SIZE;
+        options.maxHbmSize = UT_CREATE_MEM_SIZE;
+        options.dataOpType = SMEMB_DATA_OP_SDMA;
+        options.flags = 0;
+        auto handle = smem_bm_create2(0, &options);
         if (handle == nullptr) {
             exit(6);
         }

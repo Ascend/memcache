@@ -231,7 +231,9 @@ bool Configuration::SetWithStrAutoConvert(const std::string &key, const std::str
 {
     std::string tempValue = value;
     if (key == ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE.first ||
-        key == ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first) {
+        key == ConfConstant::OKC_MMC_LOCAL_SERVICE_MAX_DRAM_SIZE.first ||
+        key == ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first ||
+        key == ConfConstant::OKC_MMC_LOCAL_SERVICE_MAX_HBM_SIZE.first) {
         auto memSize = ParseMemSize(tempValue);
         if (memSize == UINT64_MAX) {
             std::cerr << "DRAM or HBM value (" << tempValue << ") is invalid, "

@@ -270,9 +270,11 @@ public:
         AddStrConf(OKC_MMC_LOCAL_SERVICE_BM_IP_PORT, VNoCheck::Create(), 0);
         AddStrConf(OKC_MMC_LOCAL_SERVICE_PROTOCOL,
                    VStrEnum::Create(OKC_MMC_LOCAL_SERVICE_PROTOCOL.first, LOCAL_SERVER_PROTOCAL_ENUM_STR),
-                   1);                                                      // REQUIED
-        AddStrConf(OKC_MMC_LOCAL_SERVICE_DRAM_SIZE, VNoCheck::Create(), 1); // REQUIED
-        AddStrConf(OKC_MMC_LOCAL_SERVICE_HBM_SIZE, VNoCheck::Create(), 1);  // REQUIED
+                   1);                                                      // REQUIRED
+        AddStrConf(OKC_MMC_LOCAL_SERVICE_DRAM_SIZE, VNoCheck::Create(), 1); // REQUIRED
+        AddStrConf(OKC_MMC_LOCAL_SERVICE_MAX_DRAM_SIZE, VNoCheck::Create(), 0);
+        AddStrConf(OKC_MMC_LOCAL_SERVICE_HBM_SIZE, VNoCheck::Create(), 1); // REQUIRED
+        AddStrConf(OKC_MMC_LOCAL_SERVICE_MAX_HBM_SIZE, VNoCheck::Create(), 0);
 
         // HCOM TLS config
         AddStrConf(OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL, VNoCheck::Create(), 0);
@@ -312,7 +314,10 @@ public:
         config.createId = 0;
         SafeCopy(GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_PROTOCOL), config.dataOpType, PROTOCOL_SIZE);
         config.localDRAMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE.first, MEM_128MB_BYTES);
+        config.localMaxDRAMSize =
+            GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_MAX_DRAM_SIZE.first, config.localDRAMSize);
         config.localHBMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first, MEM_2MB_BYTES);
+        config.localMaxHBMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_MAX_HBM_SIZE.first, config.localHBMSize);
         auto protocol = std::string(config.dataOpType);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         StringToUpper(logLevelStr);
@@ -339,26 +344,54 @@ public:
 
     static Result ValidateLocalServiceConfig(mmc_local_service_config_t &config)
     {
+        config.localDRAMSize = (config.localDRAMSize / DRAM_SIZE_ALIGNMENT) * DRAM_SIZE_ALIGNMENT;
+        config.localMaxDRAMSize = (config.localMaxDRAMSize / DRAM_SIZE_ALIGNMENT) * DRAM_SIZE_ALIGNMENT;
+        config.localHBMSize = (config.localHBMSize / DRAM_SIZE_ALIGNMENT) * DRAM_SIZE_ALIGNMENT;
+        config.localMaxHBMSize = (config.localMaxHBMSize / DRAM_SIZE_ALIGNMENT) * DRAM_SIZE_ALIGNMENT;
+
         if (config.localDRAMSize > MAX_DRAM_SIZE) {
-            MMC_LOG_ERROR("After alignment 2MB, DRAM size (" << config.localDRAMSize << ") exceeds 1TB");
+            MMC_LOG_ERROR("After alignment 2MB, ock.mmc.local_service.dram.size(" << config.localDRAMSize
+                                                                                  << ") exceeds 1TB");
+            return MMC_INVALID_PARAM;
+        }
+        if (config.localMaxDRAMSize > MAX_DRAM_SIZE) {
+            MMC_LOG_ERROR("After alignment 2MB, ock.mmc.local_service.max.dram.size(" << config.localMaxDRAMSize
+                                                                                      << ") exceeds 1TB");
+            return MMC_INVALID_PARAM;
+        }
+        if (config.localMaxDRAMSize < config.localDRAMSize) {
+            MMC_LOG_ERROR("ock.mmc.local_service.max.dram.size(" << config.localMaxDRAMSize
+                                                                 << ") is smaller than ock.mmc.local_service.dram.size("
+                                                                 << config.localDRAMSize << ")");
             return MMC_INVALID_PARAM;
         }
 
         if (config.localHBMSize > MAX_HBM_SIZE) {
-            MMC_LOG_ERROR("After alignment 2MB, HBM size (" << config.localHBMSize << ") exceeds 1TB");
+            MMC_LOG_ERROR("After alignment 2MB, ock.mmc.local_service.hbm.size(" << config.localHBMSize
+                                                                                 << ") exceeds 1TB");
             return MMC_INVALID_PARAM;
         }
-
-        config.localDRAMSize = (config.localDRAMSize / DRAM_SIZE_ALIGNMENT) * DRAM_SIZE_ALIGNMENT;
-        config.localHBMSize = (config.localHBMSize / DRAM_SIZE_ALIGNMENT) * DRAM_SIZE_ALIGNMENT;
-
-        MMC_LOG_INFO("After alignment 2MB, DRAM size is " << config.localDRAMSize);
-        MMC_LOG_INFO("After alignment 2MB, HBM size is " << config.localHBMSize);
+        if (config.localMaxHBMSize > MAX_HBM_SIZE) {
+            MMC_LOG_ERROR("After alignment 2MB, ock.mmc.local_service.hbm.size(" << config.localMaxHBMSize
+                                                                                 << ") exceeds 1TB");
+            return MMC_INVALID_PARAM;
+        }
+        if (config.localMaxHBMSize < config.localHBMSize) {
+            MMC_LOG_ERROR("ock.mmc.local_service.max.hbm.size(" << config.localMaxHBMSize
+                                                                << ") is smaller than ock.mmc.local_service.hbm.size("
+                                                                << config.localHBMSize << ")");
+            return MMC_INVALID_PARAM;
+        }
 
         if (config.localDRAMSize == 0 && config.localHBMSize == 0) {
             MMC_LOG_ERROR("After alignment 2MB, DRAM size and HBM size cannot be 0 at the same time");
             return MMC_INVALID_PARAM;
         }
+
+        MMC_LOG_INFO("After alignment 2MB, ock.mmc.local_service.dram.size is "
+                     << config.localDRAMSize << ", ock.mmc.local_service.max.dram.size is" << config.localMaxDRAMSize);
+        MMC_LOG_INFO("After alignment 2MB, ock.mmc.local_service.hbm.size is "
+                     << config.localHBMSize << ", ock.mmc.local_service.max.hbm.size is " << config.localMaxHBMSize);
 
         MMC_VALIDATE_RETURN(ValidateTLSConfig(config.accTlsConfig) == MMC_OK, "Invalid acc_link TLS config",
                             MMC_INVALID_PARAM);

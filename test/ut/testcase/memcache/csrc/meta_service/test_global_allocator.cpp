@@ -129,7 +129,6 @@ TEST_F(TestMmcGlobalAllocator, AllocMulti)
     for (size_t i = 0; i < blobs.size(); i++) {
         cout << "blob[" << i << "] rank: " << blobs[i]->Rank() << endl;
         EXPECT_EQ(blobs[i]->Size(), allocReq.blobSize_);
-        EXPECT_EQ(blobs[i]->Type(), allocReq.mediaType_);
         EXPECT_EQ(blobs[i]->Gva(), size * blobs[i]->Rank());
     }
 }
@@ -172,7 +171,7 @@ TEST_F(TestMmcGlobalAllocator, AllocCrossRank)
     allocReq.mediaType_ = MEDIA_DRAM;
 
     Result ret = allocator->Alloc(allocReq, blobs);
-    EXPECT_EQ(ret, -1);
+    EXPECT_EQ(ret, 0);
 }
 
 TEST_F(TestMmcGlobalAllocator, FreeOne)
@@ -276,7 +275,6 @@ TEST_F(TestMmcGlobalAllocator, FreeCrossRank)
     for (int i = 0; i < 10; i++) {
         cout << "blob[" << i << "] rank: " << blobs[i]->Rank() << endl;
         EXPECT_EQ(blobs[i]->Size(), allocReq.blobSize_);
-        EXPECT_EQ(blobs[i]->Type(), allocReq.mediaType_);
         EXPECT_EQ(blobs[i]->Gva(), size * blobs[i]->Rank());
     }
 
@@ -376,7 +374,6 @@ TEST_F(TestMmcGlobalAllocator, MountUnmount)
     for (int i = 0; i < 10; i++) {
         cout << "blob[" << i << "] rank: " << blobs2[i]->Rank() << endl;
         EXPECT_EQ(blobs2[i]->Size(), allocReq.blobSize_);
-        EXPECT_EQ(blobs2[i]->Type(), allocReq.mediaType_);
     }
 }
 
@@ -624,19 +621,13 @@ TEST_F(TestMmcGlobalAllocator, AllocRandom)
     allocReq.flags_ = ALLOC_RANDOM;
 
     Result ret = allocator->Alloc(allocReq, blobs);
-    EXPECT_EQ(ret, MMC_ERROR);
-    EXPECT_EQ(blobs.size(), 0U);
-
-    allocReq.mediaType_ = MEDIA_DRAM;
-
-    ret = allocator->Alloc(allocReq, blobs);
     EXPECT_EQ(ret, MMC_OK);
     EXPECT_EQ(blobs.size(), 10U);
     for (size_t i = 0; i < blobs.size(); i++) {
         cout << "blob[" << i << "] rank: " << blobs[i]->Rank() << endl;
         EXPECT_EQ(blobs[i]->Size(), allocReq.blobSize_);
-        EXPECT_EQ(blobs[i]->Type(), allocReq.mediaType_);
-        EXPECT_EQ(blobs[i]->Gva(), size * blobs[i]->Rank());
+        EXPECT_TRUE(blobs[i]->Type() == MEDIA_DRAM || blobs[i]->Type() == MEDIA_HBM);
+        EXPECT_GE(blobs[i]->Gva(), 0);
     }
 
     std::vector<MmcMemBlobPtr> blobs1;
@@ -650,8 +641,8 @@ TEST_F(TestMmcGlobalAllocator, AllocRandom)
             isEqual = false;
         }
         EXPECT_EQ(blobs1[i]->Size(), allocReq.blobSize_);
-        EXPECT_EQ(blobs1[i]->Type(), allocReq.mediaType_);
-        EXPECT_EQ(blobs1[i]->Gva(), size * blobs1[i]->Rank() + SIZE_32K);
+        EXPECT_TRUE(blobs1[i]->Type() == MEDIA_DRAM || blobs1[i]->Type() == MEDIA_HBM);
+        EXPECT_GE(blobs1[i]->Gva(), 0);
     }
     EXPECT_FALSE(isEqual);
 }

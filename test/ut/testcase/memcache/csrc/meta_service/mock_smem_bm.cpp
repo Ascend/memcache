@@ -44,6 +44,16 @@ smem_bm_t smem_bm_create(uint32_t id, uint32_t memberSize, smem_bm_data_op_type 
     return reinterpret_cast<smem_bm_t>(0x1234); // 返回非空伪句柄
 }
 
+smem_bm_t smem_bm_create2(uint32_t id, const smem_bm_create_option_t *option)
+{
+    if (option == nullptr) {
+        return nullptr; // 返回空句柄
+    }
+    g_spaces[SMEM_MEM_TYPE_DEVICE] = option->localHBMSize;
+    g_spaces[SMEM_MEM_TYPE_HOST] = option->localDRAMSize;
+    return reinterpret_cast<smem_bm_t>(0x1234); // 返回非空伪句柄
+}
+
 void smem_bm_destroy(smem_bm_t handle)
 {
     return;

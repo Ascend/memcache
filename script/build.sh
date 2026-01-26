@@ -59,7 +59,7 @@ GIT_COMMIT=`git rev-parse HEAD` || true
   echo "git: ${GIT_COMMIT}"
 } > "${PROJ_DIR}/output/VERSION"
 
-cp "${PROJ_DIR}/output/VERSION" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/"
+cp -f "${PROJ_DIR}/output/VERSION" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/"
 rm -f "${PROJ_DIR}/output/VERSION"
 
 readonly BACK_PATH_EVN=$PATH
@@ -149,5 +149,6 @@ done
 mkdir -p "${PROJ_DIR}/output/memcache/wheel"
 cp "${PROJ_DIR}"/src/memcache/python/dist/*.whl "${PROJ_DIR}/output/memcache/wheel"
 rm -rf "${PROJ_DIR}"/src/memcache/python/dist
+rm -rf "${PROJ_DIR}/src/memcache/python/memcache_hybrid/VERSION"
 
 cd ${CURRENT_DIR}

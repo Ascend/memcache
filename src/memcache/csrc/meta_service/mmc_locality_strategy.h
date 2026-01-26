@@ -130,9 +130,9 @@ public:
         }
         MmcLocation lowerBound;
         MmcLocation upperBound;
-        lowerBound.mediaType_ = static_cast<MediaType>(allocReq.mediaType_);
+        lowerBound.mediaType_ = MEDIA_HBM;
         lowerBound.rank_ = std::numeric_limits<uint32_t>::min();
-        upperBound.mediaType_ = static_cast<MediaType>(allocReq.mediaType_);
+        upperBound.mediaType_ = MEDIA_DRAM;
         upperBound.rank_ = std::numeric_limits<uint32_t>::max();
         auto first = allocators.lower_bound(lowerBound);
         auto last = allocators.upper_bound(upperBound);

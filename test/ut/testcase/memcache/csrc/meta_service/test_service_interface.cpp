@@ -103,7 +103,8 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
 
     uint64_t totalSize = SIZE_32K * 10;
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", totalSize, totalSize, 0};
+    mmc_local_service_config_t localServiceConfig = {
+        "", 0, 0, 1, "", "", 0, "device_sdma", totalSize, totalSize, totalSize, totalSize, 0};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -188,7 +189,8 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
     ASSERT_TRUE(meta_service != nullptr);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 104857600, 104857600, 0};
+    mmc_local_service_config_t localServiceConfig = {
+        "", 0, 0, 1, "", "", 0, "device_sdma", 104857600, 104857600, 104857600, 104857600, 0};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);

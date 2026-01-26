@@ -36,7 +36,7 @@
 #### LocalService Config
 
 | key                                           | value type | requirement  | default                 | valid range                                          | description                                                  |
-| --------------------------------------------- | ---------- | ------------ | ----------------------- | ---------------------------------------------------- | ------------------------------------------------------------ |
+| --------------------------------------------- | ---------- | ------------ |-------------------------| ---------------------------------------------------- | ------------------------------------------------------------ |
 | ock.mmc.meta_service_url                      | string     | optional     | tcp://127.0.0.1:5000    | tcp://\<ip>\<port>                                   | port in [1025, 65535], <br/> <ip> is cluster-ip in HA        |
 | ock.mmc.log_level                             | string     | optional     | info                    | debug/info/warn/error                                | log level                                                    |
 |                                               |            |              |                         |                                                      |                                                              |
@@ -62,7 +62,9 @@
 |                                               |            |              |                         |                                                      |                                                              |
 | ock.mmc.local_service.protocol                | string     | **required** | host_rdma               | host_rdma/host_urma/host_tcp/device_sdma/device_rdma |                                                              |
 | ock.mmc.local_service.dram.size               | integer    | **required** | 128MB                   | [0, 1TB]                                             | Supports formats such as 134217728, 2048KB, 200mb, 2.5G or 1TB, <br/> and automatic alignment to 2MB (host_sdma or host_tcp) or 1GB (device_sdma or device_rdma). |
+| ock.mmc.local_service.max.dram.size           | integer    | optional     | 64GB                    | [0, 1TB]                                             | The MAX size of `ock.mmc.local_service.dram.size` in all local processes |
 | ock.mmc.local_service.hbm.size                | integer    | **required** | 0                       | [0, 1TB]                                             | Supports formats such as 134217728, 2048KB, 200mb, 2.5G or 1TB, <br/> and automatic alignment to 2MB (host_sdma or host_tcp) or 1GB (device_sdma or device_rdma). |
+| ock.mmc.local_service.max.hbm.size            | integer    | optional     | 0                       | [0, 1TB]                                             | The MAX size of `ock.mmc.local_service.hbm.size` in all local processes |
 |                                               |            |              |                         |                                                      |                                                              |
 | ock.mmc.local_service.hcom_url                | string     | optional     | tcp://127.0.0.1:7000    | tcp://\<ip>\<port>                                   | used in dram pool, port in [1024, 65535]                     |
 | ock.mmc.local_service.hcom.tls.enable         | bool       | optional     | false                   | true/false                                           | hcom TLS switch                                              |

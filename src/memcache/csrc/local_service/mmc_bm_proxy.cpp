@@ -97,8 +97,17 @@ Result MmcBmProxy::InternalCreateBm(const mmc_bm_create_config_t &createConfig)
         MMC_LOG_ERROR("MmcBmProxy unknown data op type " << createConfig.dataOpType);
         return MMC_ERROR;
     }
-    handle_ = smem_bm_create(createConfig.id, createConfig.memberSize, opType, createConfig.localDRAMSize,
-                             createConfig.localHBMSize, createConfig.flags);
+
+    smem_bm_create_option_t option{};
+    option.maxDramSize = createConfig.localMaxDRAMSize;
+    option.maxHbmSize = createConfig.localMaxHBMSize;
+    option.localDRAMSize = createConfig.localDRAMSize;
+    option.localHBMSize = createConfig.localHBMSize;
+    option.dataOpType = opType;
+    option.flags = createConfig.flags;
+    option.tag[0] = '\0';
+    option.tagOpInfo[0] = '\0';
+    handle_ = smem_bm_create2(createConfig.id, &option);
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to create smem bm");
         return MMC_ERROR;

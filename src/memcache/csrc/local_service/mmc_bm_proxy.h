@@ -39,7 +39,9 @@ typedef struct {
     uint32_t memberSize;
     std::string dataOpType;
     uint64_t localDRAMSize;
+    uint64_t localMaxDRAMSize;
     uint64_t localHBMSize;
+    uint64_t localMaxHBMSize;
     uint32_t flags;
 } mmc_bm_create_config_t;
 

@@ -95,11 +95,24 @@ void MmcLocalServiceDefault::Stop()
 
 Result MmcLocalServiceDefault::InitBm()
 {
-    mmc_bm_init_config_t initConfig = {options_.deviceId,  options_.worldSize,     options_.bmIpPort,
-                                       options_.bmHcomUrl, options_.logLevel,      options_.logFunc,
-                                       options_.flags,     options_.hcomTlsConfig, options_.configStoreTlsConfig};
-    mmc_bm_create_config_t createConfig = {options_.createId,      options_.worldSize,    options_.dataOpType,
-                                           options_.localDRAMSize, options_.localHBMSize, options_.flags};
+    mmc_bm_init_config_t initConfig = {.deviceId = options_.deviceId,
+                                       .worldSize = options_.worldSize,
+                                       .ipPort = options_.bmIpPort,
+                                       .hcomUrl = options_.bmHcomUrl,
+                                       .logLevel = options_.logLevel,
+                                       .logFunc = options_.logFunc,
+                                       .flags = options_.flags,
+                                       .hcomTlsConfig = options_.hcomTlsConfig,
+                                       .storeTlsConfig = options_.configStoreTlsConfig};
+
+    mmc_bm_create_config_t createConfig = {.id = options_.createId,
+                                           .memberSize = options_.worldSize,
+                                           .dataOpType = options_.dataOpType,
+                                           .localDRAMSize = options_.localDRAMSize,
+                                           .localMaxDRAMSize = options_.localMaxDRAMSize,
+                                           .localHBMSize = options_.localHBMSize,
+                                           .localMaxHBMSize = options_.localMaxHBMSize,
+                                           .flags = options_.flags};
 
     MmcBmProxyPtr bmProxy = MmcBmProxyFactory::GetInstance("bmProxyDefault");
     MMC_ASSERT_RETURN(bmProxy != nullptr, MMC_ERROR);

@@ -68,7 +68,9 @@ typedef struct {
     uint32_t createId;
     char dataOpType[PROTOCOL_SIZE];
     uint64_t localDRAMSize;
+    uint64_t localMaxDRAMSize;
     uint64_t localHBMSize;
+    uint64_t localMaxHBMSize;
     uint32_t flags;
     mmc_tls_config accTlsConfig;
     int32_t logLevel;
