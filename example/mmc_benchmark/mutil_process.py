@@ -11,23 +11,29 @@
 # See the Mulan PSL v2 for more details.
 
 import os
+import time
 from time import sleep
 from typing import List
 import torch
 import torch_npu
 
+from status_file_manager import StatusFileManager
 from memcache_hybrid import DistributedObjectStore
 
-process_count: int = 8
+
+is_2d: bool = True
+one_block_size = [8 * 1024 * 1024]
+local_mem_type: str = 'npu'
+process_count: int = 16
 one_batch_count: int = 32
 call_count: int = 64
 test_times: int = 8
-size1 = [128 * 1024 for _ in range(61)]
-size2 = [16 * 1024 for _ in range(61)]
+size1 = [64 * 1024 for _ in range(64)]
+size2 = [64 * 1024 for _ in range(64)]
+#size1 = [128 * 1024 for _ in range(61)]
+#size2 = [16 * 1024 for _ in range(61)]
 block_size = [item for pair in zip(size1, size2) for item in pair]
-upper_layer: int = len(block_size)
 key_prefix: str = "key_"
-IS_2D = False
 
 
 def set_device(device_id):
@@ -46,13 +52,13 @@ def tensor_sum(tensor: List[torch.Tensor], sizes: List[int] = None):
     return sum(layer[:size].sum().item() for layer, size in zip(tensor, sizes))
 
 
-def allocate_aligned_tensor(shape, dtype=torch.float32, alignment=2 * 1024 * 1024):
+def allocate_aligned_tensor(shape, dtype=torch.float32, alignment=2*1024*1024):
     num_elements = torch.prod(torch.tensor(shape)).item()
     element_size = torch.finfo(dtype).bits // 8 if dtype.is_floating_point else torch.iinfo(dtype).bits // 8
     total_bytes = num_elements * element_size
 
     padding = alignment - 1
-    buffer = torch.empty(total_bytes + padding, dtype=dtype, device='npu')
+    buffer = torch.empty(total_bytes + padding, dtype=dtype, device=local_mem_type)
 
     address = buffer.data_ptr()
     aligned_address = (address + alignment - 1) & ~(alignment - 1)
@@ -87,17 +93,16 @@ def write_worker(device: int):
     device_id = device
     set_device(device_id)
     print(f"npu:{device_id} 开始，PID: {os.getpid()}")
+    one_tensor = malloc_npu_blocks(max(one_block_size, default=0), 1, one_batch_count)
     tensor1 = malloc_npu_blocks(max(size1, default=0), len(size1), one_batch_count)
     tensor2 = malloc_npu_blocks(max(size2, default=0), len(size2), one_batch_count)
-    register_buffs = [item for pair in zip(get_col_tensors_ptr_by_index(tensor1, len(size1), 0),
-                                           get_col_tensors_ptr_by_index(tensor2, len(size2), 0)) for item in pair]
-    register_size = [mini_block_size * one_batch_count for mini_block_size in block_size]
     store = DistributedObjectStore()
     print(f"==== Start to init memcache device:{device_id}")
     res = store.init(device_id)
     if res != 0:
         raise f"Failed to start pid:{os.getpid()} deviceId:{device_id}"
     print(f"==== Success to init device:{device_id}")
+    store.register_buffer(one_tensor.data_ptr(), max(one_block_size, default=0) * one_batch_count)
     store.register_buffer(tensor1.data_ptr(), max(size1, default=0) * len(size1) * one_batch_count)
     store.register_buffer(tensor2.data_ptr(), max(size2, default=0) * len(size2) * one_batch_count)
     for i in range(call_count):
@@ -107,15 +112,15 @@ def write_worker(device: int):
         for j in range(one_batch_count):
             key = key_prefix + str(device) + '_' + str(i) + '_' + str(j)
             keys.append(key)
-            block_buffs = [item for pair in zip(get_col_tensors_ptr_by_index(tensor1, len(size1), j),
-                                                get_col_tensors_ptr_by_index(tensor2, len(size2), j)) for item in pair]
+            if is_2d is True:
+                block_buffs = [item for pair in zip(get_col_tensors_ptr_by_index(tensor1, len(size1), j),
+                                                    get_col_tensors_ptr_by_index(tensor2, len(size2), j)) for item in pair]
+                sizes.append(block_size)
+            else:
+                block_buffs = get_col_tensors_ptr_by_index(one_tensor, 1, j)
+                sizes.append(one_block_size)
             buffs.append(block_buffs)
-            sizes.append(block_size)
         ret = store.batch_put_from_layers(keys, buffs, sizes, 0)
-        for j in range(one_batch_count):
-            block_tensors = [item for pair in zip(get_col_tensors_by_index(tensor1, len(size1), j),
-                                                  get_col_tensors_by_index(tensor2, len(size2), j)) for item in pair]
-            print(f"==== key({keys[j]}) res({ret[j]})) sum({tensor_sum(block_tensors, block_size)})")
     print(f"===== npu:{device_id} 结束 wait......")
     sleep(30 * 60)
 
@@ -123,35 +128,57 @@ def write_worker(device: int):
 def read_worker(device: int):
     device_id = device
     set_device(device_id)
+    status_manager = []
+    for i in range(process_count):
+        status_manager.append(StatusFileManager(f"task_{i}.txt"))
+    status_manager[device_id].reset_to_preparing()
+    sleep(5)
     print(f"npu:{device_id} 开始，PID: {os.getpid()}")
+    one_tensor = malloc_npu_blocks(max(one_block_size, default=0), 1, one_batch_count)
     tensor1 = malloc_npu_blocks(max(size1, default=0), len(size1), one_batch_count)
     tensor2 = malloc_npu_blocks(max(size2, default=0), len(size2), one_batch_count)
-    register_buffs = [item for pair in zip(get_col_tensors_ptr_by_index(tensor1, len(size1), 0),
-                                           get_col_tensors_ptr_by_index(tensor2, len(size2), 0)) for item in pair]
-    register_size = [mini_block_size * one_batch_count for mini_block_size in block_size]
     store = DistributedObjectStore()
     print(f"==== Start to init memcache device:{device_id}")
     res = store.init(device_id)
     if res != 0:
         raise f"Failed to start pid:{os.getpid()} deviceId:{device_id}"
     print(f"==== Success to init device:{device_id}")
+    store.register_buffer(one_tensor.data_ptr(), max(one_block_size, default=0) * one_batch_count)
     store.register_buffer(tensor1.data_ptr(), max(size1, default=0) * len(size1) * one_batch_count)
     store.register_buffer(tensor2.data_ptr(), max(size2, default=0) * len(size2) * one_batch_count)
+    if local_mem_type == 'npu':
+        direct_t = 1
+    else:
+        direct_t = 2
+    status_manager[device_id].set_to_ready()
+    for i in range(process_count):
+        status_manager[i].wait_until_ready(timeout=5 * 60)
+    start = time.perf_counter()
     for i in range(call_count):
         keys = []
         buffs = []
         sizes = []
         for j in range(one_batch_count):
-            key = key_prefix + str(device) + '_' + str(i) + '_' + str(j)
+            key = key_prefix + str(device_id) + '_' + str(i) + '_' + str(j)
             keys.append(key)
-            block_buffs = [item for pair in zip(get_col_tensors_ptr_by_index(tensor1, len(size1), j),
-                                                get_col_tensors_ptr_by_index(tensor2, len(size2), j)) for item in pair]
+            if is_2d is True:
+                block_buffs = [item for pair in zip(get_col_tensors_ptr_by_index(tensor1, len(size1), j), get_col_tensors_ptr_by_index(tensor2, len(size2), j)) for item in pair]
+                sizes.append(block_size)
+            else:
+                block_buffs = get_col_tensors_ptr_by_index(one_tensor, 1, j)
+                sizes.append(one_block_size)
             buffs.append(block_buffs)
-            sizes.append(block_size)
-        ret = store.batch_get_into_layers(keys, buffs, sizes, 1)
-        for j in range(one_batch_count):
-            block_tensors = [item for pair in zip(get_col_tensors_by_index(tensor1, len(size1), j),
-                                                  get_col_tensors_by_index(tensor2, len(size2), j)) for item in pair]
-            print(f"==== key({keys[j]}) res({ret[j]})) sum({tensor_sum(block_tensors, block_size)})")
+        ret = store.batch_get_into_layers(keys, buffs, sizes, direct_t)
     print(f"===== npu:{device_id} 结束 wait......")
-    sleep(30 * 60)
+    status_manager[device_id].reset_to_preparing()
+    for i in range(process_count):
+        status_manager[i].wait_until_ready(timeout=5 * 60, check_ready=False)
+    end = time.perf_counter()
+    duration_us = (end - start) * 1_000_000
+    total_size_bytes = sum(sum(size) for size in sizes) * call_count
+    total_size_gb = total_size_bytes / (1024 * 1024 * 1024)
+    total_duration_seconds = duration_us / 1_000_000
+    bandwidth_gb_per_sec = total_size_gb / total_duration_seconds
+    print(f"device_id:{device_id} spend time:{duration_us}us avg:{duration_us / call_count}us "
+          f"bw:{bandwidth_gb_per_sec}GB/s")
+    sleep(10)

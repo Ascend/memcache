@@ -16,8 +16,8 @@ import os
 import torch
 import torch_npu
 
-# from mutil_process import process_count, write_worker
-from mooncake_mutil_process import process_count, write_worker
+from mutil_process import process_count, write_worker
+#from mooncake_mutil_process import process_count, write_worker
 
 if __name__ == "__main__":
     print(f"主进程 PID: {os.getpid()}")

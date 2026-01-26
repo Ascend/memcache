@@ -93,7 +93,6 @@ public:
         }
         for (size_t i = 0; i < numThreads; ++i) {
             workers.emplace_back([this] {
-                TrySetThreadAffinityAndPriority();
                 while (true) {
                     std::function<void()> task;
                     {

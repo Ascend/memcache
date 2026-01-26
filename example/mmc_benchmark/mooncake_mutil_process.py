@@ -17,19 +17,23 @@ from typing import List
 import torch
 import torch_npu
 
+from status_file_manager import StatusFileManager
 from mooncake_store import Mooncakestore, MooncakeConfig
 
-process_count: int = 1
-one_batch_count: int = 1
-call_count: int = 1
-test_times: int = 8
-size1 = [128 * 1024 for _ in range(61)]
-size2 = [16 * 1024 for _ in range(61)]
-block_size = [item for pair in zip(size1, size2) for item in pair]
-upper_layer: int = len(block_size)
-key_prefix: str = "key_"
-IS_2D = False
 
+is_2d: bool = False
+local_mem_type: str = 'npu'
+process_count: int = 16
+one_batch_count: int = 1
+call_count: int = 512
+test_times: int = 8
+size1 = [64 * 1024 for _ in range(64)]
+size2 = [64 * 1024 for _ in range(64)]
+#size1 = [128 * 1024 for _ in range(61)]
+#size2 = [16 * 1024 for _ in range(61)]
+block_size = [item for pair in zip(size1, size2) for item in pair]
+one_block_size = [1024 * 1024]
+key_prefix: str = "key_"
 
 def set_device(device_id):
     import acl
@@ -47,13 +51,13 @@ def tensor_sum(tensor: List[torch.Tensor], sizes: List[int] = None):
     return sum(layer[:size].sum().item() for layer, size in zip(tensor, sizes))
 
 
-def allocate_aligned_tensor(shape, dtype=torch.float32, alignment=2 * 1024 * 1024):
+def allocate_aligned_tensor(shape, dtype=torch.float32, alignment=2*1024*1024):
     num_elements = torch.prod(torch.tensor(shape)).item()
     element_size = torch.finfo(dtype).bits // 8 if dtype.is_floating_point else torch.iinfo(dtype).bits // 8
     total_bytes = num_elements * element_size
 
     padding = alignment - 1
-    buffer = torch.empty(total_bytes + padding, dtype=dtype, device='npu')
+    buffer = torch.empty(total_bytes + padding, dtype=dtype, device="cpu")
 
     address = buffer.data_ptr()
     aligned_address = (address + alignment - 1) & ~(alignment - 1)
@@ -87,13 +91,13 @@ def get_col_tensors_ptr_by_index(tensors, layer_num, block_index):
 def init_mooncake(device_id: int):
     config = MooncakeConfig(
         device=device_id,
-        protocol='ascend',
-        device_name='',
-        local_hostname='141.61.41.87',
+        protocol='rdma',
+        device_name= '',
+        local_hostname='29.210.144.83',
         metadata_server='P2PHANDSHAKE',
-        global_segment_size=1024 * 1024 * 1024 * 1,
-        local_buffer_size=1024 * 1024 * 128,
-        master_server_address='141.61.41.87:50051')
+        global_segment_size=1024 * 1024 * 1024 * 64,
+        local_buffer_size=128 * 1024 * 1024,
+        master_server_address='29.210.144.84:50051')
     store = Mooncakestore(config)
     return store
 
@@ -102,10 +106,12 @@ def write_worker(device: int):
     device_id = device
     set_device(device_id)
     print(f"npu:{device_id} 开始，PID: {os.getpid()}")
+    one_tensor = malloc_npu_blocks(max(one_block_size, default=0), 1, one_batch_count)
     tensor1 = malloc_npu_blocks(max(size1, default=0), len(size1), one_batch_count)
     tensor2 = malloc_npu_blocks(max(size2, default=0), len(size2), one_batch_count)
     print(f"==== Start to init memcache device:{device_id}")
     store = init_mooncake(device_id)
+    store.register(one_tensor.data_ptr(), max(one_block_size, default=0) * one_batch_count)
     store.register(tensor1.data_ptr(), max(size1, default=0) * len(size1) * one_batch_count)
     store.register(tensor2.data_ptr(), max(size2, default=0) * len(size2) * one_batch_count)
     print(f"==== Success to init device:{device_id}")
@@ -116,34 +122,51 @@ def write_worker(device: int):
         for j in range(one_batch_count):
             key = key_prefix + str(device) + '_' + str(i) + '_' + str(j)
             keys.append(key)
-            block_buffs = [item for pair in zip(get_col_tensors_ptr_by_index(tensor1, len(size1), j),
-                                                get_col_tensors_ptr_by_index(tensor2, len(size2), j)) for item in pair]
+            if is_2d is True:
+                block_buffs = [item for pair in zip(get_col_tensors_ptr_by_index(tensor1, len(size1), j), get_col_tensors_ptr_by_index(tensor2, len(size2), j)) for item in pair]         
+                sizes.append(block_size)
+            else:
+                block_buffs = get_col_tensors_ptr_by_index(one_tensor, 1, j)
+                sizes.append(one_block_size)
             buffs.append(block_buffs)
-            sizes.append(block_size)
         start = time.perf_counter()
         ret = store.put_batch(keys, buffs, sizes)
         end = time.perf_counter()
         duration_us = (end - start) * 1_000_000
         print(f"put_batch : {duration_us:.2f} μs")
         for j in range(one_batch_count):
-            block_tensors = [item for pair in zip(get_col_tensors_by_index(tensor1, len(size1), j),
-                                                  get_col_tensors_by_index(tensor2, len(size2), j)) for item in pair]
-            print(f"==== key({keys[j]}) res({ret[j]})) sum({tensor_sum(block_tensors, block_size)})")
+            print(f"==== key({keys[j]}) res({ret[j]}))")
     print(f"===== npu:{device_id} 结束 wait......")
     sleep(30 * 60)
 
+def h2d_col_tensors_by_index(tensors, layer_num, block_index, devieId):
+    if local_mem_type == 'cpu':
+        return
+    for li in range(layer_num):
+        npu_tensort = tensors[li][block_index].to(f'npu:{devieId}')
 
 def read_worker(device: int):
-    device_id = device + 4
+    device_id = device
     set_device(device_id)
+    status_manager = []
+    for i in range(process_count):
+        status_manager.append(StatusFileManager(f"task_{i}.txt"))
+    status_manager[device_id].reset_to_preparing()
+    sleep(5)
     print(f"npu:{device_id} 开始，PID: {os.getpid()}")
+    one_tensor = malloc_npu_blocks(max(one_block_size, default=0), 1, one_batch_count)
     tensor1 = malloc_npu_blocks(max(size1, default=0), len(size1), one_batch_count)
     tensor2 = malloc_npu_blocks(max(size2, default=0), len(size2), one_batch_count)
     print(f"==== Start to init memcache device:{device_id}")
     store = init_mooncake(device_id)
+    store.register(one_tensor.data_ptr(), max(one_block_size, default=0) * one_batch_count)
     store.register(tensor1.data_ptr(), max(size1, default=0) * len(size1) * one_batch_count)
     store.register(tensor2.data_ptr(), max(size2, default=0) * len(size2) * one_batch_count)
     print(f"==== Success to init device:{device_id}")
+    status_manager[device_id].set_to_ready()
+    for i in range(process_count):
+        status_manager[i].wait_until_ready(timeout=5 * 60)
+    start = time.perf_counter()
     for i in range(call_count):
         keys = []
         buffs = []
@@ -151,18 +174,25 @@ def read_worker(device: int):
         for j in range(one_batch_count):
             key = key_prefix + str(device) + '_' + str(i) + '_' + str(j)
             keys.append(key)
-            block_buffs = [item for pair in zip(get_col_tensors_ptr_by_index(tensor1, len(size1), j),
-                                                get_col_tensors_ptr_by_index(tensor2, len(size2), j)) for item in pair]
+            if is_2d is True:
+                block_buffs = [item for pair in zip(get_col_tensors_ptr_by_index(tensor1, len(size1), j), get_col_tensors_ptr_by_index(tensor2, len(size2), j)) for item in pair]
+                sizes.append(block_size)
+            else:
+                block_buffs = get_col_tensors_ptr_by_index(one_tensor, 1, j)
+                sizes.append(one_block_size)
             buffs.append(block_buffs)
-            sizes.append(block_size)
-        start = time.perf_counter()
         ret = store.get_batch(keys, buffs, sizes)
-        end = time.perf_counter()
-        duration_us = (end - start) * 1_000_000
-        print(f"put_batch : {duration_us:.2f} μs")
         for j in range(one_batch_count):
-            block_tensors = [item for pair in zip(get_col_tensors_by_index(tensor1, len(size1), j),
-                                                  get_col_tensors_by_index(tensor2, len(size2), j)) for item in pair]
-            print(f"==== key({keys[j]}) res({ret[j]})) sum({tensor_sum(block_tensors, block_size)})")
+            if is_2d is True:
+                h2d_col_tensors_by_index(tensor1, len(size1), j, device_id)
+                h2d_col_tensors_by_index(tensor2, len(size2), j, device_id)
+            else:
+                h2d_col_tensors_by_index(one_tensor, 1, j, device_id)
     print(f"===== npu:{device_id} 结束 wait......")
-    sleep(30 * 60)
+    status_manager[device_id].reset_to_preparing()
+    for i in range(process_count):
+        status_manager[i].wait_until_ready(timeout=5 * 60, check_ready=False)
+    end = time.perf_counter()
+    duration_us = (end - start) * 1_000_000
+    print(f"device_id:{device_id} spend time:{duration_us}us avg:{duration_us/call_count}")
+    sleep(5)
