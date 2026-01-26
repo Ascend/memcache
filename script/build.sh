@@ -14,7 +14,6 @@ export BUILD_TESTS=${2:-OFF}
 export BUILD_OPEN_ABI=${3:-OFF}
 export BUILD_PYTHON=${4:-ON}
 export ENABLE_PTRACER=${5:-ON}
-export BUILD_COMPILER=${6:-gcc}
 
 readonly SCRIPT_FULL_PATH=$(dirname $(readlink -f "$0"))
 readonly PROJECT_FULL_PATH=$(dirname "$SCRIPT_FULL_PATH")
@@ -95,7 +94,6 @@ cmake \
     -G "$GENERATOR" \
     -DPython3_EXECUTABLE=$PYTHON3_EXECUTABLE \
     -DCMAKE_BUILD_TYPE="${BUILD_MODE}" \
-    -DBUILD_COMPILER="${BUILD_COMPILER}" \
     -DBUILD_TESTS="${BUILD_TESTS}" \
     -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" \
     -DBUILD_PYTHON="${BUILD_PYTHON}" \
@@ -125,7 +123,6 @@ do
             -G "$GENERATOR" \
             -DPython3_EXECUTABLE=$PYTHON3_EXECUTABLE \
             -DCMAKE_BUILD_TYPE="${BUILD_MODE}" \
-            -DBUILD_COMPILER="${BUILD_COMPILER}" \
             -DBUILD_TESTS="${BUILD_TESTS}" \
             -DBUILD_OPEN_ABI="${BUILD_OPEN_ABI}" \
             -DBUILD_PYTHON="${BUILD_PYTHON}" \

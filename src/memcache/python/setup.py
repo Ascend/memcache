@@ -35,7 +35,6 @@ current_version = os.getenv("MEMCACHE_VERSION")
 is_manylinux = check_env_flag("IS_MANYLINUX", "FALSE")
 build_open_abi = os.getenv("BUILD_OPEN_ABI", "OFF")
 build_mode = os.getenv("BUILD_MODE", "RELEASE")
-build_compiler = os.getenv("BUILD_COMPILER", "gcc")
 enable_ptracer = os.getenv("ENABLE_PTRACER", "ON")
 python3_executable = os.getenv("PYTHON3_EXECUTABLE", "/usr/local/bin/python3")
 
@@ -87,7 +86,6 @@ class CMakeBuildExt(build_ext):
                 f"-DCMAKE_INSTALL_PREFIX={install_dir}",
                 f"-DCMAKE_BUILD_TYPE={build_mode}",
                 f"-DBUILD_OPEN_ABI={build_open_abi}",
-                f"-DBUILD_COMPILER={build_compiler}",
                 f"-DENABLE_PTRACER={enable_ptracer}",
                 "-DBUILD_PYTHON=ON",
                 "-DBUILD_TESTS=OFF",
