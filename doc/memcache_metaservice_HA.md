@@ -331,7 +331,7 @@ kubectl delete pod meta-service-pod-0 -n ns-memcache
 
 ### 5. FAQ
 
-#### 5.2 常见问题排查方法
+#### 5.1 常见问题排查方法
 直接查看local-pod-0日志
 `kubectl logs local-service-pod-0 -n ns-memcache `
 
@@ -355,6 +355,6 @@ kubectl exec -it meta-service-pod-0 -n ns-memcache -c meta-service -- bash
 `exec python3 /usr/local/memfabric_hybrid/latest/aarch64-linux/script/ha/test-mmc-meta-ha.py > /home/memcache/logs/mmc-local.log 2>&1`）
 
 
-### 7. 注意事项
+### 6. 注意事项
 
 1. 建议参考k8s官方文档对k8s集群进行安全加固
