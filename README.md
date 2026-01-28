@@ -77,7 +77,6 @@ MemCache核心能力是提供大容量内存池和高性能的H2D、D2H、**D2RH
 ├── test                                    # test目录
 │  ├── python                               # python测试用例
 │  ├── k8s_deploy                           # k8s ha样例脚本
-│  ├── fuzz                                 # fuzz目录
 │  └── ut                                   # 单元测试用例
 ├── src                                     # 源码
 │  ├── memcache                             # MemCache 源码
@@ -115,6 +114,10 @@ MemCache核心能力是提供大容量内存池和高性能的H2D、D2H、**D2RH
 ## 📦软件硬件配套说明
 
 - MemCache软件依赖 [MemFabric](https://gitcode.com/Ascend/memfabric_hybrid)，相关配套与MemFabric相同
+
+## 📌FAQ
+
+常见问题请参考：[FAQ](https://gitcode.com/Ascend/memcache/wiki/FAQ.md)
 
 ## 📝相关信息
 
