@@ -197,9 +197,6 @@ def result_handler(func):
 def tensor_sum(tensor, sizes: List[int] = None):
     if tensor is None:
         return 0
-    # 加速求和
-    import torch_npu
-    tensor = tensor.to("npu")
     if sizes is None:
         return tensor.sum().item()
 
@@ -305,7 +302,8 @@ class MmcTest(TestServer):
         else:
             direct = int(MmcDirect.COPY_L2G.value)
             tensor = self.malloc_tensor(mini_block_size=size, device='npu')
-
+        if tensor is not None:
+            self._store.register_buffer(tensor.data_ptr(), size)
         rep_conf = ReplicateConfig()
         if replica_num is not None:
             rep_conf.replicaNum = replica_num
@@ -318,6 +316,8 @@ class MmcTest(TestServer):
         else:
             res = self._store.put_from(key, tensor.data_ptr(), size, direct, rep_conf)
             value = tensor_sum(tensor)
+        if tensor is not None:
+            self._store.unregister_buffer(tensor.data_ptr(), size)
         self.cli_return(str([res, value]))
 
     @result_handler
@@ -338,12 +338,16 @@ class MmcTest(TestServer):
         else:
             direct = int(MmcDirect.COPY_G2L.value)
             tensor = self.malloc_tensor(mini_block_size=size, device='npu')
+        if tensor is not None:
+            self._store.register_buffer(tensor.data_ptr(), size)
         if size <= 0:
             res = self._store.get_into(key, 0, 0, direct)
             value = 0
         else:
             res = self._store.get_into(key, tensor[0].data_ptr(), size, direct)
             value = tensor_sum(tensor)
+        if tensor is not None:
+            self._store.unregister_buffer(tensor.data_ptr(), size)
         self.cli_return(str([res, value]))
 
     @result_handler
@@ -352,12 +356,15 @@ class MmcTest(TestServer):
         blocks = []
         if media == 0:
             direct = int(MmcDirect.COPY_G2H.value)
-            for i in range(len(sizes)):
-                blocks.append(self.malloc_tensor(mini_block_size=sizes[i], device='cpu'))
+            device = 'cpu'
         else:
             direct = int(MmcDirect.COPY_G2L.value)
-            for i in range(len(sizes)):
-                blocks.append(self.malloc_tensor(mini_block_size=sizes[i], device='npu'))
+            device = 'npu'
+        for size in sizes:
+            tensor = self.malloc_tensor(mini_block_size=size, device=device)
+            if tensor is not None:
+                self._store.register_buffer(tensor.data_ptr(), size)
+            blocks.append(tensor)
         for i in range(len(sizes)):
             if blocks[i] is None:
                 data_ptrs.append(0)
@@ -367,6 +374,9 @@ class MmcTest(TestServer):
         values = []
         for i in range(len(sizes)):
             values.append(tensor_sum(blocks[i]))
+        for tensor, size in zip(blocks, sizes):
+            if tensor is not None:
+                self._store.unregister_buffer(tensor.data_ptr(), size)
         self.cli_return(str([res, values]))
 
     @result_handler
@@ -376,12 +386,15 @@ class MmcTest(TestServer):
         blocks = []
         if media == 0:
             direct = int(MmcDirect.COPY_H2G.value)
-            for i in range(len(sizes)):
-                blocks.append(self.malloc_tensor(mini_block_size=sizes[i], device='cpu'))
+            device = 'cpu'
         else:
             direct = int(MmcDirect.COPY_L2G.value)
-            for i in range(len(sizes)):
-                blocks.append(self.malloc_tensor(mini_block_size=sizes[i], device='npu'))
+            device = 'npu'
+        for size in sizes:
+            tensor = self.malloc_tensor(mini_block_size=size, device=device)
+            if tensor is not None:
+                self._store.register_buffer(tensor.data_ptr(), size)
+            blocks.append(tensor)
         for i in range(len(sizes)):
             if blocks[i] is None:
                 data_ptrs.append(0)
@@ -398,6 +411,9 @@ class MmcTest(TestServer):
         values = []
         for i in range(len(sizes)):
             values.append(tensor_sum(blocks[i]))
+        for tensor, size in zip(blocks, sizes):
+            if tensor is not None:
+                self._store.unregister_buffer(tensor.data_ptr(), size)
         self.cli_return(str([res, values]))
 
     @result_handler
@@ -448,7 +464,7 @@ class MmcTest(TestServer):
             device = 'npu'
         tensor = self.malloc_tensor(layer_num=layers_num, mini_block_size=mini_block_size, device=device)
         # tensor is None in negative cases whose sizes is 0
-        if tensor is not None and device == 'npu':
+        if tensor is not None:
             self._store.register_buffer(tensor.data_ptr(), mini_block_size * layers_num)
 
         rep_conf = ReplicateConfig()
@@ -463,7 +479,7 @@ class MmcTest(TestServer):
                                           direct,
                                           rep_conf)
         value = tensor_sum(tensor, sizes)
-        if tensor is not None and device == 'npu':
+        if tensor is not None:
             self._store.unregister_buffer(tensor.data_ptr(), mini_block_size * layers_num)
         self.cli_return(str([res, value]))
 
@@ -479,7 +495,7 @@ class MmcTest(TestServer):
             device = 'npu'
         tensor = self.malloc_tensor(layer_num=layers_num, mini_block_size=mini_block_size, device=device)
         # tensor is None in negative cases whose sizes is 0
-        if tensor is not None and device == 'npu':
+        if tensor is not None:
             self._store.register_buffer(tensor.data_ptr(), mini_block_size * layers_num)
         res = self._store.get_into_layers(key,
                                           [] if tensor is None else [layer.data_ptr() for layer in tensor],
@@ -488,7 +504,7 @@ class MmcTest(TestServer):
         if device == 'npu':
             self.sync_stream()
         value = tensor_sum(tensor, sizes)
-        if tensor is not None and device == 'npu':
+        if tensor is not None:
             self._store.unregister_buffer(tensor.data_ptr(), mini_block_size * layers_num)
         self.cli_return(str([res, value]))
 
