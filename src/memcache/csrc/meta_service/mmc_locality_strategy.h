@@ -67,11 +67,12 @@ public:
                     excludeRanks.insert(location.rank_);
                     blobs.push_back(blob);
                     allocatedCount++;
-                    if (allocatedCount == allocReq.numBlobs_) {
-                        return MMC_OK;
-                    }
                 }
             }
+        }
+
+        if (allocatedCount == allocReq.numBlobs_) {
+            return MMC_OK;
         }
 
         AllocOptions tmpAllocReq = allocReq;
@@ -130,9 +131,9 @@ public:
         }
         MmcLocation lowerBound;
         MmcLocation upperBound;
-        lowerBound.mediaType_ = MEDIA_HBM;
+        lowerBound.mediaType_ = static_cast<MediaType>(allocReq.mediaType_);
         lowerBound.rank_ = std::numeric_limits<uint32_t>::min();
-        upperBound.mediaType_ = MEDIA_DRAM;
+        upperBound.mediaType_ = static_cast<MediaType>(allocReq.mediaType_);
         upperBound.rank_ = std::numeric_limits<uint32_t>::max();
         auto first = allocators.lower_bound(lowerBound);
         auto last = allocators.upper_bound(upperBound);

@@ -91,7 +91,6 @@ public:
         return spaces_[type];
     }
 
-    MediaType GetMediaType();
     std::string GetDataOpType() const;
     inline uint32_t RankId() const;
 

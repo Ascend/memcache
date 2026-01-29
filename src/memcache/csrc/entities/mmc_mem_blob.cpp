@@ -25,12 +25,11 @@ Result MmcMemBlob::UpdateState(const std::string &key, uint32_t rankId, uint32_t
 
     const auto retIter = curStateIter->second.find(ret);
     if (retIter == curStateIter->second.end()) {
-        MMC_LOG_ERROR("cannot find " << std::to_string(ret) << " from " << std::to_string(state_));
+        MMC_LOG_ERROR("cannot find " << std::to_string(ret) << " from " << state_);
         return MMC_UNMATCHED_RET;
     }
 
-    MMC_LOG_DEBUG("update [" << key << "] state from " << std::to_string(state_) << " to ("
-                             << std::to_string(retIter->second.state_) << ")");
+    MMC_LOG_DEBUG("update [" << key << "] state from " << state_ << " to " << retIter->second.state_);
 
     if (state_ == ALLOCATED && ret == MMC_WRITE_OK) {
         MMC_RETURN_ERROR(Backup(key), "memBlob remove use client error");

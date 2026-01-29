@@ -126,7 +126,7 @@ Result MmcClientDefault::PrePutHandle(const MmcBufferArray &bufArr, mmc_put_opti
 {
     MMC_VALIDATE_RETURN(bmProxy_ != nullptr, "BmProxy is null", MMC_CLIENT_NOT_INIT);
     MMC_VALIDATE_RETURN(metaNetClient_ != nullptr, "MetaNetClient is null", MMC_CLIENT_NOT_INIT);
-    options.mediaType = bmProxy_->GetMediaType();
+    options.mediaType = MEDIA_NONE;
     AllocOptions prot = {bufArr.TotalSize(), 1, options.mediaType, {RankId(options.policy)}, flags};
     if (options.replicaNum > 0) {
         prot.numBlobs_ = options.replicaNum;
@@ -223,7 +223,7 @@ Result MmcClientDefault::BatchPut(const std::vector<std::string> &keys, const st
         return MMC_INVALID_PARAM;
     }
 
-    options.mediaType = bmProxy_->GetMediaType();
+    options.mediaType = MEDIA_NONE;
     uint64_t operateId = GenerateOperateId(rankId_);
     batchResult.resize(keys.size(), MMC_ERROR);
 

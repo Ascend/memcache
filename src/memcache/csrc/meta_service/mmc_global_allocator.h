@@ -48,13 +48,18 @@ public:
     // replicaNum=4
     // preferredLocalServiceIDs=[0,1]
     // 0,1 强制，剩下的默认处理；默认处理时候需要排除强制rank列表
-    Result Alloc(const AllocOptions &allocReq, std::vector<MmcMemBlobPtr> &blobs)
+    Result Alloc(const AllocOptions &allocOpt, std::vector<MmcMemBlobPtr> &blobs)
     {
-        std::unordered_set<uint32_t> uniqueRanks(allocReq.preferredRank_.begin(), allocReq.preferredRank_.end());
-        if (allocReq.numBlobs_ < allocReq.preferredRank_.size() ||
-            uniqueRanks.size() != allocReq.preferredRank_.size()) {
-            MMC_LOG_ERROR("Invalid alloc option: " << allocReq);
+        std::unordered_set<uint32_t> uniqueRanks(allocOpt.preferredRank_.begin(), allocOpt.preferredRank_.end());
+        if (allocOpt.numBlobs_ < allocOpt.preferredRank_.size() ||
+            uniqueRanks.size() != allocOpt.preferredRank_.size()) {
+            MMC_LOG_ERROR("Invalid alloc option: " << allocOpt);
             return MMC_ERROR;
+        }
+
+        AllocOptions allocReq = allocOpt;
+        if (allocReq.mediaType_ == MEDIA_NONE) {
+            allocReq.mediaType_ = static_cast<uint16_t>(GetTopLayerMediumType());
         }
 
         std::unordered_set<uint32_t> excludeRanks;
@@ -342,6 +347,18 @@ private:
                 break;
         }
         return ret;
+    }
+
+    MediaType GetTopLayerMediumType()
+    {
+        MediaType result = MEDIA_NONE;
+        globalAllocLock_.LockRead();
+        for (const auto &[location, allocator] : allocators_) {
+            result = location.mediaType_;
+            break;
+        }
+        globalAllocLock_.UnlockRead();
+        return result;
     }
 
     MmcAllocators allocators_;

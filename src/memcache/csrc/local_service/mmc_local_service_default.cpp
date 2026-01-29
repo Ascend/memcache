@@ -132,11 +132,11 @@ Result MmcLocalServiceDefault::DestroyBm()
     BmUnregisterRequest req;
     req.mediaType_.clear();
     req.rank_ = options_.rankId;
-    for (MediaType type = MEDIA_DRAM; type != MEDIA_NONE;) {
-        if (bmProxyPtr_->GetGva(type) != 0) {
+    for (MediaType type = MEDIA_HBM; type != MEDIA_NONE;) {
+        if (bmProxyPtr_->GetGva(type) != 0 && bmProxyPtr_->GetCapacity(type) != 0) {
             req.mediaType_.emplace_back(type);
         }
-        type = MoveUp(type);
+        type = MoveDown(type);
     }
     Response resp;
     // Reverse the initialization order
@@ -155,15 +155,16 @@ Result MmcLocalServiceDefault::RegisterBm()
 
     BmRegisterRequest req;
     req.rank_ = options_.rankId;
-    for (MediaType type = MEDIA_DRAM; type != MEDIA_NONE;) {
+    for (MediaType type = MEDIA_HBM; type != MEDIA_NONE;) {
         uint64_t gva = bmProxyPtr_->GetGva(type);
-        if (gva != 0) {
+        uint64_t capacity = bmProxyPtr_->GetCapacity(type);
+        if (gva != 0 && capacity != 0) {
             req.addr_.emplace_back(gva);
             req.mediaType_.emplace_back(type);
-            req.capacity_.emplace_back(bmProxyPtr_->GetCapacity(type));
+            req.capacity_.emplace_back(capacity);
             MMC_LOG_INFO("mmc local register capacity:" << req.capacity_.back() << ", type:" << req.mediaType_.back());
         }
-        type = MoveUp(type);
+        type = MoveDown(type);
     }
     req.blobMap_.clear();
 

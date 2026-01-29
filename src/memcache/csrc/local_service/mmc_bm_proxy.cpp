@@ -135,19 +135,6 @@ void MmcBmProxy::DestroyBm()
     MMC_LOG_INFO("MmcBmProxy (" << name_ << ") is destroyed successfully");
 }
 
-MediaType MmcBmProxy::GetMediaType()
-{
-    // 从上到下选择写入的介质
-    for (MediaType type = MEDIA_HBM; type != MEDIA_NONE;) {
-        if (GetGva(type) != 0) {
-            return type;
-        }
-        type = MoveDown(type);
-    }
-    MMC_LOG_ERROR("MmcBmProxy GetMediaType unknown media type");
-    return MEDIA_NONE;
-}
-
 std::string MmcBmProxy::GetDataOpType() const
 {
     return createConfig_.dataOpType;

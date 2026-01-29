@@ -57,7 +57,7 @@ struct AllocOptions {
         for (const uint32_t rank : obj.preferredRank_) {
             os << rank << ", ";
         }
-        return os << "], ";
+        return os << "], " << "mediaType: " << obj.mediaType_ << ", flags: " << obj.flags_;
     }
 };
 
