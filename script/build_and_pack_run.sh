@@ -21,12 +21,11 @@ show_help() {
     echo "Usage: $0 [options]"
     echo "Options:"
     echo "  --build_mode <mode>     Set build mode (RELEASE/DEBUG/ASAN), default: RELEASE"
-    echo "  --build_python <ON/OFF> Enable/disable Python build, default: ON"
     echo "  --build_test <ON/OFF>   Enable/disable package test utilities, default: OFF"
     echo "  --help                  Show this help message"
     echo ""
     echo "Example:"
-    echo "  $0 --build_mode DEBUG --build_python ON"
+    echo "  $0 --build_mode DEBUG"
     echo ""
 }
 
@@ -34,10 +33,6 @@ while [[ "$#" -gt 0 ]]; do
     case "$1" in
         --build_mode)
             BUILD_MODE="$2"
-            shift 2
-            ;;
-        --build_python)
-            BUILD_PYTHON="$2"
             shift 2
             ;;
         --build_test)
