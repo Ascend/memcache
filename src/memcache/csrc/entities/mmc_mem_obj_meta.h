@@ -100,6 +100,11 @@ public:
 
     MediaType GetBlobType();
 
+    inline std::mutex &Mutex()
+    {
+        return mutex_;
+    }
+
     friend std::ostream &operator<<(std::ostream &os, const MmcMemObjMeta &obj)
     {
         os << "MmcMemObjMeta{numBlobs=" << static_cast<int>(obj.numBlobs_) << ",size=" << obj.size_
@@ -127,6 +132,7 @@ private:
     uint8_t numBlobs_{0};            /* number of blob that the memory object, i.e. replica count */
     std::list<MmcMemBlobPtr> blobs_; /* 24 bytes */
     uint64_t size_{0};               /* byteSize of each blob */
+    std::mutex mutex_;               /* must lock before read/write this meta */
 };
 
 using MmcMemObjMetaPtr = MmcRef<MmcMemObjMeta>;

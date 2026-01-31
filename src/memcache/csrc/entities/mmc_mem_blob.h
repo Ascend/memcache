@@ -74,7 +74,7 @@ public:
     MmcMemBlob() = delete;
     MmcMemBlob(const uint32_t &rank, const uint64_t &gva, const uint64_t &size, const MediaType &mediaType,
                const BlobState &state)
-        : rank_(rank), gva_(gva), size_(size), mediaType_(mediaType), state_(state), nextBlob_(nullptr)
+        : rank_(rank), gva_(gva), size_(size), mediaType_(mediaType), state_(state)
     {}
     ~MmcMemBlob() override = default;
 
@@ -178,19 +178,8 @@ private:
     BlobState state_{BlobState::NONE}; /* state of the blob */
     uint16_t prot_{0};                 /* prot, i.e. access */
     MmcMetaLeaseManager metaLeaseManager_;
-    MmcMemBlobPtr nextBlob_;
     static const StateTransTable stateTransTable_;
 };
-
-inline Result MmcMemBlob::Next(const MmcMemBlobPtr &nextBlob)
-{
-    if (nextBlob_ == nullptr) {
-        nextBlob_ = nextBlob;
-        return MMC_OK;
-    } else {
-        return MMC_ERROR;
-    }
-}
 
 inline uint32_t MmcMemBlob::Rank() const
 {
@@ -215,11 +204,6 @@ inline uint16_t MmcMemBlob::Type() const
 inline BlobState MmcMemBlob::State()
 {
     return state_;
-}
-
-inline MmcMemBlobPtr MmcMemBlob::Next()
-{
-    return nextBlob_;
 }
 
 inline uint16_t MmcMemBlob::Prot()

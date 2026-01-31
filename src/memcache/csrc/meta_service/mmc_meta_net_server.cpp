@@ -197,9 +197,8 @@ Result MetaNetServer::HandleBatchAlloc(const NetContextPtr &context)
         return getResult;
     }
 
-    MMC_LOG_INFO("HandleBatchAlloc start. Keys count: " << req.keys_.size() << ", OperateId: " << req.operateId_
-                                                        << ", Flags: " << req.flags_);
-
+    MMC_LOG_DEBUG("HandleBatchAlloc start. Keys count: " << req.keys_.size() << ", OperateId: " << req.operateId_
+                                                         << ", Flags: " << req.flags_);
     auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
     TP_TRACE_BEGIN(TP_MMC_META_BATCH_PUT);
     Result batchResult = metaMgrProxy->BatchAlloc(req, resp);

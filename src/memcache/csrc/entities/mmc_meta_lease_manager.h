@@ -13,7 +13,6 @@
 #ifndef MF_HYBRID_MMC_META_LEASE_MANAGER_H
 #define MF_HYBRID_MMC_META_LEASE_MANAGER_H
 
-#include <condition_variable>
 #include <unordered_set>
 
 #include "mmc_logger.h"
@@ -38,7 +37,6 @@ public:
 
     friend std::ostream &operator<<(std::ostream &os, const MmcMetaLeaseManager &leaseMgr)
     {
-        std::unique_lock<std::mutex> lockGuard(leaseMgr.lock_);
         os << "lease={" << leaseMgr.lease_ << ",client:";
         for (const auto &c : leaseMgr.useClient) {
             os << c << ",";
@@ -50,8 +48,6 @@ public:
 private:
     uint64_t lease_{0}; /* lease of the memory object */
     std::unordered_set<uint64_t> useClient;
-    mutable std::mutex lock_;
-    std::condition_variable cv_;
 };
 
 using MmcMetaLeaseManagerPtr = MmcRef<MmcMetaLeaseManager>;

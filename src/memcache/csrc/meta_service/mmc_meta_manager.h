@@ -27,7 +27,6 @@
 namespace ock {
 namespace mmc {
 
-constexpr uint32_t META_MAMAGER_MTX_NUM = 61;
 constexpr int METAMGR_POOL_BASE = 16;
 
 struct MmcMemMetaDesc {
@@ -233,27 +232,11 @@ private:
 
     EvictResult EvictCallBackFunction(const std::string &key, const MmcMemObjMetaPtr &objMeta);
 
-    inline std::size_t GetIndex(const MmcMemObjMetaPtr &meta) const
-    {
-        const MmcMemObjMeta *objPtr = meta.Get();
-        // FNV-1a 哈希算法
-        constexpr std::size_t FNV_PRIME = 16777619u;
-        constexpr std::size_t FNV_OFFSET = 2166136261u;
-        std::size_t hash = FNV_OFFSET;
-        const char *ptr = reinterpret_cast<const char *>(objPtr);
-        for (size_t i = 0; i < sizeof(MmcMemObjMeta); ++i) {
-            hash ^= ptr[i];
-            hash *= FNV_PRIME;
-        }
-        return hash % META_MAMAGER_MTX_NUM;
-    }
-
 private:
     std::mutex mutex_;
     bool started_ = false;
     std::atomic<bool> evictCheck_{false}; /* if the worker started */
 
-    std::mutex metaItemMtxs_[META_MAMAGER_MTX_NUM];
     MmcRef<MmcMetaContainer<std::string, MmcMemObjMetaPtr>> metaContainer_;
     MmcGlobalAllocatorPtr globalAllocator_;
 
