@@ -9,7 +9,7 @@
 | ock.mmc.meta_service.metrics_url        | string     | optional    | 127.0.0.1:8000          | \<ip>\<port>              | port in [1025, 65535]                                        |
 | ock.mmc.meta.ha.enable                  | bool       | optional    | false                   | true/false                | enable meta service master/backup HA in k8s cluster          |
 | ock.mmc.log_level                       | string     | optional    | info                    | debug/info/warn/error     | log level                                                    |
-| ock.mmc.log_path                        | string     | optional    | .                       | relative or absolute path | log path, the absolute path is start with '/'                |
+| ock.mmc.log_path                        | string     | optional    | /var/log/memcache_hybrid| relative or absolute path | log path, the absolute path is start with '/'                |
 | ock.mmc.log_rotation_file_size          | int        | optional    | 20                      | 1 <= n <= 500             | log rotation file size(MB)                                   |
 | ock.mmc.log_rotation_file_count         | int        | optional    | 50                      | 1 <= n <= 50              | log rotation file num                                        |
 | ock.mmc.evict_threshold_high            | int        | optional    | 70                      | 1 <= n <= 100             | evict threshold, 70 mean 70%                                 |
