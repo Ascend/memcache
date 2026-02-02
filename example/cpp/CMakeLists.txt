@@ -1,5 +1,7 @@
 if (("${BUILD_CPP_EXAMPLE}" STREQUAL "") OR ("${BUILD_CPP_EXAMPLE}" STREQUAL "OFF"))
     message(STATUS "BUILD_CPP_EXAMPLE is OFF.")
+    add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0)
+    message(STATUS "_GLIBCXX_USE_CXX11_ABI = 0")
     cmake_minimum_required(VERSION 3.12.0)
     project(memcache_cpp_test VERSION 1.0 LANGUAGES CXX C)
     set(CMAKE_SKIP_RPATH TRUE)
