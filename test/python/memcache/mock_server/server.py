@@ -21,7 +21,7 @@ import threading
 import time
 import traceback
 from functools import wraps
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Tuple
 from enum import Enum
 
 import torch
@@ -709,23 +709,41 @@ class MmcTest(TestServer):
         torch_npu.npu.current_stream().synchronize()
 
     def malloc_tensor(self, layer_num: int = 1, mini_block_size: int = 1024, device='cpu'):
-        if device not in ('cpu', 'npu'):
-            raise RuntimeError(f"invalid device: {device}")
-        if mini_block_size <= 0:
-            return None
+        if device == "npu":
+            return self.malloc_npu_tensor(shape=(layer_num, mini_block_size))
+        elif device == "cpu":
+            return self.malloc_cpu_tensor(shape=(layer_num, mini_block_size))
+        else:
+            raise RuntimeError(f"Invalid device: {device}")
 
-        if device == 'npu':
-            import torch_npu
-            self.set_device()
+    def malloc_npu_tensor(self, shape: Tuple[int]):
+        import torch_npu
+        self.set_device()
         raw_blocks = torch.randint(
             low=0, high=256,
-            size=(layer_num, mini_block_size),
+            size=shape,
             dtype=torch.uint8,
-            device=torch.device(device)
+            device=torch.device('npu')
         )
-        if device == 'npu':
-            self.sync_stream()
+        self.sync_stream()
         return raw_blocks
+
+    def malloc_cpu_tensor(self, shape: Tuple[int], align: int = 4096):
+        total_bytes = torch.Size(shape).numel()
+
+        aligned_size = total_bytes + align
+
+        buffer = torch.randint(
+            low=0, high=256,
+            size=(aligned_size, ),
+            dtype=torch.uint8,
+        )
+
+        data_ptr = buffer.data_ptr()
+        offset = (align - (data_ptr % align)) % align
+
+        aligned_tensor = buffer[offset:offset + total_bytes].view(shape)
+        return aligned_tensor
 
 
 if __name__ == "__main__":
