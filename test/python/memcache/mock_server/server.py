@@ -709,6 +709,9 @@ class MmcTest(TestServer):
         torch_npu.npu.current_stream().synchronize()
 
     def malloc_tensor(self, layer_num: int = 1, mini_block_size: int = 1024, device='cpu'):
+        if mini_block_size <= 0:
+            return None
+
         if device == "npu":
             return self.malloc_npu_tensor(shape=(layer_num, mini_block_size))
         elif device == "cpu":
