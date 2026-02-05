@@ -536,7 +536,7 @@ int MmcacheStore::PutFromLayers(const std::string &key, const std::vector<void *
     }
 
     if (sizes.size() != layerNum) {
-        MMC_LOG_ERROR("Unmatched number of layers and sizes");
+        MMC_LOG_ERROR("Unmatched number of layers:" << layerNum << " and sizes:" << sizes.size());
         return MMC_INVALID_PARAM;
     }
 
@@ -643,7 +643,7 @@ int MmcacheStore::GetIntoLayers(const std::string &key, const std::vector<void *
     }
 
     if (sizes.size() != layerNum) {
-        MMC_LOG_ERROR("Unmatched number of layers and sizes");
+        MMC_LOG_ERROR("Unmatched number of layers:" << layerNum << " and sizes:" << sizes.size());
         return MMC_INVALID_PARAM;
     }
 
@@ -717,7 +717,7 @@ int MmcacheStore::CheckInput(const size_t batchSize, const std::vector<std::vect
             return MMC_INVALID_PARAM;
         }
         if (sizes[i].size() != layerNum) {
-            MMC_LOG_ERROR("Unmatched number of layers and sizes");
+            MMC_LOG_ERROR("Unmatched number of layers:" << layerNum << " and sizes:" << sizes[i].size());
             return MMC_INVALID_PARAM;
         }
     }

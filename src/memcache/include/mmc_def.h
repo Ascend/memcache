@@ -85,8 +85,9 @@ typedef struct {
     uint32_t rpcRetryTimeOut;
     uint32_t timeOut;
     uint32_t readThreadPoolNum;
-    bool aggregateIO;
     uint32_t writeThreadPoolNum;
+    bool aggregateIO;
+    int32_t aggregateNum;
     int32_t logLevel;
     ExternalLog logFunc;
     mmc_tls_config tlsConfig;

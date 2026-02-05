@@ -78,5 +78,6 @@
 | ock.mmc.client.retry_milliseconds             | integer    | optional     | 0                       | [0, 600000]                                          | The total retry time when the meta service connection does not exist |
 | ock.mmc.client.timeout.seconds                | integer    | optional     | 60                      | [1, 600]                                             |                                                              |
 | ock.mmc.client.read_thread_pool.size          | integer    | optional     | 32                      | [1, 64]                                              |                                                              |
-| ock.mmc.client.aggregate.io                   | bool       | optional     | false                   | true/false                                           |                                                              |
 | ock.mmc.client.write_thread_pool.size         | integer    | optional     | 4                       | [1, 64]                                              |                                                              |
+| ock.mmc.client.aggregate.io                   | bool       | optional     | true                    | true/false                                           |                                                              |
+| ock.mmc.client.aggregate.num                  | integer    | optional     | 122                     | [1, 32768]                                           |                                                              |

@@ -133,6 +133,7 @@ private:
     MmcThreadPoolPtr threadPool_;
     MmcThreadPoolPtr readThreadPool_;
     bool aggregateIO_{false};
+    size_t aggregateNum_{0};
     MmcThreadPoolPtr writeThreadPool_;
 };
 

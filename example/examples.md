@@ -5,7 +5,8 @@
 ## 目录说明
 
 ```
-├── examples                       
+├── examples        
+│   ├── benchmark        # memcache性能测试bench mark     
 │   ├── cpp              # c++样例
 │   ├── python           # python样例
 ```
@@ -14,5 +15,6 @@
 
 | **样例名称**                             | **样例介绍**          | **开发语言** |
 |--------------------------------------|-------------------|----------|
+| [benchmark](./benchmark/README.md)   | MemCache 性能测试benchmark    | python      |
 | [C++ example](./cpp/README.md)       | MemCache C++样例    | C++      |
 | [python example](./python/README.md) | MemCache Python样例 | Python   |

@@ -302,6 +302,8 @@ public:
             OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE,
             VIntRange::Create(OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE.first, MIN_THREAD_POOL_SIZE, MAX_THREAD_POOL_SIZE),
             0);
+        AddIntConf(OCK_MMC_CLIENT_AGGREGATE_NUM,
+                   VIntRange::Create(OCK_MMC_CLIENT_AGGREGATE_NUM.first, 1, MAX_AGGREGATE_NUM), 0);
     }
 
     void GetLocalServiceConfig(mmc_local_service_config_t &config)
@@ -335,6 +337,7 @@ public:
         config.timeOut = static_cast<uint32_t>(GetInt(ConfConstant::OCK_MMC_CLIENT_TIMEOUT_SECONDS));
         config.readThreadPoolNum = static_cast<uint32_t>(GetInt(ConfConstant::OCK_MMC_CLIENT_READ_THREAD_POOL_SIZE));
         config.aggregateIO = GetBool(ConfConstant::OCK_MMC_CLIENT_AGGREGATE_IO);
+        config.aggregateNum = GetInt(ConfConstant::OCK_MMC_CLIENT_AGGREGATE_NUM);
         config.writeThreadPoolNum = static_cast<uint32_t>(GetInt(ConfConstant::OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE));
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         StringToUpper(logLevelStr);

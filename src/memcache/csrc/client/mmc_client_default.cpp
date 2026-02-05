@@ -47,6 +47,7 @@ Result MmcClientDefault::Start(const mmc_client_config_t &config)
 
     readThreadPool_ = MmcMakeRef<MmcThreadPool>("read_pool", config.readThreadPoolNum);
     aggregateIO_ = config.aggregateIO;
+    aggregateNum_ = static_cast<size_t>(config.aggregateNum);
     MMC_ASSERT_RETURN(readThreadPool_ != nullptr, MMC_MALLOC_FAILED);
     MMC_RETURN_ERROR(readThreadPool_->Start(), "read thread pool start failed");
 
@@ -418,8 +419,11 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string> &keys, const st
             partSize.push_back(buf->len);
             shift += MmcBufSize(*buf);
         }
-
-        if (aggregateIO_ && (i != (keys.size() - 1))) {
+        /**
+         * 1. 开启聚合是避免单流读取地址太少，避免调用栈开销
+         * 2. 也要避免聚合io聚合地址太多，不利于并发，实测单流性能低于多流
+         */
+        if (aggregateIO_ && (partSrc.size() < aggregateNum_) && (i != (keys.size() - 1))) {
             continue;
         }
         auto future = readThreadPool_->Enqueue(
@@ -710,27 +714,30 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string> &key
                 partSize.push_back(buf->len);
                 shift += MmcBufSize(*buf);
             }
-
-            auto future = writeThreadPool_->Enqueue(
-                [&](std::vector<void *> sourcesL, std::vector<void *> destinationsL, const std::vector<uint64_t> sizesL,
-                    MediaType localMediaL) -> int32_t {
-                    return bmProxy_->BatchDataPut(sourcesL, destinationsL, sizesL, localMediaL);
-                },
-                partSrc, partDst, partSize, mediaType);
-            if (future.valid()) {
-                futures.push_back(std::make_pair(i, std::move(future)));
-            } else {
-                // 提交失败，直接执行
-                auto ret = bmProxy_->BatchDataPut(partSrc, partDst, partSize, mediaType);
-                if (ret != MMC_OK) {
-                    MMC_LOG_ERROR("Failed to put ret: " << ret);
-                    batchResult[i] = MMC_ERROR;
-                }
-            }
-            partSrc.clear();
-            partDst.clear();
-            partSize.clear();
         }
+
+        if (aggregateIO_ && (partSrc.size() < aggregateNum_) && (i != (keys.size() - 1))) {
+            continue;
+        }
+        auto future = writeThreadPool_->Enqueue(
+            [&](std::vector<void *> sourcesL, std::vector<void *> destinationsL, const std::vector<uint64_t> sizesL,
+                MediaType localMediaL) -> int32_t {
+                return bmProxy_->BatchDataPut(sourcesL, destinationsL, sizesL, localMediaL);
+            },
+            partSrc, partDst, partSize, mediaType);
+        if (future.valid()) {
+            futures.push_back(std::make_pair(i, std::move(future)));
+        } else {
+            // 提交失败，直接执行
+            auto ret = bmProxy_->BatchDataPut(partSrc, partDst, partSize, mediaType);
+            if (ret != MMC_OK) {
+                MMC_LOG_ERROR("Failed to put ret: " << ret);
+                batchResult[i] = MMC_ERROR;
+            }
+        }
+        partSrc.clear();
+        partDst.clear();
+        partSize.clear();
     }
 
     for (auto &future : futures) {
