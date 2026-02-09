@@ -570,12 +570,24 @@ std::vector<int> MmcacheStore::BatchPutFromLayers(const std::vector<std::string>
 
     std::vector<int> results(batchSize, MMC_INVALID_PARAM);
 
-    if (direct != SMEMB_COPY_L2G && direct != SMEMB_COPY_H2G) {
-        MMC_LOG_ERROR("Invalid direct(" << direct << "), only 0 (SMEMB_COPY_L2G) and 3 (SMEMB_COPY_H2G) is supported");
+    if (direct != SMEMB_COPY_L2G && direct != SMEMB_COPY_H2G && direct != SMEMB_COPY_AUTO) {
+        MMC_LOG_ERROR("Invalid direct(" << direct << "), only" \
+                     " 0 (SMEMB_COPY_L2G) , 3 (SMEMB_COPY_H2G) and 9 (SMEMB_COPY_AUTO) is supported");
         return results;
     }
-    uint32_t type = (direct == SMEMB_COPY_L2G ? MEDIA_HBM : MEDIA_DRAM);
 
+    uint32_t type = MEDIA_DRAM;
+    if (direct == SMEMB_COPY_AUTO) {
+        if (buffers.empty() || buffers[0].empty()) {
+            MMC_LOG_ERROR("Buffers is empty, can't auto detect media type");
+            return results;
+        }
+        uint64_t va = reinterpret_cast<uint64_t>(buffers[0][0]);
+        type = IsInHybmDeviceRange(va) ? MEDIA_HBM : MEDIA_DRAM;
+    } else {
+        type = (direct == SMEMB_COPY_L2G ? MEDIA_HBM : MEDIA_DRAM);
+    }
+    
     if (batchSize != buffers.size() || batchSize != sizes.size()) {
         MMC_LOG_ERROR("Input vector sizes mismatch: keys=" << keys.size() << ", buffers=" << buffers.size()
                                                            << ", sizes=" << sizes.size());
@@ -673,11 +685,22 @@ std::vector<int> MmcacheStore::BatchGetIntoLayers(const std::vector<std::string>
 
     std::vector<int> results(batchSize, MMC_INVALID_PARAM);
 
-    if (direct != SMEMB_COPY_G2L && direct != SMEMB_COPY_G2H) {
-        MMC_LOG_ERROR("Invalid direct(" << direct << "), only 1 (SMEMB_COPY_G2L) and 2 (SMEMB_COPY_G2H) is supported");
+    if (direct != SMEMB_COPY_G2L && direct != SMEMB_COPY_G2H && direct != SMEMB_COPY_AUTO) {
+        MMC_LOG_ERROR("Invalid direct(" << direct << "), only"\
+                      " 1 (SMEMB_COPY_G2L) , 2 (SMEMB_COPY_G2H) and 9 (SMEMB_COPY_AUTO) is supported");
         return results;
     }
-    uint32_t type = (direct == SMEMB_COPY_G2L ? MEDIA_HBM : MEDIA_DRAM);
+    uint32_t type = MEDIA_DRAM;
+    if (direct == SMEMB_COPY_AUTO) {
+        if (buffers.empty() || buffers[0].empty()) {
+            MMC_LOG_ERROR("Buffers empty, cannot infer memory type for SMEMB_COPY_AUTO");
+            return results;
+        }
+        uint64_t va = reinterpret_cast<uint64_t>(buffers[0][0]);
+        type = IsInHybmDeviceRange(va) ? MEDIA_HBM : MEDIA_DRAM;
+    } else {
+        type = (direct == SMEMB_COPY_G2L ? MEDIA_HBM : MEDIA_DRAM);
+    }
 
     if (batchSize != buffers.size() || batchSize != sizes.size()) {
         MMC_LOG_ERROR("Input vector sizes mismatch: keys=" << keys.size() << ", buffers=" << buffers.size()

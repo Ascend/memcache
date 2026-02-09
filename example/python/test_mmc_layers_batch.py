@@ -31,6 +31,7 @@ class MmcDirect(Enum):
     COPY_G2L = 1
     COPY_G2H = 2
     COPY_H2G = 3
+    COPY_AUTO = 9
 
 
 class TestExample(unittest.TestCase):
@@ -71,7 +72,7 @@ class TestExample(unittest.TestCase):
                 [self.block_size for _ in range(self.layer_number)],
                 [self.block_size for _ in range(self.layer_number)]
             ],
-            MmcDirect.COPY_L2G.value
+            MmcDirect.COPY_AUTO.value
         )
         self.assertTrue(all(i == 0 for i in res))
         res = self.store.batch_get_into_layers(
@@ -84,7 +85,7 @@ class TestExample(unittest.TestCase):
                 [self.block_size for _ in range(self.layer_number)],
                 [self.block_size for _ in range(self.layer_number)]
             ],
-            MmcDirect.COPY_G2L.value
+            MmcDirect.COPY_AUTO.value
         )
         self.assertTrue(all(i == 0 for i in res))
         self.assertTrue(self.npu_tensor[0][2].eq(self.npu_tensor[0][4]).all())
@@ -126,7 +127,7 @@ class TestExample(unittest.TestCase):
                 [2, 3],
                 [3, 4, 5]
             ],
-            MmcDirect.COPY_H2G.value
+            MmcDirect.COPY_AUTO.value
         )
         self.assertTrue(all(i == 0 for i in res))
         res = self.store.batch_get_into_layers(
@@ -136,7 +137,7 @@ class TestExample(unittest.TestCase):
                 [2, 3],
                 [3, 4, 5]
             ],
-            MmcDirect.COPY_G2H.value
+            MmcDirect.COPY_AUTO.value
         )
         self.assertTrue(all(i == 0 for i in res))
         print(src_blocks)
