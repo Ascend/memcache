@@ -89,7 +89,7 @@ void MmcClientDefault::Stop()
         readThreadPool_->Destroy();
     }
     if (writeThreadPool_ != nullptr) {
-        readThreadPool_->Destroy();
+        writeThreadPool_->Destroy();
     }
     if (threadPool_ != nullptr) {
         threadPool_->Destroy();
@@ -122,33 +122,40 @@ Result MmcClientDefault::Put(const char *key, mmc_buffer *buf, mmc_put_options &
     return Put(key, buffArr, options, flags);
 }
 
-Result MmcClientDefault::PrePutHandle(const MmcBufferArray &bufArr, mmc_put_options &options, AllocRequest &request,
-                                      uint32_t flags)
+Result MmcClientDefault::PrepareAllocOpt(const MmcBufferArray &bufArr, const mmc_put_options &options, uint32_t flags,
+                                         AllocOptions &allocOpt)
 {
-    MMC_VALIDATE_RETURN(bmProxy_ != nullptr, "BmProxy is null", MMC_CLIENT_NOT_INIT);
-    MMC_VALIDATE_RETURN(metaNetClient_ != nullptr, "MetaNetClient is null", MMC_CLIENT_NOT_INIT);
-    options.mediaType = MEDIA_NONE;
-    AllocOptions prot = {bufArr.TotalSize(), 1, options.mediaType, {RankId(options.policy)}, flags};
-    if (options.replicaNum > 0) {
-        prot.numBlobs_ = options.replicaNum;
-    }
-    std::vector<uint32_t> preferredRank;
+    allocOpt.blobSize_ = bufArr.TotalSize();
+    allocOpt.numBlobs_ = std::max<uint16_t>(options.replicaNum, 1u);
+    allocOpt.mediaType_ = MEDIA_NONE;
+    allocOpt.flags_ = flags;
+
     std::copy_if(std::begin(options.preferredLocalServiceIDs), std::end(options.preferredLocalServiceIDs),
-                 std::back_inserter(preferredRank), [](const int32_t x) { return x >= 0; });
-    if (!preferredRank.empty()) {
-        prot.flags_ = ALLOC_FORCE_BY_RANK;
-        prot.preferredRank_ = preferredRank;
+                 std::back_inserter(allocOpt.preferredRank_), [](const int32_t x) { return x >= 0; });
+     // preferredRank_数量需要小于等于replicaNum， 具体参考 MmcGlobalAllocator Alloc方法说明
+    if (allocOpt.preferredRank_.size() > allocOpt.numBlobs_ || allocOpt.numBlobs_ > MAX_BLOB_COPIES) {
+        MMC_LOG_ERROR("preferredRank size:" << allocOpt.preferredRank_.size()
+                                            << " is greater than replicaNum:" << allocOpt.numBlobs_);
+        return MMC_INVALID_PARAM;
     }
-    request.options_ = prot;
+
+    if (!allocOpt.preferredRank_.empty()) {
+        allocOpt.flags_ |= ALLOC_FORCE_BY_RANK;
+    } else {
+        allocOpt.preferredRank_.push_back(RankId(options.policy));
+    }
     return MMC_OK;
 }
 
 Result MmcClientDefault::Put(const std::string &key, const MmcBufferArray &bufArr, mmc_put_options &options,
                              uint32_t flags)
 {
+    MMC_VALIDATE_RETURN(bmProxy_ != nullptr, "BmProxy is null", MMC_CLIENT_NOT_INIT);
+    MMC_VALIDATE_RETURN(metaNetClient_ != nullptr, "MetaNetClient is null", MMC_CLIENT_NOT_INIT);
+    MMC_ASSERT_RETURN(!bufArr.Buffers().empty(), MMC_ERROR);
     uint64_t operateId = GenerateOperateId(rankId_);
     AllocRequest request{key, {}, operateId};
-    MMC_VALIDATE_RETURN(PrePutHandle(bufArr, options, request, flags) == MMC_OK, "put error", MMC_ERROR);
+    MMC_VALIDATE_RETURN(PrepareAllocOpt(bufArr, options, flags, request.options_) == MMC_OK, "put error", MMC_ERROR);
     AllocResponse response;
     MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, response, rpcRetryTimeOut_),
                      "client " << name_ << " alloc " << key << " failed");
@@ -161,32 +168,29 @@ Result MmcClientDefault::Put(const std::string &key, const MmcBufferArray &bufAr
                                 << ", numBlob:" << response.numBlobs_);
         return MMC_ERROR;
     }
-    MMC_ASSERT_RETURN(!bufArr.Buffers().empty(), MMC_ERROR);
 
+    Result result = MMC_OK;
+    BatchUpdateRequest updateRequest{};
+    updateRequest.operateId_ = operateId;
     for (uint8_t i = 0; i < response.numBlobs_; i++) {
         auto blob = response.blobs_[i];
         MMC_LOG_DEBUG("Attempting to put to blob " << static_cast<int>(i) << " key " << key);
         auto ret = bmProxy_->BatchPut(bufArr, blob);
-        UpdateRequest updateRequest;
-        Response updateResponse;
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("client " << name_ << " put " << key << " blob rank: " << blob.rank_
                                     << ", media: " << blob.mediaType_ << " failed, ret: " << ret);
-            updateRequest = {MMC_WRITE_FAIL, key, blob.rank_, blob.mediaType_, operateId};
+            updateRequest.actionResults_.push_back(MMC_WRITE_FAIL);
+            result = ret;
         } else {
-            updateRequest = {MMC_WRITE_OK, key, blob.rank_, blob.mediaType_, operateId};
-        }
-        auto updateRet = metaNetClient_->SyncCall(updateRequest, updateResponse, rpcRetryTimeOut_);
-        if (updateRet != MMC_OK || updateResponse.ret_ != MMC_OK) {
-            MMC_LOG_ERROR("client " << name_ << " update " << key << " blob rank:" << blob.rank_ << ", media:"
-                                    << blob.mediaType_ << " failed:" << updateRet << ", " << updateResponse.ret_);
+            updateRequest.actionResults_.push_back(MMC_WRITE_OK);
         }
 
-        if (ret != MMC_OK) {
-            return ret;
-        }
+        updateRequest.keys_.push_back(key);
+        updateRequest.ranks_.push_back(blob.rank_);
+        updateRequest.mediaTypes_.push_back(blob.mediaType_);
     }
-    return MMC_OK;
+    SyncUpdateState(updateRequest);
+    return result;
 }
 
 Result MmcClientDefault::BatchPut(const std::vector<std::string> &keys, const std::vector<mmc_buffer> &bufs,
@@ -224,43 +228,45 @@ Result MmcClientDefault::BatchPut(const std::vector<std::string> &keys, const st
         return MMC_INVALID_PARAM;
     }
 
-    options.mediaType = MEDIA_NONE;
+    // alloc blobs
     uint64_t operateId = GenerateOperateId(rankId_);
-    batchResult.resize(keys.size(), MMC_ERROR);
+    BatchAllocRequest request(keys, {}, flags, operateId);
+    for (const auto &bufArr : bufArrs) {
+        AllocOptions tmpAllocOptions{};
+        MMC_VALIDATE_RETURN(PrepareAllocOpt(bufArr, options, flags, tmpAllocOptions) == MMC_OK, "option param error",
+                            MMC_ERROR);
+        request.options_.emplace_back(std::move(tmpAllocOptions));
+    }
+    BatchAllocResponse allocResponse{};
+    MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, allocResponse, rpcRetryTimeOut_), "batch put alloc failed");
+    // check alloc result
+    if (keys.size() != allocResponse.blobs_.size() || keys.size() != allocResponse.numBlobs_.size() ||
+        keys.size() != allocResponse.results_.size()) {
+        MMC_LOG_ERROR("Mismatch in number of keys and allocated blobs");
+        return MMC_ERROR;
+    }
 
-    BatchAllocResponse allocResponse;
-    MMC_RETURN_ERROR(AllocateAndPutBlobs(keys, bufArrs, options, flags, operateId, batchResult, allocResponse),
-                     "client " << name_ << " allocate and put blobs failed");
+    // put obj
+    batchResult.resize(keys.size(), MMC_OK);
+    auto ret = PutData2Blobs(keys, bufArrs, allocResponse, batchResult);
 
     // update blob state
-    std::vector<BlobActionResult> actionResults;
-    std::vector<uint32_t> ranks;
-    std::vector<uint16_t> mediaTypes;
-    std::vector<std::string> updateKeys;
+    BatchUpdateRequest updateRequest{};
+    updateRequest.operateId_ = operateId;
     for (size_t i = 0; i < keys.size(); ++i) {
         for (const auto &blob : allocResponse.blobs_[i]) {
-            updateKeys.push_back(keys[i]);
-            ranks.push_back(blob.rank_);
-            mediaTypes.push_back(blob.mediaType_);
-            actionResults.push_back(batchResult[i] == 0 ? MMC_WRITE_OK : MMC_WRITE_FAIL);
+            updateRequest.keys_.push_back(keys[i]);
+            updateRequest.ranks_.push_back(blob.rank_);
+            updateRequest.mediaTypes_.push_back(blob.mediaType_);
+            updateRequest.actionResults_.push_back(batchResult[i] == 0 ? MMC_WRITE_OK : MMC_WRITE_FAIL);
         }
     }
+    SyncUpdateState(updateRequest); // 写需要同步更新，异步更新会出现立即读查询blob不可读的情况
 
-    BatchUpdateRequest updateRequest{actionResults, updateKeys, ranks, mediaTypes, operateId};
-    BatchUpdateResponse updateResponse;
-    Result updateResult = metaNetClient_->SyncCall(updateRequest, updateResponse, rpcRetryTimeOut_);
-    if (updateResult != MMC_OK || updateResponse.results_.size() != updateKeys.size()) {
-        MMC_LOG_ERROR("client " << name_ << " batch put update failed:" << updateResult << ", key size:"
-                                << updateKeys.size() << ", ret size:" << updateResponse.results_.size());
-    } else {
-        for (size_t i = 0; i < updateKeys.size(); ++i) {
-            if (updateResponse.results_[i] != MMC_OK) {
-                MMC_LOG_ERROR("client " << name_ << " batch put update for key " << updateKeys[i]
-                                        << " failed:" << updateResponse.results_[i]);
-            }
-        }
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("client " << name_ << " batch put failed: " << ret);
     }
-    return MMC_OK;
+    return ret;
 }
 
 Result MmcClientDefault::Get(const char *key, mmc_buffer *buf, uint32_t flags)
@@ -293,20 +299,13 @@ Result MmcClientDefault::Get(const std::string &key, const MmcBufferArray &bufAr
     auto &blob = response.blobs_[0];
     auto ret = bmProxy_->BatchGet(bufArr, blob);
 
-    auto future = threadPool_->Enqueue(
-        [&](const std::string keyL, uint32_t rankL, uint16_t mediaTypeL, uint64_t operateIdL) {
-            UpdateRequest updateRequest{MMC_READ_FINISH, keyL, rankL, mediaTypeL, operateIdL};
-            Response updateResponse;
-            auto updateRet = metaNetClient_->SyncCall(updateRequest, updateResponse, rpcRetryTimeOut_);
-            if (updateRet != MMC_OK || updateResponse.ret_ != MMC_OK) {
-                MMC_LOG_WARN("client" << name_ << " update " << key << " update state failed, ret:" << updateRet << ", "
-                                      << updateResponse.ret_);
-            }
-        },
-        key, blob.rank_, blob.mediaType_, operateId);
-    if (!future.valid()) {
-        MMC_LOG_WARN("get update enqueue failed");
-    }
+    BatchUpdateRequest updateRequest{};
+    updateRequest.actionResults_.push_back(MMC_READ_FINISH);
+    updateRequest.keys_.push_back(key);
+    updateRequest.ranks_.push_back(blob.rank_);
+    updateRequest.mediaTypes_.push_back(blob.mediaType_);
+    updateRequest.operateId_ = operateId;
+    AsyncUpdateState(updateRequest);
 
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("client " << name_ << " get " << key << " read data failed.");
@@ -347,138 +346,80 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string> &keys, const st
                                 << ", bufArrs size:" << bufArrs.size());
         return MMC_INVALID_PARAM;
     }
-
+    // get meta
     batchResult.resize(keys.size(), MMC_ERROR);
-
     const uint64_t operateId = GenerateOperateId(rankId_);
     BatchGetRequest request{keys, rankId_, operateId};
     BatchAllocResponse response;
     MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, response, rpcRetryTimeOut_),
                      "client " << name_ << " batch get failed");
-
+    // check rsp meta
     if (response.blobs_.size() != keys.size() || response.numBlobs_.size() != keys.size()) {
         MMC_LOG_ERROR("client " << name_ << " batch get response size mismatch: expected " << keys.size() << ", got "
                                 << response.blobs_.size());
         return MMC_ERROR;
     }
-
-    std::vector<BlobActionResult> actionResults;
-    std::vector<uint32_t> ranks;
-    std::vector<uint16_t> mediaTypes;
-
+    // read data
     MediaType mediaType = MEDIA_NONE;
-    std::vector<std::pair<uint32_t, std::future<int32_t>>> futures;
-    std::vector<void *> partSrc{};
-    std::vector<void *> partDst{};
-    std::vector<uint64_t> partSize{};
-    MMC_ASSERT_RETURN(!bufArrs[0].Buffers().empty(), MMC_INVALID_PARAM);
-    batchResult.resize(keys.size(), MMC_ERROR);
+    std::vector<std::tuple<uint32_t, uint32_t, std::future<int32_t>>> futures;
+    size_t startKeyIndex = 0;
+    BatchCopyDesc copyDesc{};
     for (size_t i = 0; i < keys.size(); ++i) {
         const MmcBufferArray &bufArr = bufArrs[i];
         const auto &blobs = response.blobs_[i];
         uint8_t numBlobs = response.numBlobs_[i];
-        actionResults.push_back(MMC_READ_FINISH);
         if (numBlobs <= 0 || blobs.empty() || blobs.size() != numBlobs) {
             MMC_LOG_ERROR("client " << name_ << " batch get failed for key " << keys[i]
                                     << ", blob:" << std::to_string(numBlobs) << ", size:" << blobs.size());
-            batchResult[i] = MMC_ERROR;
-            ranks.push_back(UINT32_MAX);
-            mediaTypes.push_back(MEDIA_NONE);
             continue;
         }
         if (bufArr.TotalSize() != blobs[0].size_) {
-            batchResult[i] = MMC_ERROR;
             MMC_LOG_ERROR("client " << name_ << " batch get failed for key " << keys[i]
                                     << ", blob:" << std::to_string(numBlobs) << ", size:" << blobs.size()
                                     << " key size:" << bufArr.TotalSize());
-            ranks.push_back(UINT32_MAX);
-            mediaTypes.push_back(MEDIA_NONE);
             continue;
         }
-        ranks.push_back(blobs[0].rank_);
-        mediaTypes.push_back(blobs[0].mediaType_);
 
-        batchResult[i] = MMC_OK;
-        uint64_t shift = 0;
-        uint32_t count = bufArr.Buffers().size();
-        for (size_t k = 0; k < count; ++k) {
-            auto buf = &bufArr.Buffers()[k];
-            if (buf->type == MEDIA_NONE) {
-                MMC_LOG_ERROR("unexcepted buf type:" << buf->type);
-                return MMC_ERROR;
-            }
-            if (mediaType == MEDIA_NONE) {
-                mediaType = static_cast<MediaType>(buf->type);
-            } else if (mediaType != buf->type) {
-                MMC_LOG_ERROR("not all data type same as " << mediaType << ", unexcepted buf type:" << buf->type);
-                return MMC_ERROR;
-            }
-            // classify addr by rank
-            partSrc.push_back(reinterpret_cast<void *>(blobs[0].gva_ + shift));
-            partDst.push_back(reinterpret_cast<void *>(buf->addr + buf->offset));
-            partSize.push_back(buf->len);
-            shift += MmcBufSize(*buf);
+        BatchCopyDesc keyCopyDesc{};
+        batchResult[i] = PrepareBlob(bufArr, blobs[0], mediaType, keyCopyDesc, true);
+        if (batchResult[i] != MMC_OK) {
+            MMC_LOG_ERROR("client " << name_ << " prepare blob failed for key " << keys[i]);
+            continue;
         }
+        copyDesc.Append(keyCopyDesc);
         /**
          * 1. 开启聚合是避免单流读取地址太少，避免调用栈开销
          * 2. 也要避免聚合io聚合地址太多，不利于并发，实测单流性能低于多流
          */
-        if (aggregateIO_ && (partSrc.size() < aggregateNum_) && (i != (keys.size() - 1))) {
+        if (aggregateIO_ && (copyDesc.sizes.size() < aggregateNum_) && (i != (keys.size() - 1))) {
             continue;
         }
-        auto future = readThreadPool_->Enqueue(
-            [&](std::vector<void *> sourcesL, std::vector<void *> destinationsL, const std::vector<uint64_t> sizesL,
-                MediaType localMediaL) -> int32_t {
-                return bmProxy_->BatchDataGet(sourcesL, destinationsL, sizesL, localMediaL);
-            },
-            partSrc, partDst, partSize, mediaType);
-        if (future.valid()) {
-            futures.push_back(std::make_pair(i, std::move(future)));
-        } else {
-            // 提交失败，直接执行
-            auto ret = bmProxy_->BatchDataGet(partSrc, partDst, partSize, mediaType);
-            if (ret != MMC_OK) {
-                MMC_LOG_ERROR("Failed to put ret: " << ret);
-                batchResult[i] = MMC_ERROR;
-            }
-        }
-        partSrc.clear();
-        partDst.clear();
-        partSize.clear();
+        auto future = SubmitGetTask(copyDesc, mediaType, !(startKeyIndex == 0 && i == (keys.size() - 1)));
+        futures.push_back(std::make_tuple(startKeyIndex, i, std::move(future)));
+        copyDesc.Clear();
+        startKeyIndex = i + 1;
+    }
+    //  last key is invalid, task not submit
+    if (!copyDesc.sizes.empty()) {
+        auto future = SubmitGetTask(copyDesc, mediaType, !(startKeyIndex == 0));
+        futures.push_back(std::make_tuple(startKeyIndex, (keys.size() - 1), std::move(future)));
     }
 
-    for (auto &future : futures) {
-        TP_TRACE_BEGIN(TP_MMC_LOCAL_GET_WAIT_FUTURE);
-        auto res = future.second.get();
-        TP_TRACE_END(TP_MMC_LOCAL_GET_WAIT_FUTURE, res);
-        if (res != 0) {
-            MMC_LOG_ERROR("batch seq " << future.first << " failed, error code " << res);
-            batchResult[future.first] = res;
+    TP_TRACE_BEGIN(TP_MMC_LOCAL_GET_WAIT_FUTURE);
+    WaitFeatures(futures, batchResult);
+    TP_TRACE_END(TP_MMC_LOCAL_GET_WAIT_FUTURE, 0);
+    // update read state
+    BatchUpdateRequest updateRequest{};
+    updateRequest.operateId_ = operateId;
+    for (size_t i = 0; i < keys.size(); ++i) {
+        for (const auto &blob : response.blobs_[i]) {
+            updateRequest.keys_.push_back(keys[i]);
+            updateRequest.ranks_.push_back(blob.rank_);
+            updateRequest.mediaTypes_.push_back(blob.mediaType_);
+            updateRequest.actionResults_.push_back(MMC_READ_FINISH);
         }
     }
-
-    auto future = threadPool_->Enqueue(
-        [&](std::vector<BlobActionResult> actionResultsL, const std::vector<std::string> keysL,
-            std::vector<uint32_t> ranksL, std::vector<uint16_t> mediaTypesL, uint64_t operateIdL) {
-            BatchUpdateRequest updateRequest{actionResultsL, keysL, ranksL, mediaTypesL, operateIdL};
-            BatchUpdateResponse updateResponse;
-            Result updateResult = metaNetClient_->SyncCall(updateRequest, updateResponse, rpcRetryTimeOut_);
-            if (updateResult != MMC_OK || updateResponse.results_.size() != keysL.size()) {
-                MMC_LOG_ERROR("client " << name_ << " batch get update failed:" << updateResult << ", key size:"
-                                        << keysL.size() << ", ret size:" << updateResponse.results_.size());
-            } else {
-                for (size_t i = 0; i < keysL.size(); ++i) {
-                    if (updateResponse.results_[i] != MMC_OK) {
-                        MMC_LOG_ERROR("client " << name_ << " batch put update for key " << keysL[i]
-                                                << " failed:" << updateResponse.results_[i]);
-                    }
-                }
-            }
-        },
-        actionResults, keys, ranks, mediaTypes, operateId);
-    if (!future.valid()) {
-        MMC_LOG_WARN("get batch update enqueue failed");
-    }
+    AsyncUpdateState(updateRequest);
     return MMC_OK;
 }
 
@@ -638,46 +579,155 @@ Result MmcClientDefault::BatchQuery(const std::vector<std::string> &keys, std::v
     return MMC_OK;
 }
 
-Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string> &keys,
-                                             const std::vector<MmcBufferArray> &bufArrs, const mmc_put_options &options,
-                                             uint32_t flags, uint64_t operateId, std::vector<int> &batchResult,
-                                             BatchAllocResponse &allocResponse)
+void MmcClientDefault::WaitFeatures(std::vector<std::tuple<uint32_t, uint32_t, std::future<int32_t>>> &futures,
+                                    std::vector<int> &batchResult)
 {
-    std::vector<uint32_t> preferredRank;
-    std::copy_if(std::begin(options.preferredLocalServiceIDs), std::end(options.preferredLocalServiceIDs),
-                 std::back_inserter(preferredRank), [](const int32_t x) { return x >= 0; });
-    std::vector<AllocOptions> allocOptionsList;
-    auto flag = !preferredRank.empty() ? static_cast<uint32_t>(ALLOC_FORCE_BY_RANK) : flags;
-    uint16_t numBlobs = std::max<uint16_t>(options.replicaNum, 1u);
-    for (const auto &bufArr : bufArrs) {
-        AllocOptions tmpAllocOptions = {
-            bufArr.TotalSize(), numBlobs, options.mediaType, {RankId(options.policy)}, flag};
-        if (!preferredRank.empty()) {
-            tmpAllocOptions.preferredRank_ = preferredRank;
+    for (auto &tuple : futures) {
+        auto res = std::get<2>(tuple).get();
+        if (res == MMC_OK) {
+            continue;
         }
-        allocOptionsList.emplace_back(tmpAllocOptions);
+        auto start = std::get<0>(tuple);
+        auto end = std::get<1>(tuple);
+        MMC_LOG_ERROR("batch key from " << start << " to " << end << " failed, error code " << res);
+        for (size_t i = start; i <= end && i < batchResult.size(); i++) {
+            if (batchResult[i] == MMC_OK) {
+                batchResult[i] = res;
+            }
+        }
     }
-    BatchAllocRequest request(keys, allocOptionsList, flag, operateId);
-    MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, allocResponse, rpcRetryTimeOut_), "batch put alloc failed");
+}
 
-    if (keys.size() != allocResponse.blobs_.size() || keys.size() != allocResponse.numBlobs_.size() ||
-        keys.size() != allocResponse.results_.size()) {
-        MMC_LOG_ERROR("Mismatch in number of keys and allocated blobs");
-        return MMC_ERROR;
+void MmcClientDefault::SyncUpdateState(BatchUpdateRequest &updateRequest)
+{
+    TP_TRACE_BEGIN(TP_MMC_LOCAL_BATCH_UPDATE);
+    BatchUpdateResponse updateResponse;
+    Result updateResult = metaNetClient_->SyncCall(updateRequest, updateResponse, rpcRetryTimeOut_);
+    TP_TRACE_END(TP_MMC_LOCAL_BATCH_UPDATE, updateResult);
+    if (updateResult != MMC_OK || updateResponse.results_.size() != updateRequest.keys_.size()) {
+        MMC_LOG_ERROR("client " << name_ << " batch get update failed:" << updateResult << ", key size:"
+                                << updateRequest.keys_.size() << ", ret size:" << updateResponse.results_.size());
+    } else {
+        for (size_t i = 0; i < updateRequest.keys_.size() && i < updateRequest.keys_.size(); ++i) {
+            if (updateResponse.results_[i] != MMC_OK) {
+                MMC_LOG_ERROR("client " << name_ << " batch put update for key " << updateRequest.keys_[i]
+                                        << " failed:" << updateResponse.results_[i]);
+            }
+        }
     }
-    MMC_ASSERT_RETURN(!bufArrs.empty() && !bufArrs[0].Buffers().empty(), MMC_INVALID_PARAM);
+}
 
+void MmcClientDefault::AsyncUpdateState(BatchUpdateRequest &updateRequest)
+{
+    auto future = threadPool_->Enqueue([&](BatchUpdateRequest updateRequestL) { SyncUpdateState(updateRequestL); },
+                                       updateRequest);
+    if (!future.valid()) {
+        SyncUpdateState(updateRequest);
+    }
+}
+
+Result MmcClientDefault::PrepareBlob(const MmcBufferArray &bufArr, const MmcMemBlobDesc &blob, MediaType &mediaType,
+                                     BatchCopyDesc &copyDesc, bool blobIsSrc)
+{
+    if (bufArr.Buffers().empty()) {
+        MMC_LOG_ERROR("buffer is empty");
+        return MMC_INVALID_PARAM;
+    }
+    uint64_t shift = 0;
+    for (size_t k = 0; k < bufArr.Buffers().size(); ++k) {
+        auto buf = &bufArr.Buffers()[k];
+        if (buf->type == MEDIA_NONE) {
+            MMC_LOG_ERROR("unexcepted buf type:" << buf->type);
+            return MMC_INVALID_PARAM;
+        }
+        if (mediaType == MEDIA_NONE) {
+            mediaType = static_cast<MediaType>(buf->type);
+        } else if (mediaType != buf->type) {
+            MMC_LOG_ERROR("not all data type same as " << mediaType << ", unexcepted buf type:" << buf->type);
+            return MMC_INVALID_PARAM;
+        }
+        if (blobIsSrc) {
+            copyDesc.dsts.push_back(reinterpret_cast<void *>(buf->addr + buf->offset));
+            copyDesc.srcs.push_back(reinterpret_cast<void *>(blob.gva_ + shift));
+        } else {
+            copyDesc.srcs.push_back(reinterpret_cast<void *>(buf->addr + buf->offset));
+            copyDesc.dsts.push_back(reinterpret_cast<void *>(blob.gva_ + shift));
+        }
+        copyDesc.sizes.push_back(buf->len);
+        shift += MmcBufSize(*buf);
+    }
+    return MMC_OK;
+}
+
+Result MmcClientDefault::PrepareMultiBlobs(const MmcBufferArray &bufArr, const std::vector<MmcMemBlobDesc> &blobs,
+                                           MediaType &mediaType, BatchCopyDesc &copyDesc, bool blobIsSrc)
+{
+    for (uint8_t j = 0; j < blobs.size(); ++j) {
+        auto ret = PrepareBlob(bufArr, blobs[j], mediaType, copyDesc, blobIsSrc);
+        if (ret != MMC_OK) {
+            return ret;
+        }
+    }
+    return MMC_OK;
+}
+
+std::future<int32_t> MmcClientDefault::SubmitPutTask(BatchCopyDesc &copyDesc, MediaType mediaType, bool asyncExec)
+{
+    if (asyncExec) {
+        auto future = writeThreadPool_->Enqueue(
+            [&](BatchCopyDesc copyDescL, MediaType localMediaL) -> int32_t {
+                return bmProxy_->BatchDataPut(copyDescL.srcs, copyDescL.dsts, copyDescL.sizes, localMediaL);
+            },
+            copyDesc, mediaType);
+        if (future.valid()) {
+            return future;
+        }
+    }
+
+    // 提交失败 或 直接执行
+    std::promise<int32_t> prom{};
+    std::future<int32_t> future = prom.get_future();
+    TP_TRACE_BEGIN(TP_MMC_LOCAL_BATCH_PUT_SYNC);
+    auto ret = bmProxy_->BatchDataPut(copyDesc.srcs, copyDesc.dsts, copyDesc.sizes, mediaType);
+    TP_TRACE_END(TP_MMC_LOCAL_BATCH_PUT_SYNC, ret);
+    prom.set_value(ret);
+    return future;
+}
+
+std::future<int32_t> MmcClientDefault::SubmitGetTask(BatchCopyDesc &copyDesc, MediaType mediaType, bool asyncExec)
+{
+    if (asyncExec) {
+        auto future = readThreadPool_->Enqueue(
+            [&](BatchCopyDesc copyDescL, MediaType localMediaL) -> int32_t {
+                return bmProxy_->BatchDataGet(copyDescL.srcs, copyDescL.dsts, copyDescL.sizes, localMediaL);
+            },
+            copyDesc, mediaType);
+        if (future.valid()) {
+            return future;
+        }
+    }
+    // 提交失败 或 直接执行
+    std::promise<int32_t> prom{};
+    std::future<int32_t> future = prom.get_future();
+    TP_TRACE_BEGIN(TP_MMC_LOCAL_BATCH_GET_SYNC);
+    auto ret = bmProxy_->BatchDataGet(copyDesc.srcs, copyDesc.dsts, copyDesc.sizes, mediaType);
+    TP_TRACE_END(TP_MMC_LOCAL_BATCH_GET_SYNC, ret);
+    prom.set_value(ret);
+    return future;
+}
+
+Result MmcClientDefault::PutData2Blobs(const std::vector<std::string> &keys, const std::vector<MmcBufferArray> &bufArrs,
+                                       const BatchAllocResponse &allocResponse, std::vector<int> &batchResult)
+{
     MediaType mediaType = MEDIA_NONE;
-    std::vector<std::pair<uint32_t, std::future<int32_t>>> futures;
-    std::vector<void *> partSrc{};
-    std::vector<void *> partDst{};
-    std::vector<uint64_t> partSize{};
+    std::vector<std::tuple<uint32_t, uint32_t, std::future<int32_t>>> futures;
+    BatchCopyDesc copyDesc{};
+    size_t startKeyIndex = 0;
     for (size_t i = 0; i < keys.size(); ++i) {
         const std::string &key = keys[i];
         const MmcBufferArray &bufArr = bufArrs[i];
         const auto &blobs = allocResponse.blobs_[i];
         const auto numBlobs = allocResponse.numBlobs_[i];
-
         if (allocResponse.results_[i] != MMC_OK) {
             // alloc has error, reserve alloc error code
             if (allocResponse.results_[i] != MMC_DUPLICATED_OBJECT) {
@@ -686,69 +736,38 @@ Result MmcClientDefault::AllocateAndPutBlobs(const std::vector<std::string> &key
             batchResult[i] = allocResponse.results_[i];
             continue;
         } else if (numBlobs == 0 || blobs.size() != numBlobs) {
-            MMC_LOG_ERROR("Invalid number of blobs for key " << key);
-            batchResult[i] = MMC_ERROR;
+            MMC_LOG_ERROR("Invalid number of blobs" << numBlobs << " , " << blobs.size() << " for key " << key);
             continue;
         }
 
-        batchResult[i] = MMC_OK;
-        for (uint8_t j = 0; j < numBlobs; ++j) {
-            uint64_t shift = 0;
-            uint32_t count = bufArr.Buffers().size();
-            // 一个blob对应的所有地址
-            for (size_t k = 0; k < count; ++k) {
-                auto buf = &bufArr.Buffers()[k];
-                if (buf->type == MEDIA_NONE) {
-                    MMC_LOG_ERROR("unexcepted buf type:" << buf->type);
-                    return MMC_ERROR;
-                }
-                if (mediaType == MEDIA_NONE) {
-                    mediaType = static_cast<MediaType>(buf->type);
-                } else if (mediaType != buf->type) {
-                    MMC_LOG_ERROR("not all data type same as " << mediaType << ", unexcepted buf type:" << buf->type);
-                    return MMC_ERROR;
-                }
-
-                partSrc.push_back(reinterpret_cast<void *>(buf->addr + buf->offset));
-                partDst.push_back(reinterpret_cast<void *>(blobs[j].gva_ + shift));
-                partSize.push_back(buf->len);
-                shift += MmcBufSize(*buf);
-            }
-        }
-
-        if (aggregateIO_ && (partSrc.size() < aggregateNum_) && (i != (keys.size() - 1))) {
+        // 一个key对应的所有blob副本
+        BatchCopyDesc keyCopyDesc{};
+        batchResult[i] = PrepareMultiBlobs(bufArr, blobs, mediaType, keyCopyDesc, false);
+        if (batchResult[i] != MMC_OK) {
+            MMC_LOG_ERROR("Prepare multi blobs failed for key " << key);
             continue;
         }
-        auto future = writeThreadPool_->Enqueue(
-            [&](std::vector<void *> sourcesL, std::vector<void *> destinationsL, const std::vector<uint64_t> sizesL,
-                MediaType localMediaL) -> int32_t {
-                return bmProxy_->BatchDataPut(sourcesL, destinationsL, sizesL, localMediaL);
-            },
-            partSrc, partDst, partSize, mediaType);
-        if (future.valid()) {
-            futures.push_back(std::make_pair(i, std::move(future)));
-        } else {
-            // 提交失败，直接执行
-            auto ret = bmProxy_->BatchDataPut(partSrc, partDst, partSize, mediaType);
-            if (ret != MMC_OK) {
-                MMC_LOG_ERROR("Failed to put ret: " << ret);
-                batchResult[i] = MMC_ERROR;
-            }
+
+        copyDesc.Append(keyCopyDesc);
+        if (aggregateIO_ && (copyDesc.sizes.size() < aggregateNum_) && (i != (keys.size() - 1))) {
+            continue;
         }
-        partSrc.clear();
-        partDst.clear();
-        partSize.clear();
+
+        auto future = SubmitPutTask(copyDesc, mediaType, !(startKeyIndex == 0 && i == (keys.size() - 1)));
+        futures.push_back(std::make_tuple(startKeyIndex, i, std::move(future)));
+
+        copyDesc.Clear();
+        startKeyIndex = i + 1;
+    }
+    //  last key is invalid, task not submit
+    if (!copyDesc.sizes.empty()) {
+        auto future = SubmitPutTask(copyDesc, mediaType, !(startKeyIndex == 0));
+        futures.push_back(std::make_tuple(startKeyIndex, (keys.size() - 1), std::move(future)));
     }
 
-    for (auto &future : futures) {
-        TP_TRACE_BEGIN(TP_MMC_LOCAL_PUT_WAIT_FUTURE);
-        auto res = future.second.get();
-        TP_TRACE_END(TP_MMC_LOCAL_PUT_WAIT_FUTURE, res);
-        if (res != 0) {
-            MMC_LOG_ERROR("batch seq " << future.first << " failed, error code " << res);
-            batchResult[future.first] = res;
-        }
-    }
+    TP_TRACE_BEGIN(TP_MMC_LOCAL_PUT_WAIT_FUTURE);
+    WaitFeatures(futures, batchResult);
+    TP_TRACE_END(TP_MMC_LOCAL_PUT_WAIT_FUTURE, 0);
 
     return MMC_OK;
 }

@@ -115,11 +115,22 @@ private:
     MmcClientDefault &operator=(const MmcClientDefault &) = delete;
 
     inline uint32_t RankId(const affinity_policy &policy);
-    Result PrePutHandle(const MmcBufferArray &bufArr, mmc_put_options &options, AllocRequest &request, uint32_t flags);
-    Result AllocateAndPutBlobs(const std::vector<std::string> &keys, const std::vector<MmcBufferArray> &bufs,
-                               const mmc_put_options &options, uint32_t flags, uint64_t operateId,
-                               std::vector<int> &batchResult, BatchAllocResponse &allocResponse);
+    Result PrepareAllocOpt(const MmcBufferArray &bufArr, const mmc_put_options &options, uint32_t flags,
+                           AllocOptions &allocOpt);
+    Result PrepareBlob(const MmcBufferArray &bufArr, const MmcMemBlobDesc &blob, MediaType &mediaType,
+                       BatchCopyDesc &copyDesc, bool blobIsSrc);
+    Result PrepareMultiBlobs(const MmcBufferArray &bufArr, const std::vector<MmcMemBlobDesc> &blobs,
+                             MediaType &mediaType, BatchCopyDesc &copyDesc, bool blobIsSrc);
+    Result PutData2Blobs(const std::vector<std::string> &keys, const std::vector<MmcBufferArray> &bufArrs,
+                         const BatchAllocResponse &allocResponse, std::vector<int> &batchResult);
+    void WaitFeatures(std::vector<std::tuple<uint32_t, uint32_t, std::future<int32_t>>> &futures,
+                      std::vector<int> &batchResult);
+    void SyncUpdateState(BatchUpdateRequest &updateRequest);
+    void AsyncUpdateState(BatchUpdateRequest &updateRequest);
+    std::future<int32_t> SubmitPutTask(BatchCopyDesc &copyDesc, MediaType mediaType, bool asyncExec);
+    std::future<int32_t> SubmitGetTask(BatchCopyDesc &copyDesc, MediaType mediaType, bool asyncExec);
 
+private:
     static std::mutex gClientHandlerMtx;
     static MmcClientDefault *gClientHandler;
     std::mutex mutex_;

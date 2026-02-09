@@ -285,7 +285,7 @@ MMC_API int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffe
 
     std::vector<std::string> keys_vector;
     std::vector<mmc_buffer> bufs_vector;
-    std::vector<int> batchResult(keys_count, MMC_OK);
+    std::vector<int> batchResult(keys_count, MMC_ERROR);
     keys_vector.reserve(keys_count);
     bufs_vector.reserve(keys_count);
 
@@ -304,7 +304,7 @@ MMC_API int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffe
 
     MMC_RETURN_ERROR(MmcClientDefault::GetInstance()->BatchGet(keys_vector, bufs_vector, flags, batchResult),
                      MmcClientDefault::GetInstance()->Name() << " batch_get failed!");
-    for (uint32_t i = 0; i < keys_count; ++i) {
+    for (uint32_t i = 0; i < keys_vector.size(); ++i) {
         results[i] = batchResult[i];
     }
     return MMC_OK;
@@ -321,7 +321,7 @@ MMC_API int32_t mmcc_batch_put(const char **keys, uint32_t keys_count, const mmc
 
     std::vector<std::string> keys_vector;
     std::vector<mmc_buffer> bufs_vector;
-    std::vector<int> batchResult(keys_count, MMC_OK);
+    std::vector<int> batchResult(keys_count, MMC_ERROR);
     keys_vector.reserve(keys_count);
     bufs_vector.reserve(keys_count);
 
@@ -346,7 +346,7 @@ MMC_API int32_t mmcc_batch_put(const char **keys, uint32_t keys_count, const mmc
     MMC_RETURN_ERROR(MmcClientDefault::GetInstance()->BatchPut(keys_vector, bufs_vector, options, flags, batchResult),
                      MmcClientDefault::GetInstance()->Name() << " batch_put failed!");
 
-    for (uint32_t i = 0; i < keys_count; ++i) {
+    for (uint32_t i = 0; i < keys_vector.size(); ++i) {
         results[i] = batchResult[i];
     }
     return MMC_OK;

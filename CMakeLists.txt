@@ -210,6 +210,8 @@ set(HYBRID_SRC ${PROJECT_SOURCE_DIR}/3rdparty/memfabric_hybrid/src)
 file(GLOB_RECURSE ALL_HEADERS
         "${HYBRID_SRC}/*.h"
 )
+list(FILTER ALL_HEADERS EXCLUDE REGEX "${HYBRID_SRC}/hybm/csrc/driver/npu_direct_rdma/.*")
+
 set(INCLUDE_DIRS "")
 foreach (header ${ALL_HEADERS})
     get_filename_component(HEADER_DIR ${header} PATH)

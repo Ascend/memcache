@@ -10,6 +10,7 @@
  * See the Mulan PSL v2 for more details.
 */
 #include "mmc_meta_mgr_proxy.h"
+#include "mmc_ptracer.h"
 
 namespace ock {
 namespace mmc {
@@ -40,7 +41,9 @@ Result MmcMetaMgrProxy::BatchAlloc(const BatchAllocRequest &req, BatchAllocRespo
     MMC_ASSERT_RETURN(req.keys_.size() == req.options_.size(), MMC_ERROR);
     for (size_t i = 0; i < req.keys_.size(); ++i) {
         MmcMemMetaDesc objMeta{};
+        TP_TRACE_BEGIN(TP_MMC_META_MGR_ALLOC);
         Result ret = metaMangerPtr_->Alloc(req.keys_[i], req.options_[i], req.operateId_, objMeta);
+        TP_TRACE_END(TP_MMC_META_MGR_ALLOC, ret);
         if (ret != MMC_OK) {
             if (ret != MMC_DUPLICATED_OBJECT) {
                 MMC_LOG_ERROR("Allocation failed for key: " << req.keys_[i] << ", error: " << ret);
@@ -120,7 +123,9 @@ Result MmcMetaMgrProxy::BatchGet(const BatchGetRequest &req, BatchAllocResponse 
     MmcBlobFilterPtr filterPtr = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, READABLE);
     for (size_t i = 0; i < req.keys_.size(); ++i) {
         MmcMemMetaDesc objMeta{};
+        TP_TRACE_BEGIN(TP_MMC_META_MGR_GET);
         auto ret = metaMangerPtr_->Get(req.keys_[i], req.operateId_, filterPtr, objMeta);
+        TP_TRACE_END(TP_MMC_META_MGR_GET, ret);
         if (ret != MMC_OK || objMeta.blobs_.empty() || objMeta.numBlobs_ != objMeta.blobs_.size()) {
             resp.numBlobs_[i] = 0;
             resp.blobs_[i] = {};

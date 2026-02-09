@@ -232,6 +232,28 @@ private:
     size_t totalSize_{0};
 };
 
+class BatchCopyDesc {
+public:
+    std::vector<void *> srcs{};
+    std::vector<void *> dsts{};
+    std::vector<uint64_t> sizes{};
+
+public:
+    void Append(const BatchCopyDesc &desc)
+    {
+        srcs.insert(srcs.end(), desc.srcs.begin(), desc.srcs.end());
+        dsts.insert(dsts.end(), desc.dsts.begin(), desc.dsts.end());
+        sizes.insert(sizes.end(), desc.sizes.begin(), desc.sizes.end());
+    }
+
+    void Clear()
+    {
+        srcs.clear();
+        dsts.clear();
+        sizes.clear();
+    }
+};
+
 } // namespace mmc
 } // namespace ock
 

@@ -42,12 +42,17 @@ class MmcGlobalAllocator : public MmcReferable {
 public:
     MmcGlobalAllocator() = default;
 
-    // preferredRank为空时（当前实际至少有一个local rank，代码需要考虑为空场景）， numBlobs任意值
-    // preferredRank非空时，不能重复，而且列表大小小于等于 numBlobs
-    // preferredRank大于1的时候，必定是强制分配场景
-    // replicaNum=4
-    // preferredLocalServiceIDs=[0,1]
-    // 0,1 强制，剩下的默认处理；默认处理时候需要排除强制rank列表
+    /**
+     * @brief
+     * blob分配策略实现
+     * @param allocOpt
+     * 1. preferredRank为空时（实际上至少有一个local rank），numBlobs可以是 <= MAX_BLOB_COPIES 的任意值
+     * 2. preferredRank非空时，rank不能重复，且rank个数 <= numBlobs
+     * 3. preferredRank大于1的时候，必定是强制分配场景，例如：
+     *    replicaNum=4，preferredLocalServiceIDs=[0,1]场景，需要强制在0,1上分配两个副本，剩下2个副本按默认分配策略处理；且需要排除已分配过的rank列表
+     * @param blobs
+     * @return Result
+     */
     Result Alloc(const AllocOptions &allocOpt, std::vector<MmcMemBlobPtr> &blobs)
     {
         std::unordered_set<uint32_t> uniqueRanks(allocOpt.preferredRank_.begin(), allocOpt.preferredRank_.end());
