@@ -1,10 +1,30 @@
-# MemCache
+<div align="center">
+  <img src=doc/source/memcache_icon.png style="width: 37%" />
+  <hr style="display:block; border:none; height:0; border-top:2px solid #008000; width:100%; max-width:1250px; margin:20px auto;">
+  <h2 align="center">
+High-performance distributed key-value cache
+  </h2>
+
+[![Docs](https://img.shields.io/badge/docs-live-brightgreen)](https://gitcode.com/Ascend/memcache)
+[![PyPI](https://img.shields.io/pypi/v/memcache-hybrid)](https://pypi.org/project/memcache-hybrid/#history)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/memcache-hybrid)](https://pypi.org/project/memcache-hybrid/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/memcache-hybrid)](https://pypi.org/project/memcache-hybrid/)
+[![GitCode commit activity](https://img.shields.io/badge/commit_activity-high-light)](https://gitcode.com/Ascend/memcache/analysis)
+[![license](https://img.shields.io/badge/license-MulanPSL2-orange)](https://gitcode.com/Ascend/memcache/blob/master/LICENSE)
+
+</div>
+<br/>
 
 ## 🔄Latest News
 
-- [2025/12] MemCache已作为vllm-ascend backend使能大模型推理加速，详情查看vllm-ascend开源社区，相关pr: https://github.com/vllm-project/vllm-ascend/pull/4438
+- [2025/12] MemCache已作为vllm-ascend backend使能大模型推理加速，详情查看vllm-ascend开源社区，[使用示例](https://github.com/vllm-project/vllm-ascend/blob/main/docs/source/user_guide/feature_guide/kv_pool.md#example-of-using-memcache-as-a-kv-pool-backend)
 
 - [2025/11] MemCache项目于2025年11月开源，开源社区地址为：https://gitcode.com/Ascend/memcache
+
+## 🔜 Roadmap
+
+MemCache roadmap和版本分支策略详见： [**Roadmap**](https://gitcode.com/Ascend/memcache/wiki/Roadmap.md)
+
 
 ## 🎉概述
 
@@ -85,18 +105,6 @@ MemCache核心能力是提供大容量内存池和高性能的H2D、D2H、**D2RH
 │  ├── mmc-meta.conf                        # meta服务配置文件模板
 ├── README.md
 ```
-
-## 🔜 Incoming Features
-
-➡️支持中
--  HBM + DRAM + SSD 三级内存池
-
-✅已支持
-- DRAM 内存池
-- HBM + DRAM两级内存池
-- MetaService 高可用
-- LocalService 动态扩缩容
-- MetaService支持基于[restful](./doc/memcache_restful_api.md)进行集群管理、数据查询、指标查询，支持对接prometheus和grafana
 
 ## 🚀快速入门
 
