@@ -698,7 +698,11 @@ class MmcTest(TestServer):
         self.cli_return(str([res, end - start]))
 
     def set_device(self):
-        import acl
+        try:
+            import acl
+        except Exception:
+            # adjust k5 env
+            return
         acl.init()
         ret = acl.rt.set_device(self._device_id)
         if ret != 0:
