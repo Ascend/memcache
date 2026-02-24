@@ -44,6 +44,7 @@ public:
 private:
     static bool CheckIsRunning();
     int LoadConfig();
+    static int ExtractIpPortFromUrl(const std::string &url, std::string &ip, uint16_t &port);
     static void RegisterSignal();
     static void SignalInterruptHandler(const int signal);
     static int InitLogger(const mmc_meta_service_config_t &options);

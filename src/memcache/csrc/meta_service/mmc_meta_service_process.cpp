@@ -29,6 +29,7 @@
 #include "spdlogger4c.h"
 #include "spdlogger.h"
 #include "mf_out_logger.h"
+#include "mf_ipv4_validator.h"
 
 #include "mmc_configuration.h"
 #include "mmc_env.h"
@@ -41,6 +42,7 @@ namespace mmc {
 static std::mutex g_exitMtx;
 static std::condition_variable g_exitCv;
 static bool g_processExit = false;
+const std::string PROTOCOL_HTTP = "http://";
 
 int MmcMetaServiceProcess::MainForExecutable()
 {
@@ -231,6 +233,34 @@ int MmcMetaServiceProcess::InitLogger(const mmc_meta_service_config_t &options)
     return 0;
 }
 
+int MmcMetaServiceProcess::ExtractIpPortFromUrl(const std::string &url, std::string &ip, uint16_t &port)
+{
+    std::string hostPortStr = url;
+    const size_t protocolPos = url.find("://");
+    /* config protocol header */
+    if (protocolPos != std::string::npos) {
+        const size_t httpPos = url.find(PROTOCOL_HTTP);
+        /* config protocol header, but not http, return error code */
+        if (httpPos == std::string::npos) {
+            MMC_LOG_ERROR("http URL: protol " << PROTOCOL_HTTP << " not found.");
+            return MMC_INVALID_PARAM;
+        }
+        hostPortStr = url.substr(PROTOCOL_HTTP.length());
+    } else {
+        MMC_LOG_INFO("http URL: protol not found, use http.");
+    }
+
+    /* verify ip and port */
+    ock::mf::Ipv4PortValidator httpValidator("HttpServiceUrl");
+    httpValidator.Initialize();
+    if (!(httpValidator.Validate(hostPortStr))) {
+        MMC_LOG_ERROR("Invalid http URL, " << httpValidator.ErrorMessage());
+        return MMC_INVALID_PARAM;
+    }
+    httpValidator.GetIpPort(ip, port);
+    return MMC_OK;
+}
+
 int MmcMetaServiceProcess::StartHttpServer()
 {
     MMC_VALIDATE_RETURN(metaService_ != nullptr, "metaService not been initialized", MMC_ERROR);
@@ -239,24 +269,12 @@ int MmcMetaServiceProcess::StartHttpServer()
     auto metaManagerPtr = metaMgrProxyPtr->GetMetaManager();
     MMC_VALIDATE_RETURN(metaManagerPtr != nullptr, "metaManager is nullptr", MMC_ERROR);
 
-    std::string httpUrl = config_.httpURL;
-    const size_t colonPos = httpUrl.find(':');
-    if (colonPos == std::string::npos) {
-        MMC_LOG_ERROR("Invalid http URL: colon not found.");
-        return MMC_INVALID_PARAM;
-    }
-    std::string host = httpUrl.substr(0, colonPos);
-    std::string portStr = httpUrl.substr(colonPos + 1);
+    std::string host;
     uint16_t port;
-
-    try {
-        port = static_cast<uint16_t>(std::stoul(portStr));
-    } catch (const std::invalid_argument &) {
-        MMC_LOG_ERROR("Invalid http URL: port is not a valid number.");
-        return MMC_INVALID_PARAM;
-    } catch (const std::out_of_range &) {
-        MMC_LOG_ERROR("Invalid http URL: port out of range.");
-        return MMC_INVALID_PARAM;
+    auto ret = ExtractIpPortFromUrl(config_.httpURL, host, port);
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("Extract ip and port from http URL: " << config_.httpURL << " failed");
+        return ret;
     }
 
     MMC_LOG_INFO("Starting HTTP server on " << host << ":" << port);
