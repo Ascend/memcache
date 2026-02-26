@@ -48,7 +48,7 @@ class Mooncakestore():
     def exists(self, key: str) -> bool:
         return self.store.is_exist(key) == 1
 
-    def register(self, ptr, length):
+    def register_buffer(self, ptr, length):
         print("Registering KV cache: ptr=0x%x, length=%d", ptr, length)
         try:
             self.store.register_buffer(ptr, length)
@@ -80,7 +80,7 @@ class Mooncakestore():
 
         return ret
 
-    def get_batch(self, keys: list[str], addrs: list[list[int]], sizes: list[list[int]]):
+    def batch_get_into_layers(self, keys: list[str], addrs: list[list[int]], sizes: list[list[int]], flag: int = 0):
         try:
             res = self.store.batch_get_into_multi_buffers(keys, addrs, sizes, True)
             for value in res:
@@ -90,13 +90,12 @@ class Mooncakestore():
         except Exception as e:
             raise f"Failed to get key {keys}. {e}"
 
-    def put_batch(self, keys: list[str], addrs: list[list[int]], sizes: list[list[int]]):
+    def batch_put_from_layers(self, keys: list[str], addrs: list[list[int]], sizes: list[list[int]], flag: int = 0):
         try:
             config = ReplicateConfig()
             config.preferred_segment = self.local_hostname_
             config.prefer_alloc_in_same_node = True
-            res = self.store.batch_put_from_multi_buffers(
-                keys, addrs, sizes, config)
+            res = self.store.batch_put_from_multi_buffers(keys, addrs, sizes, config)
             for value in res:
                 if value < 0:
                     raise f"Failed to put key {keys},res:{res}"

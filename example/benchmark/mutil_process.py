@@ -18,7 +18,6 @@ import torch
 import torch_npu
 
 from status_file_manager import StatusFileManager
-from memcache_hybrid import DistributedObjectStore
 
 g_local_type = "npu"
 
@@ -124,6 +123,7 @@ def write_worker(*args):
         store = init_mooncake(device_id)
         print(f"==== Start to init mooncake device:{device_id}")
     else:
+        from memcache_hybrid import DistributedObjectStore
         store = DistributedObjectStore()
         print(f"==== Start to init memcache device:{device_id}")
         res = store.init(device_id)
@@ -212,6 +212,7 @@ def read_worker(*args):
         store = init_mooncake(device_id)
         print(f"==== Start to init mooncake device:{device_id}")
     else:
+        from memcache_hybrid import DistributedObjectStore
         store = DistributedObjectStore()
         print(f"==== Start to init memcache device:{device_id}")
         res = store.init(device_id)
