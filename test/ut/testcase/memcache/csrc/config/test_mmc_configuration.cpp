@@ -13,6 +13,7 @@
 
 #define private public
 #include "mmc_configuration.h"
+#include "mmc_def.h"
 #undef private
 
 using namespace testing;
@@ -94,6 +95,105 @@ TEST_F(TestMmcConfiguration, GetLogPathTest)
 
     logPath = configuration.GetLogPath("./");
     ASSERT_NE(logPath, "/");
+}
+
+TEST_F(TestMmcConfiguration, ValidateLocalServiceConfigTest)
+{
+    // 测试设备类型协议（1GB对齐）
+    mmc_local_service_config_t deviceConfig{};
+    deviceConfig.logLevel = INFO_LEVEL;
+    deviceConfig.accTlsConfig.tlsEnable = false;
+    deviceConfig.hcomTlsConfig.tlsEnable = false;
+    deviceConfig.configStoreTlsConfig.tlsEnable = false;
+    
+    // 测试device_rdma协议，1GB向上对齐
+    SafeCopy("device_rdma", deviceConfig.dataOpType, PROTOCOL_SIZE);
+    deviceConfig.localDRAMSize = 1536 * 1024 * 1024; // 1.5GB，应该对齐到2GB
+    deviceConfig.localMaxDRAMSize = 3584ULL * 1024 * 1024; // 3.5GB，应该对齐到4GB
+    deviceConfig.localHBMSize = 2048ULL * 1024 * 1024; // 2GB，已经对齐
+    deviceConfig.localMaxHBMSize = 4096ULL * 1024 * 1024; // 4GB，已经对齐
+    
+    auto ret = ClientConfig::ValidateLocalServiceConfig(deviceConfig);
+    ASSERT_EQ(ret, MMC_OK);
+    ASSERT_EQ(deviceConfig.localDRAMSize, 2ULL * 1024 * 1024 * 1024); // 2GB
+    ASSERT_EQ(deviceConfig.localMaxDRAMSize, 4ULL * 1024 * 1024 * 1024); // 4GB
+    ASSERT_EQ(deviceConfig.localHBMSize, 2ULL * 1024 * 1024 * 1024); // 2GB
+    ASSERT_EQ(deviceConfig.localMaxHBMSize, 4ULL * 1024 * 1024 * 1024); // 4GB
+    
+    // 测试device_sdma协议，1GB向上对齐
+    SafeCopy("device_sdma", deviceConfig.dataOpType, PROTOCOL_SIZE);
+    deviceConfig.localDRAMSize = 512ULL * 1024 * 1024; // 512MB，应该对齐到1GB
+    deviceConfig.localMaxDRAMSize = 1024ULL * 1024 * 1024; // 1GB，已经对齐
+    deviceConfig.localHBMSize = 128ULL * 1024 * 1024; // 128MB，应该对齐到1GB
+    deviceConfig.localMaxHBMSize = 2048ULL * 1024 * 1024; // 2GB，已经对齐
+    
+    ret = ClientConfig::ValidateLocalServiceConfig(deviceConfig);
+    ASSERT_EQ(ret, MMC_OK);
+    ASSERT_EQ(deviceConfig.localDRAMSize, 1ULL * 1024 * 1024 * 1024); // 1GB
+    ASSERT_EQ(deviceConfig.localMaxDRAMSize, 1ULL * 1024 * 1024 * 1024); // 1GB
+    ASSERT_EQ(deviceConfig.localHBMSize, 1ULL * 1024 * 1024 * 1024); // 1GB
+    ASSERT_EQ(deviceConfig.localMaxHBMSize, 2ULL * 1024 * 1024 * 1024); // 2GB
+    
+    // 测试主机类型协议（2MB对齐）
+    mmc_local_service_config_t hostConfig{};
+    hostConfig.logLevel = INFO_LEVEL;
+    hostConfig.accTlsConfig.tlsEnable = false;
+    hostConfig.hcomTlsConfig.tlsEnable = false;
+    hostConfig.configStoreTlsConfig.tlsEnable = false;
+    
+    // 测试host_rdma协议，2MB向上对齐
+    SafeCopy("host_rdma", hostConfig.dataOpType, PROTOCOL_SIZE);
+    hostConfig.localDRAMSize = 3ULL * 1024 * 1024; // 3MB，应该对齐到4MB
+    hostConfig.localMaxDRAMSize = 5ULL * 1024 * 1024; // 5MB，应该对齐到6MB
+    hostConfig.localHBMSize = 2ULL * 1024 * 1024; // 2MB，已经对齐
+    hostConfig.localMaxHBMSize = 4ULL * 1024 * 1024; // 4MB，已经对齐
+    
+    ret = ClientConfig::ValidateLocalServiceConfig(hostConfig);
+    ASSERT_EQ(ret, MMC_OK);
+    ASSERT_EQ(hostConfig.localDRAMSize, 4ULL * 1024 * 1024); // 4MB
+    ASSERT_EQ(hostConfig.localMaxDRAMSize, 6ULL * 1024 * 1024); // 6MB
+    ASSERT_EQ(hostConfig.localHBMSize, 2ULL * 1024 * 1024); // 2MB
+    ASSERT_EQ(hostConfig.localMaxHBMSize, 4ULL * 1024 * 1024); // 4MB
+    
+    // 测试host_tcp协议，2MB向上对齐
+    SafeCopy("host_tcp", hostConfig.dataOpType, PROTOCOL_SIZE);
+    hostConfig.localDRAMSize = 1ULL * 1024 * 1024; // 1MB，应该对齐到2MB
+    hostConfig.localMaxDRAMSize = 3ULL * 1024 * 1024; // 3MB，应该对齐到4MB
+    hostConfig.localHBMSize = 512ULL * 1024; // 512KB，应该对齐到2MB
+    hostConfig.localMaxHBMSize = 1536ULL * 1024; // 1.5MB，应该对齐到2MB
+    
+    ret = ClientConfig::ValidateLocalServiceConfig(hostConfig);
+    ASSERT_EQ(ret, MMC_OK);
+    ASSERT_EQ(hostConfig.localDRAMSize, 2ULL * 1024 * 1024); // 2MB
+    ASSERT_EQ(hostConfig.localMaxDRAMSize, 4ULL * 1024 * 1024); // 4MB
+    ASSERT_EQ(hostConfig.localHBMSize, 2ULL * 1024 * 1024); // 2MB
+    ASSERT_EQ(hostConfig.localMaxHBMSize, 2ULL * 1024 * 1024); // 2MB
+    
+    // 测试边界情况：配置为0
+    mmc_local_service_config_t zeroConfig{};
+    zeroConfig.logLevel = INFO_LEVEL;
+    zeroConfig.accTlsConfig.tlsEnable = false;
+    zeroConfig.hcomTlsConfig.tlsEnable = false;
+    zeroConfig.configStoreTlsConfig.tlsEnable = false;
+    SafeCopy("host_rdma", zeroConfig.dataOpType, PROTOCOL_SIZE);
+    zeroConfig.localDRAMSize = 0;
+    zeroConfig.localMaxDRAMSize = 0;
+    zeroConfig.localHBMSize = 0;
+    zeroConfig.localMaxHBMSize = 0;
+    
+    ret = ClientConfig::ValidateLocalServiceConfig(zeroConfig);
+    ASSERT_EQ(ret, MMC_INVALID_PARAM); // 两者都为0应该返回错误
+    
+    // 测试一个为0，一个不为0的情况
+    zeroConfig.localDRAMSize = 2ULL * 1024 * 1024; // 2MB
+    zeroConfig.localMaxDRAMSize = 2ULL * 1024 * 1024; // 2MB
+    zeroConfig.localHBMSize = 0;
+    zeroConfig.localMaxHBMSize = 0;
+    
+    ret = ClientConfig::ValidateLocalServiceConfig(zeroConfig);
+    ASSERT_EQ(ret, MMC_OK);
+    ASSERT_EQ(zeroConfig.localDRAMSize, 2ULL * 1024 * 1024); // 2MB
+    ASSERT_EQ(zeroConfig.localHBMSize, 0); // 保持为0
 }
 
 TEST_F(TestMmcConfiguration, SetTest)
