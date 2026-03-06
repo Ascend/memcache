@@ -161,7 +161,7 @@ cp -rf /usr/local/memcache_hybrid/latest/config/* /home/meta/config
    
    mmc-local.conf
    ```ini
-   ock.mmc.local_service.world_size = 16
+   ock.mmc.local_service.world_size = 256
    ```
 
 5. metaservice落盘日志路径推荐设置到有磁盘挂载的目录, 方便直接查看容器中服务的日志

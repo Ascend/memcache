@@ -47,7 +47,7 @@ constexpr auto OCK_MMC_CS_TLS_KEY_PASS_PATH = std::make_pair("ock.mmc.config_sto
 constexpr auto OCK_MMC_CS_TLS_PACKAGE_PATH = std::make_pair("ock.mmc.config_store.tls.package.path", "");
 constexpr auto OCK_MMC_CS_TLS_DECRYPTER_PATH = std::make_pair("ock.mmc.config_store.tls.decrypter.path", "");
 
-constexpr auto OKC_MMC_LOCAL_SERVICE_WORLD_SIZE = std::make_pair("ock.mmc.local_service.world_size", 16);
+constexpr auto OKC_MMC_LOCAL_SERVICE_WORLD_SIZE = std::make_pair("ock.mmc.local_service.world_size", 256);
 constexpr auto OKC_MMC_LOCAL_SERVICE_BM_IP_PORT =
     std::make_pair("ock.mmc.local_service.config_store_url", "tcp://127.0.0.1:6000");
 constexpr auto OKC_MMC_LOCAL_SERVICE_PROTOCOL = std::make_pair("ock.mmc.local_service.protocol", "host_rdma");
