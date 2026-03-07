@@ -105,6 +105,8 @@ FABRIC_PROJ_DIR=${PROJ_DIR}/3rdparty/memfabric_hybrid
 
 mkdir -p "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
 \cp -v "${PROJ_DIR}/output/memcache/lib64/libmf_memcache.so" "${PROJ_DIR}/src/memcache/python/memcache_hybrid/lib"
+mkdir -p "${PROJ_DIR}/src/memcache/python/memcache_hybrid/config"
+\cp -v "${PROJ_DIR}"/config/* "${PROJ_DIR}/src/memcache/python/memcache_hybrid/config"
 
 python_path_list=("/opt/buildtools/python-3.8.5" "/opt/buildtools/python-3.9.11" "/opt/buildtools/python-3.10.2" "/opt/buildtools/python-3.11.4")
 for python_path in "${python_path_list[@]}"
@@ -149,5 +151,6 @@ mkdir -p "${PROJ_DIR}/output/memcache/wheel"
 cp "${PROJ_DIR}"/src/memcache/python/dist/*.whl "${PROJ_DIR}/output/memcache/wheel"
 rm -rf "${PROJ_DIR}"/src/memcache/python/dist
 rm -rf "${PROJ_DIR}/src/memcache/python/memcache_hybrid/VERSION"
+rm -rf "${PROJ_DIR}/src/memcache/python/memcache_hybrid/config"
 
 cd ${CURRENT_DIR}

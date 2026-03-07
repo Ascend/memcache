@@ -122,7 +122,7 @@ setup(
     license="Mulan PSL v2",
     python_requires=">=3.7",
     zip_safe=False,
-    package_data={"memcache_hybrid": ["_pymmc.cpython*.so", "lib/**", "VERSION"]},
+    package_data={"memcache_hybrid": ["_pymmc.cpython*.so", "lib/**", "config/**", "VERSION"]},
     cmdclass={
         "build_ext": CMakeBuildExt,
         "bdist_wheel": BuildWheel,
