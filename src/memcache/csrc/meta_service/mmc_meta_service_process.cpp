@@ -12,12 +12,12 @@
 
 #include "mmc_meta_service_process.h"
 
-#include <condition_variable>
 #include <csignal>
+#include <chrono>
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
-#include <mutex>
+#include <thread>
 #include <unistd.h>
 
 #pragma GCC diagnostic push
@@ -39,10 +39,10 @@
 
 namespace ock {
 namespace mmc {
-static std::mutex g_exitMtx;
-static std::condition_variable g_exitCv;
-static bool g_processExit = false;
+static volatile sig_atomic_t g_processExitRequested = 0;
+static volatile sig_atomic_t g_receivedExitSignal = 0;
 const std::string PROTOCOL_HTTP = "http://";
+constexpr std::chrono::milliseconds PROCESS_EXIT_POLL_INTERVAL{100u};
 
 int MmcMetaServiceProcess::MainForExecutable()
 {
@@ -55,6 +55,9 @@ int MmcMetaServiceProcess::MainForExecutable()
 
 int MmcMetaServiceProcess::MainForPython()
 {
+    g_processExitRequested = 0;
+    g_receivedExitSignal = 0;
+
     if (CheckIsRunning()) {
         std::cerr << "Error, meta service is already running." << std::endl;
         return -1;
@@ -103,9 +106,11 @@ int MmcMetaServiceProcess::MainForPython()
     }
 
     MMC_AUDIT_LOG("Meta Service launched successfully");
+    while (g_processExitRequested == 0) {
+        std::this_thread::sleep_for(PROCESS_EXIT_POLL_INTERVAL);
+    }
 
-    std::unique_lock<std::mutex> lock(g_exitMtx);
-    g_exitCv.wait(lock, []() { return g_processExit; });
+    std::cout << "Received exit signal[" << g_receivedExitSignal << "]" << std::endl;
     Exit();
 
     MMC_AUDIT_LOG("Meta Service stopped");
@@ -179,26 +184,23 @@ int MmcMetaServiceProcess::LoadConfig()
 
 void MmcMetaServiceProcess::RegisterSignal()
 {
-    const sighandler_t oldIntHandler = signal(SIGINT, SignalInterruptHandler);
-    if (oldIntHandler == SIG_ERR) {
+    struct sigaction action {};
+    action.sa_handler = SignalInterruptHandler;
+    sigemptyset(&action.sa_mask);
+
+    if (sigaction(SIGINT, &action, nullptr) != 0) {
         std::cerr << "Register SIGINT handler failed" << std::endl;
     }
 
-    const sighandler_t oldTermHandler = signal(SIGTERM, SignalInterruptHandler);
-    if (oldTermHandler == SIG_ERR) {
+    if (sigaction(SIGTERM, &action, nullptr) != 0) {
         std::cerr << "Register SIGTERM handler failed" << std::endl;
     }
 }
 
 void MmcMetaServiceProcess::SignalInterruptHandler(const int signal)
 {
-    std::cout << "Received exit signal[" << signal << "]" << std::endl;
-
-    {
-        std::unique_lock<std::mutex> lock(g_exitMtx);
-        g_processExit = true;
-    }
-    g_exitCv.notify_all();
+    g_receivedExitSignal = signal;
+    g_processExitRequested = 1;
 }
 
 int MmcMetaServiceProcess::InitLogger(const mmc_meta_service_config_t &options)
