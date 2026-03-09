@@ -89,11 +89,11 @@ def init_mooncake(device_id: int):
         device=device_id,
         protocol='rdma',
         device_name='',
-        local_hostname='29.210.144.83',
+        local_hostname='192.168.1.2', # Change to your local IP
         metadata_server='P2PHANDSHAKE',
         global_segment_size=1024 * 1024 * 1024 * 64,
         local_buffer_size=128 * 1024 * 1024,
-        master_server_address='29.210.144.84:50051')
+        master_server_address='192.168.1.1:50051') # Change to your master server
     store = Mooncakestore(config)
     return store
 
