@@ -272,7 +272,7 @@ public:
                    VStrEnum::Create(OKC_MMC_LOCAL_SERVICE_PROTOCOL.first, LOCAL_SERVER_PROTOCAL_ENUM_STR),
                    1);                                                      // REQUIED
         AddStrConf(OKC_MMC_LOCAL_SERVICE_DRAM_SIZE, VNoCheck::Create(), 1); // REQUIED
-        AddStrConf(OKC_MMC_LOCAL_SERVICE_HBM_SIZE, VNoCheck::Create(), 1);  // REQUIED
+        AddStrConf(OKC_MMC_LOCAL_SERVICE_HBM_SIZE, VNoCheck::Create(), 0);
 
         // HCOM TLS config
         AddStrConf(OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL, VNoCheck::Create(), 0);
@@ -311,8 +311,8 @@ public:
         SafeCopy(GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL), config.bmHcomUrl, DISCOVERY_URL_SIZE);
         config.createId = 0;
         SafeCopy(GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_PROTOCOL), config.dataOpType, PROTOCOL_SIZE);
-        config.localDRAMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE.first, MEM_128MB_BYTES);
-        config.localHBMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first, MEM_2MB_BYTES);
+        config.localDRAMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE.first, GB_MEM_BYTES);
+        config.localHBMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first, 0);
         auto protocol = std::string(config.dataOpType);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         StringToUpper(logLevelStr);
