@@ -22,6 +22,8 @@ readonly TEST_REPORT_PATH="$OUTPUT_PATH/bin/gcover_report"
 readonly MOCKCPP_PATH="$PROJECT_FULL_PATH/test/3rdparty/mockcpp"
 readonly TEST_3RD_PATCH_PATH="$PROJECT_FULL_PATH/test/3rdparty/patch"
 readonly MOCK_CANN_PATH="$HYBM_LIB_PATH/cann"
+readonly MOCK_MMC_CANN_PATH="$BUILD_PATH/test/ut/mock/cann"
+readonly MOCK_MMC_DFC_PATH="$BUILD_PATH/test/ut/mock/dfc"
 
 TEST_FILTER="*$1*"
 cd ${PROJECT_FULL_PATH}
@@ -59,7 +61,7 @@ cmake -G "$GENERATOR" \
   -DBUILD_OPEN_ABI=ON \
   -S . -B ${BUILD_PATH}
 ${MAKE_CMD} install -j32 -C ${BUILD_PATH}
-export LD_LIBRARY_PATH=$MEMCACHE_LIB_PATH:$SMEM_LIB_PATH:$HYBM_LIB_PATH:$MOCK_CANN_PATH/driver/lib64:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$MEMCACHE_LIB_PATH:$SMEM_LIB_PATH:$HYBM_LIB_PATH:$MOCK_CANN_PATH/driver/lib64:$MOCK_MMC_DFC_PATH:$MOCK_MMC_CANN_PATH:$LD_LIBRARY_PATH
 export ASCEND_HOME_PATH=$MOCK_CANN_PATH
 export ASAN_OPTIONS="detect_stack_use_after_return=1:allow_user_poisoning=1:detect_leaks=0"
 

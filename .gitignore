@@ -1,11 +1,14 @@
 /.vscode/
 /cmake-build-*/
 /.idea/
+/.trae/
+/.codemate/
 /output/
 /build/
 /script/git_last_commit.txt
 package/*
 /src/memcache/python/memcache_hybrid/VERSION
+/src/memcache/python/build/
 .clion.source.upload.marker
 __pycache__
 

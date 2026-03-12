@@ -23,6 +23,7 @@
 #include "mmc_meta_backup_mgr.h"
 #include "mmc_meta_net_server.h"
 #include "mmc_thread_pool.h"
+#include "mmc_ubs_io_proxy.h"
 
 namespace ock {
 namespace mmc {
@@ -85,8 +86,10 @@ struct MmcMemMetaDesc {
 
 class MmcMetaManager : public MmcReferable {
 public:
-    explicit MmcMetaManager(uint64_t defaultTtl, uint16_t evictThresholdHigh, uint16_t evictThresholdLow)
-        : defaultTtlMs_(defaultTtl), evictThresholdHigh_(evictThresholdHigh), evictThresholdLow_(evictThresholdLow)
+    explicit MmcMetaManager(uint64_t defaultTtl, uint16_t evictThresholdHigh,
+                            uint16_t evictThresholdLow, bool ubsIoEnable)
+        : defaultTtlMs_(defaultTtl), evictThresholdHigh_(evictThresholdHigh),
+          evictThresholdLow_(evictThresholdLow), ubsIoEnable_(ubsIoEnable)
     {}
 
     ~MmcMetaManager() override
@@ -100,6 +103,10 @@ public:
         if (started_) {
             MMC_LOG_INFO("MmcMetaMgrProxyDefault already started");
             return MMC_OK;
+        }
+        if (ubsIoEnable_) {
+            ubsIoProxy_ = MmcUbsIoProxyFactory::GetInstance("ubsIoProxyDefault");
+            MMC_ASSERT_RETURN(ubsIoProxy_ != nullptr, MMC_MALLOC_FAILED);
         }
         globalAllocator_ = MmcMakeRef<MmcGlobalAllocator>();
         MMC_ASSERT_RETURN(globalAllocator_ != nullptr, MMC_MALLOC_FAILED);
@@ -118,6 +125,9 @@ public:
         std::lock_guard<std::mutex> guard(mutex_);
         if (!started_) {
             return;
+        }
+        if (ubsIoEnable_ && ubsIoProxy_ != nullptr) {
+            ubsIoProxy_ = nullptr;
         }
         threadPool_->Destroy();
         started_ = false;
@@ -224,7 +234,8 @@ public:
     }
 
 private:
-    Result CopyBlob(const MmcMemObjMetaPtr &objMeta, const MmcMemBlobDesc &srcBlob, const MmcLocation &dstLoc);
+    Result CopyBlob(const std::string& key, const MmcMemObjMetaPtr &objMeta,
+                    const MmcMemBlobDesc &srcBlob, const MmcLocation &dstLoc);
 
     Result RebuildMeta(std::map<std::string, MmcMemBlobDesc> &blobMap);
 
@@ -235,16 +246,20 @@ private:
 private:
     std::mutex mutex_;
     bool started_ = false;
+    bool ubsIoEnable_ = false;
     std::atomic<bool> evictCheck_{false}; /* if the worker started */
 
     MmcRef<MmcMetaContainer<std::string, MmcMemObjMetaPtr>> metaContainer_;
     MmcGlobalAllocatorPtr globalAllocator_;
+    // std::unordered_set<std::string> evictMap_;
+    // ReadWriteLock evictMapLock_;
 
     uint64_t defaultTtlMs_; /* default ttl in milliseconds */
     uint16_t evictThresholdHigh_;
     uint16_t evictThresholdLow_;
     MetaNetServerPtr metaNetServer_;
     MmcThreadPoolPtr threadPool_;
+    MmcUbsIoProxyPtr ubsIoProxy_;
 };
 using MmcMetaManagerPtr = MmcRef<MmcMetaManager>;
 } // namespace mmc

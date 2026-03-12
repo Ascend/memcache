@@ -118,7 +118,7 @@ Result MetaNetClient::HandleBlobCopy(const NetContextPtr &context)
     Response resp;
     context->GetRequest<BlobCopyRequest>(req);
     if (blobCopyHandler_ != nullptr) {
-        resp.ret_ = blobCopyHandler_(req.srcBlob_, req.dstBlob_);
+        resp.ret_ = blobCopyHandler_(req.key_, req.srcBlob_, req.dstBlob_);
         if (resp.ret_ != MMC_OK) {
             MMC_LOG_ERROR("blobCopy failed, ret:" << resp.ret_);
         }

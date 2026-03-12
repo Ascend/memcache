@@ -16,6 +16,7 @@
 #include "mmc_meta_net_client.h"
 #include "mmc_def.h"
 #include "mmc_bm_proxy.h"
+#include "mmc_ubs_io_proxy.h"
 #include "mmc_thread_pool.h"
 #include "mmc_msg_client_meta.h"
 
@@ -129,14 +130,38 @@ private:
     void AsyncUpdateState(BatchUpdateRequest &updateRequest);
     std::future<int32_t> SubmitPutTask(BatchCopyDesc &copyDesc, MediaType mediaType, bool asyncExec);
     std::future<int32_t> SubmitGetTask(BatchCopyDesc &copyDesc, MediaType mediaType, bool asyncExec);
+    
+    // UBS IO相关数据结构
+    struct UbsIoBatchGetData {
+        const std::vector<std::string> &keys;
+        const std::vector<MmcBufferArray> &bufArrs;
+        std::vector<int> &batchResult;
+        std::vector<std::string> &ubsIoKeys;
+        std::vector<void*> &bufs;
+        std::vector<std::string> &fallbackKeys;
+        std::vector<mmc_buffer> &fallbackBuffers;
+    };
+    
+    struct UbsIoBatchGetFreeData {
+        const std::vector<std::string> ubsIoKeys;
+        const std::vector<void*> bufs;
+        const std::vector<std::string> fallbackKeys;
+        const std::vector<mmc_buffer> fallbackBuffers;
+        uint64_t operateId;
+    };
+    
+    void ProcessUbsIoBatchGet(const UbsIoBatchGetData &data);
+    void ProcessUbsIoBatchGetFree(const UbsIoBatchGetFreeData &data);
 
 private:
     static std::mutex gClientHandlerMtx;
     static MmcClientDefault *gClientHandler;
     std::mutex mutex_;
     bool started_ = false;
+    bool ubsIoEnable_ = false;
     MetaNetClientPtr metaNetClient_;
     MmcBmProxyPtr bmProxy_;
+    MmcUbsIoProxyPtr ubsIoProxy_;
     std::string name_;
     uint32_t rankId_{UINT32_MAX};
     uint32_t rpcRetryTimeOut_ = 0;

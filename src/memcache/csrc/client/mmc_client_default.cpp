@@ -16,6 +16,7 @@
 #include "mmc_bm_proxy.h"
 #include "mmc_montotonic.h"
 #include "mmc_ptracer.h"
+#include "dl_acl_api.h"
 
 namespace ock {
 namespace mmc {
@@ -40,6 +41,21 @@ Result MmcClientDefault::Start(const mmc_client_config_t &config)
     bmProxy_ = MmcBmProxyFactory::GetInstance("bmProxyDefault");
     MMC_ASSERT_RETURN(bmProxy_ != nullptr, MMC_MALLOC_FAILED);
     rankId_ = bmProxy_->RankId();
+
+    ubsIoEnable_ = config.ubsIoEnable;
+    if (ubsIoEnable_) {
+        ubsIoProxy_ = MmcUbsIoProxyFactory::GetInstance("ubsIoProxyDefault");
+        MMC_ASSERT_RETURN(ubsIoProxy_ != nullptr, MMC_MALLOC_FAILED);
+
+        char *path = std::getenv("ASCEND_HOME_PATH");
+        MMC_ASSERT_RETURN(path != nullptr, MMC_ERROR);
+
+        std::string libPath = std::string(path).append("/lib64");
+        auto result = DlAclApi::LoadLibrary(libPath);
+        if (result != MMC_OK) {
+            return result;
+        }
+    }
 
     threadPool_ = MmcMakeRef<MmcThreadPool>("client_pool", 1);
     MMC_ASSERT_RETURN(threadPool_ != nullptr, MMC_MALLOC_FAILED);
@@ -292,9 +308,43 @@ Result MmcClientDefault::Get(const std::string &key, const MmcBufferArray &bufAr
     MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, response, rpcRetryTimeOut_),
                      "client " << name_ << " get " << key << " failed");
     if (response.numBlobs_ == 0 || response.blobs_.empty()) {
-        MMC_LOG_ERROR("client " << name_ << " get " << key
-                                << " failed, numblob is:" << static_cast<uint64_t>(response.numBlobs_));
-        return MMC_ERROR;
+        if (!ubsIoEnable_) {
+            MMC_LOG_ERROR("client " << name_ << " get " << key << " failed, numblob is:"
+                        << static_cast<uint64_t>(response.numBlobs_));
+            return MMC_ERROR;
+        } else {
+            const auto dataPtr = new (std::nothrow) char[bufArr.TotalSize()];
+            if (dataPtr == nullptr) {
+                MMC_LOG_ERROR("client " << name_ << " get " << key << " failed, Failed to allocate dynamic memory "
+                                << "allocate size:" << bufArr.TotalSize());
+                return {};
+            }
+            mmc_buffer buffer = {
+                .addr = reinterpret_cast<uintptr_t>(dataPtr),
+                .type = MEDIA_DRAM,
+                .offset = 0,
+                .len = bufArr.TotalSize(),
+            };
+            Result ret = ubsIoProxy_->Get(key, dataPtr, bufArr.TotalSize());
+            if (ret != MMC_OK) {
+                delete[] dataPtr;
+                return MMC_ERROR;
+            }
+            mmc_put_options options{MEDIA_DRAM, NATIVE_AFFINITY, 1, {}};
+            std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
+            ret = Put(key.c_str(), &buffer, options, 0);
+            delete[] dataPtr;
+            if (ret != MMC_OK) {
+                return ret;
+            }
+            operateId = GenerateOperateId(rankId_);
+            request.operateId_ = operateId;
+            MMC_RETURN_ERROR(metaNetClient_->SyncCall(request, response, rpcRetryTimeOut_),
+                             "client " << name_ << " get " << key << " failed");
+            if (response.numBlobs_ == 0 || response.blobs_.empty()) {
+                return MMC_ERROR;
+            }
+        }
     }
     auto &blob = response.blobs_[0];
     auto ret = bmProxy_->BatchGet(bufArr, blob);
@@ -347,7 +397,7 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string> &keys, const st
         return MMC_INVALID_PARAM;
     }
     // get meta
-    batchResult.resize(keys.size(), MMC_ERROR);
+    batchResult.assign(keys.size(), MMC_ERROR);
     const uint64_t operateId = GenerateOperateId(rankId_);
     BatchGetRequest request{keys, rankId_, operateId};
     BatchAllocResponse response;
@@ -369,8 +419,10 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string> &keys, const st
         const auto &blobs = response.blobs_[i];
         uint8_t numBlobs = response.numBlobs_[i];
         if (numBlobs <= 0 || blobs.empty() || blobs.size() != numBlobs) {
-            MMC_LOG_ERROR("client " << name_ << " batch get failed for key " << keys[i]
-                                    << ", blob:" << std::to_string(numBlobs) << ", size:" << blobs.size());
+            if (!ubsIoEnable_) {
+                MMC_LOG_ERROR("client " << name_ << " batch get failed for key " << keys[i]
+                                        << ", blob:" << std::to_string(numBlobs) << ", size:" << blobs.size());
+            }
             continue;
         }
         if (bufArr.TotalSize() != blobs[0].size_) {
@@ -405,6 +457,23 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string> &keys, const st
         futures.push_back(std::make_tuple(startKeyIndex, (keys.size() - 1), std::move(future)));
     }
 
+    std::vector<std::string> ubsIoKeys;
+    std::vector<void*> bufs;
+    std::vector<std::string> fallbackKeys;
+    std::vector<mmc_buffer> fallbackBuffers;
+    if (ubsIoEnable_) {
+        UbsIoBatchGetData batchGetData{
+            keys,
+            bufArrs,
+            batchResult,
+            ubsIoKeys,
+            bufs,
+            fallbackKeys,
+            fallbackBuffers
+        };
+        ProcessUbsIoBatchGet(batchGetData);
+    }
+
     TP_TRACE_BEGIN(TP_MMC_LOCAL_GET_WAIT_FUTURE);
     WaitFeatures(futures, batchResult);
     TP_TRACE_END(TP_MMC_LOCAL_GET_WAIT_FUTURE, 0);
@@ -420,6 +489,18 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string> &keys, const st
         }
     }
     AsyncUpdateState(updateRequest);
+
+    if (ubsIoEnable_ && !ubsIoKeys.empty()) {
+        UbsIoBatchGetFreeData batchGetFreeData{
+            ubsIoKeys,
+            bufs,
+            fallbackKeys,
+            fallbackBuffers,
+            operateId
+        };
+        ProcessUbsIoBatchGetFree(batchGetFreeData);
+    }
+    
     return MMC_OK;
 }
 
@@ -598,6 +679,141 @@ void MmcClientDefault::WaitFeatures(std::vector<std::tuple<uint32_t, uint32_t, s
     }
 }
 
+void MmcClientDefault::ProcessUbsIoBatchGet(const UbsIoBatchGetData &data)
+{
+    std::vector<size_t> ubsIoIndices;
+    data.ubsIoKeys.reserve(data.keys.size());
+    ubsIoIndices.reserve(data.keys.size());
+    for (size_t i = 0; i < data.keys.size(); ++i) {
+        if (data.batchResult[i] == MMC_ERROR) {
+            data.ubsIoKeys.emplace_back(data.keys[i]);
+            ubsIoIndices.emplace_back(i);
+        }
+    }
+    if (data.ubsIoKeys.empty()) {
+        return;
+    }
+    TP_TRACE_BEGIN(TP_MMC_CLIENT_UBS_IO_BATCH_GET);
+    std::vector<size_t> ubsIoLengths;
+    std::vector<int> ubsIoResults(data.ubsIoKeys.size(), 0);
+    ubsIoLengths.reserve(data.ubsIoKeys.size());
+    for (size_t idx : ubsIoIndices) {
+        size_t totalSize = data.bufArrs[idx].TotalSize();
+        if (totalSize == 0) {
+            ubsIoLengths.emplace_back(0);
+            continue;
+        }
+        ubsIoLengths.emplace_back(totalSize);
+    }
+    data.bufs.resize(data.ubsIoKeys.size());
+
+    TP_TRACE_BEGIN(TP_MMC_CLIENT_UBS_IO_BATCH_GET_1);
+    Result ubsIoRet = ubsIoProxy_->BatchGet(data.ubsIoKeys, data.bufs.data(), ubsIoLengths, ubsIoResults);
+    TP_TRACE_END(TP_MMC_CLIENT_UBS_IO_BATCH_GET_1, MMC_OK);
+    if (ubsIoRet != MMC_OK) {
+        MMC_LOG_ERROR("ubsIo batch get failed, ret: " << ubsIoRet);
+        return;
+    }
+
+    data.fallbackKeys.reserve(data.ubsIoKeys.size());
+    data.fallbackBuffers.reserve(data.ubsIoKeys.size());
+
+    TP_TRACE_BEGIN(TP_MMC_CLIENT_UBS_IO_BATCH_GET_2);
+    std::vector<std::pair<uint32_t, std::future<int32_t>>> aclFutures;
+    for (size_t i = 0; i < data.ubsIoKeys.size(); ++i) {
+        size_t originIndex = ubsIoIndices[i];
+        if (ubsIoResults[i] != 0) {
+            MMC_LOG_ERROR("ubsIo batch get failed for key " << data.ubsIoKeys[i] << ", result: "
+                                                            << ubsIoResults[i]);
+            data.batchResult[originIndex] = MMC_ERROR;
+            continue;
+        }
+        if (ubsIoLengths[i] == 0 || data.bufs[i] == nullptr) {
+            MMC_LOG_ERROR("ubsIo batch get returned invalid length for key " << data.ubsIoKeys[i]);
+            data.batchResult[originIndex] = MMC_ERROR;
+            continue;
+        }
+
+        auto future = readThreadPool_->Enqueue(
+            [&](MmcBufferArray bufArr, void* bufAddr) -> int32_t {
+                int32_t copyRet = 0;
+                uint64_t offset = 0;
+                for (auto &buf : bufArr.Buffers()) {
+                    auto src = reinterpret_cast<void *>((uint64_t)bufAddr + offset);
+                    auto dst = reinterpret_cast<void *>(buf.addr + buf.offset);
+                    auto size = buf.len;
+                    auto ret = DlAclApi::AclrtMemcpy(dst, size, src, size, 1);
+                    if (ret != 0) {
+                        copyRet = ret;
+                        break;
+                    }
+                    offset += buf.len;
+                }
+                return copyRet;
+            },
+            data.bufArrs[originIndex], data.bufs[i]);
+        if (future.valid()) {
+            aclFutures.push_back(std::make_pair(originIndex, std::move(future)));
+            data.batchResult[originIndex] = MMC_OK;
+        } else {
+            bool copyRet = true;
+            uint64_t offset = 0;
+            for (auto &buf : data.bufArrs[originIndex].Buffers()) {
+                auto src = reinterpret_cast<void *>((uint64_t)data.bufs[i] + offset);
+                auto dst = reinterpret_cast<void *>(buf.addr + buf.offset);
+                auto size = buf.len;
+                auto ret = DlAclApi::AclrtMemcpy(dst, size, src, size, 1);
+                if (ret != 0) {
+                    copyRet = false;
+                    break;
+                }
+                offset += buf.len;
+            }
+            data.batchResult[originIndex] = copyRet ? MMC_OK : MMC_ERROR;
+        }
+
+        mmc_buffer buffer = {
+            .addr = reinterpret_cast<uintptr_t>(data.bufs[i]),
+            .type = MEDIA_DRAM,
+            .offset = 0,
+            .len = ubsIoLengths[i],
+        };
+        data.fallbackKeys.emplace_back(data.ubsIoKeys[i]);
+        data.fallbackBuffers.emplace_back(buffer);
+    }
+
+    for (auto &future : aclFutures) {
+        auto res = future.second.get();
+        if (res != 0) {
+            MMC_LOG_ERROR("batch get h2d key " << data.keys[future.first] << " failed, error code " << res);
+            data.batchResult[future.first] = MMC_ERROR;
+        }
+    }
+    TP_TRACE_END(TP_MMC_CLIENT_UBS_IO_BATCH_GET_2, MMC_OK);
+
+    TP_TRACE_END(TP_MMC_CLIENT_UBS_IO_BATCH_GET, MMC_OK);
+}
+
+void MmcClientDefault::ProcessUbsIoBatchGetFree(const UbsIoBatchGetFreeData &data)
+{
+    TP_TRACE_BEGIN(TP_MMC_CLIENT_UBS_IO_BATCH_GET_3);
+    size_t keysCount = data.ubsIoKeys.size();
+    auto future = writeThreadPool_->Enqueue(
+        [this, data, keysCount]() -> int32_t {
+            if (!data.fallbackKeys.empty()) {
+                mmc_put_options options{MEDIA_DRAM, NATIVE_AFFINITY, 1, {}};
+                std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
+                std::vector<int> fallbackPutResults(data.fallbackKeys.size(), MMC_ERROR);
+                BatchPut(data.fallbackKeys, data.fallbackBuffers, options, 0, fallbackPutResults);
+            }
+            return ubsIoProxy_->BatchGetFree(const_cast<void **>(data.bufs.data()), keysCount);
+        });
+    if (!future.valid()) {
+        ubsIoProxy_->BatchGetFree(const_cast<void **>(data.bufs.data()), data.ubsIoKeys.size());
+    }
+    TP_TRACE_END(TP_MMC_CLIENT_UBS_IO_BATCH_GET_3, MMC_OK);
+}
+
 void MmcClientDefault::SyncUpdateState(BatchUpdateRequest &updateRequest)
 {
     TP_TRACE_BEGIN(TP_MMC_LOCAL_BATCH_UPDATE);
@@ -609,7 +825,7 @@ void MmcClientDefault::SyncUpdateState(BatchUpdateRequest &updateRequest)
                                 << updateRequest.keys_.size() << ", ret size:" << updateResponse.results_.size());
     } else {
         for (size_t i = 0; i < updateRequest.keys_.size() && i < updateRequest.keys_.size(); ++i) {
-            if (updateResponse.results_[i] != MMC_OK) {
+            if (updateResponse.results_[i] != MMC_OK && !ubsIoEnable_) {
                 MMC_LOG_ERROR("client " << name_ << " batch put update for key " << updateRequest.keys_[i]
                                         << " failed:" << updateResponse.results_[i]);
             }

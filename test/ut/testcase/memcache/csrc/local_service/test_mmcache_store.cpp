@@ -102,6 +102,8 @@ static int GenerateLocalConf(std::string confPath)
     outFile << "ock.mmc.client.read_thread_pool.size = 32" << std::endl;
     outFile << "ock.mmc.client.write_thread_pool.size = 4" << std::endl;
 
+    outFile << "ock.mmc.ubs_io.enable = false" << std::endl;
+
     outFile.close();
     return 0;
 }
@@ -158,6 +160,7 @@ TEST_F(TestMmcacheStore, Init)
     metaServiceConfig.evictThresholdHigh = 80;
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = false;
+    metaServiceConfig.ubsIoEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
@@ -214,6 +217,7 @@ static mmc_meta_service_t StartMetaService()
     metaServiceConfig.evictThresholdHigh = 80;
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = false;
+    metaServiceConfig.ubsIoEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);

@@ -17,6 +17,7 @@
 #include "mmc_meta_manager.h"
 #include "mmc_msg_client_meta.h"
 #include "mmc_meta_net_server.h"
+#include "mmc_ubs_io_proxy.h"
 
 namespace ock {
 namespace mmc {
@@ -27,20 +28,26 @@ public:
 
     ~MmcMetaMgrProxy() override = default;
 
-    Result Start(uint64_t defaultTtl, uint16_t evictThresholdHigh, uint16_t evictThresholdLow)
+    Result Start(uint64_t defaultTtl, uint16_t evictThresholdHigh, uint16_t evictThresholdLow, bool ubsIoEnable)
     {
         std::lock_guard<std::mutex> guard(mutex_);
         if (started_) {
             MMC_LOG_INFO("MmcMetaMgrProxyDefault already started");
             return MMC_OK;
         }
-        metaMangerPtr_ = MmcMakeRef<MmcMetaManager>(defaultTtl, evictThresholdHigh, evictThresholdLow);
+        metaMangerPtr_ = MmcMakeRef<MmcMetaManager>(defaultTtl, evictThresholdHigh, evictThresholdLow, ubsIoEnable);
         if (metaMangerPtr_ == nullptr) {
             MMC_LOG_ERROR("new object failed, probably out of memory");
             return MMC_NEW_OBJECT_FAILED;
         }
+        if (ubsIoEnable) {
+            MmcUbsIoProxyPtr ubsIoProxy = MmcUbsIoProxyFactory::GetInstance("ubsIoProxyDefault");
+            MMC_ASSERT_RETURN(ubsIoProxy != nullptr, MMC_MALLOC_FAILED);
+            ubsIoProxy_ = ubsIoProxy;
+        }
         metaMangerPtr_->SetMetaNetServer(netServerPtr_);
         MMC_RETURN_ERROR(metaMangerPtr_->Start(), "MmcMetaManager start failed");
+        ubsIoEnable_ = ubsIoEnable;
         started_ = true;
         return MMC_OK;
     }
@@ -70,7 +77,14 @@ public:
 
     Result Remove(const RemoveRequest &req, Response &resp)
     {
-        return resp.ret_ = metaMangerPtr_->Remove(req.key_);
+        resp.ret_ = metaMangerPtr_->Remove(req.key_);
+        if (ubsIoEnable_) {
+            Result ret = ubsIoProxy_->Delete(req.key_);
+            if (resp.ret_ != MMC_OK) {
+                resp.ret_ = ret;
+            }
+        }
+        return resp.ret_;
     }
 
     Result BatchRemove(const BatchRemoveRequest &req, BatchRemoveResponse &resp)
@@ -78,6 +92,19 @@ public:
         resp.results_.reserve(req.keys_.size());
         for (const std::string &key : req.keys_) {
             resp.results_.emplace_back(metaMangerPtr_->Remove(key));
+        }
+        if (ubsIoEnable_) {
+            std::vector<int> ubsIoResults(req.keys_.size(), MMC_OK);
+            Result ret = ubsIoProxy_->BatchDelete(req.keys_, ubsIoResults);
+            if (ret != 0) {
+                MMC_LOG_ERROR("ubsIo batch delete failed, ret: " << ret);
+                return MMC_ERROR;
+            }
+            for (size_t i = 0; i < req.keys_.size(); ++i) {
+                if (resp.results_[i] != MMC_OK) {
+                    resp.results_[i] = ubsIoResults[i];
+                }
+            }
         }
         return MMC_OK;
     }
@@ -100,14 +127,35 @@ public:
 
     Result ExistKey(const IsExistRequest &req, IsExistResponse &resp)
     {
-        return resp.ret_ = metaMangerPtr_->ExistKey(req.key_);
+        resp.ret_ = metaMangerPtr_->ExistKey(req.key_);
+        if (resp.ret_ == MMC_UNMATCHED_KEY && ubsIoEnable_) {
+            resp.ret_ = ubsIoProxy_->Exist(req.key_) == 1 ? MMC_OK : MMC_UNMATCHED_KEY;
+        }
+        return resp.ret_;
     }
 
     Result BatchExistKey(const BatchIsExistRequest &req, BatchIsExistResponse &resp);
 
     Result Query(const QueryRequest &req, QueryResponse &resp)
     {
-        return metaMangerPtr_->Query(req.key_, resp.queryInfo_);
+        Result ret = metaMangerPtr_->Query(req.key_, resp.queryInfo_);
+        if (ret != MMC_OK && ubsIoEnable_) {
+            size_t length = 0;
+            ret = ubsIoProxy_->GetLength(req.key_, length);
+            if (ret == MMC_OK) {
+                resp.queryInfo_.valid_ = true;
+                resp.queryInfo_.size_ = length;
+                resp.queryInfo_.numBlobs_ = 1;
+                resp.queryInfo_.blobRanks_[0] = UINT32_MAX;
+                resp.queryInfo_.blobTypes_[0] = MEDIA_SSD;
+                resp.queryInfo_.prot_ = 0;
+                return MMC_OK;
+            } else {
+                MMC_LOG_WARN("ubsIo get length failed, ret: " << ret);
+                return MMC_UNMATCHED_KEY;
+            }
+        }
+        return ret;
     }
 
     Result BatchQuery(const BatchQueryRequest &req, BatchQueryResponse &resp)
@@ -116,6 +164,36 @@ public:
             MemObjQueryInfo queryInfo;
             metaMangerPtr_->Query(key, queryInfo);
             resp.batchQueryInfos_.push_back(queryInfo);
+        }
+        if (ubsIoEnable_) {
+            std::vector<std::string> ubsIoKeys;
+            std::vector<size_t> ubsIoIndices;
+            ubsIoKeys.reserve(req.keys_.size());
+            ubsIoIndices.reserve(req.keys_.size());
+            for (size_t i = 0; i < req.keys_.size(); ++i) {
+                if (!resp.batchQueryInfos_[i].valid_) {
+                    ubsIoKeys.emplace_back(req.keys_[i]);
+                    ubsIoIndices.emplace_back(i);
+                }
+            }
+            if (!ubsIoKeys.empty()) {
+                std::vector<size_t> ubsIoLengths(ubsIoKeys.size(), 0);
+                std::vector<int> ubsIoResults(ubsIoKeys.size(), MMC_OK);
+                Result ret = ubsIoProxy_->BatchGetLength(ubsIoKeys, ubsIoLengths, ubsIoResults);
+                if (ret != 0) {
+                    MMC_LOG_ERROR("ubsIo batch get length failed, ret: " << ret);
+                    return MMC_ERROR;
+                }
+                for (size_t idx = 0; idx < ubsIoIndices.size(); ++idx) {
+                    const size_t resultIndex = ubsIoIndices[idx];
+                    resp.batchQueryInfos_[resultIndex].valid_ = true;
+                    resp.batchQueryInfos_[resultIndex].size_ = ubsIoLengths[idx];
+                    resp.batchQueryInfos_[resultIndex].numBlobs_ = 1;
+                    resp.batchQueryInfos_[resultIndex].blobRanks_[0] = UINT32_MAX;
+                    resp.batchQueryInfos_[resultIndex].blobTypes_[0] = MEDIA_SSD;
+                    resp.batchQueryInfos_[resultIndex].prot_ = 0;
+                }
+            }
         }
         return MMC_OK;
     }
@@ -128,8 +206,10 @@ public:
 private:
     std::mutex mutex_;
     bool started_ = false;
+    bool ubsIoEnable_ = false;
     MmcMetaManagerPtr metaMangerPtr_;
     MetaNetServerPtr netServerPtr_;
+    MmcUbsIoProxyPtr ubsIoProxy_;
     const int32_t timeOut_ = 60;
 };
 using MmcMetaMgrProxyPtr = MmcRef<MmcMetaMgrProxy>;

@@ -57,6 +57,7 @@ typedef struct {
     uint16_t evictThresholdLow;
     mmc_tls_config accTlsConfig;
     mmc_tls_config configStoreTlsConfig;
+    bool ubsIoEnable;
 } mmc_meta_service_config_t;
 
 typedef struct {
@@ -79,6 +80,7 @@ typedef struct {
     ExternalLog logFunc;
     mmc_tls_config hcomTlsConfig;
     mmc_tls_config configStoreTlsConfig;
+    bool ubsIoEnable;
 } mmc_local_service_config_t;
 
 typedef struct {
@@ -93,6 +95,7 @@ typedef struct {
     int32_t logLevel;
     ExternalLog logFunc;
     mmc_tls_config tlsConfig;
+    bool ubsIoEnable;
 } mmc_client_config_t;
 
 typedef struct {

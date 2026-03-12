@@ -836,6 +836,11 @@ mmc_buffer MmcacheStore::Get(const std::string &key)
         return {};
     }
 
+    if (!info.valid) {
+        MMC_LOG_ERROR("Failed to query key " << key << ", info invalid");
+        return {};
+    }
+
     const auto dataPtr = new (std::nothrow) char[info.size];
     if (dataPtr == nullptr) {
         MMC_LOG_ERROR("Failed to allocate dynamic memory. ");

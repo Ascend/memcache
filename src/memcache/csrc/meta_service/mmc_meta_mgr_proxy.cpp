@@ -153,6 +153,33 @@ Result MmcMetaMgrProxy::BatchExistKey(const BatchIsExistRequest &req, BatchIsExi
         }
         resp.results_.emplace_back(ret);
     }
+
+    if (ubsIoEnable_) {
+        std::vector<std::string> ubsIoKeys;
+        std::vector<size_t> ubsIoIndices;
+        ubsIoKeys.reserve(req.keys_.size());
+        ubsIoIndices.reserve(req.keys_.size());
+        for (size_t i = 0; i < req.keys_.size(); ++i) {
+            if (resp.results_[i] == MMC_UNMATCHED_KEY) {
+                ubsIoKeys.emplace_back(req.keys_[i]);
+                ubsIoIndices.emplace_back(i);
+            }
+        }
+        if (!ubsIoKeys.empty()) {
+            bool *ubsIoResults = new bool[ubsIoKeys.size()];
+            Result ret = ubsIoProxy_->BatchExist(ubsIoKeys, ubsIoResults);
+            if (ret != 0) {
+                MMC_LOG_ERROR("ubsIo batch exist failed, ret: " << ret);
+                delete [] ubsIoResults;
+                return MMC_ERROR;
+            }
+            for (size_t idx = 0; idx < ubsIoIndices.size(); ++idx) {
+                const size_t resultIndex = ubsIoIndices[idx];
+                resp.results_[resultIndex] = ubsIoResults[idx] ? MMC_OK : MMC_UNMATCHED_KEY;
+            }
+            delete [] ubsIoResults;
+        }
+    }
     return MMC_OK;
 }
 

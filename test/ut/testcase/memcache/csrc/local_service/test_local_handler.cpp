@@ -48,7 +48,7 @@ TEST_F(TestLocalHandler, Init)
     MmcLocalMemlInitInfo locInfo{100, 1000};
 
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60, false);
     metaMng->Start();
     std::map<std::string, MmcMemBlobDesc> blobMap;
     metaMng->Mount(loc, locInfo, blobMap);
@@ -62,7 +62,7 @@ TEST_F(TestLocalHandler, Alloc)
     MmcLocalMemlInitInfo locInfo{0, 1000000};
 
     uint64_t defaultTtl = 2000;
-    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60);
+    MmcRef<MmcMetaManager> metaMng = MmcMakeRef<MmcMetaManager>(defaultTtl, 70, 60, false);
     metaMng->Start();
     std::map<std::string, MmcMemBlobDesc> blobMap;
     metaMng->Mount(loc, locInfo, blobMap);

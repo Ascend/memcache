@@ -167,7 +167,7 @@ public:
     {
         ock::mf::ReadGuard lockGuard(metaLock_);
         auto iter = metaMap_.find(key);
-        if (iter != metaMap_.end()) {
+        if (iter != metaMap_.end() && iter->second.mediaType_ != MEDIA_NONE) {
             UpdateLRU(iter->first, iter->second);
             return MMC_OK;
         }

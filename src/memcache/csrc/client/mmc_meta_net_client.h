@@ -31,7 +31,8 @@ constexpr int RETRY_LOG_INTERVAL = 10;
 using ClientRetryHandler = std::function<int32_t(void)>;
 using ClientReplicateHandler = std::function<int32_t(
     const std::vector<uint32_t> &ops, const std::vector<std::string> &keys, const std::vector<MmcMemBlobDesc> &blobs)>;
-using ClientBlobCopyHandler = std::function<int32_t(const MmcMemBlobDesc &src, const MmcMemBlobDesc &dst)>;
+using ClientBlobCopyHandler = std::function<int32_t(const std::string& key, const MmcMemBlobDesc &src,
+                                                    const MmcMemBlobDesc &dst)>;
 class MetaNetClient : public MmcReferable {
 public:
     explicit MetaNetClient(const std::string &serverUrl, const std::string &inputName = "");

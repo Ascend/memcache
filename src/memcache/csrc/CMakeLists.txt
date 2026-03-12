@@ -28,6 +28,7 @@ include_directories(
         ${PROJECT_MMC_SRC_BASE}/csrc/net/acc_links_impl
         ${PROJECT_MMC_SRC_BASE}/csrc/proto
         ${PROJECT_MMC_SRC_BASE}/csrc/under_api/mf_smem
+        ${PROJECT_MMC_SRC_BASE}/csrc/under_api/ubs_io
         ${PROJECT_SMEM_SRC_BASE}/include/host
         ${PROJECT_SMEM_SRC_BASE}/csrc/common
         ${PROJECT_SMEM_SRC_BASE}/csrc/config_store
@@ -63,6 +64,7 @@ set(MMC_SRC_META_SERVICE "")
 set(MMC_SRC_NET "")
 set(MMC_SRC_PROTO "")
 set(MMC_SRC_UNDER_API_MF_SMEM "")
+set(MMC_SRC_UNDER_API_UBS_IO "")
 
 ## add files into src variables
 aux_source_directory(common MMC_SRC_COMMON)
@@ -77,6 +79,7 @@ aux_source_directory(log MMC_SRC_LOG)
 aux_source_directory(net/acc_links_impl MMC_SRC_NET_ACC)
 aux_source_directory(proto MMC_SRC_PROTO)
 aux_source_directory(under_api/mf_smem MMC_SRC_UNDER_API_MF_SMEM)
+aux_source_directory(under_api/ubs_io MMC_SRC_UNDER_API_UBS_IO)
 
 # set whole source for platform
 set(PLATFORM_SRC ${MMC_SRC_COMMON}
@@ -91,6 +94,7 @@ set(PLATFORM_SRC ${MMC_SRC_COMMON}
         ${MMC_SRC_NET_ACC}
         ${MMC_SRC_PROTO}
         ${MMC_SRC_UNDER_API_MF_SMEM}
+        ${MMC_SRC_UNDER_API_UBS_IO}
         mmc.cpp
         mmc_client.cpp
         mmcache_store.cpp

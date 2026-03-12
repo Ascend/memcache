@@ -641,12 +641,13 @@ struct MetaReplicateRequest : public MsgBase {
 };
 
 struct BlobCopyRequest : public MsgBase {
+    std::string key_;
     MmcMemBlobDesc srcBlob_;
     MmcMemBlobDesc dstBlob_;
 
     BlobCopyRequest() : MsgBase{0, LM_BLOB_COPY_REQ, 0} {}
-    BlobCopyRequest(const MmcMemBlobDesc &src, const MmcMemBlobDesc &dst)
-        : MsgBase{0, LM_BLOB_COPY_REQ, 0}, srcBlob_(src), dstBlob_(dst)
+    BlobCopyRequest(const std::string& key, const MmcMemBlobDesc &src, const MmcMemBlobDesc &dst)
+        : MsgBase{0, LM_BLOB_COPY_REQ, 0}, key_(key), srcBlob_(src), dstBlob_(dst)
     {}
 
     Result Serialize(NetMsgPacker &packer) const override
@@ -654,6 +655,7 @@ struct BlobCopyRequest : public MsgBase {
         packer.Serialize(msgVer);
         packer.Serialize(msgId);
         packer.Serialize(destRankId);
+        packer.Serialize(key_);
         packer.Serialize(srcBlob_);
         packer.Serialize(dstBlob_);
         return MMC_OK;
@@ -664,6 +666,7 @@ struct BlobCopyRequest : public MsgBase {
         packer.Deserialize(msgVer);
         packer.Deserialize(msgId);
         packer.Deserialize(destRankId);
+        packer.Deserialize(key_);
         packer.Deserialize(srcBlob_);
         packer.Deserialize(dstBlob_);
         return MMC_OK;

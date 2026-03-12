@@ -74,6 +74,8 @@ constexpr auto OCK_MMC_CLIENT_READ_THREAD_POOL_SIZE = std::make_pair("ock.mmc.cl
 constexpr auto OCK_MMC_CLIENT_AGGREGATE_IO = std::make_pair("ock.mmc.client.aggregate.io", true);
 constexpr auto OCK_MMC_CLIENT_AGGREGATE_NUM = std::make_pair("ock.mmc.client.aggregate.num", 122);
 constexpr auto OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE = std::make_pair("ock.mmc.client.write_thread_pool.size", 4);
+
+constexpr auto OCK_MMC_UBS_IO_ENABLE = std::make_pair("ock.mmc.ubs_io.enable", false);
 } // namespace ConfConstant
 
 constexpr int MIN_LOG_ROTATION_FILE_SIZE = 1;

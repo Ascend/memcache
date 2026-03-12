@@ -15,6 +15,7 @@
 #include "mmc_meta_net_client.h"
 #include "mmc_local_service.h"
 #include "mmc_bm_proxy.h"
+#include "mmc_ubs_io_proxy.h"
 #include "mmc_blob_common.h"
 #include "mmc_def.h"
 
@@ -37,12 +38,14 @@ public:
 
     Result InitBm();
 
+    Result InitUbsIo();
+
     Result DestroyBm();
 
     Result UpdateMetaBackup(const std::vector<uint32_t> &ops, const std::vector<std::string> &keys,
                             const std::vector<MmcMemBlobDesc> &blobs);
 
-    Result CopyBlob(const MmcMemBlobDesc &src, const MmcMemBlobDesc &dst);
+    Result CopyBlob(const std::string& key, const MmcMemBlobDesc &src, const MmcMemBlobDesc &dst);
 
     const std::string &Name() const override;
 
@@ -59,6 +62,7 @@ public:
 private:
     MetaNetClientPtr metaNetClient_;
     MmcBmProxyPtr bmProxyPtr_;
+    MmcUbsIoProxyPtr ubsIoProxyPtr_;
     int32_t pid_ = 0;
     std::mutex mutex_;
     std::mutex blobMutex_;

@@ -12,7 +12,7 @@
 #include "mmc_local_service_default.h"
 #include "mmc_meta_net_client.h"
 #include "mmc_msg_client_meta.h"
-#include "mmc_bm_proxy.h"
+#include "mmc_ptracer.h"
 
 namespace ock {
 namespace mmc {
@@ -36,6 +36,14 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
         ock::mmc::MmcOutLogger::Instance().SetExternalLogFunction(options_.logFunc);
     }
     MMC_RETURN_ERROR(InitBm(), "Failed to init bm of local service " << name_);
+
+    if (options_.ubsIoEnable) {
+        if (InitUbsIo() != MMC_OK) {
+            MMC_LOG_ERROR("Failed to init ubsIo of local service " << name_);
+            DestroyBm();
+            return MMC_ERROR;
+        }
+    }
 
     metaNetClient_ = MetaNetClientFactory::GetInstance(this->options_.discoveryURL, "MetaClientCommon").Get();
     MMC_ASSERT_RETURN(metaNetClient_.Get() != nullptr, MMC_NEW_OBJECT_FAILED);
@@ -67,7 +75,8 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
         std::bind(&MmcLocalServiceDefault::RegisterBm, this),
         std::bind(&MmcLocalServiceDefault::UpdateMetaBackup, this, std::placeholders::_1, std::placeholders::_2,
                   std::placeholders::_3),
-        std::bind(&MmcLocalServiceDefault::CopyBlob, this, std::placeholders::_1, std::placeholders::_2));
+        std::bind(&MmcLocalServiceDefault::CopyBlob, this, std::placeholders::_1, std::placeholders::_2,
+                  std::placeholders::_3));
     started_ = true;
     MMC_LOG_INFO("Started LocalService (" << name_ << ") server " << options_.discoveryURL
                                           << ", rank: " << options_.rankId);
@@ -190,6 +199,14 @@ Result MmcLocalServiceDefault::RegisterBm()
     return MMC_OK;
 }
 
+Result MmcLocalServiceDefault::InitUbsIo()
+{
+    MmcUbsIoProxyPtr ubsIoProxy = MmcUbsIoProxyFactory::GetInstance("ubsIoProxyDefault");
+    MMC_ASSERT_RETURN(ubsIoProxy != nullptr, MMC_ERROR);
+    ubsIoProxyPtr_ = ubsIoProxy;
+    return ubsIoProxy->InitUbsIo();
+}
+
 Result MmcLocalServiceDefault::UpdateMetaBackup(const std::vector<uint32_t> &ops, const std::vector<std::string> &keys,
                                                 const std::vector<MmcMemBlobDesc> &blobs)
 {
@@ -224,18 +241,31 @@ Result MmcLocalServiceDefault::UpdateMetaBackup(const std::vector<uint32_t> &ops
     return MMC_OK;
 }
 
-Result MmcLocalServiceDefault::CopyBlob(const MmcMemBlobDesc &src, const MmcMemBlobDesc &dst)
+Result MmcLocalServiceDefault::CopyBlob(const std::string& key, const MmcMemBlobDesc& src, const MmcMemBlobDesc& dst)
 {
-    MmcBmProxyPtr bmProxy = MmcBmProxyFactory::GetInstance("bmProxyDefault");
-    if (bmProxy == nullptr) {
+    if (bmProxyPtr_ == nullptr) {
         MMC_LOG_ERROR("bm proxy is null, src=" << src << ", dst=" << dst);
         return MMC_ERROR;
     }
 
-    auto ret = bmProxy->Copy(src.gva_, dst.gva_, dst.size_, SMEMB_COPY_G2G);
-    if (ret != MMC_OK) {
-        MMC_LOG_ERROR("bm put failed:" << ret << ", src=" << src << ", dst=" << dst);
-        return MMC_ERROR;
+    if (dst.mediaType_ == MEDIA_SSD) {
+        if (!options_.ubsIoEnable || ubsIoProxyPtr_ == nullptr) {
+            MMC_LOG_ERROR("ubsIo proxy is null, src=" << src << ", dst=" << dst);
+            return MMC_ERROR;
+        }
+        TP_TRACE_BEGIN(TP_MMC_LOCAL_UBS_IO_PUT);
+        Result ret = ubsIoProxyPtr_->Put(key, reinterpret_cast<void*>(src.gva_), src.size_);
+        TP_TRACE_END(TP_MMC_LOCAL_UBS_IO_PUT, ret);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("ubsIo put failed:" << ret << ", src=" << src << ", dst=" << dst);
+            return MMC_ERROR;
+        }
+    } else {
+        auto ret = bmProxyPtr_->Copy(src.gva_, dst.gva_, dst.size_, SMEMB_COPY_G2G);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("bm put failed:" << ret << ", src=" << src << ", dst=" << dst);
+            return MMC_ERROR;
+        }
     }
     return MMC_OK;
 }

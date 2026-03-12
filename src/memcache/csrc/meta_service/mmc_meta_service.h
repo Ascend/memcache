@@ -16,6 +16,7 @@
 #include "mmc_global_allocator.h"
 #include "mmc_meta_net_server.h"
 #include "mmc_meta_mgr_proxy.h"
+#include "mmc_ubs_io_proxy.h"
 #include "smem_config_store.h"
 
 namespace ock {
@@ -45,6 +46,7 @@ private:
     MetaNetServerPtr metaNetServer_;
     MmcMetaMgrProxyPtr metaMgrProxy_;
     MMCMetaBackUpMgrPtr metaBackUpMgrPtr_;
+    MmcUbsIoProxyPtr ubsIoProxyPtr_;
 
     std::mutex mutex_;
     bool started_ = false;

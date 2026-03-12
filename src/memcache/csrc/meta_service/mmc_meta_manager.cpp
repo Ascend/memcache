@@ -15,6 +15,7 @@
 #include "mmc_logger.h"
 #include "mmc_meta_metric_manager.h"
 #include "mmc_types.h"
+#include "mmc_ptracer.h"
 
 namespace ock {
 namespace mmc {
@@ -31,7 +32,11 @@ Result MmcMetaManager::Get(const std::string &key, uint64_t operateId, MmcBlobFi
         return ret;
     }
 
-    metaContainer_->Promote(key);
+    ret = metaContainer_->Promote(key);
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("Get key: " << key << " Promote failed. ErrCode: " << ret);
+        return ret;
+    }
 
     std::unique_lock<std::mutex> guard(memObj->Mutex());
     objMeta.prot_ = memObj->Prot();
@@ -68,6 +73,13 @@ Result MmcMetaManager::ExistKey(const std::string &key)
         }
         return ret;
     }
+
+    ret = metaContainer_->Promote(key);
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("ExistKey key: " << key << " Promote failed. ErrCode: " << ret);
+        return ret;
+    }
+
     {
         std::unique_lock<std::mutex> guard(memObj->Mutex());
         MmcBlobFilterPtr filterPtr = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, READABLE);
@@ -81,7 +93,7 @@ Result MmcMetaManager::ExistKey(const std::string &key)
             return MMC_OBJECT_NOT_EXISTS;
         }
     }
-    metaContainer_->Promote(key);
+    
     return MMC_OK;
 }
 
@@ -399,7 +411,7 @@ Result MmcMetaManager::GetAllKeys(std::vector<std::string> &keys)
     return MMC_OK;
 }
 
-Result MmcMetaManager::CopyBlob(const MmcMemObjMetaPtr &objMeta, const MmcMemBlobDesc &srcBlob,
+Result MmcMetaManager::CopyBlob(const std::string& key, const MmcMemObjMetaPtr &objMeta, const MmcMemBlobDesc &srcBlob,
                                 const MmcLocation &dstLoc)
 {
     if (objMeta == nullptr) {
@@ -417,34 +429,42 @@ Result MmcMetaManager::CopyBlob(const MmcMemObjMetaPtr &objMeta, const MmcMemBlo
     std::vector<MmcMemBlobPtr> blobs;
     Result ret = MMC_OK;
     do {
-        ret = globalAllocator_->Alloc(allocOpt, blobs);
-        if (ret != MMC_OK || blobs.empty()) {
-            MMC_LOG_ERROR("alloc failed, ret " << ret);
-            ret = MMC_MALLOC_FAILED;
-            break;
+        MmcMemBlobDesc blobDesc;
+        if (ubsIoEnable_ && dstLoc.mediaType_ == MEDIA_SSD) {
+            blobDesc = MmcMemBlobDesc{srcBlob.rank_, 0, srcBlob.size_, dstLoc.mediaType_};
+        } else {
+            ret = globalAllocator_->Alloc(allocOpt, blobs);
+            if (ret != MMC_OK || blobs.empty()) {
+                MMC_LOG_ERROR("alloc failed, ret " << ret);
+                ret = MMC_MALLOC_FAILED;
+                break;
+            }
+            blobDesc = blobs[0]->GetDesc();
         }
 
-        BlobCopyRequest request{srcBlob, blobs[0]->GetDesc()};
+        BlobCopyRequest request{key, srcBlob, blobDesc};
         Response response;
         // rpc 到目标节点复制
         ret = metaNetServer_->SyncCall(request.dstBlob_.rank_, request, response, TIMEOUT_SECOND);
         if (ret != MMC_OK || response.ret_ != MMC_OK) {
             MMC_LOG_ERROR("copy blob from rank " << request.srcBlob_.rank_ << " to rank " << request.dstBlob_.rank_
-                                                 << " failed:" << ret << "," << response.ret_);
+                                                << " failed:" << ret << "," << response.ret_);
             ret = MMC_ERROR;
             break;
         }
 
-        ret = blobs[0]->UpdateState(MMC_WRITE_OK);
-        if (ret != MMC_OK) {
-            MMC_LOG_ERROR("Failed to Update blob state, ret: " << ret);
-            break;
-        }
-        // 挂载
-        ret = objMeta->AddBlob(blobs[0]);
-        if (ret != MMC_OK) {
-            MMC_LOG_ERROR("AddBlob failed, ret " << ret);
-            break;
+        if (!ubsIoEnable_ || dstLoc.mediaType_ != MEDIA_SSD) {
+            ret = blobs[0]->UpdateState(MMC_WRITE_OK);
+            if (ret != MMC_OK) {
+                MMC_LOG_ERROR("Failed to Update blob state, ret: " << ret);
+                break;
+            }
+            // 挂载
+            ret = objMeta->AddBlob(blobs[0]);
+            if (ret != MMC_OK) {
+                MMC_LOG_ERROR("AddBlob failed, ret " << ret);
+                break;
+            }
         }
     } while (0);
 
@@ -471,13 +491,14 @@ Result MmcMetaManager::MoveBlob(const std::string &key, const MmcLocation &src, 
             MMC_LOG_ERROR("Fail to malloc filter");
             return MMC_MALLOC_FAILED;
         }
+            
         objMeta->GetBlobsDesc(blobsDesc, filter);
         if (blobsDesc.empty()) {
             MMC_LOG_ERROR("blob for " << src << " to " << dst << " is empty with key : " << key << "," << objMeta);
             return MMC_UNMATCHED_KEY;
         }
-
-        auto ret = CopyBlob(objMeta, blobsDesc[0], dst);
+        
+        auto ret = CopyBlob(key, objMeta, blobsDesc[0], dst);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("key: " << key << " copy blob failed, ret " << ret);
             return ret;
@@ -493,10 +514,15 @@ Result MmcMetaManager::MoveBlob(const std::string &key, const MmcLocation &src, 
             MMC_LOG_ERROR("key: " << key << " free blob failed, ret " << ret);
             return ret;
         }
+        
         MMC_LOG_INFO("move " << key << " from " << src << " to " << dst << " " << blobsDesc[0] << ", " << objMeta);
     }
-    // insert to lru with metaItemMtx
-    metaContainer_->InsertLru(key, dst.mediaType_);
+    if (ubsIoEnable_ && dst.mediaType_ == MEDIA_SSD) {
+        metaContainer_->Erase(key);
+    } else {
+        // insert to lru with metaItemMtx
+        metaContainer_->InsertLru(key, dst.mediaType_);
+    }
     return MMC_OK;
 }
 
@@ -516,7 +542,7 @@ Result MmcMetaManager::ReplicateBlob(const std::string &key, const MmcLocation &
         return MMC_UNMATCHED_KEY;
     }
 
-    return CopyBlob(objMeta, blobsDesc[0], loc);
+    return CopyBlob(key, objMeta, blobsDesc[0], loc);
 }
 
 EvictResult MmcMetaManager::EvictCallBackFunction(const std::string &key, const MmcMemObjMetaPtr &objMeta)
@@ -527,20 +553,27 @@ EvictResult MmcMetaManager::EvictCallBackFunction(const std::string &key, const 
         MMC_LOG_ERROR("objMeta is null");
         return EvictResult::FAIL;
     }
+
     MediaType dstMedium = objMeta->MoveTo(true);
     MediaType srcMedium = MoveUp(dstMedium);
+    MmcLocation src{UINT32_MAX, srcMedium};
+    MmcLocation dst{UINT32_MAX, dstMedium};
     if (dstMedium == MEDIA_NONE || srcMedium == MEDIA_NONE) {
         PushRemoveList(key, objMeta);
         return EvictResult::REMOVE; // 向下淘汰已无可能，直接删除
-    }
-    MmcLocation src{UINT32_MAX, srcMedium};
-    MmcLocation dst{UINT32_MAX, dstMedium};
-
-    uint64_t freeSize = globalAllocator_->GetFreeSpace(dstMedium);
-    if (freeSize < objMeta->Size()) {
-        MMC_LOG_WARN("key: " << key << " move to " << dst << " no space:" << freeSize << ", need:" << objMeta->Size());
-        PushRemoveList(key, objMeta);
-        return EvictResult::REMOVE; // 向下淘汰已无可能，直接删除
+    } else if (dstMedium == MEDIA_SSD && ubsIoEnable_) {
+        if (ubsIoProxy_->Exist(key) == 1) {
+            PushRemoveList(key, objMeta);
+            return EvictResult::REMOVE; // 向下淘汰已无可能，直接删除
+        }
+    } else {
+        uint64_t freeSize = globalAllocator_->GetFreeSpace(dstMedium);
+        if (freeSize < objMeta->Size()) {
+            MMC_LOG_WARN("key: " << key << " move to " << dst << " no space:" << freeSize << ", need:"
+                                 << objMeta->Size());
+            PushRemoveList(key, objMeta);
+            return EvictResult::REMOVE; // 向下淘汰已无可能，直接删除
+        }
     }
 
     auto future = threadPool_->Enqueue(

@@ -77,6 +77,7 @@ constexpr uint32_t MMC_DEFAUT_WAIT_TIME = 120; // 120s
 enum MediaType : uint8_t {
     MEDIA_HBM,
     MEDIA_DRAM,
+    MEDIA_SSD,
     MEDIA_NONE,
 };
 
@@ -86,6 +87,8 @@ inline MediaType MoveUp(MediaType mediaType)
         return MediaType::MEDIA_NONE;
     } else if (mediaType == MediaType::MEDIA_DRAM) {
         return MediaType::MEDIA_HBM;
+    } else if (mediaType == MediaType::MEDIA_SSD) {
+        return MediaType::MEDIA_DRAM;
     } else {
         return MediaType::MEDIA_NONE;
     }
@@ -96,6 +99,8 @@ inline MediaType MoveDown(MediaType mediaType)
     if (mediaType == MediaType::MEDIA_HBM) {
         return MediaType::MEDIA_DRAM;
     } else if (mediaType == MediaType::MEDIA_DRAM) {
+        return MediaType::MEDIA_SSD;
+    } else if (mediaType == MediaType::MEDIA_SSD) {
         return MediaType::MEDIA_NONE;
     } else {
         return MediaType::MEDIA_NONE;
@@ -110,6 +115,9 @@ inline std::ostream &operator<<(std::ostream &os, MediaType type)
             break;
         case MEDIA_HBM:
             os << "HBM";
+            break;
+        case MEDIA_SSD:
+            os << "SSD";
             break;
         default:
             os << "UNKNOWN";

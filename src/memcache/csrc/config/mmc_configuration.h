@@ -211,6 +211,8 @@ public:
                    0);
         AddStrConf(OCK_MMC_CS_TLS_DECRYPTER_PATH,
                    VStrLength::Create(OCK_MMC_CS_TLS_DECRYPTER_PATH.first, TLS_PATH_MAX_LEN), 0);
+
+        AddBoolConf(OCK_MMC_UBS_IO_ENABLE, VNoCheck::Create(), 0);
     }
 
     void GetMetaServiceConfig(mmc_meta_service_config_t &config)
@@ -233,6 +235,7 @@ public:
         config.logRotationFileCount = GetInt(ConfConstant::OCK_MMC_LOG_ROTATION_FILE_COUNT);
         GetAccTlsConfig(config.accTlsConfig);
         GetConfigStoreTlsConfig(config.configStoreTlsConfig);
+        config.ubsIoEnable = GetBool(ConfConstant::OCK_MMC_UBS_IO_ENABLE);
     }
 };
 
@@ -307,6 +310,7 @@ public:
             0);
         AddIntConf(OCK_MMC_CLIENT_AGGREGATE_NUM,
                    VIntRange::Create(OCK_MMC_CLIENT_AGGREGATE_NUM.first, 1, MAX_AGGREGATE_NUM), 0);
+        AddBoolConf(OCK_MMC_UBS_IO_ENABLE, VNoCheck::Create(), 0);
     }
 
     void GetLocalServiceConfig(mmc_local_service_config_t &config)
@@ -332,6 +336,7 @@ public:
         GetAccTlsConfig(config.accTlsConfig);
         GetHcomTlsConfig(config.hcomTlsConfig);
         GetConfigStoreTlsConfig(config.configStoreTlsConfig);
+        config.ubsIoEnable = GetBool(ConfConstant::OCK_MMC_UBS_IO_ENABLE);
     }
 
     void GetClientConfig(mmc_client_config_t &config)
@@ -348,6 +353,7 @@ public:
         StringToUpper(logLevelStr);
         config.logLevel = MmcOutLogger::Instance().GetLogLevel(logLevelStr);
         GetAccTlsConfig(config.tlsConfig);
+        config.ubsIoEnable = GetBool(ConfConstant::OCK_MMC_UBS_IO_ENABLE);
     }
 
     static Result ValidateLocalServiceConfig(mmc_local_service_config_t &config)

@@ -65,6 +65,7 @@ TEST_F(TestBmInit, Init)
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = true;
     metaServiceConfig.accTlsConfig.tlsEnable = false;
+    metaServiceConfig.ubsIoEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     auto metaServiceDefault = MmcMakeRef<MmcMetaService>("testMetaService");

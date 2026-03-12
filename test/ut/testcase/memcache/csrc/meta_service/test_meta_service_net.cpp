@@ -65,6 +65,7 @@ TEST_F(TestMmcMetaService, Init)
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = true;
     metaServiceConfig.accTlsConfig.tlsEnable = false;
+    metaServiceConfig.ubsIoEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     auto metaService = MmcMakeRef<MmcMetaService>("testMetaService");
@@ -112,6 +113,7 @@ TEST_F(TestMmcMetaService, ExistRequest)
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = true;
     metaServiceConfig.accTlsConfig.tlsEnable = false;
+    metaServiceConfig.ubsIoEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     auto metaService = MmcMakeRef<MmcMetaService>("testMetaService");
@@ -166,6 +168,7 @@ TEST_F(TestMmcMetaService, BatchExistRequest)
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = true;
     metaServiceConfig.accTlsConfig.tlsEnable = false;
+    metaServiceConfig.ubsIoEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     auto metaService = MmcMakeRef<MmcMetaService>("testMetaService");
@@ -240,6 +243,7 @@ TEST_F(TestMmcMetaService, QueryRequest)
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = true;
     metaServiceConfig.accTlsConfig.tlsEnable = false;
+    metaServiceConfig.ubsIoEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     auto metaService = MmcMakeRef<MmcMetaService>("testMetaService");
@@ -298,6 +302,7 @@ TEST_F(TestMmcMetaService, BatchQueryRequest)
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = true;
     metaServiceConfig.accTlsConfig.tlsEnable = false;
+    metaServiceConfig.ubsIoEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     auto metaService = MmcMakeRef<MmcMetaService>("testMetaService");

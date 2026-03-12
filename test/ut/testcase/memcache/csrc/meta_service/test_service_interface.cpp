@@ -96,6 +96,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     metaServiceConfig.evictThresholdHigh = 80;
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = false;
+    metaServiceConfig.ubsIoEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
@@ -117,6 +118,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     clientConfig.logLevel = INFO_LEVEL;
     clientConfig.tlsConfig.tlsEnable = false;
     clientConfig.rankId = 0;
+    clientConfig.ubsIoEnable = false;
     clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
     clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     UrlStringToChar(metaUrl, clientConfig.discoveryURL);
@@ -184,6 +186,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     metaServiceConfig.evictThresholdHigh = 70;
     metaServiceConfig.evictThresholdLow = 60;
     metaServiceConfig.haEnable = true;
+    metaServiceConfig.ubsIoEnable = false;
     UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
     UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
@@ -203,6 +206,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     clientConfig.logLevel = INFO_LEVEL;
     clientConfig.tlsConfig.tlsEnable = false;
     clientConfig.rankId = 0;
+    clientConfig.ubsIoEnable = false;
     clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
     clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     UrlStringToChar(metaUrl, clientConfig.discoveryURL);
@@ -290,6 +294,7 @@ TEST_F(TestMmcServiceInterface, testClientInitUninit)
 {
     mmc_client_config_t clientConfig{};
     clientConfig.logLevel = INFO_LEVEL;
+    clientConfig.ubsIoEnable = false;
     clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
     clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     int32_t ret = mmcc_init(&clientConfig);
@@ -303,6 +308,7 @@ TEST_F(TestMmcServiceInterface, testPutInvalidParam)
 {
     mmc_client_config_t clientConfig{};
     clientConfig.logLevel = INFO_LEVEL;
+    clientConfig.ubsIoEnable = false;
     clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
     clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     int32_t ret = mmcc_init(&clientConfig);
@@ -364,6 +370,7 @@ TEST_F(TestMmcServiceInterface, testExistOperations)
 {
     mmc_client_config_t clientConfig{};
     clientConfig.logLevel = INFO_LEVEL;
+    clientConfig.ubsIoEnable = false;
     clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
     clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     mmcc_init(&clientConfig);
@@ -382,6 +389,7 @@ TEST_F(TestMmcServiceInterface, testBatchGetErrorHandling)
 {
     mmc_client_config_t clientConfig{};
     clientConfig.logLevel = INFO_LEVEL;
+    clientConfig.ubsIoEnable = false;
     clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
     clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     int32_t ret = mmcc_init(&clientConfig);
@@ -429,6 +437,7 @@ TEST_F(TestMmcServiceInterface, testBatchGetWithPartialData)
 {
     mmc_client_config_t clientConfig{};
     clientConfig.logLevel = INFO_LEVEL;
+    clientConfig.ubsIoEnable = false;
     clientConfig.readThreadPoolNum = UT_READ_POOL_NUM;
     clientConfig.writeThreadPoolNum = UT_WRITE_POOL_NUM;
     int32_t ret = mmcc_init(&clientConfig);

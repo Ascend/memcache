@@ -45,6 +45,7 @@ include_directories(
         ${PROJECT_MMC_SRC_BASE}/csrc/local_service
         ${PROJECT_MMC_SRC_BASE}/csrc/proto
         ${PROJECT_MMC_SRC_BASE}/csrc/under_api/mf_smem
+        ${PROJECT_MMC_SRC_BASE}/csrc/under_api/ubs_io
         ${PROJECT_MMC_SRC_BASE}/../util/csrc
         ${ASCEND_CANN_PACKAGE_PATH}/aarch64-linux/include/
 )
