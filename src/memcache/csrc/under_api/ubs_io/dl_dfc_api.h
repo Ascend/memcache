@@ -30,7 +30,7 @@ enum class kv_worker_mode {
 };
 
 // 定义函数指针类型
-using dfc_client_initFunc = int32_t (*)(kv_worker_mode);
+using dfc_client_initFunc = int32_t (*)(kv_worker_mode, int32_t);
 using dfc_putFunc = int32_t (*)(const char *, void *, size_t, uint32_t);
 using dfc_getFunc = int32_t (*)(const char *, void *, size_t, uint32_t);
 using dfc_existFunc = bool (*)(const char *, uint32_t);
@@ -38,6 +38,8 @@ using dfc_deleteFunc = int32_t (*)(const char *, uint32_t);
 using dfc_get_lengthFunc = int32_t (*)(const char *, size_t *, uint32_t);
 using dfc_batch_putFunc = int32_t (*)(const char **, uint32_t, void **, size_t *, int *, uint32_t);
 using dfc_batch_getFunc = int32_t (*)(const char **, uint32_t, void **, size_t *, int *, uint32_t);
+using dfc_batch_get_hbmFunc = int32_t (*)(const char **, uint32_t, void ***, size_t **,
+                                            uint32_t, uint32_t, int *, uint32_t);
 using dfc_batch_existFunc = int32_t (*)(const char **, uint32_t, bool *, uint32_t);
 using dfc_batch_deleteFunc = int32_t (*)(const char **, uint32_t, int32_t *, uint32_t);
 using dfc_batch_get_lengthFunc = int32_t (*)(const char **, uint32_t, size_t *, int32_t *, uint32_t);
@@ -48,12 +50,12 @@ public:
     static Result LoadLibrary();
     static void CleanupLibrary();
 
-    static inline Result DfcClientInit(kv_worker_mode mode)
+    static inline Result DfcClientInit(kv_worker_mode mode, int32_t deviceId)
     {
         if (pDfcClientInit == nullptr) {
             return MMC_NOT_INITIALIZED;
         }
-        return pDfcClientInit(mode);
+        return pDfcClientInit(mode, deviceId);
     }
 
     static inline Result DfcPut(const char *key, void *buf, size_t length, uint32_t flags)
@@ -114,6 +116,15 @@ public:
         return pDfcBatchGet(keys, keys_count, bufs, lengths, results, flags);
     }
 
+    static inline Result DfcBatchGetWithHBM(const char **keys, uint32_t keys_count, void ***bufs, size_t **lengths,
+                                     uint32_t lengthsRows, uint32_t lengthsCols, int *results, uint32_t flags)
+    {
+        if (pDfcBatchGetWithHBM == nullptr) {
+            return MMC_NOT_INITIALIZED;
+        }
+        return pDfcBatchGetWithHBM(keys, keys_count, bufs, lengths, lengthsRows, lengthsCols, results, flags);
+    }
+
     static inline Result DfcBatchExist(const char **keys, uint32_t keys_count, bool *results, uint32_t flags)
     {
         if (pDfcBatchExist == nullptr) {
@@ -161,6 +172,7 @@ private:
     static dfc_get_lengthFunc pDfcGetLength;
     static dfc_batch_putFunc pDfcBatchPut;
     static dfc_batch_getFunc pDfcBatchGet;
+    static dfc_batch_get_hbmFunc pDfcBatchGetWithHBM;
     static dfc_batch_existFunc pDfcBatchExist;
     static dfc_batch_deleteFunc pDfcBatchDelete;
     static dfc_batch_get_lengthFunc pDfcBatchGetLength;

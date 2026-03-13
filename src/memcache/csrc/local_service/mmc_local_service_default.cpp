@@ -38,7 +38,7 @@ Result MmcLocalServiceDefault::Start(const mmc_local_service_config_t &config)
     MMC_RETURN_ERROR(InitBm(), "Failed to init bm of local service " << name_);
 
     if (options_.ubsIoEnable) {
-        if (InitUbsIo() != MMC_OK) {
+        if (InitUbsIo(config.deviceId) != MMC_OK) {
             MMC_LOG_ERROR("Failed to init ubsIo of local service " << name_);
             DestroyBm();
             return MMC_ERROR;
@@ -199,12 +199,12 @@ Result MmcLocalServiceDefault::RegisterBm()
     return MMC_OK;
 }
 
-Result MmcLocalServiceDefault::InitUbsIo()
+Result MmcLocalServiceDefault::InitUbsIo(int32_t deviceId)
 {
     MmcUbsIoProxyPtr ubsIoProxy = MmcUbsIoProxyFactory::GetInstance("ubsIoProxyDefault");
     MMC_ASSERT_RETURN(ubsIoProxy != nullptr, MMC_ERROR);
     ubsIoProxyPtr_ = ubsIoProxy;
-    return ubsIoProxy->InitUbsIo();
+    return ubsIoProxy->InitUbsIo(deviceId);
 }
 
 Result MmcLocalServiceDefault::UpdateMetaBackup(const std::vector<uint32_t> &ops, const std::vector<std::string> &keys,

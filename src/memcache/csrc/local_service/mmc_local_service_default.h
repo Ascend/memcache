@@ -38,7 +38,7 @@ public:
 
     Result InitBm();
 
-    Result InitUbsIo();
+    Result InitUbsIo(int32_t deviceId);
 
     Result DestroyBm();
 

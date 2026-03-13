@@ -476,7 +476,7 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string> &keys, const st
             fallbackKeys,
             fallbackBuffers
         };
-        ProcessUbsIoBatchGet(batchGetData);
+        ProcessUbsIoBatchGetWithHBM(batchGetData);
     }
 
     TP_TRACE_BEGIN(TP_MMC_LOCAL_GET_WAIT_FUTURE);
@@ -494,18 +494,6 @@ Result MmcClientDefault::BatchGet(const std::vector<std::string> &keys, const st
         }
     }
     AsyncUpdateState(updateRequest);
-
-    if (ubsIoEnable_ && !ubsIoKeys.empty()) {
-        UbsIoBatchGetFreeData batchGetFreeData{
-            ubsIoKeys,
-            bufs,
-            fallbackKeys,
-            fallbackBuffers,
-            operateId
-        };
-        ProcessUbsIoBatchGetFree(batchGetFreeData);
-    }
-    
     return MMC_OK;
 }
 
@@ -797,6 +785,57 @@ void MmcClientDefault::ProcessUbsIoBatchGet(const UbsIoBatchGetData &data)
     TP_TRACE_END(TP_MMC_CLIENT_UBS_IO_BATCH_GET_2, MMC_OK);
 
     TP_TRACE_END(TP_MMC_CLIENT_UBS_IO_BATCH_GET, MMC_OK);
+}
+
+void MmcClientDefault::ProcessUbsIoBatchGetWithHBM(UbsIoBatchGetData &data)
+{
+    std::vector<size_t> ubsIoIndices;
+    data.ubsIoKeys.reserve(data.keys.size());
+    ubsIoIndices.reserve(data.keys.size());
+    std::vector<std::vector<void*>> npuBufAddrs;
+    std::vector<std::vector<size_t>> npuBufLengths;
+    npuBufAddrs.reserve(data.keys.size());
+    npuBufLengths.reserve(data.keys.size());
+    for (size_t i = 0; i < data.keys.size(); ++i) {
+        if (data.batchResult[i] == MMC_ERROR) {
+            data.ubsIoKeys.emplace_back(data.keys[i]);
+            ubsIoIndices.emplace_back(i);
+            auto& keyBuffers = data.bufArrs[i].Buffers();
+            std::vector<void*> npuBufAddrsForThisKey;
+            std::vector<size_t> npuBufLengthsForThisKey;
+            npuBufAddrsForThisKey.reserve(keyBuffers.size());
+            npuBufLengthsForThisKey.reserve(keyBuffers.size());
+            for (auto& buffer : keyBuffers) {
+                npuBufAddrsForThisKey.emplace_back(reinterpret_cast<void*>(buffer.addr + buffer.offset));
+                npuBufLengthsForThisKey.emplace_back(buffer.len);
+            }
+            npuBufAddrs.emplace_back(std::move(npuBufAddrsForThisKey));
+            npuBufLengths.emplace_back(std::move(npuBufLengthsForThisKey));
+        }
+    }
+    if (!data.ubsIoKeys.empty()) {
+        TP_TRACE_BEGIN(TP_MMC_CLIENT_UBS_IO_BATCH_GET);
+        std::vector<int> ubsIoResults(data.ubsIoKeys.size(), 0);
+
+        TP_TRACE_BEGIN(TP_MMC_CLIENT_UBS_IO_BATCH_GET_2);
+        Result ubsIoRet = ubsIoProxy_->BatchGetWithHBM(data.ubsIoKeys, npuBufAddrs, npuBufLengths, ubsIoResults);
+        TP_TRACE_END(TP_MMC_CLIENT_UBS_IO_BATCH_GET_2, MMC_OK);
+        if (ubsIoRet != MMC_OK) {
+            MMC_LOG_ERROR("ubsIo batch get failed, ret: " << ubsIoRet);
+            return;
+        }
+        for (size_t i = 0; i < data.ubsIoKeys.size(); ++i) {
+            size_t originIndex = ubsIoIndices[i];
+            if (ubsIoResults[i] != 0) {
+                MMC_LOG_ERROR("ubsIo batch get failed for key " << data.ubsIoKeys[i]
+                              << ", result: " << ubsIoResults[i]);
+                data.batchResult[originIndex] = MMC_ERROR;
+            } else {
+                data.batchResult[originIndex] = MMC_OK;
+            }
+        }
+        TP_TRACE_END(TP_MMC_CLIENT_UBS_IO_BATCH_GET, MMC_OK);
+    }
 }
 
 void MmcClientDefault::ProcessUbsIoBatchGetFree(const UbsIoBatchGetFreeData &data)

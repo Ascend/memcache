@@ -24,7 +24,7 @@ namespace mmc {
 std::map<std::string, MmcRef<MmcUbsIoProxy>> MmcUbsIoProxyFactory::instances_;
 std::mutex MmcUbsIoProxyFactory::instanceMutex_;
 
-Result MmcUbsIoProxy::InitUbsIo()
+Result MmcUbsIoProxy::InitUbsIo(int32_t deviceId)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     if (started_) {
@@ -39,7 +39,7 @@ Result MmcUbsIoProxy::InitUbsIo()
     }
 
     kv_worker_mode mode = kv_worker_mode::KV_CONVERGENCE;
-    result = DlDfcApi::DfcClientInit(mode);
+    result = DlDfcApi::DfcClientInit(mode, deviceId);
     if (result != MMC_OK) {
         MMC_LOG_ERROR("Failed to init dfc, error: " << result);
         DlDfcApi::CleanupLibrary();
@@ -170,6 +170,51 @@ Result MmcUbsIoProxy::BatchGet(const std::vector<std::string> &keys, void **bufs
     TP_TRACE_BEGIN(TP_MMC_UBS_IO_BATCH_GET);
     int32_t ret = DlDfcApi::DfcBatchGet(keyPtrs.data(), keysCount, bufs, lengths.data(), results.data(), flags);
     TP_TRACE_END(TP_MMC_UBS_IO_BATCH_GET, ret);
+    return ret;
+}
+
+Result MmcUbsIoProxy::BatchGetWithHBM(const std::vector<std::string> &keys,
+                                      std::vector<std::vector<void*>>& npuBufAddrs,
+                                      std::vector<std::vector<size_t>>& npuBufLengths,
+                                      std::vector<int> &results)
+{
+    MMC_ASSERT_RETURN(started_, MMC_NOT_INITIALIZED);
+    MMC_ASSERT_RETURN(!keys.empty(), MMC_INVALID_PARAM);
+    MMC_ASSERT_RETURN(keys.size() == npuBufAddrs.size() && keys.size() == npuBufLengths.size(), MMC_INVALID_PARAM);
+    uint32_t lengthsRows = keys.size();
+    uint32_t lengthsCols = npuBufAddrs[0].size();
+    for (uint32_t i = 1; i < lengthsRows; i++) {
+        MMC_ASSERT_RETURN(lengthsCols == npuBufAddrs[i].size(), MMC_INVALID_PARAM);
+    }
+    const uint32_t keysCount = static_cast<uint32_t>(keys.size());
+    std::vector<const char *> keyPtrs;
+    keyPtrs.reserve(keysCount);
+    for (const auto &key : keys) {
+        keyPtrs.emplace_back(key.c_str());
+    }
+    void*** bufs = new void** [lengthsRows];
+    if (bufs == nullptr) {
+        MMC_LOG_ERROR("alloc buf failed");
+        return MMC_ERROR;
+    }
+    size_t** lengths = new size_t* [lengthsRows];
+    if (lengths == nullptr) {
+        MMC_LOG_ERROR("alloc length failed");
+        delete[] bufs;
+        return MMC_ERROR;
+    }
+    for (uint32_t i = 0; i < lengthsRows; i++) {
+        bufs[i] = npuBufAddrs[i].data();
+        lengths[i] = npuBufLengths[i].data();
+    }
+
+    uint32_t flags = 0;
+    TP_TRACE_BEGIN(TP_MMC_UBS_IO_BATCH_GET);
+    int32_t ret = DlDfcApi::DfcBatchGetWithHBM(keyPtrs.data(), keysCount, bufs, lengths, lengthsRows,
+                                               lengthsCols, results.data(), flags);
+    TP_TRACE_END(TP_MMC_UBS_IO_BATCH_GET, ret);
+    delete[] bufs;
+    delete[] lengths;
     return ret;
 }
 

@@ -152,6 +152,7 @@ private:
     
     void ProcessUbsIoBatchGet(const UbsIoBatchGetData &data);
     void ProcessUbsIoBatchGetFree(const UbsIoBatchGetFreeData &data);
+    void ProcessUbsIoBatchGetWithHBM(UbsIoBatchGetData &data);
 
 private:
     static std::mutex gClientHandlerMtx;

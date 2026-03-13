@@ -29,9 +29,11 @@ std::map<std::string, std::string> gDfcStorage;
 std::mutex gDfcMutex;
 
 // 初始化函数
-extern "C" int32_t DfcClientInit(kv_worker_mode mode)
+extern "C" int32_t DfcClientInit(kv_worker_mode mode, int32_t deviceId)
 {
     (void)mode;
+    (void)deviceId;
+
     return 0;
 }
 
@@ -287,6 +289,37 @@ extern "C" int32_t DfcBatchFreeAddress(void **bufs, uint32_t keys_count)
                 gAllocatedBuffers.erase(it);
             }
         }
+    }
+    return 0;
+}
+
+extern "C" int32_t DfcBatchGetWithHBM(const char **keys, uint32_t keys_count, void ***bufs, size_t **lengths,
+                                      uint32_t lengthsRows, uint32_t lengthsCols, int *results, uint32_t flags)
+{
+    (void)flags;
+    if (keys == nullptr || bufs == nullptr || lengths == nullptr || results == nullptr) {
+        return -1;
+    }
+    if (lengthsRows != keys_count || lengthsCols < 1) {
+        return -1;
+    }
+
+    std::lock_guard<std::mutex> lock(gDfcMutex);
+    for (uint32_t i = 0; i < keys_count; ++i) {
+        if (keys[i] == nullptr) {
+            results[i] = -1;
+            continue;
+        }
+        
+        std::string keyStr(keys[i]);
+        auto it = gDfcStorage.find(keyStr);
+        if (it == gDfcStorage.end()) {
+            results[i] = -1;
+            continue;
+        }
+        
+        lengths[i] = it->second.size();
+        results[i] = 0;
     }
     return 0;
 }

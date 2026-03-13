@@ -30,6 +30,7 @@ dfc_deleteFunc DlDfcApi::pDfcDelete = nullptr;
 dfc_get_lengthFunc DlDfcApi::pDfcGetLength = nullptr;
 dfc_batch_putFunc DlDfcApi::pDfcBatchPut = nullptr;
 dfc_batch_getFunc DlDfcApi::pDfcBatchGet = nullptr;
+dfc_batch_get_hbmFunc DlDfcApi::pDfcBatchGetWithHBM = nullptr;
 dfc_batch_existFunc DlDfcApi::pDfcBatchExist = nullptr;
 dfc_batch_deleteFunc DlDfcApi::pDfcBatchDelete = nullptr;
 dfc_batch_get_lengthFunc DlDfcApi::pDfcBatchGetLength = nullptr;
@@ -58,6 +59,7 @@ Result DlDfcApi::LoadLibrary()
     DL_LOAD_SYM(pDfcGetLength, dfc_get_lengthFunc, dfcHandle, "DfcGetLength");
     DL_LOAD_SYM(pDfcBatchPut, dfc_batch_putFunc, dfcHandle,  "DfcBatchPut");
     DL_LOAD_SYM(pDfcBatchGet, dfc_batch_getFunc, dfcHandle,  "DfcBatchGet");
+    DL_LOAD_SYM(pDfcBatchGetWithHBM, dfc_batch_get_hbmFunc, dfcHandle,  "DfcBatchGetWithHBM");
     DL_LOAD_SYM(pDfcBatchExist, dfc_batch_existFunc, dfcHandle,  "DfcBatchExist");
     DL_LOAD_SYM(pDfcBatchDelete, dfc_batch_deleteFunc, dfcHandle,  "DfcBatchDelete");
     DL_LOAD_SYM(pDfcBatchGetLength, dfc_batch_get_lengthFunc, dfcHandle,  "DfcBatchGetLength");
@@ -82,6 +84,7 @@ void DlDfcApi::CleanupLibrary()
     pDfcGetLength = nullptr;
     pDfcBatchPut = nullptr;
     pDfcBatchGet = nullptr;
+    pDfcBatchGetWithHBM = nullptr;
     pDfcBatchExist = nullptr;
     pDfcBatchDelete = nullptr;
     pDfcBatchGetLength = nullptr;

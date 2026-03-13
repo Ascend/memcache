@@ -33,7 +33,7 @@ public:
     MmcUbsIoProxy(const MmcUbsIoProxy&) = delete;
     MmcUbsIoProxy& operator=(const MmcUbsIoProxy&) = delete;
 
-    Result InitUbsIo();
+    Result InitUbsIo(int32_t deviceId = -1);
     void DestroyUbsIo();
     Result Put(const std::string &key, void *buf, size_t length);
     Result Get(const std::string &key, void *buf, size_t length);
@@ -44,6 +44,8 @@ public:
         const std::vector<size_t> &lengths, std::vector<int> &results);
     Result BatchGet(const std::vector<std::string> &keys, void **bufs,
         std::vector<size_t> &lengths, std::vector<int> &results);
+    Result BatchGetWithHBM(const std::vector<std::string> &keys, std::vector<std::vector<void*>>& npuBufAddrs,
+        std::vector<std::vector<size_t>>& npuBufLengths, std::vector<int> &results);
     Result BatchExist(const std::vector<std::string> &keys, bool *results);
     Result BatchDelete(const std::vector<std::string> &keys, std::vector<int32_t> &results);
     Result BatchGetLength(const std::vector<std::string> &keys, std::vector<size_t> &lengths,
