@@ -96,6 +96,7 @@ typedef struct {
     ExternalLog logFunc;
     mmc_tls_config tlsConfig;
     bool ubsIoEnable;
+    char dataOpType[PROTOCOL_SIZE];
 } mmc_client_config_t;
 
 typedef struct {

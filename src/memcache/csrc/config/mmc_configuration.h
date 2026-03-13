@@ -354,6 +354,7 @@ public:
         config.logLevel = MmcOutLogger::Instance().GetLogLevel(logLevelStr);
         GetAccTlsConfig(config.tlsConfig);
         config.ubsIoEnable = GetBool(ConfConstant::OCK_MMC_UBS_IO_ENABLE);
+        SafeCopy(GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_PROTOCOL), config.dataOpType, PROTOCOL_SIZE);
     }
 
     static Result ValidateLocalServiceConfig(mmc_local_service_config_t &config)

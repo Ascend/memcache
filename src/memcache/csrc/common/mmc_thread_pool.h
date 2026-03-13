@@ -85,14 +85,22 @@ public:
         setpriority(PRIO_PROCESS, 0, MIN_NICE);
     }
 
-    int32_t Start()
+    int32_t Start(bool bindCpu = false)
     {
         if (numThreads == 0 || numThreads > MMC_THREAD_POOL_MAX_THREADS) {
             MMC_LOG_ERROR("Number of threads must be greater than 0 and less than " << MMC_THREAD_POOL_MAX_THREADS);
             return MMC_ERROR;
         }
+
+        if (bindCpu) {
+            MMC_LOG_INFO("Threads in mmc thread pool configured to bind to cpu");
+        }
+
         for (size_t i = 0; i < numThreads; ++i) {
-            workers.emplace_back([this] {
+            workers.emplace_back([this, bindCpu] {
+                if (bindCpu) {
+                    TrySetThreadAffinityAndPriority();
+                }
                 while (true) {
                     std::function<void()> task;
                     {

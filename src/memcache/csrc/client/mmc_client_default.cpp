@@ -61,15 +61,20 @@ Result MmcClientDefault::Start(const mmc_client_config_t &config)
     MMC_ASSERT_RETURN(threadPool_ != nullptr, MMC_MALLOC_FAILED);
     MMC_RETURN_ERROR(threadPool_->Start(), "thread pool start failed");
 
+    bool bindCpu = false;
+    std::string protocol(config.dataOpType);
+    if (protocol == "host_urma") {
+        bindCpu = true;
+    }
     readThreadPool_ = MmcMakeRef<MmcThreadPool>("read_pool", config.readThreadPoolNum);
     aggregateIO_ = config.aggregateIO;
     aggregateNum_ = static_cast<size_t>(config.aggregateNum);
     MMC_ASSERT_RETURN(readThreadPool_ != nullptr, MMC_MALLOC_FAILED);
-    MMC_RETURN_ERROR(readThreadPool_->Start(), "read thread pool start failed");
+    MMC_RETURN_ERROR(readThreadPool_->Start(bindCpu), "read thread pool start failed");
 
     writeThreadPool_ = MmcMakeRef<MmcThreadPool>("write_pool", config.writeThreadPoolNum);
     MMC_ASSERT_RETURN(writeThreadPool_ != nullptr, MMC_MALLOC_FAILED);
-    MMC_RETURN_ERROR(writeThreadPool_->Start(), "write thread pool start failed");
+    MMC_RETURN_ERROR(writeThreadPool_->Start(bindCpu), "write thread pool start failed");
 
     MMC_ASSERT_RETURN(memchr(config.discoveryURL, '\0', DISCOVERY_URL_SIZE) != nullptr, MMC_INVALID_PARAM);
     auto tmpNetClient = MetaNetClientFactory::GetInstance(config.discoveryURL, "MetaClientCommon").Get();
