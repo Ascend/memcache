@@ -21,7 +21,7 @@ readonly COVERAGE_PATH="$OUTPUT_PATH/coverage"
 readonly TEST_REPORT_PATH="$OUTPUT_PATH/bin/gcover_report"
 readonly MOCKCPP_PATH="$PROJECT_FULL_PATH/test/3rdparty/mockcpp"
 readonly TEST_3RD_PATCH_PATH="$PROJECT_FULL_PATH/test/3rdparty/patch"
-readonly MOCK_CANN_PATH="$HYBM_LIB_PATH/cann"
+readonly MOCK_CANN_PATH="$MEMCACHE_LIB_PATH/cann"
 readonly MOCK_MMC_CANN_PATH="$BUILD_PATH/test/ut/mock/cann"
 readonly MOCK_MMC_DFC_PATH="$BUILD_PATH/test/ut/mock/dfc"
 

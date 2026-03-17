@@ -98,3 +98,16 @@ ADD_UNIT_TEST(test_meta_container_lru
         LINK_LIBRARIES ${TEST_DEPEND_LIBS}
         BUILD_FLAGS -fpermissive --coverage
 )
+
+file(GLOB_RECURSE ubs_io_enabled_src
+        ${CMAKE_CURRENT_SOURCE_DIR}/test_ubs_io_enabled.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/mock_smem.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/mock_smem_bm.cpp
+)
+ADD_UNIT_TEST(test_ubs_io_enabled
+        FILES ${ubs_io_enabled_src} ${TEST_SRC_PATHS}/ut_main.cpp
+        INCLUDE_PATHS ${TEST_INCLUDE_PATHS}
+        LINK_LIBRARIES ${TEST_DEPEND_LIBS}
+        BUILD_FLAGS -fpermissive --coverage
+        DEPENDS mock_dfc
+)

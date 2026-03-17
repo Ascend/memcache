@@ -1,5 +1,5 @@
 /*
-* Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  * MemCache_Hybrid is licensed under Mulan PSL v2.
  * You can use this software according to the terms and conditions of the Mulan PSL v2.
  * You may obtain a copy of Mulan PSL v2 at:
@@ -9,13 +9,31 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
 */
-
 #include <cstdint>
 #include <cstddef>
+#include <cstdlib>
 
 constexpr int32_t RETURN_OK = 0;
 constexpr int32_t RETURN_ERROR = -1;
 constexpr uint64_t START_ADDR = 0x100000000000ULL;
+
+enum class aclrtMemLocationType {
+    ACL_MEM_LOCATION_TYPE_HOST = 0,   // Host内存
+    ACL_MEM_LOCATION_TYPE_DEVICE,     // Device内存
+};
+
+using aclrtMemLocation = struct aclrtMemLocation;
+struct aclrtMemLocation {
+    uint32_t id;
+    aclrtMemLocationType type;    // 内存所在位置
+};
+
+using aclrtMemcpyBatchAttr = struct aclrtMemcpyBatchAttr;
+struct aclrtMemcpyBatchAttr {
+    aclrtMemLocation dstLoc;
+    aclrtMemLocation srcLoc;
+    uint8_t rsv[16];
+};
 
 extern "C" {
 int32_t aclrtSetDevice(int32_t deviceId)
@@ -72,6 +90,26 @@ int32_t aclrtMemcpy(void *dst, size_t destMax, const void *src, size_t count, ui
 
 int32_t aclrtMemcpyAsync(void *dst, size_t destMax, const void *src, size_t count, uint32_t kind, void *stream)
 {
+    if (stream != nullptr) {
+        *reinterpret_cast<uint64_t *>(stream) += 1;
+    }
+    return RETURN_OK;
+}
+
+int32_t aclrtMemcpyBatch(void **dsts, size_t *destMax,
+                         void **srcs, size_t *sizes, size_t numBatches,
+                         aclrtMemcpyBatchAttr *attrs, size_t *attrsIndexes,
+                         size_t numAttrs, size_t *failIndex)
+{
+    return RETURN_OK;
+}
+
+int32_t rtMemcpyAsyncWithoutCheckKind(void *dst, size_t destMax, const void *src, size_t count, uint32_t kind,
+                                      void *stream)
+{
+    if (stream != nullptr) {
+        *reinterpret_cast<uint64_t *>(stream) += 1;
+    }
     return RETURN_OK;
 }
 
@@ -132,8 +170,47 @@ int32_t rtIpcOpenMemory(void **ptr, const char *name)
     return RETURN_OK;
 }
 
+int32_t aclrtCreateStreamWithConfig(void **stream, uint32_t prot, uint32_t config)
+{
+    return 0;
+}
+
+int32_t aclrtMallocHost(void **ptr, size_t count)
+{
+    (*ptr) = malloc(count);
+    return 0;
+}
+
+int32_t aclrtFreeHost(void *ptr)
+{
+    free(ptr);
+    return 0;
+}
+
 int32_t rtIpcCloseMemory(const void *ptr)
 {
-    return RETURN_OK;
+    return 0;
+}
+
+char *aclrtGetSocName()
+{
+    static char soc[] = "Ascend910_93";
+    return soc;
+}
+
+int32_t rtEnableP2P(uint32_t devIdDes, uint32_t phyIdSrc, uint32_t flag)
+{
+    return 0;
+}
+
+int32_t rtDisableP2P(uint32_t devIdDes, uint32_t phyIdSrc)
+{
+    return 0;
+}
+
+int32_t rtGetLogicDevIdByUserDevId(const int32_t userDevId, int32_t *const logicDevId)
+{
+    *logicDevId = userDevId;
+    return 0;
 }
 }
