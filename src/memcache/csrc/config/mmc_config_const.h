@@ -24,8 +24,8 @@ constexpr auto OCK_MMC_META_SERVICE_CONFIG_STORE_URL =
 constexpr auto OCK_MMC_META_SERVICE_HTTP_URL =
     std::make_pair("ock.mmc.meta_service.metrics_url", "http://127.0.0.1:8000");
 constexpr auto OCK_MMC_META_HA_ENABLE = std::make_pair("ock.mmc.meta.ha.enable", false);
-constexpr auto OKC_MMC_EVICT_THRESHOLD_HIGH = std::make_pair("ock.mmc.evict_threshold_high", 70);
-constexpr auto OKC_MMC_EVICT_THRESHOLD_LOW = std::make_pair("ock.mmc.evict_threshold_low", 60);
+constexpr auto OKC_MMC_EVICT_THRESHOLD_HIGH = std::make_pair("ock.mmc.evict_threshold_high", 90);
+constexpr auto OKC_MMC_EVICT_THRESHOLD_LOW = std::make_pair("ock.mmc.evict_threshold_low", 80);
 constexpr auto OCK_MMC_LOG_LEVEL = std::make_pair("ock.mmc.log_level", "info");
 constexpr auto OCK_MMC_LOG_PATH = std::make_pair("ock.mmc.log_path", "/var/log/memcache_hybrid");
 constexpr auto OCK_MMC_LOG_ROTATION_FILE_SIZE = std::make_pair("ock.mmc.log_rotation_file_size", 20);

@@ -170,7 +170,7 @@ TEST_F(TestMmcMetaManager, LRU)
         MmcMemMetaDesc objMeta;
         string key = "testKey" + std::to_string(i);
         MetaNetServerPtr server;
-        metaMng->CheckAndEvict();
+        metaMng->CheckAndEvict(MEDIA_DRAM, SIZE_32K);
         usleep(1000 * 500);
         ret = metaMng->Alloc(key, allocReq, 1, objMeta);
         ASSERT_TRUE(ret == MMC_OK);

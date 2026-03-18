@@ -16,7 +16,8 @@ namespace ock {
 namespace mmc {
 Result MmcMetaMgrProxy::Alloc(const AllocRequest &req, AllocResponse &resp)
 {
-    metaMangerPtr_->CheckAndEvict();
+    metaMangerPtr_->CheckAndEvict(static_cast<MediaType>(req.options_.mediaType_),
+                                  req.options_.blobSize_ * req.options_.numBlobs_);
     MmcMemMetaDesc objMeta;
     auto ret = metaMangerPtr_->Alloc(req.key_, req.options_, req.operateId_, objMeta);
     if (ret != MMC_OK) {
@@ -35,12 +36,13 @@ Result MmcMetaMgrProxy::Alloc(const AllocRequest &req, AllocResponse &resp)
 
 Result MmcMetaMgrProxy::BatchAlloc(const BatchAllocRequest &req, BatchAllocResponse &resp)
 {
-    metaMangerPtr_->CheckAndEvict();
     resp.results_.resize(req.keys_.size());
     resp.blobs_.resize(req.keys_.size());
     MMC_ASSERT_RETURN(req.keys_.size() == req.options_.size(), MMC_ERROR);
     for (size_t i = 0; i < req.keys_.size(); ++i) {
         MmcMemMetaDesc objMeta{};
+        metaMangerPtr_->CheckAndEvict(static_cast<MediaType>(req.options_[i].mediaType_),
+                                      req.options_[i].blobSize_ * req.options_[i].numBlobs_);
         TP_TRACE_BEGIN(TP_MMC_META_MGR_ALLOC);
         Result ret = metaMangerPtr_->Alloc(req.keys_[i], req.options_[i], req.operateId_, objMeta);
         TP_TRACE_END(TP_MMC_META_MGR_ALLOC, ret);

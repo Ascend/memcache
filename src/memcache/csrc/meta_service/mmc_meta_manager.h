@@ -210,7 +210,7 @@ public:
     /**
      * @brief check and evict meta objects
      */
-    void CheckAndEvict();
+    void CheckAndEvict(MediaType media, uint64_t wantAllocSize);
 
     inline uint64_t Ttl()
     {

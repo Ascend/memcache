@@ -29,6 +29,7 @@ k_sizes = [k_size for _ in range(layers_num)]
 v_sizes = [v_size for _ in range(layers_num)]
 layers_block_size = [item for pair in zip(k_sizes, v_sizes) for item in pair]
 key_prefix: str = "key_"
+PRINT_DATA_SUM = True
 
 
 def set_device(device_id):
@@ -53,7 +54,7 @@ def allocate_aligned_tensor(shape, dtype=torch.float32, alignment=2*1024*1024):
     total_bytes = num_elements * element_size
 
     padding = alignment - 1
-    buffer = torch.empty(total_bytes + padding, dtype=dtype, device=g_local_type)
+    buffer = torch.randn(total_bytes + padding, dtype=dtype, device=g_local_type)
 
     address = buffer.data_ptr()
     aligned_address = (address + alignment - 1) & ~(alignment - 1)
@@ -132,14 +133,20 @@ def write_worker(*args):
     one_dim_tensor = None
     k_tensors = None
     v_tensors = None
+    k_sum = 0
+    v_sum = 0
+    one_dim_sum = 0
     if data_dim == 2:
         k_tensors = malloc_npu_blocks(max(k_sizes, default=0), len(k_sizes), batch_size)
         v_tensors = malloc_npu_blocks(max(v_sizes, default=0), len(v_sizes), batch_size)
         store.register_buffer(k_tensors.data_ptr(), max(k_sizes, default=0) * len(k_sizes) * batch_size)
         store.register_buffer(v_tensors.data_ptr(), max(v_sizes, default=0) * len(v_sizes) * batch_size)
+        k_sum = k_tensors.sum().item()
+        v_sum = v_tensors.sum().item()
     else:
         one_dim_tensor = malloc_npu_blocks(max(block_size, default=0), 1, batch_size)
         store.register_buffer(one_dim_tensor.data_ptr(), max(block_size, default=0) * batch_size)
+        one_dim_sum = one_dim_tensor.sum().item()
     keys_list = []
     buffs_list = []
     sizes_list = []    
@@ -194,6 +201,10 @@ def write_worker(*args):
     status_manager[device_id].set_to_ready()
     for i in range(process_count):
         status_manager[i].wait_until_ready(timeout=5 * 60)
+    
+    if PRINT_DATA_SUM:
+        print(f"write data sum for check data ==> {device_id=} {k_sum=}, {v_sum}, {one_dim_sum}")
+    sleep(1)
     print(f"===== npu:{device_id} write finish, wait read testing ......")
     sleep(30 * 60)
 
@@ -230,6 +241,9 @@ def read_worker(*args):
     one_dim_tensor = None
     k_tensors = None
     v_tensors = None
+    k_sum = 0
+    v_sum = 0
+    one_dim_sum = 0    
     if data_dim == 2:
         k_tensors = malloc_npu_blocks(max(k_sizes, default=0), len(k_sizes), batch_size)
         v_tensors = malloc_npu_blocks(max(v_sizes, default=0), len(v_sizes), batch_size)
@@ -288,8 +302,18 @@ def read_worker(*args):
     total_size_gb = total_size_bytes / (1024 * 1024 * 1024)
     total_duration_seconds = duration_us / 1_000_000
     bandwidth_gb_per_sec = total_size_gb / total_duration_seconds
+    if data_dim == 2:
+        k_sum = k_tensors.sum().item()
+        v_sum = v_tensors.sum().item()        
+    else:
+        one_dim_sum = one_dim_tensor.sum().item()   
+
     print(f"\033[91mdevice_id:{device_id} read_total_size:{total_size_bytes} bytes, "
           f"single_size:{total_size_bytes / call_count:.0f} bytes, call count:{call_count}, "
           f"total_time:{duration_us:.2f} us, avg_time:{duration_us / call_count:.2f} us, "
           f"bw:{bandwidth_gb_per_sec:.3f} GB/s\033[0m")
+    
+    sleep(1)
+    if PRINT_DATA_SUM:
+        print(f"read data sum for check data ==> {device_id=} {k_sum=}, {v_sum}, {one_dim_sum}")
     sleep(10)

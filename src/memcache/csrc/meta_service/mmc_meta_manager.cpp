@@ -97,10 +97,11 @@ Result MmcMetaManager::ExistKey(const std::string &key)
     return MMC_OK;
 }
 
-void MmcMetaManager::CheckAndEvict()
+void MmcMetaManager::CheckAndEvict(MediaType media, uint64_t wantAllocSize)
 {
     std::vector<uint16_t> nowMemoryThresholds;
-    const auto needEvictList = globalAllocator_->GetNeedEvictList(evictThresholdHigh_, nowMemoryThresholds);
+    const auto needEvictList =
+        globalAllocator_->GetNeedEvictList(evictThresholdHigh_, nowMemoryThresholds, media, wantAllocSize);
     if (needEvictList.empty()) {
         return;
     }

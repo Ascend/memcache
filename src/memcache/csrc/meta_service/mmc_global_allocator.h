@@ -284,7 +284,8 @@ public:
         return totalSize[type] - usedSize[type];
     }
 
-    std::vector<MediaType> GetNeedEvictList(const uint64_t level, std::vector<uint16_t> &nowMemoryThresholds)
+    std::vector<MediaType> GetNeedEvictList(const uint64_t level, std::vector<uint16_t> &nowMemoryThresholds,
+                                            MediaType media, uint64_t wantAllocSize)
     {
         std::vector<MediaType> results;
         uint64_t totalSize[MEDIA_NONE] = {0};
@@ -304,6 +305,15 @@ public:
                 nowMemoryThresholds.push_back(nowMemoryThreshold);
                 MMC_LOG_DEBUG("Medium " << static_cast<MediaType>(i) << " need evict, usedSize: " << usedSize[i]
                                         << ", totalSize: " << totalSize[i]);
+            } else {
+                if (media == static_cast<MediaType>(i) && (totalSize[i] - usedSize[i] < wantAllocSize)) {
+                    MMC_LOG_WARN("Medium " << static_cast<MediaType>(i)
+                                           << " need evict, but the alloc size of req is greater than remain, and it "
+                                              "does not meet the conditions of high evict level , the "
+                                              "elimination cannot be triggered, usedSize: "
+                                           << usedSize[i] << ", totalSize: " << totalSize[i]
+                                           << ", wantAllocSize: " << wantAllocSize);
+                }
             }
         }
         return results;

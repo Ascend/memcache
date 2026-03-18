@@ -12,8 +12,8 @@
 | ock.mmc.log_path                        | string     | optional    | /var/log/memcache_hybrid| relative or absolute path | log path, the absolute path is start with '/'                |
 | ock.mmc.log_rotation_file_size          | int        | optional    | 20                      | 1 <= n <= 500             | log rotation file size(MB)                                   |
 | ock.mmc.log_rotation_file_count         | int        | optional    | 50                      | 1 <= n <= 50              | log rotation file num                                        |
-| ock.mmc.evict_threshold_high            | int        | optional    | 70                      | 1 <= n <= 99              | evict threshold, 70 mean 70%, the max threshold is 99%                           |
-| ock.mmc.evict_threshold_low             | int        | optional    | 60                      | 0 <= n <= 98              | after evict threshold                                        |
+| ock.mmc.evict_threshold_high            | int        | optional    | 90                      | 1 <= n <= 99              | evict threshold, 90 mean 90%, the max threshold is 99%， Note: When the size of single put value is greater than 1% of the capacity, the elimination cannot be triggered                      |
+| ock.mmc.evict_threshold_low             | int        | optional    | 80                      | 0 <= n <= 98              | after evict threshold                                        |
 |                                         |            |             |                         |                           |                                                              |
 | ock.mmc.tls.enable                      | bool       | optional    | false                   | true/false                | metaservice TLS switch                                       |
 | ock.mmc.tls.ca.path                     | string     | optional    |                         | 0 <= len < 256            | Root Certificate path                                        |
