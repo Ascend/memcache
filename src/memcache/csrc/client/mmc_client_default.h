@@ -141,17 +141,7 @@ private:
         std::vector<std::string> &fallbackKeys;
         std::vector<mmc_buffer> &fallbackBuffers;
     };
-    
-    struct UbsIoBatchGetFreeData {
-        const std::vector<std::string> ubsIoKeys;
-        const std::vector<void*> bufs;
-        const std::vector<std::string> fallbackKeys;
-        const std::vector<mmc_buffer> fallbackBuffers;
-        uint64_t operateId;
-    };
-    
-    void ProcessUbsIoBatchGet(const UbsIoBatchGetData &data);
-    void ProcessUbsIoBatchGetFree(const UbsIoBatchGetFreeData &data);
+
     void ProcessUbsIoBatchGetWithHBM(UbsIoBatchGetData &data);
 
 private:
