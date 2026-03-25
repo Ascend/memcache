@@ -9,6 +9,9 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
 */
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "gtest/gtest.h"
 
 #define private public
@@ -94,6 +97,31 @@ TEST_F(TestMmcConfiguration, GetLogPathTest)
 
     logPath = configuration.GetLogPath("./");
     ASSERT_NE(logPath, "/");
+}
+
+TEST_F(TestMmcConfiguration, ValidateLogPathConfigTest)
+{
+    EXPECT_STREQ(ConfConstant::OCK_MMC_LOG_PATH.second, "/var/log/memcache_hybrid");
+
+    char pathTemplate[] = "/tmp/mmc-log-path-test.XXXXXX";
+    char *baseDir = mkdtemp(pathTemplate);
+    ASSERT_NE(baseDir, nullptr);
+
+    const std::string basePath(baseDir);
+    const std::string missingPath = basePath + "/missing";
+    EXPECT_EQ(Configuration::ValidateLogPathConfig(missingPath), MMC_OK);
+
+    const std::string realDir = basePath + "/real";
+    ASSERT_EQ(mkdir(realDir.c_str(), 0700), 0);
+    EXPECT_EQ(Configuration::ValidateLogPathConfig(realDir), MMC_OK);
+
+    const std::string symlinkPath = basePath + "/symlink";
+    ASSERT_EQ(symlink(realDir.c_str(), symlinkPath.c_str()), 0);
+    EXPECT_NE(Configuration::ValidateLogPathConfig(symlinkPath), MMC_OK);
+
+    ASSERT_EQ(unlink(symlinkPath.c_str()), 0);
+    ASSERT_EQ(rmdir(realDir.c_str()), 0);
+    ASSERT_EQ(rmdir(basePath.c_str()), 0);
 }
 
 TEST_F(TestMmcConfiguration, SetTest)

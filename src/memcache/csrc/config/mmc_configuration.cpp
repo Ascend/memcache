@@ -12,6 +12,7 @@
 
 #include "mmc_configuration.h"
 
+#include <cerrno>
 #include <iostream>
 #include <mmc_functions.h>
 
@@ -505,11 +506,30 @@ const std::string Configuration::GetLogPath(const std::string &logPath)
 
 int Configuration::ValidateLogPathConfig(const std::string &logPath)
 {
+    struct stat pathStat{};
+
     if (logPath.empty()) {
         MMC_LOG_ERROR("path is empty.");
         return MMC_ERROR;
     }
-    MMC_RETURN_ERROR(ValidatePathNotSymlink(logPath.c_str()), logPath << " does not exist or is a symlink");
+
+    // Allow a missing path here and let spdlog create the directory tree during logger initialization.
+    if (access(logPath.c_str(), F_OK) != 0) {
+        if (errno == ENOENT) {
+            return MMC_OK;
+        }
+    }
+
+    if (lstat(logPath.c_str(), &pathStat) != 0) {
+        MMC_LOG_ERROR("lstat failed for path " << logPath << ", error: " << errno);
+        return MMC_ERROR;
+    }
+
+    if (S_ISLNK(pathStat.st_mode)) {
+        MMC_LOG_ERROR("path " << logPath << " is a symlink. ");
+        return MMC_ERROR;
+    }
+
     return MMC_OK;
 }
 
