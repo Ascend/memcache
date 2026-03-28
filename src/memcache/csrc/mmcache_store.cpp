@@ -26,7 +26,6 @@ namespace ock {
 namespace mmc {
 
 constexpr int MAX_LAYER_NUM = 255;
-constexpr int MAX_BATCH_SIZE = 512;
 constexpr int MAX_KEY_LEN = 256;
 
 static bool CopyPutOptions(const ReplicateConfig &replicateConfig, mmc_put_options &options)
@@ -64,7 +63,7 @@ ResourceTracker &ResourceTracker::getInstance()
 ResourceTracker::ResourceTracker()
 {
     // Set up signal handlers
-    struct sigaction sa{};
+    struct sigaction sa {};
     sa.sa_handler = signalHandler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
@@ -115,7 +114,7 @@ void ResourceTracker::signalHandler(int signal)
     getInstance().cleanupAllResources();
 
     // Re-raise the signal with default handler to allow normal termination
-    struct sigaction sa{};
+    struct sigaction sa {};
     sa.sa_handler = SIG_DFL;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
@@ -547,7 +546,7 @@ std::vector<int> MmcacheStore::BatchPutFromLayers(const std::vector<std::string>
     MMC_ASSERT_RETURN(MmcClientDefault::GetInstance() != nullptr, {});
     const size_t batchSize = keys.size();
     MMC_VALIDATE_RETURN(batchSize > 0, "key vector is empty", {});
-    MMC_VALIDATE_RETURN(batchSize <= MAX_BATCH_SIZE, "key vector length exceeds limit" << MAX_BATCH_SIZE,
+    MMC_VALIDATE_RETURN(batchSize <= MAX_BATCH_OP_COUNT, "key vector length exceeds limit" << MAX_BATCH_OP_COUNT,
                         {MMC_INVALID_PARAM});
 
     std::vector<int> results(batchSize, MMC_INVALID_PARAM);
@@ -639,7 +638,7 @@ std::vector<int> MmcacheStore::BatchGetIntoLayers(const std::vector<std::string>
     MMC_ASSERT_RETURN(MmcClientDefault::GetInstance() != nullptr, {});
     const size_t batchSize = keys.size();
     MMC_VALIDATE_RETURN(batchSize > 0, "key vector is empty", {});
-    MMC_VALIDATE_RETURN(batchSize <= MAX_BATCH_SIZE, "key vector length exceeds limit" << MAX_BATCH_SIZE,
+    MMC_VALIDATE_RETURN(batchSize <= MAX_BATCH_OP_COUNT, "key vector length exceeds limit" << MAX_BATCH_OP_COUNT,
                         {MMC_INVALID_PARAM});
 
     std::vector<int> results(batchSize, MMC_INVALID_PARAM);
