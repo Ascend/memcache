@@ -17,6 +17,7 @@ export ENABLE_PTRACER=${5:-ON}
 
 readonly SCRIPT_FULL_PATH=$(dirname $(readlink -f "$0"))
 readonly PROJECT_FULL_PATH=$(dirname "$SCRIPT_FULL_PATH")
+readonly MMC_BUILD_JOBS="${MMC_BUILD_JOBS:-32}"
 
 if [ "${BUILD_TESTS}" == "ON" ]; then
   readonly MOCKCPP_PATH="$PROJECT_FULL_PATH/test/3rdparty/mockcpp"
@@ -99,7 +100,7 @@ cmake \
     -DENABLE_PTRACER="${ENABLE_PTRACER}" \
     -S . -B build/
 
-${MAKE_CMD} install -j32 -C build/
+${MAKE_CMD} install -j"${MMC_BUILD_JOBS}" -C build/
 
 FABRIC_PROJ_DIR=${PROJ_DIR}/3rdparty/memfabric_hybrid
 
@@ -129,7 +130,7 @@ do
             -DBUILD_PYTHON="${BUILD_PYTHON}" \
             -DENABLE_PTRACER="${ENABLE_PTRACER}" \
             -S . -B build/
-        ${MAKE_CMD} -j5 -C build
+        ${MAKE_CMD} -j"${MMC_BUILD_JOBS}" -C build
     fi
 
     cd "${PROJ_DIR}"
