@@ -258,7 +258,16 @@ function install_wheel_package() {
         return
     fi
 
-    pip3 install "${wheel_package}" --force-reinstall
+    pip3 install "${wheel_package}" --force-reinstall --no-deps
+
+    check_output=$(pip3 check)
+    echo "${check_output}" | grep -i "memcache.hybrid.*memfabric" > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        pip3 check | grep -i "memcache.hybrid.*memfabric"
+        pip3 uninstall ${wheel_name} -y > /dev/null 2>&1
+        print "ERROR" "${wheel_name} wheel package already uninstalled because memfabric-hybrid version not compatible"
+        return
+    fi
 }
 
 function install_to_path()
@@ -331,7 +340,7 @@ function main()
 
         install_process
         chmod_authority
-        print "INFO" "memcache_hybrid install success"
+        print "INFO" "memcache_hybrid install finish"
     fi
 }
 
