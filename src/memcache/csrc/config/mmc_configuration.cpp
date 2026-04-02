@@ -14,6 +14,8 @@
 
 #include <iostream>
 #include <limits>
+#include <string>
+#include <type_traits>
 #include <mmc_functions.h>
 
 #include "smem.h"
@@ -41,6 +43,77 @@ Configuration::~Configuration()
     }
     mValueValidator.clear();
     mValueConverter.clear();
+}
+
+bool Configuration::Setup(const local_config *config)
+{
+    if (config == nullptr) {
+        MMC_LOG_ERROR("config is nullptr");
+        return false;
+    }
+    if (config->config_path[0] != '\0') {
+        MMC_LOG_INFO("Try to load config from file " << config->config_path);
+        return LoadFromFile(config->config_path);
+    }
+
+    MMC_LOG_INFO("Try to setup config");
+    LoadConfigurations();
+    if (!Initialized()) {
+        return false;
+    }
+
+    bool res{true};
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_META_SERVICE_URL.first, config->meta_service_url);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_META_SERVICE_CONFIG_STORE_URL.first, config->config_store_url);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_LOG_LEVEL.first, config->log_level);
+    res &= SetWithTypeAutoConvert(ConfConstant::OKC_MMC_LOCAL_SERVICE_WORLD_SIZE.first, config->world_size);
+    res &= SetWithTypeAutoConvert(ConfConstant::OKC_MMC_LOCAL_SERVICE_PROTOCOL.first, config->protocol);
+    res &= SetWithTypeAutoConvert(ConfConstant::OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL.first, config->hcom_url);
+    res &= SetWithTypeAutoConvert(ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE.first, config->dram_size);
+    res &= SetWithTypeAutoConvert(ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first, config->hbm_size);
+    res &= SetWithTypeAutoConvert(ConfConstant::OKC_MMC_LOCAL_SERVICE_MAX_DRAM_SIZE.first, config->max_dram_size);
+    res &= SetWithTypeAutoConvert(ConfConstant::OKC_MMC_LOCAL_SERVICE_MAX_HBM_SIZE.first, config->max_hbm_size);
+    res &= SetWithTypeAutoConvert(ConfConstant::OKC_MMC_CLIENT_RETRY_MILLISECONDS.first,
+                                  config->client_retry_milliseconds);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CLIENT_TIMEOUT_SECONDS.first, config->client_timeout_seconds);
+    res &=
+        SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CLIENT_READ_THREAD_POOL_SIZE.first, config->read_thread_pool_size);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE.first,
+                                  config->write_thread_pool_size);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CLIENT_AGGREGATE_IO.first, config->aggregate_io);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CLIENT_AGGREGATE_NUM.first, config->aggregate_num);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_UBS_IO_ENABLE.first, config->ubs_io_enable);
+    res &= SetWithTypeAutoConvert(ConfConstant::OKC_MMC_LOCAL_SERVICE_MEMORY_POOL_MODE.first, config->memory_pool_mode);
+
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_TLS_ENABLE.first, config->tls_enable);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_TLS_CA_PATH.first, config->tls_ca_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_TLS_CRL_PATH.first, config->tls_ca_crl_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_TLS_CERT_PATH.first, config->tls_cert_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_TLS_KEY_PATH.first, config->tls_key_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_TLS_KEY_PASS_PATH.first, config->tls_key_pass_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_TLS_PACKAGE_PATH.first, config->tls_package_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_TLS_DECRYPTER_PATH.first, config->tls_decrypter_path);
+
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CS_TLS_ENABLE.first, config->config_store_tls_enable);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CS_TLS_CA_PATH.first, config->config_store_tls_ca_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CS_TLS_CRL_PATH.first, config->config_store_tls_ca_crl_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CS_TLS_CERT_PATH.first, config->config_store_tls_cert_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CS_TLS_KEY_PATH.first, config->config_store_tls_key_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CS_TLS_KEY_PASS_PATH.first,
+                                  config->config_store_tls_key_pass_path);
+    res &=
+        SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CS_TLS_PACKAGE_PATH.first, config->config_store_tls_package_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CS_TLS_DECRYPTER_PATH.first,
+                                  config->config_store_tls_decrypter_path);
+
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_HCOM_TLS_ENABLE.first, config->hcom_tls_enable);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_HCOM_TLS_CA_PATH.first, config->hcom_tls_ca_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_HCOM_TLS_CRL_PATH.first, config->hcom_tls_ca_crl_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_HCOM_TLS_CERT_PATH.first, config->hcom_tls_cert_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_HCOM_TLS_KEY_PATH.first, config->hcom_tls_key_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_HCOM_TLS_KEY_PASS_PATH.first, config->hcom_tls_key_pass_path);
+    res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_HCOM_TLS_DECRYPTER_PATH.first, config->hcom_tls_decrypter_path);
+    return res;
 }
 
 bool Configuration::LoadFromFile(const std::string &filePath)
@@ -179,6 +252,24 @@ void Configuration::Set(const std::string &key, uint64_t value)
     if (mUInt64Items.count(key) > 0) {
         mUInt64Items.at(key) = value;
     }
+}
+
+template<typename T>
+bool Configuration::SetWithTypeAutoConvert(const std::string &key, const T &value)
+{
+    std::string strValue;
+    if constexpr (std::is_same_v<T, bool>) {
+        strValue = value ? "true" : "false";
+    } else if constexpr (std::is_same_v<T, std::string>) {
+        strValue = value;
+    } else if constexpr (std::is_same_v<T, const char *> || std::is_same_v<T, char *>) {
+        strValue = (value == nullptr) ? "" : value;
+    } else if constexpr (std::is_array_v<T> && std::is_same_v<std::remove_extent_t<T>, char>) {
+        strValue = value;
+    } else {
+        strValue = std::to_string(value);
+    }
+    return SetWithTypeAutoConvert(key, strValue);
 }
 
 bool Configuration::SetWithTypeAutoConvert(const std::string &key, const std::string &value)

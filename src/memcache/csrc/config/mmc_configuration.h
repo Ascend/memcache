@@ -27,6 +27,7 @@
 #include "mmc_types.h"
 #include "mmc_last_error.h"
 #include "smem_bm_def.h"
+#include "mmc.h"
 #include "common/mmc_functions.h"
 
 namespace ock {
@@ -69,6 +70,7 @@ public:
     Configuration(const Configuration &&) = delete;
     Configuration &operator=(const Configuration &&) = delete;
 
+    bool Setup(const local_config *config);
     bool LoadFromFile(const std::string &filePath);
 
     int32_t GetInt(const std::pair<const char *, int32_t> &item);
@@ -85,6 +87,9 @@ public:
     void Set(const std::string &key, uint64_t value);
 
     bool SetWithTypeAutoConvert(const std::string &key, const std::string &value);
+
+    template<typename T>
+    bool SetWithTypeAutoConvert(const std::string &key, const T &value);
 
     void AddIntConf(const std::pair<std::string, int> &pair, const ValidatorPtr &validator = nullptr,
                     uint32_t flag = CONF_MUST);
@@ -245,6 +250,7 @@ public:
     {
         using namespace ConfConstant;
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
+        AddStrConf(OCK_MMC_META_SERVICE_CONFIG_STORE_URL, VNoCheck::Create(), 0);
         AddStrConf(OCK_MMC_LOG_LEVEL, VStrEnum::Create(OCK_MMC_LOG_LEVEL.first, LOG_LEVEL_ENUM_STR), 0);
 
         AddBoolConf(OCK_MMC_TLS_ENABLE, VStrEnum::Create(OCK_MMC_TLS_ENABLE.first, BOOL_ENUM_STR), 0);

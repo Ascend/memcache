@@ -27,8 +27,8 @@ namespace mmc {
 
 constexpr int MAX_LAYER_NUM = 255;
 constexpr int MAX_KEY_LEN = 256;
-constexpr uint64_t MMC_DEVICE_VA_START = 0x100000000000UL;      // NPU上的地址空间起始: 16T
-constexpr uint64_t MMC_DEVICE_VA_SIZE = 0x80000000000UL;        // NPU上的地址空间范围: 8T
+constexpr uint64_t MMC_DEVICE_VA_START = 0x100000000000UL; // NPU上的地址空间起始: 16T
+constexpr uint64_t MMC_DEVICE_VA_SIZE = 0x80000000000UL;   // NPU上的地址空间范围: 8T
 
 static bool CopyPutOptions(const ReplicateConfig &replicateConfig, mmc_put_options &options)
 {
@@ -146,6 +146,11 @@ ObjectStore::~ObjectStore() {}
 std::shared_ptr<ObjectStore> ObjectStore::CreateObjectStore()
 {
     return std::make_shared<MmcacheStore>();
+}
+
+int MmcacheStore::Setup(const local_config &config)
+{
+    return mmc_setup(&config);
 }
 
 int MmcacheStore::Init(const uint32_t deviceId, const bool initBm)
@@ -507,8 +512,10 @@ int MmcacheStore::PutFromLayers(const std::string &key, const std::vector<void *
 {
     MMC_ASSERT_RETURN(MmcClientDefault::GetInstance() != nullptr, MMC_INVALID_PARAM);
     if (direct != SMEMB_COPY_L2G && direct != SMEMB_COPY_H2G && direct != SMEMB_COPY_AUTO) {
-        MMC_LOG_ERROR("Invalid direct(" << direct << "), only" \
-                      "0 (SMEMB_COPY_L2G), 3 (SMEMB_COPY_H2G) and 9 (SMEMB_COPY_AUTO) is supported");
+        MMC_LOG_ERROR(
+            "Invalid direct(" << direct
+                              << "), only"
+                                 "0 (SMEMB_COPY_L2G), 3 (SMEMB_COPY_H2G) and 9 (SMEMB_COPY_AUTO) is supported");
         return MMC_INVALID_PARAM;
     }
 
@@ -570,8 +577,10 @@ std::vector<int> MmcacheStore::BatchPutFromLayers(const std::vector<std::string>
     std::vector<int> results(batchSize, MMC_INVALID_PARAM);
 
     if (direct != SMEMB_COPY_L2G && direct != SMEMB_COPY_H2G && direct != SMEMB_COPY_AUTO) {
-        MMC_LOG_ERROR("Invalid direct(" << direct << "), only" \
-                     " 0 (SMEMB_COPY_L2G) , 3 (SMEMB_COPY_H2G) and 9 (SMEMB_COPY_AUTO) is supported");
+        MMC_LOG_ERROR(
+            "Invalid direct(" << direct
+                              << "), only"
+                                 " 0 (SMEMB_COPY_L2G) , 3 (SMEMB_COPY_H2G) and 9 (SMEMB_COPY_AUTO) is supported");
         return results;
     }
 
@@ -586,7 +595,7 @@ std::vector<int> MmcacheStore::BatchPutFromLayers(const std::vector<std::string>
     } else {
         type = (direct == SMEMB_COPY_L2G ? MEDIA_HBM : MEDIA_DRAM);
     }
-    
+
     if (batchSize != buffers.size() || batchSize != sizes.size()) {
         MMC_LOG_ERROR("Input vector sizes mismatch: keys=" << keys.size() << ", buffers=" << buffers.size()
                                                            << ", sizes=" << sizes.size());
@@ -625,8 +634,10 @@ int MmcacheStore::GetIntoLayers(const std::string &key, const std::vector<void *
                                 const std::vector<size_t> &sizes, const int32_t direct)
 {
     if (direct != SMEMB_COPY_G2L && direct != SMEMB_COPY_G2H && direct != SMEMB_COPY_AUTO) {
-        MMC_LOG_ERROR("Invalid direct(" << direct << "), only" \
-                     "1 (SMEMB_COPY_G2L) , 2 (SMEMB_COPY_G2H) and 9 (SMEMB_COPY_AUTO) is supported");
+        MMC_LOG_ERROR(
+            "Invalid direct(" << direct
+                              << "), only"
+                                 "1 (SMEMB_COPY_G2L) , 2 (SMEMB_COPY_G2H) and 9 (SMEMB_COPY_AUTO) is supported");
         return MMC_INVALID_PARAM;
     }
     MMC_ASSERT_RETURN(MmcClientDefault::GetInstance() != nullptr, MMC_INVALID_PARAM);
@@ -685,8 +696,10 @@ std::vector<int> MmcacheStore::BatchGetIntoLayers(const std::vector<std::string>
     std::vector<int> results(batchSize, MMC_INVALID_PARAM);
 
     if (direct != SMEMB_COPY_G2L && direct != SMEMB_COPY_G2H && direct != SMEMB_COPY_AUTO) {
-        MMC_LOG_ERROR("Invalid direct(" << direct << "), only"\
-                      " 1 (SMEMB_COPY_G2L) , 2 (SMEMB_COPY_G2H) and 9 (SMEMB_COPY_AUTO) is supported");
+        MMC_LOG_ERROR(
+            "Invalid direct(" << direct
+                              << "), only"
+                                 " 1 (SMEMB_COPY_G2L) , 2 (SMEMB_COPY_G2H) and 9 (SMEMB_COPY_AUTO) is supported");
         return results;
     }
     uint32_t type = MEDIA_DRAM;

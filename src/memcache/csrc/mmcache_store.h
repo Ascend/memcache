@@ -18,6 +18,7 @@
 #include <sstream>
 #include <csignal>
 
+#include "mmc.h"
 #include "mmc_def.h"
 #include "mmc_types.h"
 #include "mmcache.h"
@@ -63,6 +64,8 @@ class MmcacheStore : public ock::mmc::ObjectStore {
 public:
     MmcacheStore();
     ~MmcacheStore() override;
+
+    int Setup(const local_config &config) override;
 
     int Init(const uint32_t deviceId, const bool initBm = true) override;
 

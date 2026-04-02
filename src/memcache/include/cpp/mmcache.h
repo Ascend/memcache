@@ -17,6 +17,8 @@
 #include <iostream>
 #include <memory>
 
+#include "mmc.h"
+
 namespace ock {
 namespace mmc {
 
@@ -109,6 +111,13 @@ public:
      * @return not null on success, null on error
      */
     static std::shared_ptr<ObjectStore> CreateObjectStore();
+
+    /**
+     * @brief setup local configuration before initialization
+     * @param config local configuration
+     * @return zero on success, other on error
+     */
+    virtual int Setup(const local_config &config) = 0;
 
     /**
      * @brief init the object store

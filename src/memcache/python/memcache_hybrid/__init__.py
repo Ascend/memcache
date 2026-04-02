@@ -10,20 +10,36 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-__all__ = ["DistributedObjectStore", "ReplicateConfig", "KeyInfo", "MetaService"]
+__all__ = [
+    "DistributedObjectStore",
+    "ReplicateConfig",
+    "KeyInfo",
+    "MetaService",
+    "CopyType",
+    "LocalConfig",
+]
 
+import ctypes
 import os
 import sys
-import ctypes
 
 import memfabric_hybrid
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
-lib_dir = os.path.join(current_dir, 'lib')
-lib_list = ['libmf_memcache.so']
+lib_dir = os.path.join(current_dir, "lib")
+lib_list = ["libmf_memcache.so"]
 for lib_source in lib_list:
     ctypes.CDLL(os.path.join(lib_dir, lib_source))
 
-from _pymmc import DistributedObjectStore, ReplicateConfig, KeyInfo, MetaService
+from _pymmc import (
+    DistributedObjectStore,
+    KeyInfo,
+    LocalConfig,
+    MetaService,
+    ReplicateConfig,
+)
+from memfabric_hybrid import bm
+
+CopyType = bm.BmCopyType
