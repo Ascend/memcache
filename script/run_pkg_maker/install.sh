@@ -258,15 +258,16 @@ function install_wheel_package() {
         return
     fi
 
-    pip3 install "${wheel_package}" --force-reinstall --no-deps
-
-    check_output=$(pip3 check)
-    echo "${check_output}" | grep -i "memcache.hybrid.*memfabric" > /dev/null 2>&1
-    if [ $? -eq 0 ]; then
-        pip3 check | grep -i "memcache.hybrid.*memfabric"
-        pip3 uninstall ${wheel_name} -y > /dev/null 2>&1
-        print "ERROR" "${wheel_name} wheel package already uninstalled because memfabric-hybrid version not compatible"
+    # Use pip official resolver for precheck without touching current environment.
+    pip3 install --dry-run --no-index --find-links "${wheel_dir}" "${wheel_package}"
+    if [ $? -ne 0 ]; then
+        print "ERROR" "${wheel_name} precheck install failed, keep current ${wheel_name}"
         return
+    fi
+
+    pip3 install --no-deps --find-links "${wheel_dir}" --force-reinstall "${wheel_package}"
+    if [ $? -ne 0 ]; then
+        print "ERROR" "${wheel_name} install failed"
     fi
 }
 

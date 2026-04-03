@@ -9,7 +9,6 @@
 # See the Mulan PSL v2 for more details.
 
 if (BUILD_PYTHON STREQUAL "ON")
-    find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
     find_package(pybind11 REQUIRED)
 endif ()
 include_directories(
@@ -111,7 +110,7 @@ target_link_libraries(mmc_static PUBLIC pthread acc_tcp_net_static)
 target_link_directories(mmc_static PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib)
 target_link_directories(mmc_static PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib64)
 if (BUILD_PYTHON STREQUAL "ON")
-    target_link_libraries(mmc_static PRIVATE pybind11::module Python3::Python)
+    target_link_libraries(mmc_static PRIVATE pybind11::headers)
 endif ()
 if (x${CMAKE_BUILD_TYPE} STREQUAL "xDEBUG")
     target_link_libraries(mmc_static PUBLIC pthread libspdlogd.a)

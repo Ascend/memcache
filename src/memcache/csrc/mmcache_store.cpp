@@ -18,7 +18,7 @@
 #include "mmc_logger.h"
 #include "mmc_types.h"
 #include "mmc_ptracer.h"
-#include "mmc_meta_service_process.h"
+#include "mmc_locality_strategy.h"
 #include "smem_bm_def.h"
 #include "mmcache_store.h"
 

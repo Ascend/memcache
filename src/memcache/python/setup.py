@@ -18,7 +18,6 @@ import platform
 import subprocess
 
 from setuptools import find_namespace_packages, setup
-from setuptools.command.build_ext import build_ext
 from setuptools.dist import Distribution
 from wheel.bdist_wheel import bdist_wheel
 
@@ -32,10 +31,6 @@ os.environ["SOURCE_DATE_EPOCH"] = "0"
 # 已经check
 current_version = os.getenv("MEMCACHE_VERSION")
 is_manylinux = check_env_flag("IS_MANYLINUX", "FALSE")
-build_open_abi = os.getenv("BUILD_OPEN_ABI", "OFF")
-build_mode = os.getenv("BUILD_MODE", "RELEASE")
-enable_ptracer = os.getenv("ENABLE_PTRACER", "ON")
-python3_executable = os.getenv("PYTHON3_EXECUTABLE", "/usr/local/bin/python3")
 
 
 class BinaryDistribution(Distribution):
@@ -67,49 +62,6 @@ class BuildWheel(bdist_wheel):
             os.remove(file)
 
 
-class CMakeBuildExt(build_ext):
-    def run(self):
-        root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-        build_dir = os.path.abspath(os.path.join(root_dir, "build"))
-        install_dir = os.path.abspath(os.path.join(build_dir, "install"))
-        os.makedirs(build_dir, exist_ok=True)
-        config_mode = "Release"
-        if build_mode == "DEBUG":
-            config_mode = "Debug"
-        subprocess.check_call(
-            [
-                "cmake",
-                f"-S{root_dir}",
-                f"-B{build_dir}",
-                f"-DPython3_EXECUTABLE={python3_executable}",
-                f"-DCMAKE_INSTALL_PREFIX={install_dir}",
-                f"-DCMAKE_BUILD_TYPE={build_mode}",
-                f"-DBUILD_OPEN_ABI={build_open_abi}",
-                f"-DENABLE_PTRACER={enable_ptracer}",
-                "-DBUILD_PYTHON=ON",
-                "-DBUILD_TESTS=OFF",
-            ]
-        )
-
-        subprocess.check_call(
-            [
-                "cmake",
-                "--build",
-                build_dir,
-                "--config",
-                config_mode,
-                "--target",
-                "install",
-                "-j8",
-            ]
-        )
-
-        super().run()
-
-    def build_extension(self, ext):
-        super().build_extension(ext)
-
-
 with open("../../../README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
@@ -124,7 +76,7 @@ setup(
     packages=find_namespace_packages(exclude=("tests*",)),
     url="https://gitcode.com/Ascend/memcache",
     license="Mulan PSL v2",
-    python_requires=">=3.10,<3.14",
+    python_requires=">=3.8",
     install_requires=[
         "memfabric_hybrid>=1.1.0",
     ],
@@ -133,7 +85,6 @@ setup(
         "memcache_hybrid": ["_pymmc.cpython*.so", "lib/**", "config/**", "VERSION"]
     },
     cmdclass={
-        "build_ext": CMakeBuildExt,
         "bdist_wheel": BuildWheel,
     },
     distclass=BinaryDistribution,
