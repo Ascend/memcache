@@ -25,6 +25,10 @@ readonly MOCK_CANN_PATH="$HYBM_LIB_PATH/cann"
 
 TEST_FILTER="*$1*"
 cd ${PROJECT_FULL_PATH}
+
+# Update submodule to latest v1.0.0
+git submodule update --init --remote 3rdparty/memfabric_hybrid
+
 rm -rf ${COVERAGE_PATH}
 rm -rf ${BUILD_PATH}
 rm -rf ${OUTPUT_PATH}

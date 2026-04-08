@@ -37,7 +37,7 @@ constexpr uint64_t HBM_SIZE_ALIGNMENT = 2097152;  // 2MB
 
 const std::string BOOL_ENUM_STR = "false||true";
 const std::string LOG_LEVEL_ENUM_STR = "debug||info||warn||error";
-const std::string LOCAL_SERVER_PROTOCAL_ENUM_STR = "host_rdma||host_urma||host_tcp||device_rdma||device_sdma";
+const std::string LOCAL_SERVER_PROTOCAL_ENUM_STR = "host_rdma||host_urma||host_tcp||device_rdma||device_sdma||host_shm";
 
 // 定义单位与字节的转换关系
 enum class MemUnit { B, KB, MB, GB, TB, UNKNOWN };

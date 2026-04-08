@@ -46,7 +46,7 @@ mkdir build/
 
 if [ "${BUILD_PYTHON}" != "ON" ]; then
     echo "========= [warning] cannot skip build python for meta HA ============"
-    cd ${CUQRRENT_DIR}
+    cd ${CURRENT_DIR}
     BUILD_PYTHON=ON
 fi
 

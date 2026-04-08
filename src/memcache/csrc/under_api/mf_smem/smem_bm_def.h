@@ -43,6 +43,8 @@ typedef enum {
     SMEMB_DATA_OP_HOST_RDMA = 1U << 1,
     SMEMB_DATA_OP_HOST_TCP = 1U << 2,
     SMEMB_DATA_OP_DEVICE_RDMA = 1U << 3,
+    SMEMB_DATA_OP_HOST_URMA = 1U << 4,
+    SMEMB_DATA_OP_HOST_SHM = 1U << 5,
     SMEMB_DATA_OP_BUTT
 } smem_bm_data_op_type;
 

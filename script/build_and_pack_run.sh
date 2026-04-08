@@ -10,7 +10,8 @@
 # See the Mulan PSL v2 for more details.
 
 set -e
-readonly ROOT_PATH=$(dirname $(readlink -f "$0"))
+readonly SCRIPT_PATH=$(dirname $(readlink -f "$0"))
+readonly ROOT_PATH=$(dirname "$SCRIPT_PATH")
 CURRENT_DIR=$(pwd)
 
 BUILD_MODE="RELEASE"
@@ -62,8 +63,11 @@ echo "BUILD_PYTHON: $BUILD_PYTHON"
 
 cd "${ROOT_PATH}"
 
-bash build.sh "${BUILD_MODE}" OFF OFF "${BUILD_PYTHON}" ON
+# Update submodule to latest v1.0.0
+git submodule update --init --remote 3rdparty/memfabric_hybrid
 
-bash run_pkg_maker/make_run.sh "${BUILD_TEST}"
+bash script/build.sh "${BUILD_MODE}" OFF OFF "${BUILD_PYTHON}" ON
+
+bash script/run_pkg_maker/make_run.sh "${BUILD_TEST}"
 
 cd "${CURRENT_DIR}"
