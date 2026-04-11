@@ -33,7 +33,7 @@ Result MmcMetaManager::Get(const std::string &key, uint64_t operateId, MmcBlobFi
 
     metaContainer_->Promote(key);
 
-    std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(memObj)]);
+    std::unique_lock<std::mutex> guard(memObj->Mutex());
     objMeta.prot_ = memObj->Prot();
     objMeta.priority_ = memObj->Priority();
     objMeta.size_ = memObj->Size();
@@ -69,7 +69,7 @@ Result MmcMetaManager::ExistKey(const std::string &key)
         return ret;
     }
     {
-        std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(memObj)]);
+        std::unique_lock<std::mutex> guard(memObj->Mutex());
         MmcBlobFilterPtr filterPtr = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, READABLE);
         if (filterPtr == nullptr) {
             MMC_LOG_ERROR("Failed to alloc filter");
@@ -151,7 +151,7 @@ Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOp
             MMC_LOG_ERROR("Fail to insert " << key << " into MmcMetaContainer. ret:" << ret);
         }
     } else {
-        std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(tempMetaObj)]);
+        std::unique_lock<std::mutex> guard(tempMetaObj->Mutex());
         objMeta.prot_ = tempMetaObj->Prot();
         objMeta.priority_ = tempMetaObj->Priority();
         objMeta.size_ = tempMetaObj->Size();
@@ -175,11 +175,13 @@ Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &lo
         return MMC_UNMATCHED_KEY;
     }
     MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(loc.rank_, loc.mediaType_, NONE);
-    std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(metaObj)]);
-    ret = metaObj->UpdateBlobsState(key, filter, operateId, actRet);
-    if (ret != MMC_OK) {
-        MMC_LOG_ERROR("UpdateState: Failed to update blob state, ret: " << ret);
-        return ret;
+    {
+        std::unique_lock<std::mutex> guard(metaObj->Mutex());
+        ret = metaObj->UpdateBlobsState(key, filter, operateId, actRet);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("UpdateState: Failed to update blob state, ret: " << ret);
+            return ret;
+        }
     }
     if (actRet == MMC_WRITE_FAIL) {
         ret = Remove(key);
@@ -193,11 +195,14 @@ Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &lo
 
 void MmcMetaManager::PushRemoveList(const std::string &key, const MmcMemObjMetaPtr &meta)
 {
-    auto future =
-        threadPool_->Enqueue([&](const std::string keyL, const MmcMemObjMetaPtr metaL,
-                                 MmcGlobalAllocatorPtr allocator) { return metaL->FreeBlobs(keyL, allocator); },
-                             key, meta, globalAllocator_);
+    auto future = threadPool_->Enqueue(
+        [&](const std::string keyL, const MmcMemObjMetaPtr metaL, MmcGlobalAllocatorPtr allocator) {
+            std::unique_lock<std::mutex> guard(metaL->Mutex());
+            return metaL->FreeBlobs(keyL, allocator);
+        },
+        key, meta, globalAllocator_);
     if (!future.valid()) {
+        // already locked when call, no need lock again
         meta->FreeBlobs(key, globalAllocator_);
     }
 }
@@ -206,6 +211,7 @@ Result MmcMetaManager::Remove(const std::string &key)
 {
     MmcMemObjMetaPtr objMeta;
     MMC_RETURN_ERROR(metaContainer_->Erase(key, objMeta), "remove: Fail to erase from container!");
+    std::unique_lock<std::mutex> guard(objMeta->Mutex());
     PushRemoveList(key, objMeta);
 
     MmcMetaMetricManager::GetInstance().IncrementRemoveCounter();
@@ -215,6 +221,7 @@ Result MmcMetaManager::Remove(const std::string &key)
 Result MmcMetaManager::RemoveAll()
 {
     auto removeFunc = [this](const std::string &key, const MmcMemObjMetaPtr &objMeta) -> void {
+        std::unique_lock<std::mutex> guard(objMeta->Mutex());
         this->PushRemoveList(key, objMeta);
     };
 
@@ -293,7 +300,7 @@ Result MmcMetaManager::RebuildMeta(std::map<std::string, MmcMemBlobDesc> &blobMa
         MmcMemObjMetaPtr objMeta;
 
         if (metaContainer_->Get(key, objMeta) == MMC_OK) {
-            std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(objMeta)]);
+            std::unique_lock<std::mutex> guard(objMeta->Mutex());
             if (objMeta->AddBlob(blobPtr) != MMC_OK) {
                 globalAllocator_->Free(blobPtr);
             }
@@ -310,7 +317,7 @@ Result MmcMetaManager::RebuildMeta(std::map<std::string, MmcMemBlobDesc> &blobMa
         }
 
         if (metaContainer_->Get(key, objMeta) == MMC_OK) {
-            std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(objMeta)]);
+            std::unique_lock<std::mutex> guard(objMeta->Mutex());
             if (objMeta->AddBlob(blobPtr) != MMC_OK) {
                 globalAllocator_->Free(blobPtr);
             }
@@ -335,7 +342,7 @@ Result MmcMetaManager::Unmount(const MmcLocation &loc)
             MMC_LOG_ERROR("objMeta is null");
             return false;
         }
-        std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(objMeta)]);
+        std::unique_lock<std::mutex> guard(objMeta->Mutex());
         auto ret = objMeta->FreeBlobs(key, globalAllocator_, filter, false);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("Fail to force remove key:" << key << " blobs in when unmount! ret:" << ret);
@@ -365,7 +372,7 @@ Result MmcMetaManager::Query(const std::string &key, MemObjQueryInfo &queryInfo)
         MMC_LOG_WARN("Cannot find MmcMemObjMeta with key : " << key);
         return MMC_UNMATCHED_KEY;
     }
-    std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(objMeta)]);
+    std::unique_lock<std::mutex> guard(objMeta->Mutex());
     std::vector<MmcMemBlobDesc> blobs;
     objMeta->GetBlobsDesc(blobs);
     uint32_t i = 0;
@@ -457,7 +464,7 @@ Result MmcMetaManager::MoveBlob(const std::string &key, const MmcLocation &src, 
         return MMC_UNMATCHED_KEY;
     }
     {
-        std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(objMeta)]);
+        std::unique_lock<std::mutex> guard(objMeta->Mutex());
         std::vector<MmcMemBlobDesc> blobsDesc;
         MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(src.rank_, src.mediaType_, READABLE);
         if (filter == nullptr) {
@@ -500,7 +507,7 @@ Result MmcMetaManager::ReplicateBlob(const std::string &key, const MmcLocation &
         MMC_LOG_ERROR("Cannot find MmcMemObjMeta with key : " << key);
         return MMC_UNMATCHED_KEY;
     }
-    std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(objMeta)]);
+    std::unique_lock<std::mutex> guard(objMeta->Mutex());
     std::vector<MmcMemBlobDesc> blobsDesc;
     MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, READABLE);
     objMeta->GetBlobsDesc(blobsDesc, filter);
@@ -514,7 +521,7 @@ Result MmcMetaManager::ReplicateBlob(const std::string &key, const MmcLocation &
 
 EvictResult MmcMetaManager::EvictCallBackFunction(const std::string &key, const MmcMemObjMetaPtr &objMeta)
 {
-    std::unique_lock<std::mutex> guard(metaItemMtxs_[GetIndex(objMeta)]);
+    std::unique_lock<std::mutex> guard(objMeta->Mutex());
 
     if (objMeta == nullptr) {
         MMC_LOG_ERROR("objMeta is null");

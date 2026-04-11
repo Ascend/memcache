@@ -27,11 +27,10 @@ local_mem_type: str = 'npu'
 process_count: int = 16
 one_batch_count: int = 32
 call_count: int = 64
-test_times: int = 8
-size1 = [64 * 1024 for _ in range(64)]
-size2 = [64 * 1024 for _ in range(64)]
-#size1 = [128 * 1024 for _ in range(61)]
-#size2 = [16 * 1024 for _ in range(61)]
+#size1 = [64 * 1024 for _ in range(64)]
+#size2 = [64 * 1024 for _ in range(64)]
+size1 = [128 * 1024 for _ in range(61)]
+size2 = [16 * 1024 for _ in range(61)]
 block_size = [item for pair in zip(size1, size2) for item in pair]
 key_prefix: str = "key_"
 
@@ -150,10 +149,10 @@ def read_worker(device: int):
         direct_t = 1
     else:
         direct_t = 2
-    status_manager[device_id].set_to_ready()
-    for i in range(process_count):
-        status_manager[i].wait_until_ready(timeout=5 * 60)
-    start = time.perf_counter()
+    # 实测此步骤很耗时，提前准备
+    keys_list = []
+    buffs_list = []
+    sizes_list = []
     for i in range(call_count):
         keys = []
         buffs = []
@@ -168,8 +167,21 @@ def read_worker(device: int):
                 block_buffs = get_col_tensors_ptr_by_index(one_tensor, 1, j)
                 sizes.append(one_block_size)
             buffs.append(block_buffs)
+        
+        keys_list.append(keys)
+        buffs_list.append(buffs)
+        sizes_list.append(sizes)
+
+    status_manager[device_id].set_to_ready()
+    for i in range(process_count):
+        status_manager[i].wait_until_ready(timeout=5 * 60)
+    
+    start = time.perf_counter()
+    print(f"===== npu:{device_id} begin on {start} ......")
+    for keys, buffs, sizes in zip(keys_list, buffs_list, sizes_list):
         ret = store.batch_get_into_layers(keys, buffs, sizes, direct_t)
-    print(f"===== npu:{device_id} 结束 wait......")
+    print(f"===== npu:{device_id} finish on {time.perf_counter()} ......")
+
     status_manager[device_id].reset_to_preparing()
     for i in range(process_count):
         status_manager[i].wait_until_ready(timeout=5 * 60, check_ready=False)
@@ -179,6 +191,8 @@ def read_worker(device: int):
     total_size_gb = total_size_bytes / (1024 * 1024 * 1024)
     total_duration_seconds = duration_us / 1_000_000
     bandwidth_gb_per_sec = total_size_gb / total_duration_seconds
-    print(f"device_id:{device_id} spend time:{duration_us}us avg:{duration_us / call_count}us "
-          f"bw:{bandwidth_gb_per_sec}GB/s")
+    print(f"device_id:{device_id} read total size:{total_size_bytes} bytes, "
+          f"single size:{total_size_bytes / call_count} bytes, "
+          f"spend time:{duration_us} us, avg:{duration_us / call_count} us, call num:{call_count} "
+          f"bw:{bandwidth_gb_per_sec} GB/s")
     sleep(10)

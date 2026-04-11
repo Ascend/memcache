@@ -224,7 +224,7 @@ public:
         if (res == EvictResult::REMOVE) {
             metaMap_.erase(mapIter);
             lruLists_[mediaType].erase(iter);
-            MMC_LOG_INFO("Key " << key << " will be evicted by remove.");
+            MMC_LOG_INFO("Key " << key << " was evicted.");
             return true;
         }
         if (res == EvictResult::MOVE_DOWN) {
