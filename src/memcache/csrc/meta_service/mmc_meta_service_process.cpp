@@ -29,13 +29,13 @@
 #include "spdlogger4c.h"
 #include "spdlogger.h"
 #include "mf_out_logger.h"
-#include "mf_ipv4_validator.h"
 
 #include "mmc_configuration.h"
 #include "mmc_env.h"
 #include "mmc_logger.h"
 #include "mmc_meta_service.h"
 #include "mmc_ptracer.h"
+#include "mmc_ip_validator.h"
 
 namespace ock {
 namespace mmc {
@@ -280,17 +280,23 @@ int MmcMetaServiceProcess::ExtractIpPortFromUrl(const std::string &url, std::str
         }
         hostPortStr = url.substr(PROTOCOL_HTTP.length());
     } else {
-        MMC_LOG_INFO("http URL: protol not found, use http.");
+        MMC_LOG_WARN("metrics URL: protocol not found, use http.");
     }
 
-    /* verify ip and port */
-    ock::mf::Ipv4PortValidator httpValidator("HttpServiceUrl");
-    httpValidator.Initialize();
-    if (!(httpValidator.Validate(hostPortStr))) {
-        MMC_LOG_ERROR("Invalid http URL, " << httpValidator.ErrorMessage());
+    /* verify ip and port using IpAddressParserMgr to support both IPv4 and IPv6 */
+    auto parser = IpAddressParserMgr::getInstance().CreateParser(hostPortStr);
+    if (parser == nullptr) {
+        MMC_LOG_ERROR("Invalid http URL, failed to create socket address parser");
         return MMC_INVALID_PARAM;
     }
-    httpValidator.GetIpPort(ip, port);
+    
+    if (!parser->IsInitialized()) {
+        MMC_LOG_ERROR("Invalid http URL, socket address parser initialization failed");
+        return MMC_INVALID_PARAM;
+    }
+    
+    ip = parser->GetIp();
+    port = parser->GetPort();
     return MMC_OK;
 }
 
