@@ -119,7 +119,8 @@ TEST_F(TestUbsIoEnabled, PutAndGetWithUbsIoFallback)
     uint64_t totalSize = SIZE_32K * 10;
 
     mmc_local_service_config_t localServiceConfig = {
-        "", 0, 0, 1, "", "", 0, "device_sdma", totalSize, totalSize, totalSize, totalSize, 0};
+        "", 0, 0,  1, "",      "", 0,  "device_sdma", totalSize, totalSize, totalSize, totalSize,
+        "", 0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -149,7 +150,7 @@ TEST_F(TestUbsIoEnabled, PutAndGetWithUbsIoFallback)
     buffer.offset = 0;
     buffer.len = SIZE_32K;
 
-    mmc_put_options options{0, NATIVE_AFFINITY, 1};
+    mmc_put_options options{0, NATIVE_AFFINITY, 1, {}};
     std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
     std::string key = "ubs_io_test_key_1";
     ret = mmcc_put(key.c_str(), &buffer, options, 0);
@@ -198,7 +199,8 @@ TEST_F(TestUbsIoEnabled, BatchGetWithUbsIoFallback)
     uint64_t totalSize = SIZE_32K * 10;
 
     mmc_local_service_config_t localServiceConfig = {
-        "", 0, 0, 1, "", "", 0, "device_sdma", totalSize, totalSize, totalSize, totalSize, 0};
+        "", 0, 0,  1, "",      "", 0,  "device_sdma", totalSize, totalSize, totalSize, totalSize,
+        "", 0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -239,7 +241,7 @@ TEST_F(TestUbsIoEnabled, BatchGetWithUbsIoFallback)
         destBufs[i].len = SIZE_32K;
     }
 
-    mmc_put_options options{0, NATIVE_AFFINITY, 1};
+    mmc_put_options options{0, NATIVE_AFFINITY, 1, {}};
     std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
     std::vector<int> putResults(keyCount, -1);
     ret = mmcc_batch_put(keys, keyCount, srcBufs, options, 0, putResults.data());
@@ -294,7 +296,8 @@ TEST_F(TestUbsIoEnabled, ExistOperationsWithUbsIo)
     uint64_t totalSize = SIZE_32K * 10;
 
     mmc_local_service_config_t localServiceConfig = {
-        "", 0, 0, 1, "", "", 0, "device_sdma", totalSize, totalSize, totalSize, totalSize, 0};
+        "", 0, 0,  1, "",      "", 0,  "device_sdma", totalSize, totalSize, totalSize, totalSize,
+        "", 0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -323,7 +326,7 @@ TEST_F(TestUbsIoEnabled, ExistOperationsWithUbsIo)
     buffer.offset = 0;
     buffer.len = SIZE_32K;
 
-    mmc_put_options options{0, NATIVE_AFFINITY, 1};
+    mmc_put_options options{0, NATIVE_AFFINITY, 1, {}};
     std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
     std::string key = "exist_ubs_test_key";
     ret = mmcc_put(key.c_str(), &buffer, options, 0);
@@ -371,7 +374,8 @@ TEST_F(TestUbsIoEnabled, QueryOperationsWithUbsIo)
     uint64_t totalSize = SIZE_32K * 10;
 
     mmc_local_service_config_t localServiceConfig = {
-        "", 0, 0, 1, "", "", 0, "device_sdma", totalSize, totalSize, totalSize, totalSize, 0};
+        "", 0, 0,  1, "",      "", 0,  "device_sdma", totalSize, totalSize, totalSize, totalSize,
+        "", 0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -400,7 +404,7 @@ TEST_F(TestUbsIoEnabled, QueryOperationsWithUbsIo)
     buffer.offset = 0;
     buffer.len = SIZE_32K;
 
-    mmc_put_options options{0, NATIVE_AFFINITY, 1};
+    mmc_put_options options{0, NATIVE_AFFINITY, 1, {}};
     std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
     std::string key = "query_ubs_test_key";
     ret = mmcc_put(key.c_str(), &buffer, options, 0);
@@ -451,7 +455,8 @@ TEST_F(TestUbsIoEnabled, UbsIoFallbackWhenMemcacheFull)
     uint64_t totalSize = SIZE_32K * 2;
 
     mmc_local_service_config_t localServiceConfig = {
-        "", 0, 0, 1, "", "", 0, "device_sdma", totalSize, totalSize, totalSize, totalSize, 0};
+        "", 0, 0,  1, "",      "", 0,  "device_sdma", totalSize, totalSize, totalSize, totalSize,
+        "", 0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -481,7 +486,7 @@ TEST_F(TestUbsIoEnabled, UbsIoFallbackWhenMemcacheFull)
     buffer.offset = 0;
     buffer.len = SIZE_32K;
 
-    mmc_put_options options{0, NATIVE_AFFINITY, 1};
+    mmc_put_options options{0, NATIVE_AFFINITY, 1, {}};
     std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
 
     std::vector<std::string> keys;
@@ -534,7 +539,8 @@ TEST_F(TestUbsIoEnabled, UbsIoDisabledCompare)
     uint64_t totalSize = SIZE_32K * 10;
 
     mmc_local_service_config_t localServiceConfig = {
-        "", 0, 0, 1, "", "", 0, "device_sdma", totalSize, totalSize, totalSize, totalSize, 0};
+        "", 0, 0,  1, "",      "", 0,  "device_sdma", totalSize, totalSize, totalSize, totalSize,
+        "", 0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -564,7 +570,7 @@ TEST_F(TestUbsIoEnabled, UbsIoDisabledCompare)
     buffer.offset = 0;
     buffer.len = SIZE_32K;
 
-    mmc_put_options options{0, NATIVE_AFFINITY, 1};
+    mmc_put_options options{0, NATIVE_AFFINITY, 1, {}};
     std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
     std::string key = "no_ubs_test_key";
     ret = mmcc_put(key.c_str(), &buffer, options, 0);

@@ -105,7 +105,8 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     uint64_t totalSize = SIZE_32K * 10;
 
     mmc_local_service_config_t localServiceConfig = {
-        "", 0, 0, 1, "", "", 0, "device_sdma", totalSize, totalSize, totalSize, totalSize, 0};
+        "", 0, 0,  1, "",      "", 0,  "device_sdma", totalSize, totalSize, totalSize, totalSize,
+        "", 0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -134,7 +135,7 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
     buffer.len = SIZE_32K;
     std::vector<std::string> keys;
 
-    mmc_put_options options{MEDIA_DRAM, NATIVE_AFFINITY, 1};
+    mmc_put_options options{MEDIA_DRAM, NATIVE_AFFINITY, 1, {}};
     std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
     for (int i = 0; i < 12; i++) {
         std::string key = "test_" + std::to_string(i);
@@ -193,7 +194,8 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     ASSERT_TRUE(meta_service != nullptr);
 
     mmc_local_service_config_t localServiceConfig = {
-        "", 0, 0, 1, "", "", 0, "device_sdma", 104857600, 104857600, 104857600, 104857600, 0};
+        "", 0, 0,  1, "",      "", 0,  "device_sdma", 104857600, 104857600, 104857600, 104857600,
+        "", 0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -225,7 +227,7 @@ TEST_F(TestMmcServiceInterface, metaServiceStart)
     buffer.offset = 0;
     buffer.len = SIZE_32K;
 
-    mmc_put_options options{0, NATIVE_AFFINITY, 1};
+    mmc_put_options options{0, NATIVE_AFFINITY, 1, {}};
     std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
     ret = mmcc_put(test.c_str(), &buffer, options, 0);
     EXPECT_EQ(ret, 0);
@@ -316,7 +318,7 @@ TEST_F(TestMmcServiceInterface, testPutInvalidParam)
 
     mmc_buffer validBuf{(uint64_t)malloc(1024), 0, 0, 1024};
     const char *emptyKey = "";
-    mmc_put_options options{0, NATIVE_AFFINITY, 1};
+    mmc_put_options options{0, NATIVE_AFFINITY, 1, {}};
     std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
     ret = mmcc_put(nullptr, &validBuf, options, 0);
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
@@ -337,7 +339,6 @@ TEST_F(TestMmcServiceInterface, testPutInvalidParam)
 TEST_F(TestMmcServiceInterface, testBatchOperationsEdgeCases)
 {
     int32_t results[2];
-    mmc_data_info info[2];
 
     int32_t ret = mmcc_batch_remove(nullptr, 0, results, 0);
     ASSERT_EQ(ret, ock::mmc::MMC_INVALID_PARAM);
@@ -353,8 +354,6 @@ TEST_F(TestMmcServiceInterface, testBatchOperationsEdgeCases)
 TEST_F(TestMmcServiceInterface, testBatchQueryInvalidKeys)
 {
     const char *keys[] = {"validKey1", "", nullptr, "invalid*&^%key", "validKey2"};
-    const uint32_t keyCount = sizeof(keys) / sizeof(keys[0]);
-    mmc_data_info info[keyCount];
 
     bool exists1 = mmcc_exist(keys[1], 0) == ock::mmc::MMC_OK;
     ASSERT_FALSE(exists1);
@@ -415,7 +414,7 @@ TEST_F(TestMmcServiceInterface, testBatchGetErrorHandling)
     void *data = malloc(SIZE_32K);
     GenerateData(data, 1);
     mmc_buffer writeBuf = {.addr = (uint64_t)data, .type = 0, .offset = 0, .len = SIZE_32K};
-    mmc_put_options putOpts{0, NATIVE_AFFINITY, 1};
+    mmc_put_options putOpts{0, NATIVE_AFFINITY, 1, {}};
     std::fill_n(putOpts.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
 
     mmcc_put("key1", &writeBuf, putOpts, 0);
@@ -454,7 +453,7 @@ TEST_F(TestMmcServiceInterface, testBatchGetWithPartialData)
     mmc_buffer writeBuf1 = {.addr = (uint64_t)data1, .type = 0, .offset = 0, .len = SIZE_32K};
     mmc_buffer writeBuf3 = {.addr = (uint64_t)data3, .type = 0, .offset = 0, .len = SIZE_32K};
 
-    mmc_put_options putOpts{0, NATIVE_AFFINITY, 1};
+    mmc_put_options putOpts{0, NATIVE_AFFINITY, 1, {}};
     std::fill_n(putOpts.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
     mmcc_put(keys[0], &writeBuf1, putOpts, 0);
     mmcc_put(keys[2], &writeBuf3, putOpts, 0);

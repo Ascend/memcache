@@ -92,13 +92,19 @@ protected:
                       .ipPort = "127.0.0.1:5000",
                       .hcomUrl = "tcp://127.0.0.1:5001",
                       .logLevel = INFO_LEVEL,
-                      .logFunc = nullptr};
+                      .logFunc = nullptr,
+                      .flags = 0,
+                      .hcomTlsConfig = {},
+                      .storeTlsConfig = {}};
 
         createConfig = {.id = 12345,
                         .memberSize = 4,
                         .dataOpType = "device_sdma",
                         .localDRAMSize = 0,
+                        .localMaxDRAMSize = 0,
                         .localHBMSize = 1024 * 1024 * 2,
+                        .localMaxHBMSize = 0,
+                        .memoryPoolMode = "",
                         .flags = 0};
 
         oneDimBuffer = {.addr = 0x1000, .type = 0, .offset = 0, .len = 1024};

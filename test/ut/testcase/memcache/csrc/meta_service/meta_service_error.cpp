@@ -99,7 +99,7 @@ TEST_F(TestMmcServiceError, metaService)
     ASSERT_TRUE(meta_service != nullptr);
 
     mmc_local_service_config_t localServiceConfig = {"", 0, 0,         1,         "", "", 0, "device_sdma",
-                                                     0,  0, 104857600, 104857600, 0};
+                                                     0,  0, 104857600, 104857600, "", 0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -140,7 +140,7 @@ TEST_F(TestMmcServiceError, metaService)
     buffer.offset = 0;
     buffer.len = SIZE_32K;
 
-    mmc_put_options options{0, NATIVE_AFFINITY, 1};
+    mmc_put_options options{0, NATIVE_AFFINITY, 1, {}};
     std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
     ret = mmcc_put(test.c_str(), &buffer, options, 0);
     ASSERT_TRUE(ret == 0);
@@ -229,7 +229,8 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
     mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
     ASSERT_TRUE(meta_service != nullptr);
 
-    mmc_local_service_config_t localServiceConfig = {"", 0, 0, 1, "", "", 0, "device_sdma", 0, 0, MF_SIZE, MF_SIZE, 0};
+    mmc_local_service_config_t localServiceConfig = {
+        "", 0, 0, 1, "", "", 0, "device_sdma", 0, 0, MF_SIZE, MF_SIZE, "", 0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = ERROR_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -263,7 +264,7 @@ TEST_F(TestMmcServiceError, metaServiceRebuild)
     buffer.offset = 0;
     buffer.len = SIZE_32K;
 
-    mmc_put_options options{0, NATIVE_AFFINITY, 1};
+    mmc_put_options options{0, NATIVE_AFFINITY, 1, {}};
     std::fill_n(options.preferredLocalServiceIDs, MAX_BLOB_COPIES, -1);
     ret = mmcc_put(test.c_str(), &buffer, options, 0);
     EXPECT_TRUE(ret == 0);
