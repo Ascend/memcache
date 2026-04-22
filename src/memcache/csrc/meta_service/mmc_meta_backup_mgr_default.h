@@ -91,6 +91,10 @@ public:
 
     Result Add(const std::string &key, MmcMemBlobDesc &blobDesc) override
     {
+        if (!started_) {
+            return MMC_OK; // 未启动ha模式，不做备份
+        }
+
         {
             std::lock_guard<std::mutex> lg(backupListLock_);
             backupList_.push_back({META_BACKUP_ADD, key, blobDesc});
@@ -104,6 +108,9 @@ public:
 
     Result Remove(const std::string &key, MmcMemBlobDesc &blobDesc) override
     {
+        if (!started_) {
+            return MMC_OK; // 未启动ha模式，不做备份
+        }
         {
             std::lock_guard<std::mutex> lg(backupListLock_);
             backupList_.push_back({META_BACKUP_REMOVE, key, blobDesc});

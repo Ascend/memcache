@@ -67,11 +67,16 @@ Result MmcMemObjMeta::FreeBlobs(const std::string &key, MmcGlobalAllocatorPtr &a
     std::vector<MmcMemBlobPtr> blobs = GetBlobs(filter);
     RemoveBlobs(filter);
     Result result = MMC_OK;
+    Result ret = MMC_OK;
     for (size_t i = 0; i < blobs.size(); i++) {
         if (doBackupRemove) {
-            MMC_RETURN_ERROR(blobs[i]->BackupRemove(key), "memBlob remove backup error");
+            ret = blobs[i]->BackupRemove(key);
+            if (ret != MMC_OK) {
+                MMC_LOG_ERROR("remove backup failed:" << ret << " for blob:" << blobs[i]->GetDesc()
+                                                      << " for key:" << key);
+            }
         }
-        auto ret = blobs[i]->UpdateState(key, 0, 0, MMC_REMOVE_START);
+        ret = blobs[i]->UpdateState(key, 0, 0, MMC_REMOVE_START);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("remove op, meta update failed:" << ret);
             result = MMC_ERROR;
