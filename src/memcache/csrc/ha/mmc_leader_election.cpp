@@ -18,6 +18,23 @@ namespace ock {
 namespace mmc {
 std::string g_leaderElectionModule = "memcache_hybrid.meta_service_leader_election";
 constexpr uint32_t LEASE_RETRY_PERIOD = 3;
+constexpr char kHaRoleLeader[] = "leader";
+constexpr char kHaRoleStandby[] = "standby";
+constexpr char kHaRoleUnknown[] = "unknown";
+constexpr char kHaStateStarting[] = "starting";
+constexpr char kHaStateStandby[] = "standby";
+constexpr char kHaStateServing[] = "serving";
+constexpr char kHaStateUnknown[] = "unknown";
+constexpr char kUnknownLeaderAddress[] = "unknown";
+constexpr char kNoLeaderName[] = "None";
+
+void MmcMetaServiceLeaderElection::UpdateHaSnapshotStateLocked(bool leaderPresent, const std::string &haState,
+                                                               const std::string &currentLeaderName)
+{
+    leaderPresent_ = leaderPresent;
+    haState_ = haState;
+    currentLeaderName_ = currentLeaderName;
+}
 
 MmcMetaServiceLeaderElection::MmcMetaServiceLeaderElection(const std::string &name, const std::string &pod,
                                                            const std::string &ns, const std::string &lease)
@@ -60,6 +77,10 @@ Result MmcMetaServiceLeaderElection::Start(const mmc_meta_service_config_t &opti
         pybind11::gil_scoped_release release;
 
         MMC_LOG_INFO("Start leader election 0");
+        {
+            std::lock_guard<std::mutex> guard(mutex_);
+            UpdateHaSnapshotStateLocked(false, kHaStateStarting, {});
+        }
         running_ = true;
         this->electionThread_ = std::thread(std::bind(&MmcMetaServiceLeaderElection::ElectionLoop, this));
         this->renewThread_ = std::thread(std::bind(&MmcMetaServiceLeaderElection::RenewLoop, this));
@@ -105,6 +126,10 @@ void MmcMetaServiceLeaderElection::CheckLeaderStatus()
     pybind11::object leaderResult = leaderElection_.attr("check_leader_status")();
     std::string currentLeader = leaderResult.cast<std::string>();
     if (currentLeader == this->podName_) {
+        {
+            std::lock_guard<std::mutex> guard(mutex_);
+            UpdateHaSnapshotStateLocked(true, kHaStateServing, currentLeader);
+        }
         if (!this->isLeader_) {
             MMC_LOG_WARN("Pod " << this->podName_ << " became the leader");
             this->isLeader_ = true;
@@ -112,6 +137,12 @@ void MmcMetaServiceLeaderElection::CheckLeaderStatus()
         }
     } else {
         if (this->isLeader_) {
+            {
+                std::lock_guard<std::mutex> guard(mutex_);
+                UpdateHaSnapshotStateLocked(currentLeader != kNoLeaderName,
+                                            currentLeader != kNoLeaderName ? kHaStateStandby : kHaStateStarting,
+                                            currentLeader != kNoLeaderName ? currentLeader : std::string());
+            }
             MMC_LOG_WARN("Pod " << this->podName_ << " became a backup");
             this->isLeader_ = false;
             OnStopLeading();
@@ -119,13 +150,24 @@ void MmcMetaServiceLeaderElection::CheckLeaderStatus()
             pybind11::object result = leaderElection_.attr("update_lease")(false);
             bool success = result.cast<bool>();
             if (success) {
+                {
+                    std::lock_guard<std::mutex> guard(mutex_);
+                    UpdateHaSnapshotStateLocked(true, kHaStateServing, podName_);
+                }
                 MMC_LOG_WARN("Pod " << this->podName_ << " became the leader");
                 this->isLeader_ = true;
                 OnStartLeading();
-            } else if (currentLeader != "None") {
+            } else if (currentLeader != kNoLeaderName) {
+                {
+                    std::lock_guard<std::mutex> guard(mutex_);
+                    UpdateHaSnapshotStateLocked(true, kHaStateStandby, currentLeader);
+                }
                 MMC_LOG_DEBUG("Pod " << this->podName_ << " is a backup");
                 this->isLeader_ = false;
                 OnStopLeading();
+            } else {
+                std::lock_guard<std::mutex> guard(mutex_);
+                UpdateHaSnapshotStateLocked(false, kHaStateStarting, {});
             }
         }
     }
@@ -153,6 +195,10 @@ void MmcMetaServiceLeaderElection::RenewLoop()
             if (!success && this->isLeader_) {
                 MMC_LOG_ERROR("Failed in renewing lease and became a backup, pod=" << this->podName_);
                 this->isLeader_ = false;
+                {
+                    std::lock_guard<std::mutex> guard(mutex_);
+                    UpdateHaSnapshotStateLocked(false, kHaStateStarting, {});
+                }
                 OnStopLeading();
             }
 
@@ -189,7 +235,38 @@ void MmcMetaServiceLeaderElection::Stop()
     if (this->renewThread_.joinable()) {
         this->renewThread_.join();
     }
+    {
+        std::lock_guard<std::mutex> guard(mutex_);
+        UpdateHaSnapshotStateLocked(false, kHaStateUnknown, {});
+    }
     MMC_LOG_INFO("Stop leader election");
+}
+
+MmcHaSnapshot MmcMetaServiceLeaderElection::GetSnapshot() const
+{
+    MmcHaSnapshot snapshot;
+    snapshot.leaderAddress = kUnknownLeaderAddress;
+    snapshot.viewVersion = 0;
+
+    if (!running_) {
+        snapshot.role = kHaRoleUnknown;
+        snapshot.haState = kHaStateUnknown;
+        snapshot.leaderPresent = false;
+        return snapshot;
+    }
+
+    std::lock_guard<std::mutex> guard(mutex_);
+    snapshot.leaderPresent = leaderPresent_;
+    snapshot.haState = haState_;
+    const bool isLeader = isLeader_.load();
+    if (snapshot.haState == kHaStateServing && isLeader) {
+        snapshot.role = kHaRoleLeader;
+    } else if (snapshot.haState == kHaStateStandby && snapshot.leaderPresent) {
+        snapshot.role = kHaRoleStandby;
+    } else {
+        snapshot.role = kHaRoleUnknown;
+    }
+    return snapshot;
 }
 
 MmcMetaServiceLeaderElection::~MmcMetaServiceLeaderElection()

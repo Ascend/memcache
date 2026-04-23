@@ -13,12 +13,69 @@
 #ifndef MMC_META_METRIC_MANAGER_H
 #define MMC_META_METRIC_MANAGER_H
 
-#include <string>
+#include <cstdint>
+#include <stdexcept>
 
 #include "prometheus/simpleapi.h"
 
 namespace ock {
 namespace mmc {
+
+enum class RestMetricType : uint8_t {
+    ALLOC,
+    BATCH_ALLOC,
+    GET,
+    BATCH_GET,
+    REMOVE,
+    BATCH_REMOVE,
+    REMOVE_ALL,
+    UPDATE_STATE,
+    BATCH_UPDATE_STATE,
+    QUERY,
+    BATCH_QUERY,
+    GET_ALL_KEYS,
+    EXIST_KEY,
+    BATCH_EXIST_KEY,
+    MOUNT,
+    UNMOUNT,
+};
+
+struct MmcMetaMetricSnapshot {
+    uint64_t allocRequestCount{0};
+    uint64_t allocFailureCount{0};
+    uint64_t batchAllocRequestCount{0};
+    uint64_t batchAllocFailureCount{0};
+    uint64_t getRequestCount{0};
+    uint64_t getFailureCount{0};
+    uint64_t batchGetRequestCount{0};
+    uint64_t batchGetFailureCount{0};
+    uint64_t removeRequestCount{0};
+    uint64_t removeFailureCount{0};
+    uint64_t batchRemoveRequestCount{0};
+    uint64_t batchRemoveFailureCount{0};
+    uint64_t removeAllRequestCount{0};
+    uint64_t removeAllFailureCount{0};
+    uint64_t updateStateRequestCount{0};
+    uint64_t updateStateFailureCount{0};
+    uint64_t batchUpdateStateRequestCount{0};
+    uint64_t batchUpdateStateFailureCount{0};
+    uint64_t queryRequestCount{0};
+    uint64_t queryFailureCount{0};
+    uint64_t batchQueryRequestCount{0};
+    uint64_t batchQueryFailureCount{0};
+    uint64_t getAllKeysRequestCount{0};
+    uint64_t getAllKeysFailureCount{0};
+    uint64_t existKeyRequestCount{0};
+    uint64_t existKeyFailureCount{0};
+    uint64_t batchExistKeyRequestCount{0};
+    uint64_t batchExistKeyFailureCount{0};
+    uint64_t mountRequestCount{0};
+    uint64_t mountFailureCount{0};
+    uint64_t unmountRequestCount{0};
+    uint64_t unmountFailureCount{0};
+    uint64_t evictCount{0};
+    uint64_t keyCount{0};
+};
 
 class MmcMetaMetricManager {
 public:
@@ -33,23 +90,12 @@ public:
     MmcMetaMetricManager(MmcMetaMetricManager &&) = delete;
     MmcMetaMetricManager &operator=(MmcMetaMetricManager &&) = delete;
 
-    // Get metrics summary in human-readable format
-    std::string GetSummary() const;
-    // Get metrics summary in prometheus format
-    static std::string GetPrometheusSummary();
+    MmcMetaMetricSnapshot GetSnapshot() const;
 
-    void IncrementAllocCounter()
-    {
-        allocCounter_++;
-    }
-    void IncrementRemoveCounter()
-    {
-        removeCounter_++;
-    }
-    void IncrementGetCounter()
-    {
-        getCounter_++;
-    }
+    void IncrementRequestCounter(RestMetricType type);
+
+    void IncrementFailureCounter(RestMetricType type);
+
     void IncrementEvictCounter()
     {
         evictCounter_++;
@@ -63,9 +109,38 @@ private:
     MmcMetaMetricManager();
     ~MmcMetaMetricManager() = default;
 
-    prometheus::simpleapi::counter_metric_t allocCounter_;
-    prometheus::simpleapi::counter_metric_t removeCounter_;
-    prometheus::simpleapi::counter_metric_t getCounter_;
+    prometheus::simpleapi::counter_metric_t allocRequestCounter_;
+    prometheus::simpleapi::counter_metric_t allocFailureCounter_;
+    prometheus::simpleapi::counter_metric_t batchAllocRequestCounter_;
+    prometheus::simpleapi::counter_metric_t batchAllocFailureCounter_;
+    prometheus::simpleapi::counter_metric_t getRequestCounter_;
+    prometheus::simpleapi::counter_metric_t getFailureCounter_;
+    prometheus::simpleapi::counter_metric_t batchGetRequestCounter_;
+    prometheus::simpleapi::counter_metric_t batchGetFailureCounter_;
+    prometheus::simpleapi::counter_metric_t removeRequestCounter_;
+    prometheus::simpleapi::counter_metric_t removeFailureCounter_;
+    prometheus::simpleapi::counter_metric_t batchRemoveRequestCounter_;
+    prometheus::simpleapi::counter_metric_t batchRemoveFailureCounter_;
+    prometheus::simpleapi::counter_metric_t removeAllRequestCounter_;
+    prometheus::simpleapi::counter_metric_t removeAllFailureCounter_;
+    prometheus::simpleapi::counter_metric_t updateStateRequestCounter_;
+    prometheus::simpleapi::counter_metric_t updateStateFailureCounter_;
+    prometheus::simpleapi::counter_metric_t batchUpdateStateRequestCounter_;
+    prometheus::simpleapi::counter_metric_t batchUpdateStateFailureCounter_;
+    prometheus::simpleapi::counter_metric_t queryRequestCounter_;
+    prometheus::simpleapi::counter_metric_t queryFailureCounter_;
+    prometheus::simpleapi::counter_metric_t batchQueryRequestCounter_;
+    prometheus::simpleapi::counter_metric_t batchQueryFailureCounter_;
+    prometheus::simpleapi::counter_metric_t getAllKeysRequestCounter_;
+    prometheus::simpleapi::counter_metric_t getAllKeysFailureCounter_;
+    prometheus::simpleapi::counter_metric_t existKeyRequestCounter_;
+    prometheus::simpleapi::counter_metric_t existKeyFailureCounter_;
+    prometheus::simpleapi::counter_metric_t batchExistKeyRequestCounter_;
+    prometheus::simpleapi::counter_metric_t batchExistKeyFailureCounter_;
+    prometheus::simpleapi::counter_metric_t mountRequestCounter_;
+    prometheus::simpleapi::counter_metric_t mountFailureCounter_;
+    prometheus::simpleapi::counter_metric_t unmountRequestCounter_;
+    prometheus::simpleapi::counter_metric_t unmountFailureCounter_;
     prometheus::simpleapi::counter_metric_t evictCounter_;
     prometheus::simpleapi::gauge_metric_t keyCountGauge_;
 };

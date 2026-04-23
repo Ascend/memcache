@@ -42,6 +42,14 @@ public:
 
     const MmcMetaMgrProxyPtr &GetMetaMgrProxy() const;
 
+    bool IsConfigStoreReady() const;
+
+    Result GetMetadata(const std::string &key, std::string &value, int64_t timeoutMs = 0) const;
+
+    Result PutMetadata(const std::string &key, const std::string &value) const;
+
+    Result DeleteMetadata(const std::string &key) const;
+
 private:
     MetaNetServerPtr metaNetServer_;
     MmcMetaMgrProxyPtr metaMgrProxy_;
@@ -68,6 +76,11 @@ inline const mmc_meta_service_config_t &MmcMetaService::Options() const
 inline const MmcMetaMgrProxyPtr &MmcMetaService::GetMetaMgrProxy() const
 {
     return metaMgrProxy_;
+}
+
+inline bool MmcMetaService::IsConfigStoreReady() const
+{
+    return confStore_ != nullptr;
 }
 
 using MmcMetaServiceDefaultPtr = MmcRef<MmcMetaService>;

@@ -317,9 +317,31 @@ int MmcMetaServiceProcess::StartHttpServer()
     }
 
     MMC_LOG_INFO("Starting HTTP server on " << host << ":" << port);
+    if (leaderElection_ == nullptr) {
+        MMC_LOG_INFO("HA snapshot provider will return default state because leader election is not initialized");
+    }
 
     try {
-        httpServer_ = new MmcHttpServer(host, port, metaManagerPtr);
+        const auto haSnapshotProvider = [this]() {
+            RestHaSnapshot snapshot;
+            if (leaderElection_ == nullptr) {
+                MMC_LOG_INFO(
+                    "HA snapshot provider will return default state because leader election is not initialized");
+                return snapshot;
+            }
+
+            const MmcHaSnapshot haSnapshot = leaderElection_->GetSnapshot();
+            snapshot.role = haSnapshot.role;
+            snapshot.haState = haSnapshot.haState;
+            snapshot.leaderPresent = haSnapshot.leaderPresent;
+            snapshot.leaderAddress = haSnapshot.leaderAddress;
+            snapshot.viewVersion = haSnapshot.viewVersion;
+            return snapshot;
+        };
+        MmcRestApiFacadePtr restApiFacade =
+            MmcMakeRef<MmcRestApiFacade>(metaService_, metaMgrProxyPtr, haSnapshotProvider);
+        MMC_VALIDATE_RETURN(restApiFacade != nullptr, "rest api facade is nullptr", MMC_ERROR);
+        httpServer_ = new MmcHttpServer(host, port, restApiFacade);
         httpServer_->Start();
         return MMC_OK;
     } catch (const std::exception &e) {
@@ -338,6 +360,8 @@ void MmcMetaServiceProcess::Exit()
     }
     if (httpServer_ != nullptr) {
         httpServer_->Stop();
+        delete httpServer_;
+        httpServer_ = nullptr;
     }
     ptracer_uninit();
 }

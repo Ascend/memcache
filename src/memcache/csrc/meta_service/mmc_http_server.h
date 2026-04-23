@@ -14,18 +14,19 @@
 #define MEM_HTTP_SERVER_H
 
 #include <thread>
+#include <atomic>
 
 #include "httplib.h"
 
-#include "mmc_meta_manager.h"
+#include "mmc_rest_api_facade.h"
 
 namespace ock {
 namespace mmc {
 
 class MmcHttpServer {
 public:
-    MmcHttpServer(const std::string &host, const uint16_t port, const MmcMetaManagerPtr &metaMetaManager)
-        : running_(false), host_(host), port_(port), metaMetaManager_(metaMetaManager)
+    MmcHttpServer(const std::string &host, const uint16_t port, const MmcRestApiFacadePtr &restApiFacade)
+        : host_(host), port_(port), restApiFacade_(restApiFacade)
     {
         RegisterUrls();
     }
@@ -38,7 +39,7 @@ public:
 
     bool IsRunning() const
     {
-        return running_;
+        return running_.load();
     }
 
     MmcHttpServer(const MmcHttpServer &) = delete;
@@ -49,12 +50,13 @@ private:
     void RegisterHealthCheckEndpoint();
     void RegisterDataManagementEndpoints();
     void RegisterSegmentManagementEndpoints();
+    void RegisterDrainJobEndpoints();
     void RegisterMetricsEndpoint();
 
-    bool running_;
+    std::atomic<bool> running_{false};
     std::string host_;
     uint16_t port_;
-    MmcMetaManagerPtr metaMetaManager_;
+    MmcRestApiFacadePtr restApiFacade_;
     httplib::Server server_{};
     std::thread serverThread_;
 };

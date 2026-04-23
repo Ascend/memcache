@@ -28,6 +28,14 @@
 namespace ock {
 namespace mmc {
 
+struct MmcHaSnapshot {
+    std::string role{"unknown"};
+    std::string haState{"unknown"};
+    bool leaderPresent{false};
+    std::string leaderAddress{"unknown"};
+    uint64_t viewVersion{0};
+};
+
 #pragma GCC visibility push(default)
 class MmcMetaServiceLeaderElection {
 public:
@@ -40,18 +48,25 @@ public:
 
     void Stop();
 
+    MmcHaSnapshot GetSnapshot() const;
+
 private:
+    void UpdateHaSnapshotStateLocked(bool leaderPresent, const std::string &haState,
+                                     const std::string &currentLeaderName);
     void ElectionLoop();
     void CheckLeaderStatus();
     void RenewLoop();
     void OnStartLeading();
     void OnStopLeading();
 
-    std::mutex mutex_;
+    mutable std::mutex mutex_;
     std::thread electionThread_;
     std::thread renewThread_;
     std::atomic<bool> running_{false};
     std::atomic<bool> isLeader_{false};
+    bool leaderPresent_{false};
+    std::string haState_{"unknown"};
+    std::string currentLeaderName_;
     std::string podName_;
     std::string leaseName_;
     std::string ns_;

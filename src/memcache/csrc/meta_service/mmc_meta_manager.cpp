@@ -13,7 +13,6 @@
 #include "mmc_meta_manager.h"
 
 #include "mmc_logger.h"
-#include "mmc_meta_metric_manager.h"
 #include "mmc_types.h"
 #include "mmc_ptracer.h"
 
@@ -57,7 +56,6 @@ Result MmcMetaManager::Get(const std::string &key, uint64_t operateId, MmcBlobFi
     }
     objMeta.numBlobs_ = objMeta.blobs_.size();
 
-    MmcMetaMetricManager::GetInstance().IncrementGetCounter();
     return MMC_OK;
 }
 
@@ -130,9 +128,11 @@ void MmcMetaManager::CheckAndEvict(MediaType media, uint64_t wantAllocSize)
 Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOpt, uint64_t operateId,
                              MmcMemMetaDesc &objMeta)
 {
+    TP_TRACE_BEGIN(TP_MMC_META_ALLOC);
     MmcMemObjMetaPtr tempMetaObj = MmcMakeRef<MmcMemObjMeta>();
     if (tempMetaObj == nullptr) {
         MMC_LOG_ERROR("Fail to malloc tempMetaObj");
+        TP_TRACE_END(TP_MMC_META_ALLOC, MMC_MALLOC_FAILED);
         return MMC_MALLOC_FAILED;
     }
     std::vector<MmcMemBlobPtr> blobs;
@@ -146,6 +146,7 @@ Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOp
             blobs.clear();
         }
         MMC_LOG_ERROR("Alloc " << allocOpt.blobSize_ << " failed, ret:" << ret);
+        TP_TRACE_END(TP_MMC_META_ALLOC, ret);
         return ret;
     }
 
@@ -170,9 +171,8 @@ Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOp
         objMeta.size_ = tempMetaObj->Size();
         tempMetaObj->GetBlobsDesc(objMeta.blobs_);
         objMeta.numBlobs_ = objMeta.blobs_.size();
-
-        MmcMetaMetricManager::GetInstance().IncrementAllocCounter();
     }
+    TP_TRACE_END(TP_MMC_META_ALLOC, ret);
     return ret;
 }
 
@@ -222,16 +222,22 @@ void MmcMetaManager::PushRemoveList(const std::string &key, const MmcMemObjMetaP
 
 Result MmcMetaManager::Remove(const std::string &key)
 {
+    TP_TRACE_BEGIN(TP_MMC_META_REMOVE);
     MmcMemObjMetaPtr objMeta;
-    MMC_RETURN_ERROR(metaContainer_->Erase(key, objMeta), "remove: Fail to erase from container!");
+    Result ret = metaContainer_->Erase(key, objMeta);
+    if (ret != MMC_OK) {
+        TP_TRACE_END(TP_MMC_META_REMOVE, ret);
+        MMC_RETURN_ERROR(ret, "remove: Fail to erase from container!");
+    }
     if (objMeta == nullptr) {
         MMC_LOG_ERROR("Erase returned null objMeta for key: " << key);
+        TP_TRACE_END(TP_MMC_META_REMOVE, MMC_ERROR);
         return MMC_ERROR;
     }
     std::unique_lock<std::mutex> guard(objMeta->Mutex());
     PushRemoveList(key, objMeta);
 
-    MmcMetaMetricManager::GetInstance().IncrementRemoveCounter();
+    TP_TRACE_END(TP_MMC_META_REMOVE, MMC_OK);
     return MMC_OK;
 }
 

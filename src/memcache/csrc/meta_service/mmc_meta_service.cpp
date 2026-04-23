@@ -21,6 +21,7 @@
 
 namespace ock {
 namespace mmc {
+
 Result MmcMetaService::Start(const mmc_meta_service_config_t &options)
 {
     const int threadCountBase = 4;
@@ -177,8 +178,28 @@ void MmcMetaService::Stop()
         ubsIoProxyPtr_->DestroyUbsIo();
         ubsIoProxyPtr_ = nullptr;
     }
+    confStore_ = nullptr;
+    ock::smem::StoreFactory::DestroyStore(options_.configStoreURL);
     MMC_LOG_INFO("Stop MmcMetaServiceDefault (" << name_ << ") at " << options_.discoveryURL);
     started_ = false;
+}
+
+Result MmcMetaService::GetMetadata(const std::string &key, std::string &value, int64_t timeoutMs) const
+{
+    MMC_VALIDATE_RETURN(confStore_ != nullptr, "config store not initialized", MMC_NOT_INITIALIZED);
+    return confStore_->Get(key, value, timeoutMs);
+}
+
+Result MmcMetaService::PutMetadata(const std::string &key, const std::string &value) const
+{
+    MMC_VALIDATE_RETURN(confStore_ != nullptr, "config store not initialized", MMC_NOT_INITIALIZED);
+    return confStore_->Set(key, value);
+}
+
+Result MmcMetaService::DeleteMetadata(const std::string &key) const
+{
+    MMC_VALIDATE_RETURN(confStore_ != nullptr, "config store not initialized", MMC_NOT_INITIALIZED);
+    return confStore_->Remove(key);
 }
 
 } // namespace mmc

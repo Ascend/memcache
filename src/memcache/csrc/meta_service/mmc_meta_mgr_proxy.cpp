@@ -12,20 +12,40 @@
 #include "mmc_meta_mgr_proxy.h"
 #include "mmc_ptracer.h"
 
+#include <algorithm>
+#include <cctype>
+
+namespace {
+
+std::string ToLower(std::string value)
+{
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) { return std::tolower(ch); });
+    return value;
+}
+
+std::string BuildSegmentId(uint32_t rank, const std::string &medium)
+{
+    return std::string("rank-") + std::to_string(rank) + "-" + ToLower(medium);
+}
+
+} // namespace
+
 namespace ock {
 namespace mmc {
 Result MmcMetaMgrProxy::Alloc(const AllocRequest &req, AllocResponse &resp)
 {
+    MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
+    metricManager.IncrementRequestCounter(RestMetricType::ALLOC);
     metaMangerPtr_->CheckAndEvict(static_cast<MediaType>(req.options_.mediaType_),
                                   req.options_.blobSize_ * req.options_.numBlobs_);
     MmcMemMetaDesc objMeta;
     auto ret = metaMangerPtr_->Alloc(req.key_, req.options_, req.operateId_, objMeta);
     if (ret != MMC_OK) {
         if (ret != MMC_DUPLICATED_OBJECT) {
-            MMC_RETURN_ERROR(ret, "Meta Alloc Fail, key  " << req.key_);
-        } else {
-            return ret;
+            metricManager.IncrementFailureCounter(RestMetricType::ALLOC);
+            MMC_LOG_ERROR("Meta Alloc Fail, key  " << req.key_ << ", ret=" << ret);
         }
+        return ret;
     }
     resp.numBlobs_ = objMeta.numBlobs_;
     resp.prot_ = objMeta.prot_;
@@ -36,9 +56,16 @@ Result MmcMetaMgrProxy::Alloc(const AllocRequest &req, AllocResponse &resp)
 
 Result MmcMetaMgrProxy::BatchAlloc(const BatchAllocRequest &req, BatchAllocResponse &resp)
 {
+    MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
+    metricManager.IncrementRequestCounter(RestMetricType::BATCH_ALLOC);
     resp.results_.resize(req.keys_.size());
     resp.blobs_.resize(req.keys_.size());
-    MMC_ASSERT_RETURN(req.keys_.size() == req.options_.size(), MMC_ERROR);
+    if (req.keys_.size() != req.options_.size()) {
+        metricManager.IncrementFailureCounter(RestMetricType::BATCH_ALLOC);
+        MMC_LOG_ERROR("BatchAlloc input size mismatch, key count: " << req.keys_.size()
+                                                                    << ", option count: " << req.options_.size());
+        return MMC_ERROR;
+    }
     for (size_t i = 0; i < req.keys_.size(); ++i) {
         MmcMemMetaDesc objMeta{};
         metaMangerPtr_->CheckAndEvict(static_cast<MediaType>(req.options_[i].mediaType_),
@@ -69,16 +96,24 @@ Result MmcMetaMgrProxy::BatchAlloc(const BatchAllocRequest &req, BatchAllocRespo
 
 Result MmcMetaMgrProxy::UpdateState(const UpdateRequest &req, Response &resp)
 {
+    MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
+    metricManager.IncrementRequestCounter(RestMetricType::UPDATE_STATE);
     MmcLocation loc{req.rank_, static_cast<MediaType>(req.mediaType_)};
     Result ret = metaMangerPtr_->UpdateState(req.key_, loc, req.actionResult_, req.operateId_);
     resp.ret_ = ret;
+    if (ret != MMC_OK) {
+        metricManager.IncrementFailureCounter(RestMetricType::UPDATE_STATE);
+    }
     return MMC_OK;
 }
 
 Result MmcMetaMgrProxy::BatchUpdateState(const BatchUpdateRequest &req, BatchUpdateResponse &resp)
 {
+    MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
+    metricManager.IncrementRequestCounter(RestMetricType::BATCH_UPDATE_STATE);
     const size_t keyCount = req.keys_.size();
     if (keyCount != req.ranks_.size() || keyCount != req.mediaTypes_.size()) {
+        metricManager.IncrementFailureCounter(RestMetricType::BATCH_UPDATE_STATE);
         MMC_LOG_ERROR("BatchUpdateState: Input vectors size mismatch {keyNum:"
                       << req.keys_.size() << ", rankNum:" << req.ranks_.size()
                       << ", mediaNum:" << req.mediaTypes_.size() << "}");
@@ -98,11 +133,18 @@ Result MmcMetaMgrProxy::BatchUpdateState(const BatchUpdateRequest &req, BatchUpd
 
 Result MmcMetaMgrProxy::Get(const GetRequest &req, AllocResponse &resp)
 {
+    MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
+    metricManager.IncrementRequestCounter(RestMetricType::GET);
     MmcMemMetaDesc objMeta;
     MmcBlobFilterPtr filterPtr = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, READABLE);
-    MMC_RETURN_ERROR(metaMangerPtr_->Get(req.key_, req.operateId_, filterPtr, objMeta),
-                     "failed to get objMeta for key " << req.key_);
+    Result ret = metaMangerPtr_->Get(req.key_, req.operateId_, filterPtr, objMeta);
+    if (ret != MMC_OK) {
+        metricManager.IncrementFailureCounter(RestMetricType::GET);
+        MMC_LOG_ERROR("failed to get objMeta for key " << req.key_ << ", ret=" << ret);
+        return ret;
+    }
     if (objMeta.numBlobs_ == 0 || objMeta.blobs_.empty()) {
+        metricManager.IncrementFailureCounter(RestMetricType::GET);
         MMC_LOG_ERROR("key " << req.key_ << " already released ");
         return MMC_ERROR;
     }
@@ -114,8 +156,61 @@ Result MmcMetaMgrProxy::Get(const GetRequest &req, AllocResponse &resp)
     return MMC_OK;
 }
 
+Result MmcMetaMgrProxy::GetAllKeys(std::vector<std::string> &keys)
+{
+    MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
+    metricManager.IncrementRequestCounter(RestMetricType::GET_ALL_KEYS);
+    Result ret = metaMangerPtr_->GetAllKeys(keys);
+    if (ret != MMC_OK) {
+        metricManager.IncrementFailureCounter(RestMetricType::GET_ALL_KEYS);
+    }
+    return ret;
+}
+
+Result MmcMetaMgrProxy::GetAllSegmentInfo(nlohmann::json &result)
+{
+    result = metaMangerPtr_->GetAllSegmentInfo();
+    if (!result.is_array()) {
+        return MMC_ERROR;
+    }
+
+    for (size_t i = 0; i < result.size(); ++i) {
+        if (!result.at(i).is_object()) {
+            MMC_LOG_ERROR("Segment info item is not an object, index=" << i);
+            return MMC_ERROR;
+        }
+    }
+    return MMC_OK;
+}
+
+Result MmcMetaMgrProxy::QuerySegment(const std::string &segmentId, nlohmann::json &segment)
+{
+    nlohmann::json segmentInfo = metaMangerPtr_->GetAllSegmentInfo();
+    if (!segmentInfo.is_array()) {
+        return MMC_ERROR;
+    }
+
+    for (size_t i = 0; i < segmentInfo.size(); ++i) {
+        const nlohmann::json &item = segmentInfo.at(i);
+        if (!item.is_object()) {
+            MMC_LOG_ERROR("Segment info item is not an object, index=" << i);
+            return MMC_ERROR;
+        }
+
+        const uint32_t rank = item.value("rank", UINT32_MAX);
+        const std::string medium = item.value("medium", std::string("unknown"));
+        if (segmentId == BuildSegmentId(rank, medium)) {
+            segment = item;
+            return MMC_OK;
+        }
+    }
+
+    return MMC_UNMATCHED_KEY;
+}
+
 Result MmcMetaMgrProxy::BatchGet(const BatchGetRequest &req, BatchAllocResponse &resp)
 {
+    MmcMetaMetricManager::GetInstance().IncrementRequestCounter(RestMetricType::BATCH_GET);
     resp.numBlobs_.resize(req.keys_.size(), 0);
     resp.prots_.resize(req.keys_.size(), 0);
     resp.priorities_.resize(req.keys_.size(), 0);
@@ -147,6 +242,8 @@ Result MmcMetaMgrProxy::BatchGet(const BatchGetRequest &req, BatchAllocResponse 
 
 Result MmcMetaMgrProxy::BatchExistKey(const BatchIsExistRequest &req, BatchIsExistResponse &resp)
 {
+    MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
+    metricManager.IncrementRequestCounter(RestMetricType::BATCH_EXIST_KEY);
     resp.results_.reserve(req.keys_.size());
     for (size_t i = 0; i < req.keys_.size(); ++i) {
         auto ret = metaMangerPtr_->ExistKey(req.keys_[i]);
@@ -173,6 +270,7 @@ Result MmcMetaMgrProxy::BatchExistKey(const BatchIsExistRequest &req, BatchIsExi
             if (ret != 0) {
                 MMC_LOG_ERROR("ubsIo batch exist failed, ret: " << ret);
                 delete [] ubsIoResults;
+                metricManager.IncrementFailureCounter(RestMetricType::BATCH_EXIST_KEY);
                 return MMC_ERROR;
             }
             for (size_t idx = 0; idx < ubsIoIndices.size(); ++idx) {
