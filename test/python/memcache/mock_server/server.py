@@ -26,10 +26,28 @@ from enum import Enum
 
 import torch
 
-from memcache_hybrid import DistributedObjectStore, ReplicateConfig
+from memcache_hybrid import DistributedObjectStore, LocalConfig, ReplicateConfig
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+def _set_config_attr(config, attr: str, raw):
+    """以属性当前值的类型为基准，将 raw 转换为 bool/int/str 后赋值；未知属性仅 warn。"""
+    if not hasattr(config, attr):
+        logging.warning("config %s has no attribute %s, ignored", type(config).__name__, attr)
+        return
+    cur = getattr(config, attr)
+    if isinstance(cur, bool):
+        if isinstance(raw, bool):
+            value = raw
+        else:
+            value = str(raw).strip().lower() in ("true", "1", "yes", "on")
+    elif isinstance(cur, int):
+        value = int(raw)
+    else:
+        value = str(raw)
+    setattr(config, attr, value)
 
 
 class MmcDirect(Enum):
@@ -209,11 +227,18 @@ class MmcTest(TestServer):
         self._device_id = device_id
         self._init_cmds()
         self._store = None
+        self._local_config = None
 
     def _init_cmds(self):
         cmds = [
             CliCommand("init_mmc", "initialize memcache", self.init_mmc, 0),
             CliCommand("close_mmc", "destruct memcache", self.close_mmc, 0),
+            CliCommand("set_local_configs", "set multiple LocalConfig fields in one shot: [config_map(dict)]",
+                       self.set_local_configs, 1),
+            CliCommand("local_config_str", "show current LocalConfig",
+                       self.local_config_str, 0),
+            CliCommand("setup_mmc", "call DistributedObjectStore.setup with current LocalConfig",
+                       self.setup_mmc, 0),
             CliCommand("get_local_service_id", "get local service id", self.get_local_service_id, 0),
             CliCommand("put", "put data in bytes format: [key] [data]", self.put, 2),
             CliCommand("put_batch", "put batch datas in bytes format: [keys] [values]", self.put_batch, 2),
@@ -256,7 +281,8 @@ class MmcTest(TestServer):
     @result_handler
     def init_mmc(self):
         self.set_device()
-        self._store = DistributedObjectStore()
+        if self._store is None:
+            self._store = DistributedObjectStore()
         res = self._store.init(self._device_id)
         self.cli_return(res)
 
@@ -267,6 +293,32 @@ class MmcTest(TestServer):
             self.cli_return(res)
         else:
             self.cli_return(0)
+
+
+    @result_handler
+    def set_local_configs(self, config_map: dict):
+        if self._local_config is None:
+            self._local_config = LocalConfig()
+        if not isinstance(config_map, dict):
+            raise TypeError(f"config_map must be a dict, got {type(config_map).__name__}")
+        for key, value in config_map.items():
+            _set_config_attr(self._local_config, key, value)
+        self.cli_return(0)
+
+    @result_handler
+    def local_config_str(self):
+        cfg_str = str(self._local_config)
+        logging.info("current local_config:\n%s", cfg_str)
+        self.cli_return(cfg_str)
+
+    @result_handler
+    def setup_mmc(self):
+        if self._local_config is None:
+            raise RuntimeError("local_config is not initialized, call set_local_configs first")
+        if self._store is None:
+            self._store = DistributedObjectStore()
+        res = self._store.setup(self._local_config)
+        self.cli_return(res)
 
     @result_handler
     def get_local_service_id(self):
