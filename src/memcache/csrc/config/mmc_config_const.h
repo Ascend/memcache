@@ -56,8 +56,6 @@ constexpr auto OKC_MMC_LOCAL_SERVICE_DRAM_SIZE = std::make_pair("ock.mmc.local_s
 constexpr auto OKC_MMC_LOCAL_SERVICE_MAX_DRAM_SIZE = std::make_pair("ock.mmc.local_service.max.dram.size", "64GB");
 constexpr auto OKC_MMC_LOCAL_SERVICE_HBM_SIZE = std::make_pair("ock.mmc.local_service.hbm.size", "0");
 constexpr auto OKC_MMC_LOCAL_SERVICE_MAX_HBM_SIZE = std::make_pair("ock.mmc.local_service.max.hbm.size", "0");
-constexpr auto OKC_MMC_LOCAL_SERVICE_MEMORY_POOL_MODE =
-    std::make_pair("ock.mmc.local_service.memory.pool.mode", "standard");
 constexpr auto OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL =
     std::make_pair("ock.mmc.local_service.hcom_url", "tcp://127.0.0.1:7000");
 constexpr auto OCK_MMC_HCOM_TLS_ENABLE = std::make_pair("ock.mmc.local_service.hcom.tls.enable", false);

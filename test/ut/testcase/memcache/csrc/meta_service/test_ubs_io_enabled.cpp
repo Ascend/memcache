@@ -120,7 +120,7 @@ TEST_F(TestUbsIoEnabled, PutAndGetWithUbsIoFallback)
 
     mmc_local_service_config_t localServiceConfig = {
         "", 0, 0,  1, "",      "", 0,  "device_sdma", totalSize, totalSize, totalSize, totalSize,
-        "", 0, {}, 0, nullptr, {}, {}, false};
+        0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -200,7 +200,7 @@ TEST_F(TestUbsIoEnabled, BatchGetWithUbsIoFallback)
 
     mmc_local_service_config_t localServiceConfig = {
         "", 0, 0,  1, "",      "", 0,  "device_sdma", totalSize, totalSize, totalSize, totalSize,
-        "", 0, {}, 0, nullptr, {}, {}, false};
+        0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -297,7 +297,7 @@ TEST_F(TestUbsIoEnabled, ExistOperationsWithUbsIo)
 
     mmc_local_service_config_t localServiceConfig = {
         "", 0, 0,  1, "",      "", 0,  "device_sdma", totalSize, totalSize, totalSize, totalSize,
-        "", 0, {}, 0, nullptr, {}, {}, false};
+        0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -375,7 +375,7 @@ TEST_F(TestUbsIoEnabled, QueryOperationsWithUbsIo)
 
     mmc_local_service_config_t localServiceConfig = {
         "", 0, 0,  1, "",      "", 0,  "device_sdma", totalSize, totalSize, totalSize, totalSize,
-        "", 0, {}, 0, nullptr, {}, {}, false};
+        0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -456,7 +456,7 @@ TEST_F(TestUbsIoEnabled, UbsIoFallbackWhenMemcacheFull)
 
     mmc_local_service_config_t localServiceConfig = {
         "", 0, 0,  1, "",      "", 0,  "device_sdma", totalSize, totalSize, totalSize, totalSize,
-        "", 0, {}, 0, nullptr, {}, {}, false};
+        0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);
@@ -540,7 +540,7 @@ TEST_F(TestUbsIoEnabled, UbsIoDisabledCompare)
 
     mmc_local_service_config_t localServiceConfig = {
         "", 0, 0,  1, "",      "", 0,  "device_sdma", totalSize, totalSize, totalSize, totalSize,
-        "", 0, {}, 0, nullptr, {}, {}, false};
+        0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig.logLevel = INFO_LEVEL;
     localServiceConfig.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig.discoveryURL);

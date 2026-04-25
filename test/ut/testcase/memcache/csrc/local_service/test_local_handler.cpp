@@ -12,9 +12,13 @@
 #include "mmc_meta_manager.h"
 #include "mmc_bm_proxy.h"
 #include "mmc_ref.h"
+#include "smem_bm.h"
 #include "gtest/gtest.h"
 #include <iostream>
 #include <memory>
+
+extern "C" const smem_bm_create_option_t *MockSmemBmGetLastCreate2Option();
+extern "C" void MockSmemBmResetLastCreate2Option();
 
 using namespace testing;
 using namespace std;
@@ -104,7 +108,6 @@ protected:
                         .localMaxDRAMSize = 0,
                         .localHBMSize = 1024 * 1024 * 2,
                         .localMaxHBMSize = 0,
-                        .memoryPoolMode = "",
                         .flags = 0};
 
         oneDimBuffer = {.addr = 0x1000, .type = 0, .offset = 0, .len = 1024};
@@ -139,6 +142,54 @@ TEST_F(TestMmcBmProxy, InitBm_InvalidOpType)
     createConfig.dataOpType = "invalid_type";
     Result ret = InitBmWithConfig();
     EXPECT_EQ(ret, MMC_ERROR);
+}
+
+// 总容量 <= 32TB 时不启用 56 位 GVA。
+TEST_F(TestMmcBmProxy, InitBm_BelowThreshold_NotEnable56BitsGva)
+{
+    MockSmemBmResetLastCreate2Option();
+    // (localMaxDRAMSize + localMaxHBMSize) * worldSize = (1TB + 0) * 4 = 4TB < 32TB
+    createConfig.localDRAMSize = 1ULL << 30ULL;
+    createConfig.localMaxDRAMSize = 1ULL << 40ULL;
+    createConfig.localHBMSize = 0;
+    createConfig.localMaxHBMSize = 0;
+    Result ret = InitBmWithConfig();
+    EXPECT_EQ(ret, MMC_OK);
+
+    const smem_bm_create_option_t *captured = MockSmemBmGetLastCreate2Option();
+    ASSERT_NE(captured, nullptr);
+    EXPECT_FALSE(captured->enable56BitsGva);
+}
+
+// (localMaxDRAMSize + localMaxHBMSize) * worldSize > 32TB 时自动启用 56 位 GVA
+// （mmc 适配层职责，业务层无感）。
+TEST_F(TestMmcBmProxy, InitBm_AboveThreshold_AutoEnable56BitsGva)
+{
+    MockSmemBmResetLastCreate2Option();
+    // 9TB * 4 = 36TB > 32TB
+    createConfig.localMaxDRAMSize = 9ULL << 40ULL;
+    createConfig.localMaxHBMSize = 0;
+    Result ret = InitBmWithConfig();
+    EXPECT_EQ(ret, MMC_OK);
+
+    const smem_bm_create_option_t *captured = MockSmemBmGetLastCreate2Option();
+    ASSERT_NE(captured, nullptr);
+    EXPECT_TRUE(captured->enable56BitsGva);
+}
+
+// 阈值边界：恰好等于 32TB 时不启用（严格大于阈值才启用）。
+TEST_F(TestMmcBmProxy, InitBm_AtThreshold_NotEnable56BitsGva)
+{
+    MockSmemBmResetLastCreate2Option();
+    // 8TB * 4 = 32TB（不大于阈值）
+    createConfig.localMaxDRAMSize = 8ULL << 40ULL;
+    createConfig.localMaxHBMSize = 0;
+    Result ret = InitBmWithConfig();
+    EXPECT_EQ(ret, MMC_OK);
+
+    const smem_bm_create_option_t *captured = MockSmemBmGetLastCreate2Option();
+    ASSERT_NE(captured, nullptr);
+    EXPECT_FALSE(captured->enable56BitsGva);
 }
 
 TEST_F(TestMmcBmProxy, DestroyBm_Success)

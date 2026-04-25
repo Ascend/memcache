@@ -94,11 +94,6 @@ typedef struct {
     // UBS_IO enable
     bool ubs_io_enable;
 
-    // The memory pool mode, optional: standard/expanded.
-    // - standard: the capacity is limited 32TB.
-    // - expanded: the capacity is limited 128TB.
-    char memory_pool_mode[MEM_POOL_MODE_SIZE];
-
     // TLS configurations for metaservice
     bool tls_enable;
     char tls_ca_path[TLS_PATH_SIZE];

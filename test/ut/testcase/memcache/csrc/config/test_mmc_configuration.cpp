@@ -56,7 +56,6 @@ static local_config CreateLocalConfigWithCurrentDefaults()
     config.aggregate_io = true;
     config.aggregate_num = 122UL;
     config.ubs_io_enable = false;
-    SafeCopy("standard", config.memory_pool_mode, sizeof(config.memory_pool_mode));
     config.tls_enable = false;
     config.config_store_tls_enable = false;
     config.hcom_tls_enable = false;
@@ -317,7 +316,6 @@ TEST_F(TestMmcConfiguration, SetupWithFullConfigTest)
     config.aggregate_io = true;
     config.aggregate_num = 256UL;
     config.ubs_io_enable = true;
-    SafeCopy("expanded", config.memory_pool_mode, sizeof(config.memory_pool_mode));
 
     config.tls_enable = true;
     SafeCopy("/etc/ssl/ca.pem", config.tls_ca_path, sizeof(config.tls_ca_path));
@@ -348,7 +346,6 @@ TEST_F(TestMmcConfiguration, SetupWithFullConfigTest)
     ASSERT_EQ(clientConfig.GetBool(ConfConstant::OCK_MMC_CLIENT_AGGREGATE_IO), true);
     ASSERT_EQ(clientConfig.GetInt(ConfConstant::OCK_MMC_CLIENT_AGGREGATE_NUM), 256UL);
     ASSERT_EQ(clientConfig.GetBool(ConfConstant::OCK_MMC_UBS_IO_ENABLE), true);
-    ASSERT_EQ(clientConfig.GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_MEMORY_POOL_MODE), "expanded");
 
     ASSERT_EQ(clientConfig.GetBool(ConfConstant::OCK_MMC_TLS_ENABLE), true);
     ASSERT_EQ(clientConfig.GetString(ConfConstant::OCK_MMC_TLS_CA_PATH), "/etc/ssl/ca.pem");

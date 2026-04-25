@@ -83,7 +83,6 @@ bool Configuration::Setup(const local_config *config)
     res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CLIENT_AGGREGATE_IO.first, config->aggregate_io);
     res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_CLIENT_AGGREGATE_NUM.first, config->aggregate_num);
     res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_UBS_IO_ENABLE.first, config->ubs_io_enable);
-    res &= SetWithTypeAutoConvert(ConfConstant::OKC_MMC_LOCAL_SERVICE_MEMORY_POOL_MODE.first, config->memory_pool_mode);
 
     res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_TLS_ENABLE.first, config->tls_enable);
     res &= SetWithTypeAutoConvert(ConfConstant::OCK_MMC_TLS_CA_PATH.first, config->tls_ca_path);

@@ -48,7 +48,6 @@ TEST_F(TestLocalConfigUtils, CreateDefaultLocalConfigReturnsExpectedDefaults)
     EXPECT_TRUE(config.aggregate_io);
     EXPECT_EQ(config.aggregate_num, 122u);
     EXPECT_FALSE(config.ubs_io_enable);
-    EXPECT_STREQ(config.memory_pool_mode, "standard");
 
     EXPECT_FALSE(config.tls_enable);
     EXPECT_STREQ(config.tls_ca_path, "");
@@ -98,7 +97,6 @@ TEST_F(TestLocalConfigUtils, LocalConfigToStringReturnsExpectedFormat)
     config.aggregate_io = false;
     config.aggregate_num = 78UL;
     config.ubs_io_enable = true;
-    SafeCopy("expanded", config.memory_pool_mode, sizeof(config.memory_pool_mode));
     config.tls_enable = true;
     SafeCopy("/tls/ca.pem", config.tls_ca_path, sizeof(config.tls_ca_path));
     SafeCopy("/tls/ca.crl", config.tls_ca_crl_path, sizeof(config.tls_ca_crl_path));
@@ -141,7 +139,6 @@ TEST_F(TestLocalConfigUtils, LocalConfigToStringReturnsExpectedFormat)
                                  "  aggregate_io: false\n"
                                  "  aggregate_num: 78\n"
                                  "  ubs_io_enable: true\n"
-                                 "  memory_pool_mode: expanded\n"
                                  "  tls_enable: true\n"
                                  "  tls_ca_path: /tls/ca.pem\n"
                                  "  tls_ca_crl_path: /tls/ca.crl\n"

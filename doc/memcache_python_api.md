@@ -202,7 +202,6 @@ LocalConfig是分布式内存缓存的配置类，用于设置客户端的各种
 | aggregate_io | bool | true | 是否启用读/写聚合 |
 | aggregate_num | int | 122 | 聚合数量 |
 | ubs_io_enable | bool | false | 是否启用UBS_IO |
-| memory_pool_mode | str | "standard" | 内存池模式：standard或expanded |
 | tls_enable | bool | false | 是否为metaservice启用TLS |
 | tls_ca_path | str | "" | TLS CA证书路径 |
 | tls_ca_crl_path | str | "" | TLS CA CRL路径 |

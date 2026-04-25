@@ -121,7 +121,6 @@ Result MmcLocalServiceDefault::InitBm()
                                            .localMaxDRAMSize = options_.localMaxDRAMSize,
                                            .localHBMSize = options_.localHBMSize,
                                            .localMaxHBMSize = options_.localMaxHBMSize,
-                                           .memoryPoolMode = options_.memoryPoolMode,
                                            .flags = options_.flags};
 
     MmcBmProxyPtr bmProxy = MmcBmProxyFactory::GetInstance("bmProxyDefault");
