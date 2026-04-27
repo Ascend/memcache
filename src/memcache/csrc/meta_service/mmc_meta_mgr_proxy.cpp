@@ -40,12 +40,13 @@ Result MmcMetaMgrProxy::Alloc(const AllocRequest &req, AllocResponse &resp)
                                   req.options_.blobSize_ * req.options_.numBlobs_);
     MmcMemMetaDesc objMeta;
     auto ret = metaMangerPtr_->Alloc(req.key_, req.options_, req.operateId_, objMeta);
+    IncrementResultCounter(metricManager, RestMetricType::ALLOC, ret);
     if (ret != MMC_OK) {
         if (ret != MMC_DUPLICATED_OBJECT) {
-            metricManager.IncrementFailureCounter(RestMetricType::ALLOC);
-            MMC_LOG_ERROR("Meta Alloc Fail, key  " << req.key_ << ", ret=" << ret);
+            MMC_RETURN_ERROR(ret, "Meta Alloc Fail, key  " << req.key_);
+        } else {
+            return ret;
         }
-        return ret;
     }
     resp.numBlobs_ = objMeta.numBlobs_;
     resp.prot_ = objMeta.prot_;
@@ -71,8 +72,10 @@ Result MmcMetaMgrProxy::BatchAlloc(const BatchAllocRequest &req, BatchAllocRespo
         metaMangerPtr_->CheckAndEvict(static_cast<MediaType>(req.options_[i].mediaType_),
                                       req.options_[i].blobSize_ * req.options_[i].numBlobs_);
         TP_TRACE_BEGIN(TP_MMC_META_MGR_ALLOC);
+        metricManager.IncrementRequestCounter(RestMetricType::ALLOC);
         Result ret = metaMangerPtr_->Alloc(req.keys_[i], req.options_[i], req.operateId_, objMeta);
         TP_TRACE_END(TP_MMC_META_MGR_ALLOC, ret);
+        IncrementResultCounter(metricManager, RestMetricType::ALLOC, ret);
         if (ret != MMC_OK) {
             if (ret != MMC_DUPLICATED_OBJECT) {
                 MMC_LOG_ERROR("Allocation failed for key: " << req.keys_[i] << ", error: " << ret);
@@ -91,6 +94,7 @@ Result MmcMetaMgrProxy::BatchAlloc(const BatchAllocRequest &req, BatchAllocRespo
         }
         resp.results_[i] = ret;
     }
+    IncrementBatchResultCounter(metricManager, RestMetricType::BATCH_ALLOC, resp.results_);
     return MMC_OK;
 }
 
@@ -101,9 +105,7 @@ Result MmcMetaMgrProxy::UpdateState(const UpdateRequest &req, Response &resp)
     MmcLocation loc{req.rank_, static_cast<MediaType>(req.mediaType_)};
     Result ret = metaMangerPtr_->UpdateState(req.key_, loc, req.actionResult_, req.operateId_);
     resp.ret_ = ret;
-    if (ret != MMC_OK) {
-        metricManager.IncrementFailureCounter(RestMetricType::UPDATE_STATE);
-    }
+    IncrementResultCounter(metricManager, RestMetricType::UPDATE_STATE, ret);
     return MMC_OK;
 }
 
@@ -112,7 +114,7 @@ Result MmcMetaMgrProxy::BatchUpdateState(const BatchUpdateRequest &req, BatchUpd
     MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
     metricManager.IncrementRequestCounter(RestMetricType::BATCH_UPDATE_STATE);
     const size_t keyCount = req.keys_.size();
-    if (keyCount != req.ranks_.size() || keyCount != req.mediaTypes_.size()) {
+    if (keyCount != req.ranks_.size() || keyCount != req.mediaTypes_.size() || keyCount != req.actionResults_.size()) {
         metricManager.IncrementFailureCounter(RestMetricType::BATCH_UPDATE_STATE);
         MMC_LOG_ERROR("BatchUpdateState: Input vectors size mismatch {keyNum:"
                       << req.keys_.size() << ", rankNum:" << req.ranks_.size()
@@ -122,12 +124,15 @@ Result MmcMetaMgrProxy::BatchUpdateState(const BatchUpdateRequest &req, BatchUpd
 
     for (size_t i = 0; i < keyCount; ++i) {
         MmcLocation loc{req.ranks_[i], static_cast<MediaType>(req.mediaTypes_[i])};
+        metricManager.IncrementRequestCounter(RestMetricType::UPDATE_STATE);
         Result ret = metaMangerPtr_->UpdateState(req.keys_[i], loc, req.actionResults_[i], req.operateId_);
+        IncrementResultCounter(metricManager, RestMetricType::UPDATE_STATE, ret);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("update for key: " << req.keys_[i] << " failed, error: " << ret);
         }
         resp.results_.push_back(ret);
     }
+    IncrementBatchResultCounter(metricManager, RestMetricType::BATCH_UPDATE_STATE, resp.results_);
     return MMC_OK;
 }
 
@@ -139,7 +144,7 @@ Result MmcMetaMgrProxy::Get(const GetRequest &req, AllocResponse &resp)
     MmcBlobFilterPtr filterPtr = MmcMakeRef<MmcBlobFilter>(UINT32_MAX, MEDIA_NONE, READABLE);
     Result ret = metaMangerPtr_->Get(req.key_, req.operateId_, filterPtr, objMeta);
     if (ret != MMC_OK) {
-        metricManager.IncrementFailureCounter(RestMetricType::GET);
+        IncrementResultCounter(metricManager, RestMetricType::GET, ret);
         MMC_LOG_ERROR("failed to get objMeta for key " << req.key_ << ", ret=" << ret);
         return ret;
     }
@@ -149,6 +154,7 @@ Result MmcMetaMgrProxy::Get(const GetRequest &req, AllocResponse &resp)
         return MMC_ERROR;
     }
 
+    metricManager.IncrementSuccessCounter(RestMetricType::GET);
     resp.blobs_ = objMeta.blobs_;
     resp.numBlobs_ = objMeta.blobs_.size();
     resp.prot_ = objMeta.prot_;
@@ -161,9 +167,7 @@ Result MmcMetaMgrProxy::GetAllKeys(std::vector<std::string> &keys)
     MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
     metricManager.IncrementRequestCounter(RestMetricType::GET_ALL_KEYS);
     Result ret = metaMangerPtr_->GetAllKeys(keys);
-    if (ret != MMC_OK) {
-        metricManager.IncrementFailureCounter(RestMetricType::GET_ALL_KEYS);
-    }
+    IncrementResultCounter(metricManager, RestMetricType::GET_ALL_KEYS, ret);
     return ret;
 }
 
@@ -210,7 +214,8 @@ Result MmcMetaMgrProxy::QuerySegment(const std::string &segmentId, nlohmann::jso
 
 Result MmcMetaMgrProxy::BatchGet(const BatchGetRequest &req, BatchAllocResponse &resp)
 {
-    MmcMetaMetricManager::GetInstance().IncrementRequestCounter(RestMetricType::BATCH_GET);
+    MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
+    metricManager.IncrementRequestCounter(RestMetricType::BATCH_GET);
     resp.numBlobs_.resize(req.keys_.size(), 0);
     resp.prots_.resize(req.keys_.size(), 0);
     resp.priorities_.resize(req.keys_.size(), 0);
@@ -221,6 +226,7 @@ Result MmcMetaMgrProxy::BatchGet(const BatchGetRequest &req, BatchAllocResponse 
     for (size_t i = 0; i < req.keys_.size(); ++i) {
         MmcMemMetaDesc objMeta{};
         TP_TRACE_BEGIN(TP_MMC_META_MGR_GET);
+        metricManager.IncrementRequestCounter(RestMetricType::GET);
         auto ret = metaMangerPtr_->Get(req.keys_[i], req.operateId_, filterPtr, objMeta);
         TP_TRACE_END(TP_MMC_META_MGR_GET, ret);
         if (ret != MMC_OK || objMeta.blobs_.empty() || objMeta.numBlobs_ != objMeta.blobs_.size()) {
@@ -235,8 +241,10 @@ Result MmcMetaMgrProxy::BatchGet(const BatchGetRequest &req, BatchAllocResponse 
             resp.prots_[i] = objMeta.prot_;
             resp.priorities_[i] = objMeta.priority_;
         }
+        IncrementResultCounter(metricManager, RestMetricType::GET, ret);
         resp.results_.push_back(ret);
     }
+    IncrementBatchResultCounter(metricManager, RestMetricType::BATCH_GET, resp.results_);
     return MMC_OK;
 }
 
@@ -246,12 +254,15 @@ Result MmcMetaMgrProxy::BatchExistKey(const BatchIsExistRequest &req, BatchIsExi
     metricManager.IncrementRequestCounter(RestMetricType::BATCH_EXIST_KEY);
     resp.results_.reserve(req.keys_.size());
     for (size_t i = 0; i < req.keys_.size(); ++i) {
+        metricManager.IncrementRequestCounter(RestMetricType::EXIST_KEY);
         auto ret = metaMangerPtr_->ExistKey(req.keys_[i]);
         if (ret != MMC_OK && ret != MMC_UNMATCHED_KEY) {
             MMC_LOG_ERROR("get key: " << req.keys_[i] << " unexpected result: " << ret);
         }
         resp.results_.emplace_back(ret);
+        IncrementResultCounter(metricManager, RestMetricType::EXIST_KEY, ret);
     }
+    IncrementBatchResultCounter(metricManager, RestMetricType::BATCH_EXIST_KEY, resp.results_);
 
     if (ubsIoEnable_) {
         std::vector<std::string> ubsIoKeys;
@@ -269,15 +280,14 @@ Result MmcMetaMgrProxy::BatchExistKey(const BatchIsExistRequest &req, BatchIsExi
             Result ret = ubsIoProxy_->BatchExist(ubsIoKeys, ubsIoResults);
             if (ret != 0) {
                 MMC_LOG_ERROR("ubsIo batch exist failed, ret: " << ret);
-                delete [] ubsIoResults;
-                metricManager.IncrementFailureCounter(RestMetricType::BATCH_EXIST_KEY);
+                delete[] ubsIoResults;
                 return MMC_ERROR;
             }
             for (size_t idx = 0; idx < ubsIoIndices.size(); ++idx) {
                 const size_t resultIndex = ubsIoIndices[idx];
                 resp.results_[resultIndex] = ubsIoResults[idx] ? MMC_OK : MMC_UNMATCHED_KEY;
             }
-            delete [] ubsIoResults;
+            delete[] ubsIoResults;
         }
     }
     return MMC_OK;

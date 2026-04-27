@@ -256,96 +256,174 @@ curl "http://127.0.0.1:8000/metrics"
 # HELP memcache_alloc_requests_total Total number of Alloc requests
 # TYPE memcache_alloc_requests_total counter
 memcache_alloc_requests_total 68
+# HELP memcache_alloc_successes_total Total number of Alloc successes
+# TYPE memcache_alloc_successes_total counter
+memcache_alloc_successes_total 68
 # HELP memcache_alloc_failures_total Total number of Alloc failures
 # TYPE memcache_alloc_failures_total counter
 memcache_alloc_failures_total 0
 # HELP memcache_batch_alloc_requests_total Total number of BatchAlloc requests
 # TYPE memcache_batch_alloc_requests_total counter
 memcache_batch_alloc_requests_total 0
+# HELP memcache_batch_alloc_successes_total Total number of BatchAlloc successes
+# TYPE memcache_batch_alloc_successes_total counter
+memcache_batch_alloc_successes_total 0
 # HELP memcache_batch_alloc_failures_total Total number of BatchAlloc failures
 # TYPE memcache_batch_alloc_failures_total counter
 memcache_batch_alloc_failures_total 0
 # HELP memcache_get_requests_total Total number of Get requests
 # TYPE memcache_get_requests_total counter
 memcache_get_requests_total 68
+# HELP memcache_get_successes_total Total number of Get successes
+# TYPE memcache_get_successes_total counter
+memcache_get_successes_total 68
 # HELP memcache_get_failures_total Total number of Get failures
 # TYPE memcache_get_failures_total counter
 memcache_get_failures_total 0
+# HELP memcache_get_not_found_total Total number of Get not found results
+# TYPE memcache_get_not_found_total counter
+memcache_get_not_found_total 0
 # HELP memcache_batch_get_requests_total Total number of BatchGet requests
 # TYPE memcache_batch_get_requests_total counter
 memcache_batch_get_requests_total 0
+# HELP memcache_batch_get_successes_total Total number of BatchGet successes
+# TYPE memcache_batch_get_successes_total counter
+memcache_batch_get_successes_total 0
 # HELP memcache_batch_get_failures_total Total number of BatchGet failures
 # TYPE memcache_batch_get_failures_total counter
 memcache_batch_get_failures_total 0
+# HELP memcache_batch_get_not_found_total Total number of BatchGet not found results
+# TYPE memcache_batch_get_not_found_total counter
+memcache_batch_get_not_found_total 0
 # HELP memcache_remove_requests_total Total number of Remove requests
 # TYPE memcache_remove_requests_total counter
 memcache_remove_requests_total 0
+# HELP memcache_remove_successes_total Total number of Remove successes
+# TYPE memcache_remove_successes_total counter
+memcache_remove_successes_total 0
 # HELP memcache_remove_failures_total Total number of Remove failures
 # TYPE memcache_remove_failures_total counter
 memcache_remove_failures_total 0
+# HELP memcache_remove_not_found_total Total number of Remove not found results
+# TYPE memcache_remove_not_found_total counter
+memcache_remove_not_found_total 0
 # HELP memcache_batch_remove_requests_total Total number of BatchRemove requests
 # TYPE memcache_batch_remove_requests_total counter
 memcache_batch_remove_requests_total 0
+# HELP memcache_batch_remove_successes_total Total number of BatchRemove successes
+# TYPE memcache_batch_remove_successes_total counter
+memcache_batch_remove_successes_total 0
 # HELP memcache_batch_remove_failures_total Total number of BatchRemove failures
 # TYPE memcache_batch_remove_failures_total counter
 memcache_batch_remove_failures_total 0
+# HELP memcache_batch_remove_not_found_total Total number of BatchRemove not found results
+# TYPE memcache_batch_remove_not_found_total counter
+memcache_batch_remove_not_found_total 0
 # HELP memcache_remove_all_requests_total Total number of RemoveAll requests
 # TYPE memcache_remove_all_requests_total counter
 memcache_remove_all_requests_total 0
+# HELP memcache_remove_all_successes_total Total number of RemoveAll successes
+# TYPE memcache_remove_all_successes_total counter
+memcache_remove_all_successes_total 0
 # HELP memcache_remove_all_failures_total Total number of RemoveAll failures
 # TYPE memcache_remove_all_failures_total counter
 memcache_remove_all_failures_total 0
 # HELP memcache_update_state_requests_total Total number of UpdateState requests
 # TYPE memcache_update_state_requests_total counter
 memcache_update_state_requests_total 0
+# HELP memcache_update_state_successes_total Total number of UpdateState successes
+# TYPE memcache_update_state_successes_total counter
+memcache_update_state_successes_total 0
 # HELP memcache_update_state_failures_total Total number of UpdateState failures
 # TYPE memcache_update_state_failures_total counter
 memcache_update_state_failures_total 0
+# HELP memcache_update_state_not_found_total Total number of UpdateState not found results
+# TYPE memcache_update_state_not_found_total counter
+memcache_update_state_not_found_total 0
 # HELP memcache_batch_update_state_requests_total Total number of BatchUpdateState requests
 # TYPE memcache_batch_update_state_requests_total counter
 memcache_batch_update_state_requests_total 0
+# HELP memcache_batch_update_state_successes_total Total number of BatchUpdateState successes
+# TYPE memcache_batch_update_state_successes_total counter
+memcache_batch_update_state_successes_total 0
 # HELP memcache_batch_update_state_failures_total Total number of BatchUpdateState failures
 # TYPE memcache_batch_update_state_failures_total counter
 memcache_batch_update_state_failures_total 0
+# HELP memcache_batch_update_state_not_found_total Total number of BatchUpdateState not found results
+# TYPE memcache_batch_update_state_not_found_total counter
+memcache_batch_update_state_not_found_total 0
 # HELP memcache_query_requests_total Total number of Query requests
 # TYPE memcache_query_requests_total counter
 memcache_query_requests_total 12
+# HELP memcache_query_successes_total Total number of Query successes
+# TYPE memcache_query_successes_total counter
+memcache_query_successes_total 11
 # HELP memcache_query_failures_total Total number of Query failures
 # TYPE memcache_query_failures_total counter
-memcache_query_failures_total 1
+memcache_query_failures_total 0
+# HELP memcache_query_not_found_total Total number of Query not found results
+# TYPE memcache_query_not_found_total counter
+memcache_query_not_found_total 1
 # HELP memcache_batch_query_requests_total Total number of BatchQuery requests
 # TYPE memcache_batch_query_requests_total counter
 memcache_batch_query_requests_total 3
+# HELP memcache_batch_query_successes_total Total number of BatchQuery successes
+# TYPE memcache_batch_query_successes_total counter
+memcache_batch_query_successes_total 3
 # HELP memcache_batch_query_failures_total Total number of BatchQuery failures
 # TYPE memcache_batch_query_failures_total counter
 memcache_batch_query_failures_total 0
+# HELP memcache_batch_query_not_found_total Total number of BatchQuery not found results
+# TYPE memcache_batch_query_not_found_total counter
+memcache_batch_query_not_found_total 1
 # HELP memcache_get_all_keys_requests_total Total number of GetAllKeys requests
 # TYPE memcache_get_all_keys_requests_total counter
 memcache_get_all_keys_requests_total 4
+# HELP memcache_get_all_keys_successes_total Total number of GetAllKeys successes
+# TYPE memcache_get_all_keys_successes_total counter
+memcache_get_all_keys_successes_total 4
 # HELP memcache_get_all_keys_failures_total Total number of GetAllKeys failures
 # TYPE memcache_get_all_keys_failures_total counter
 memcache_get_all_keys_failures_total 0
 # HELP memcache_exist_key_requests_total Total number of ExistKey requests
 # TYPE memcache_exist_key_requests_total counter
 memcache_exist_key_requests_total 0
+# HELP memcache_exist_key_successes_total Total number of ExistKey successes
+# TYPE memcache_exist_key_successes_total counter
+memcache_exist_key_successes_total 0
 # HELP memcache_exist_key_failures_total Total number of ExistKey failures
 # TYPE memcache_exist_key_failures_total counter
 memcache_exist_key_failures_total 0
+# HELP memcache_exist_key_not_found_total Total number of ExistKey not found results
+# TYPE memcache_exist_key_not_found_total counter
+memcache_exist_key_not_found_total 0
 # HELP memcache_batch_exist_key_requests_total Total number of BatchExistKey requests
 # TYPE memcache_batch_exist_key_requests_total counter
 memcache_batch_exist_key_requests_total 0
+# HELP memcache_batch_exist_key_successes_total Total number of BatchExistKey successes
+# TYPE memcache_batch_exist_key_successes_total counter
+memcache_batch_exist_key_successes_total 0
 # HELP memcache_batch_exist_key_failures_total Total number of BatchExistKey failures
 # TYPE memcache_batch_exist_key_failures_total counter
 memcache_batch_exist_key_failures_total 0
+# HELP memcache_batch_exist_key_not_found_total Total number of BatchExistKey not found results
+# TYPE memcache_batch_exist_key_not_found_total counter
+memcache_batch_exist_key_not_found_total 0
 # HELP memcache_mount_requests_total Total number of Mount requests
 # TYPE memcache_mount_requests_total counter
 memcache_mount_requests_total 0
+# HELP memcache_mount_successes_total Total number of Mount successes
+# TYPE memcache_mount_successes_total counter
+memcache_mount_successes_total 0
 # HELP memcache_mount_failures_total Total number of Mount failures
 # TYPE memcache_mount_failures_total counter
 memcache_mount_failures_total 0
 # HELP memcache_unmount_requests_total Total number of Unmount requests
 # TYPE memcache_unmount_requests_total counter
 memcache_unmount_requests_total 0
+# HELP memcache_unmount_successes_total Total number of Unmount successes
+# TYPE memcache_unmount_successes_total counter
+memcache_unmount_successes_total 0
 # HELP memcache_unmount_failures_total Total number of Unmount failures
 # TYPE memcache_unmount_failures_total counter
 memcache_unmount_failures_total 0
@@ -379,8 +457,9 @@ memcache_allocated_bytes{medium="dram"} 0
 |---|---|---|
 | Prometheus 文本 | 成功时返回 Prometheus exposition 文本 | 接口成功返回约定 |
 | 成功示例字段 | 成功示例应覆盖当前约定的全部指标族与标签字段 | 监控指标契约 |
-| Proxy 函数调用指标族 | 至少覆盖 `memcache_alloc_requests_total`/`failures_total`、`memcache_batch_alloc_requests_total`/`failures_total`、`memcache_get_requests_total`/`failures_total`、`memcache_batch_get_requests_total`/`failures_total`、`memcache_remove_requests_total`/`failures_total`、`memcache_batch_remove_requests_total`/`failures_total`、`memcache_remove_all_requests_total`/`failures_total`、`memcache_update_state_requests_total`/`failures_total`、`memcache_batch_update_state_requests_total`/`failures_total`、`memcache_query_requests_total`/`failures_total`、`memcache_batch_query_requests_total`/`failures_total`、`memcache_get_all_keys_requests_total`/`failures_total`、`memcache_exist_key_requests_total`/`failures_total`、`memcache_batch_exist_key_requests_total`/`failures_total`、`memcache_mount_requests_total`/`failures_total`、`memcache_unmount_requests_total`/`failures_total` | 监控指标契约 |
-| 资源与状态指标族 | 至少覆盖 `memcache_evict_operations_total`、`memcache_stored_keys`、`memcache_segment_capacity_bytes{segment="..."}`、`memcache_segment_allocated_bytes{segment="..."}`、`memcache_total_capacity_bytes{medium="hbm|dram"}`、`memcache_allocated_bytes{medium="hbm|dram"}` | 监控指标契约 |
+| Proxy 函数调用指标族 | 所有业务接口均按 `memcache_<op>_requests_total`、`memcache_<op>_successes_total`、`memcache_<op>_failures_total` 输出；`get`、`batch_get`、`remove`、`batch_remove`、`update_state`、`batch_update_state`、`query`、`batch_query`、`exist_key`、`batch_exist_key` 额外输出 `memcache_<op>_not_found_total` | 监控指标契约 |
+| 结果口径 | `successes_total` 表示 `MMC_OK`；`failures_total` 表示真实错误（包括 `MMC_DUPLICATED_OBJECT`）；`not_found_total` 表示 `MMC_UNMATCHED_KEY`，不计入 failure；Batch 指标保留接口调用级统计，Batch 子项同时累计到对应非 Batch 指标；Batch 调用级统计中真实错误优先，只有无真实错误且存在子项 `MMC_UNMATCHED_KEY` 时才增加 Batch `not_found_total` | 监控指标契约 |
+| 资源与状态指标族 | 至少覆盖 `memcache_evict_operations_total`、`memcache_stored_keys`、`memcache_segment_capacity_bytes{segment="..."}`、`memcache_segment_allocated_bytes{segment="..."}`、`memcache_total_capacity_bytes{medium="hbm|dram|ssd"}`、`memcache_allocated_bytes{medium="hbm|dram|ssd"}`；其中 `ssd` 仅在 SSD 容量或已用量非 0 时输出 | 监控指标契约 |
 | 占位值策略 | 当前无法提供真实值的指标仍保留在成功体中，可使用 `0` 或 `false` 占位 | 降级规则 |
 
 #### 错误示例
@@ -425,7 +504,7 @@ curl "http://127.0.0.1:8000/metrics/summary"
 `text/plain; charset=utf-8`：
 
 ```text
-keys=2 evict=0 hbm_used=368640/5368709120 dram_used=0/5368709120 alloc_req=68 alloc_fail=0 batch_alloc_req=0 batch_alloc_fail=0 get_req=68 get_fail=0 batch_get_req=0 batch_get_fail=0 remove_req=0 remove_fail=0 batch_remove_req=0 batch_remove_fail=0 remove_all_req=0 remove_all_fail=0 update_state_req=0 update_state_fail=0 batch_update_state_req=0 batch_update_state_fail=0 query_req=12 query_fail=1 batch_query_req=3 batch_query_fail=0 get_all_keys_req=4 get_all_keys_fail=0 exist_key_req=0 exist_key_fail=0 batch_exist_key_req=0 batch_exist_key_fail=0 mount_req=0 mount_fail=0 unmount_req=0 unmount_fail=0
+keys=2 evict=0 hbm_used=368640/5368709120 dram_used=0/5368709120 alloc_req=68 alloc_success=68 alloc_fail=0 batch_alloc_req=0 batch_alloc_success=0 batch_alloc_fail=0 get_req=68 get_success=68 get_fail=0 get_not_found=0 batch_get_req=0 batch_get_success=0 batch_get_fail=0 batch_get_not_found=0 remove_req=0 remove_success=0 remove_fail=0 remove_not_found=0 batch_remove_req=0 batch_remove_success=0 batch_remove_fail=0 batch_remove_not_found=0 remove_all_req=0 remove_all_success=0 remove_all_fail=0 update_state_req=0 update_state_success=0 update_state_fail=0 update_state_not_found=0 batch_update_state_req=0 batch_update_state_success=0 batch_update_state_fail=0 batch_update_state_not_found=0 query_req=12 query_success=11 query_fail=0 query_not_found=1 batch_query_req=3 batch_query_success=3 batch_query_fail=0 batch_query_not_found=1 get_all_keys_req=4 get_all_keys_success=4 get_all_keys_fail=0 exist_key_req=0 exist_key_success=0 exist_key_fail=0 exist_key_not_found=0 batch_exist_key_req=0 batch_exist_key_success=0 batch_exist_key_fail=0 batch_exist_key_not_found=0 mount_req=0 mount_success=0 mount_fail=0 unmount_req=0 unmount_success=0 unmount_fail=0
 ```
 
 **解释**
@@ -434,8 +513,9 @@ keys=2 evict=0 hbm_used=368640/5368709120 dram_used=0/5368709120 alloc_req=68 al
 |---|---|---|
 | 单行文本 | 成功时必须为单行，不能换行拆分 | 接口成功返回约定 |
 | 格式 | 以空格分隔的 `key=value` 串，字段顺序固定 | 统计摘要接口契约 |
-| 成功示例字段 | 成功示例应包含当前约定的全部 36 个字段 | 统计摘要接口契约 |
-| 字段顺序固定 | 依次为 `keys`、`evict`、`hbm_used`、`dram_used`、`alloc_req`、`alloc_fail`、`batch_alloc_req`、`batch_alloc_fail`、`get_req`、`get_fail`、`batch_get_req`、`batch_get_fail`、`remove_req`、`remove_fail`、`batch_remove_req`、`batch_remove_fail`、`remove_all_req`、`remove_all_fail`、`update_state_req`、`update_state_fail`、`batch_update_state_req`、`batch_update_state_fail`、`query_req`、`query_fail`、`batch_query_req`、`batch_query_fail`、`get_all_keys_req`、`get_all_keys_fail`、`exist_key_req`、`exist_key_fail`、`batch_exist_key_req`、`batch_exist_key_fail`、`mount_req`、`mount_fail`、`unmount_req`、`unmount_fail` | 统计摘要接口契约 |
+| 成功示例字段 | 成功示例应包含当前约定的全部 62 个字段 | 统计摘要接口契约 |
+| 字段顺序固定 | 依次为 `keys`、`evict`、`hbm_used`、`dram_used`、`alloc_req`、`alloc_success`、`alloc_fail`、`batch_alloc_req`、`batch_alloc_success`、`batch_alloc_fail`、`get_req`、`get_success`、`get_fail`、`get_not_found`、`batch_get_req`、`batch_get_success`、`batch_get_fail`、`batch_get_not_found`、`remove_req`、`remove_success`、`remove_fail`、`remove_not_found`、`batch_remove_req`、`batch_remove_success`、`batch_remove_fail`、`batch_remove_not_found`、`remove_all_req`、`remove_all_success`、`remove_all_fail`、`update_state_req`、`update_state_success`、`update_state_fail`、`update_state_not_found`、`batch_update_state_req`、`batch_update_state_success`、`batch_update_state_fail`、`batch_update_state_not_found`、`query_req`、`query_success`、`query_fail`、`query_not_found`、`batch_query_req`、`batch_query_success`、`batch_query_fail`、`batch_query_not_found`、`get_all_keys_req`、`get_all_keys_success`、`get_all_keys_fail`、`exist_key_req`、`exist_key_success`、`exist_key_fail`、`exist_key_not_found`、`batch_exist_key_req`、`batch_exist_key_success`、`batch_exist_key_fail`、`batch_exist_key_not_found`、`mount_req`、`mount_success`、`mount_fail`、`unmount_req`、`unmount_success`、`unmount_fail` | 统计摘要接口契约 |
+| 结果口径 | `*_success` 表示 `MMC_OK`；`*_fail` 表示真实错误（包括 `MMC_DUPLICATED_OBJECT`）；`*_not_found` 表示 `MMC_UNMATCHED_KEY`，不计入 fail；Batch 字段为接口调用级统计，Batch 子项同时累计到对应非 Batch 字段；Batch 调用级统计中真实错误优先，只有无真实错误且存在子项 `MMC_UNMATCHED_KEY` 时才增加 Batch `*_not_found` | 统计摘要接口契约 |
 | 占位值策略 | 当前无法提供真实值的字段仍保留在成功体中，可使用 `0`、`0/0` 或空值占位 | 降级规则 |
 
 #### 错误示例
