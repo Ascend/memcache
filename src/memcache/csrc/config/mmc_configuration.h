@@ -39,7 +39,6 @@ constexpr uint64_t HBM_SIZE_ALIGNMENT = 2097152;  // 2MB
 const std::string BOOL_ENUM_STR = "false||true";
 const std::string LOG_LEVEL_ENUM_STR = "debug||info||warn||error";
 const std::string LOCAL_SERVER_PROTOCAL_ENUM_STR = "host_rdma||host_urma||host_tcp||device_rdma||device_sdma||host_shm";
-const std::string MEM_POOL_MODE_ENUM_STR = "standard||expanded";
 
 // 定义单位与字节的转换关系
 enum class MemUnit { B, KB, MB, GB, TB, UNKNOWN };
@@ -285,8 +284,6 @@ public:
         AddStrConf(OKC_MMC_LOCAL_SERVICE_MAX_DRAM_SIZE, VNoCheck::Create(), 0);
         AddStrConf(OKC_MMC_LOCAL_SERVICE_HBM_SIZE, VNoCheck::Create(), 0);
         AddStrConf(OKC_MMC_LOCAL_SERVICE_MAX_HBM_SIZE, VNoCheck::Create(), 0);
-        AddStrConf(OKC_MMC_LOCAL_SERVICE_MEMORY_POOL_MODE,
-                   VStrEnum::Create(OKC_MMC_LOCAL_SERVICE_MEMORY_POOL_MODE.first, MEM_POOL_MODE_ENUM_STR), 0);
 
         // HCOM TLS config
         AddStrConf(OKC_MMC_LOCAL_SERVICE_BM_HCOM_URL, VNoCheck::Create(), 0);
@@ -333,8 +330,6 @@ public:
             GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_MAX_DRAM_SIZE.first, config.localDRAMSize);
         config.localHBMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_HBM_SIZE.first, 0);
         config.localMaxHBMSize = GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_MAX_HBM_SIZE.first, config.localHBMSize);
-        SafeCopy(GetString(ConfConstant::OKC_MMC_LOCAL_SERVICE_MEMORY_POOL_MODE), config.memoryPoolMode,
-                 MEM_POOL_MODE_SIZE);
         auto protocol = std::string(config.dataOpType);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         StringToUpper(logLevelStr);
@@ -412,13 +407,13 @@ public:
         if (config.localHBMSize > MAX_HBM_SIZE) {
             MMC_LOG_ERROR("After alignment " << (alignment == GB_SIZE_ALIGNMENT ? "1GB" : "2MB")
                                              << ", ock.mmc.local_service.hbm.size(" << config.localHBMSize
-                                             << ") exceeds (" << MAX_DRAM_SIZE << ")");
+                                             << ") exceeds (" << MAX_HBM_SIZE << ")");
             return MMC_INVALID_PARAM;
         }
         if (config.localMaxHBMSize > MAX_HBM_SIZE) {
             MMC_LOG_ERROR("After alignment " << (alignment == GB_SIZE_ALIGNMENT ? "1GB" : "2MB")
                                              << ", ock.mmc.local_service.max.hbm.size(" << config.localMaxHBMSize
-                                             << ") exceeds (" << MAX_DRAM_SIZE << ")");
+                                             << ") exceeds (" << MAX_HBM_SIZE << ")");
             return MMC_INVALID_PARAM;
         }
         if (config.localMaxHBMSize < config.localHBMSize) {

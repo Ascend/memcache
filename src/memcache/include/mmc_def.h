@@ -20,7 +20,6 @@
 #define MAX_BATCH_OP_COUNT 16384
 #define TLS_PATH_SIZE      256
 #define TLS_PATH_MAX_LEN   (TLS_PATH_SIZE - 1)
-#define MEM_POOL_MODE_SIZE 64
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,7 +72,6 @@ typedef struct {
     uint64_t localMaxDRAMSize;
     uint64_t localHBMSize;
     uint64_t localMaxHBMSize;
-    char memoryPoolMode[MEM_POOL_MODE_SIZE];
     uint32_t flags;
     mmc_tls_config accTlsConfig;
     int32_t logLevel;

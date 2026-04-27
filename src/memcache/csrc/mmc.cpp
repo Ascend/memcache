@@ -103,7 +103,6 @@ local_config create_default_local_config()
     cfg.aggregate_io = true;
     cfg.aggregate_num = 122UL;
     cfg.ubs_io_enable = false;
-    SafeCopy("standard", cfg.memory_pool_mode, sizeof(cfg.memory_pool_mode));
     cfg.tls_enable = false;
     cfg.config_store_tls_enable = false;
     cfg.hcom_tls_enable = false;
@@ -131,7 +130,6 @@ std::string local_config_to_string(const local_config &config)
     oss << "  aggregate_io: " << (config.aggregate_io ? "true" : "false") << "\n";
     oss << "  aggregate_num: " << config.aggregate_num << "\n";
     oss << "  ubs_io_enable: " << (config.ubs_io_enable ? "true" : "false") << "\n";
-    oss << "  memory_pool_mode: " << config.memory_pool_mode << "\n";
     oss << "  tls_enable: " << (config.tls_enable ? "true" : "false") << "\n";
     oss << "  tls_ca_path: " << config.tls_ca_path << "\n";
     oss << "  tls_ca_crl_path: " << config.tls_ca_crl_path << "\n";

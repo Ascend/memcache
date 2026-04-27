@@ -19,8 +19,7 @@ C++语言接口功能齐全，基于面向对象设计，提供统一的 `Object
 - `protocol`: 数据传输协议，如 `host_rdma`、`host_urma`、`host_tcp`、`device_rdma`、`device_sdma`
 - `hcom_url`: HCOM 服务地址
 - `dram_size` / `hbm_size`: 本地服务 DRAM / HBM 容量
-- `max_dram_size` / `max_hbm_size`: 所有本地进程可使用的 DRAM / HBM 总上限
-- `memory_pool_mode`: 内存池模式，可选 `standard` / `expanded`
+- `max_dram_size` / `max_hbm_size`: 所有本地进程可使用的 DRAM / HBM 总上限。
 
 #### create_default_local_config
 ```c++

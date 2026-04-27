@@ -73,7 +73,7 @@ TEST_F(TestBmInit, Init)
     ASSERT_TRUE(metaServicePtr->Start(metaServiceConfig) == MMC_OK);
 
     mmc_local_service_config_t localServiceConfig1 = {
-        "", 0, 0, 1, "", "", 0, "device_sdma", 0, 0, 104857600, 104857600, "", 0, {}, 0, nullptr, {}, {}, false};
+        "", 0, 0, 1, "", "", 0, "device_sdma", 0, 0, 104857600, 104857600, 0, {}, 0, nullptr, {}, {}, false};
     localServiceConfig1.logLevel = INFO_LEVEL;
     localServiceConfig1.accTlsConfig.tlsEnable = false;
     UrlStringToChar(metaUrl, localServiceConfig1.discoveryURL);

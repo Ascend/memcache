@@ -42,7 +42,6 @@ typedef struct {
     uint64_t localMaxDRAMSize;
     uint64_t localHBMSize;
     uint64_t localMaxHBMSize;
-    std::string memoryPoolMode;
     uint32_t flags;
 } mmc_bm_create_config_t;
 
@@ -96,7 +95,7 @@ public:
     inline uint32_t RankId() const;
 
 private:
-    Result InternalCreateBm(const mmc_bm_create_config_t &createConfig);
+    Result InternalCreateBm(const mmc_bm_create_config_t &createConfig, uint32_t worldSize);
 
     void *gvas_[MEDIA_NONE]{};
     uint64_t spaces_[MEDIA_NONE];

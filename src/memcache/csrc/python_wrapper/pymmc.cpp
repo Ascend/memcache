@@ -154,14 +154,6 @@ void DefineMmcStructModule(py::module_ &m)
             .def_readwrite("ubs_io_enable", &local_config::ubs_io_enable, R"pbdoc(
              Enable UBS_IO.
          )pbdoc")
-            .def_property(
-                "memory_pool_mode", [](const local_config &cfg) { return std::string(cfg.memory_pool_mode); },
-                [](local_config &cfg, const std::string &value) {
-                    SafeCopy(value, cfg.memory_pool_mode, sizeof(cfg.memory_pool_mode));
-                },
-                R"pbdoc(
-             Memory pool mode: standard or expanded.
-         )pbdoc")
             .def_readwrite("tls_enable", &local_config::tls_enable, R"pbdoc(
              Enable TLS for metaservice.
          )pbdoc")

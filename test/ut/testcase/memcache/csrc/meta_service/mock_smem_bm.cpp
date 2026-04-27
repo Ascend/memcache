@@ -15,6 +15,21 @@
 static uint64_t g_spaces[SMEM_MEM_TYPE_BUTT] = {0};
 static std::map<uint64_t, uint64_t> g_registBuffer{};
 
+// 暴露最近一次 smem_bm_create2 入参，便于断言 mmc_bm_proxy 的字段透传逻辑。
+static smem_bm_create_option_t g_lastCreate2Option{};
+static bool g_hasLastCreate2Option = false;
+
+extern "C" const smem_bm_create_option_t *MockSmemBmGetLastCreate2Option()
+{
+    return g_hasLastCreate2Option ? &g_lastCreate2Option : nullptr;
+}
+
+extern "C" void MockSmemBmResetLastCreate2Option()
+{
+    g_hasLastCreate2Option = false;
+    g_lastCreate2Option = {};
+}
+
 // 实现所有函数返回0或默认值
 int32_t smem_bm_config_init(smem_bm_config_t *config)
 {
@@ -51,6 +66,8 @@ smem_bm_t smem_bm_create2(uint32_t id, const smem_bm_create_option_t *option)
     }
     g_spaces[SMEM_MEM_TYPE_DEVICE] = option->localHBMSize;
     g_spaces[SMEM_MEM_TYPE_HOST] = option->localDRAMSize;
+    g_lastCreate2Option = *option;
+    g_hasLastCreate2Option = true;
     return reinterpret_cast<smem_bm_t>(0x1234); // 返回非空伪句柄
 }
 
