@@ -65,15 +65,24 @@ std::string BuildUsedText(const ock::mmc::RestUsageSnapshot &usage)
     return std::to_string(usage.usedBytes) + "/" + std::to_string(usage.totalBytes);
 }
 
-void AppendRequestFailureMetrics(std::ostringstream &oss, const std::string &metricName, const std::string &helpName,
-                                 uint64_t requestCount, uint64_t failureCount)
+void AppendOperationMetrics(std::ostringstream &oss, const std::string &metricName, const std::string &helpName,
+                            uint64_t requestCount, uint64_t successCount, uint64_t failureCount,
+                            bool hasNotFoundCount = false, uint64_t notFoundCount = 0)
 {
     const std::string requestMetricName = "memcache_" + metricName + "_requests_total";
+    const std::string successMetricName = "memcache_" + metricName + "_successes_total";
     const std::string failureMetricName = "memcache_" + metricName + "_failures_total";
     AppendMetricHeader(oss, requestMetricName, "Total number of " + helpName + " requests", "counter");
     AppendMetricValue(oss, requestMetricName, requestCount);
+    AppendMetricHeader(oss, successMetricName, "Total number of " + helpName + " successes", "counter");
+    AppendMetricValue(oss, successMetricName, successCount);
     AppendMetricHeader(oss, failureMetricName, "Total number of " + helpName + " failures", "counter");
     AppendMetricValue(oss, failureMetricName, failureCount);
+    if (hasNotFoundCount) {
+        const std::string notFoundMetricName = "memcache_" + metricName + "_not_found_total";
+        AppendMetricHeader(oss, notFoundMetricName, "Total number of " + helpName + " not found results", "counter");
+        AppendMetricValue(oss, notFoundMetricName, notFoundCount);
+    }
 }
 
 } // namespace
@@ -429,32 +438,56 @@ Result MmcRestApiFacade::BuildMetricsSummary(bool serviceReady, std::string &res
     std::ostringstream oss;
     oss << "keys=" << keys.size() << " evict=" << metricSnapshot.evictCount << " hbm_used=" << BuildUsedText(hbmUsage)
         << " dram_used=" << BuildUsedText(dramUsage) << " alloc_req=" << metricSnapshot.allocRequestCount
-        << " alloc_fail=" << metricSnapshot.allocFailureCount
+        << " alloc_success=" << metricSnapshot.allocSuccessCount << " alloc_fail=" << metricSnapshot.allocFailureCount
         << " batch_alloc_req=" << metricSnapshot.batchAllocRequestCount
+        << " batch_alloc_success=" << metricSnapshot.batchAllocSuccessCount
         << " batch_alloc_fail=" << metricSnapshot.batchAllocFailureCount
-        << " get_req=" << metricSnapshot.getRequestCount << " get_fail=" << metricSnapshot.getFailureCount
+        << " get_req=" << metricSnapshot.getRequestCount << " get_success=" << metricSnapshot.getSuccessCount
+        << " get_fail=" << metricSnapshot.getFailureCount << " get_not_found=" << metricSnapshot.getNotFoundCount
         << " batch_get_req=" << metricSnapshot.batchGetRequestCount
+        << " batch_get_success=" << metricSnapshot.batchGetSuccessCount
         << " batch_get_fail=" << metricSnapshot.batchGetFailureCount
-        << " remove_req=" << metricSnapshot.removeRequestCount << " remove_fail=" << metricSnapshot.removeFailureCount
+        << " batch_get_not_found=" << metricSnapshot.batchGetNotFoundCount
+        << " remove_req=" << metricSnapshot.removeRequestCount
+        << " remove_success=" << metricSnapshot.removeSuccessCount
+        << " remove_fail=" << metricSnapshot.removeFailureCount
+        << " remove_not_found=" << metricSnapshot.removeNotFoundCount
         << " batch_remove_req=" << metricSnapshot.batchRemoveRequestCount
+        << " batch_remove_success=" << metricSnapshot.batchRemoveSuccessCount
         << " batch_remove_fail=" << metricSnapshot.batchRemoveFailureCount
+        << " batch_remove_not_found=" << metricSnapshot.batchRemoveNotFoundCount
         << " remove_all_req=" << metricSnapshot.removeAllRequestCount
+        << " remove_all_success=" << metricSnapshot.removeAllSuccessCount
         << " remove_all_fail=" << metricSnapshot.removeAllFailureCount
         << " update_state_req=" << metricSnapshot.updateStateRequestCount
+        << " update_state_success=" << metricSnapshot.updateStateSuccessCount
         << " update_state_fail=" << metricSnapshot.updateStateFailureCount
+        << " update_state_not_found=" << metricSnapshot.updateStateNotFoundCount
         << " batch_update_state_req=" << metricSnapshot.batchUpdateStateRequestCount
+        << " batch_update_state_success=" << metricSnapshot.batchUpdateStateSuccessCount
         << " batch_update_state_fail=" << metricSnapshot.batchUpdateStateFailureCount
-        << " query_req=" << metricSnapshot.queryRequestCount << " query_fail=" << metricSnapshot.queryFailureCount
+        << " batch_update_state_not_found=" << metricSnapshot.batchUpdateStateNotFoundCount
+        << " query_req=" << metricSnapshot.queryRequestCount << " query_success=" << metricSnapshot.querySuccessCount
+        << " query_fail=" << metricSnapshot.queryFailureCount
+        << " query_not_found=" << metricSnapshot.queryNotFoundCount
         << " batch_query_req=" << metricSnapshot.batchQueryRequestCount
+        << " batch_query_success=" << metricSnapshot.batchQuerySuccessCount
         << " batch_query_fail=" << metricSnapshot.batchQueryFailureCount
+        << " batch_query_not_found=" << metricSnapshot.batchQueryNotFoundCount
         << " get_all_keys_req=" << metricSnapshot.getAllKeysRequestCount
+        << " get_all_keys_success=" << metricSnapshot.getAllKeysSuccessCount
         << " get_all_keys_fail=" << metricSnapshot.getAllKeysFailureCount
         << " exist_key_req=" << metricSnapshot.existKeyRequestCount
+        << " exist_key_success=" << metricSnapshot.existKeySuccessCount
         << " exist_key_fail=" << metricSnapshot.existKeyFailureCount
+        << " exist_key_not_found=" << metricSnapshot.existKeyNotFoundCount
         << " batch_exist_key_req=" << metricSnapshot.batchExistKeyRequestCount
+        << " batch_exist_key_success=" << metricSnapshot.batchExistKeySuccessCount
         << " batch_exist_key_fail=" << metricSnapshot.batchExistKeyFailureCount
-        << " mount_req=" << metricSnapshot.mountRequestCount << " mount_fail=" << metricSnapshot.mountFailureCount
-        << " unmount_req=" << metricSnapshot.unmountRequestCount
+        << " batch_exist_key_not_found=" << metricSnapshot.batchExistKeyNotFoundCount
+        << " mount_req=" << metricSnapshot.mountRequestCount << " mount_success=" << metricSnapshot.mountSuccessCount
+        << " mount_fail=" << metricSnapshot.mountFailureCount << " unmount_req=" << metricSnapshot.unmountRequestCount
+        << " unmount_success=" << metricSnapshot.unmountSuccessCount
         << " unmount_fail=" << metricSnapshot.unmountFailureCount;
     result = oss.str();
     return MMC_OK;
@@ -496,38 +529,46 @@ Result MmcRestApiFacade::BuildPrometheusMetrics(bool serviceReady, std::string &
     }
 
     std::ostringstream oss;
-    AppendRequestFailureMetrics(oss, "alloc", "Alloc", metricSnapshot.allocRequestCount,
-                                metricSnapshot.allocFailureCount);
-    AppendRequestFailureMetrics(oss, "batch_alloc", "BatchAlloc", metricSnapshot.batchAllocRequestCount,
-                                metricSnapshot.batchAllocFailureCount);
-    AppendRequestFailureMetrics(oss, "get", "Get", metricSnapshot.getRequestCount, metricSnapshot.getFailureCount);
-    AppendRequestFailureMetrics(oss, "batch_get", "BatchGet", metricSnapshot.batchGetRequestCount,
-                                metricSnapshot.batchGetFailureCount);
-    AppendRequestFailureMetrics(oss, "remove", "Remove", metricSnapshot.removeRequestCount,
-                                metricSnapshot.removeFailureCount);
-    AppendRequestFailureMetrics(oss, "batch_remove", "BatchRemove", metricSnapshot.batchRemoveRequestCount,
-                                metricSnapshot.batchRemoveFailureCount);
-    AppendRequestFailureMetrics(oss, "remove_all", "RemoveAll", metricSnapshot.removeAllRequestCount,
-                                metricSnapshot.removeAllFailureCount);
-    AppendRequestFailureMetrics(oss, "update_state", "UpdateState", metricSnapshot.updateStateRequestCount,
-                                metricSnapshot.updateStateFailureCount);
-    AppendRequestFailureMetrics(oss, "batch_update_state", "BatchUpdateState",
-                                metricSnapshot.batchUpdateStateRequestCount,
-                                metricSnapshot.batchUpdateStateFailureCount);
-    AppendRequestFailureMetrics(oss, "query", "Query", metricSnapshot.queryRequestCount,
-                                metricSnapshot.queryFailureCount);
-    AppendRequestFailureMetrics(oss, "batch_query", "BatchQuery", metricSnapshot.batchQueryRequestCount,
-                                metricSnapshot.batchQueryFailureCount);
-    AppendRequestFailureMetrics(oss, "get_all_keys", "GetAllKeys", metricSnapshot.getAllKeysRequestCount,
-                                metricSnapshot.getAllKeysFailureCount);
-    AppendRequestFailureMetrics(oss, "exist_key", "ExistKey", metricSnapshot.existKeyRequestCount,
-                                metricSnapshot.existKeyFailureCount);
-    AppendRequestFailureMetrics(oss, "batch_exist_key", "BatchExistKey", metricSnapshot.batchExistKeyRequestCount,
-                                metricSnapshot.batchExistKeyFailureCount);
-    AppendRequestFailureMetrics(oss, "mount", "Mount", metricSnapshot.mountRequestCount,
-                                metricSnapshot.mountFailureCount);
-    AppendRequestFailureMetrics(oss, "unmount", "Unmount", metricSnapshot.unmountRequestCount,
-                                metricSnapshot.unmountFailureCount);
+    AppendOperationMetrics(oss, "alloc", "Alloc", metricSnapshot.allocRequestCount, metricSnapshot.allocSuccessCount,
+                           metricSnapshot.allocFailureCount);
+    AppendOperationMetrics(oss, "batch_alloc", "BatchAlloc", metricSnapshot.batchAllocRequestCount,
+                           metricSnapshot.batchAllocSuccessCount, metricSnapshot.batchAllocFailureCount);
+    AppendOperationMetrics(oss, "get", "Get", metricSnapshot.getRequestCount, metricSnapshot.getSuccessCount,
+                           metricSnapshot.getFailureCount, true, metricSnapshot.getNotFoundCount);
+    AppendOperationMetrics(oss, "batch_get", "BatchGet", metricSnapshot.batchGetRequestCount,
+                           metricSnapshot.batchGetSuccessCount, metricSnapshot.batchGetFailureCount, true,
+                           metricSnapshot.batchGetNotFoundCount);
+    AppendOperationMetrics(oss, "remove", "Remove", metricSnapshot.removeRequestCount,
+                           metricSnapshot.removeSuccessCount, metricSnapshot.removeFailureCount, true,
+                           metricSnapshot.removeNotFoundCount);
+    AppendOperationMetrics(oss, "batch_remove", "BatchRemove", metricSnapshot.batchRemoveRequestCount,
+                           metricSnapshot.batchRemoveSuccessCount, metricSnapshot.batchRemoveFailureCount, true,
+                           metricSnapshot.batchRemoveNotFoundCount);
+    AppendOperationMetrics(oss, "remove_all", "RemoveAll", metricSnapshot.removeAllRequestCount,
+                           metricSnapshot.removeAllSuccessCount, metricSnapshot.removeAllFailureCount);
+    AppendOperationMetrics(oss, "update_state", "UpdateState", metricSnapshot.updateStateRequestCount,
+                           metricSnapshot.updateStateSuccessCount, metricSnapshot.updateStateFailureCount, true,
+                           metricSnapshot.updateStateNotFoundCount);
+    AppendOperationMetrics(oss, "batch_update_state", "BatchUpdateState", metricSnapshot.batchUpdateStateRequestCount,
+                           metricSnapshot.batchUpdateStateSuccessCount, metricSnapshot.batchUpdateStateFailureCount,
+                           true, metricSnapshot.batchUpdateStateNotFoundCount);
+    AppendOperationMetrics(oss, "query", "Query", metricSnapshot.queryRequestCount, metricSnapshot.querySuccessCount,
+                           metricSnapshot.queryFailureCount, true, metricSnapshot.queryNotFoundCount);
+    AppendOperationMetrics(oss, "batch_query", "BatchQuery", metricSnapshot.batchQueryRequestCount,
+                           metricSnapshot.batchQuerySuccessCount, metricSnapshot.batchQueryFailureCount, true,
+                           metricSnapshot.batchQueryNotFoundCount);
+    AppendOperationMetrics(oss, "get_all_keys", "GetAllKeys", metricSnapshot.getAllKeysRequestCount,
+                           metricSnapshot.getAllKeysSuccessCount, metricSnapshot.getAllKeysFailureCount);
+    AppendOperationMetrics(oss, "exist_key", "ExistKey", metricSnapshot.existKeyRequestCount,
+                           metricSnapshot.existKeySuccessCount, metricSnapshot.existKeyFailureCount, true,
+                           metricSnapshot.existKeyNotFoundCount);
+    AppendOperationMetrics(oss, "batch_exist_key", "BatchExistKey", metricSnapshot.batchExistKeyRequestCount,
+                           metricSnapshot.batchExistKeySuccessCount, metricSnapshot.batchExistKeyFailureCount, true,
+                           metricSnapshot.batchExistKeyNotFoundCount);
+    AppendOperationMetrics(oss, "mount", "Mount", metricSnapshot.mountRequestCount, metricSnapshot.mountSuccessCount,
+                           metricSnapshot.mountFailureCount);
+    AppendOperationMetrics(oss, "unmount", "Unmount", metricSnapshot.unmountRequestCount,
+                           metricSnapshot.unmountSuccessCount, metricSnapshot.unmountFailureCount);
     AppendMetricHeader(oss, "memcache_evict_operations_total", "Total number of evict operations", "counter");
     AppendMetricValue(oss, "memcache_evict_operations_total", metricSnapshot.evictCount);
     AppendMetricHeader(oss, "memcache_stored_keys", "Total number of stored keys", "gauge");

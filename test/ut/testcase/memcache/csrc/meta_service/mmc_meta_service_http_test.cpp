@@ -19,6 +19,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -412,59 +413,101 @@ TEST_F(MmcMetaServiceHttpTest, MetricsContract)
     auto metricsResponse = WaitForResponse(client, "/metrics");
     ASSERT_NE(metricsResponse, nullptr);
     EXPECT_NE(metricsResponse->body.find("memcache_alloc_requests_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_alloc_successes_total"), std::string::npos);
     EXPECT_NE(metricsResponse->body.find("memcache_get_requests_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_get_successes_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_get_not_found_total"), std::string::npos);
     EXPECT_NE(metricsResponse->body.find("memcache_batch_get_requests_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_batch_get_successes_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_batch_get_not_found_total"), std::string::npos);
     EXPECT_NE(metricsResponse->body.find("memcache_stored_keys"), std::string::npos);
     EXPECT_NE(metricsResponse->body.find("memcache_segment_capacity_bytes"), std::string::npos);
     EXPECT_NE(metricsResponse->body.find("memcache_get_all_keys_requests_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_get_all_keys_successes_total"), std::string::npos);
     EXPECT_NE(metricsResponse->body.find("memcache_total_capacity_bytes"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_query_successes_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_query_not_found_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_batch_query_successes_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_batch_query_not_found_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_remove_successes_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_remove_not_found_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_batch_remove_successes_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_batch_remove_not_found_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_remove_all_successes_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_update_state_successes_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_update_state_not_found_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_batch_update_state_successes_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_batch_update_state_not_found_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_exist_key_successes_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_exist_key_not_found_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_batch_exist_key_successes_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_batch_exist_key_not_found_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_mount_successes_total"), std::string::npos);
+    EXPECT_NE(metricsResponse->body.find("memcache_unmount_successes_total"), std::string::npos);
 
     const MmcMetaMetricSnapshot snapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
-    const std::string expectedSummary =
-        std::string("keys=") + std::to_string(kHttpExpectedBlobCount) +
-        " evict=" + std::to_string(snapshot.evictCount) +
-        " hbm_used=" + std::to_string(SIZE_32K) + "/" + std::to_string(kHttpSegmentCapacityBytes) +
-        " dram_used=" + std::to_string(kHttpZeroUsedBytes) + "/" + std::to_string(kHttpSegmentCapacityBytes) +
-        " alloc_req=" + std::to_string(snapshot.allocRequestCount) +
-        " alloc_fail=" + std::to_string(snapshot.allocFailureCount) +
-        " batch_alloc_req=" + std::to_string(snapshot.batchAllocRequestCount) +
-        " batch_alloc_fail=" + std::to_string(snapshot.batchAllocFailureCount) +
-        " get_req=" + std::to_string(snapshot.getRequestCount) +
-        " get_fail=" + std::to_string(snapshot.getFailureCount) +
-        " batch_get_req=" + std::to_string(snapshot.batchGetRequestCount) +
-        " batch_get_fail=" + std::to_string(snapshot.batchGetFailureCount) +
-        " remove_req=" + std::to_string(snapshot.removeRequestCount) +
-        " remove_fail=" + std::to_string(snapshot.removeFailureCount) +
-        " batch_remove_req=" + std::to_string(snapshot.batchRemoveRequestCount) +
-        " batch_remove_fail=" + std::to_string(snapshot.batchRemoveFailureCount) +
-        " remove_all_req=" + std::to_string(snapshot.removeAllRequestCount) +
-        " remove_all_fail=" + std::to_string(snapshot.removeAllFailureCount) +
-        " update_state_req=" + std::to_string(snapshot.updateStateRequestCount) +
-        " update_state_fail=" + std::to_string(snapshot.updateStateFailureCount) +
-        " batch_update_state_req=" + std::to_string(snapshot.batchUpdateStateRequestCount) +
-        " batch_update_state_fail=" + std::to_string(snapshot.batchUpdateStateFailureCount) +
-        " query_req=" + std::to_string(snapshot.queryRequestCount) +
-        " query_fail=" + std::to_string(snapshot.queryFailureCount) +
-        " batch_query_req=" + std::to_string(snapshot.batchQueryRequestCount) +
-        " batch_query_fail=" + std::to_string(snapshot.batchQueryFailureCount) +
-        " get_all_keys_req=" + std::to_string(snapshot.getAllKeysRequestCount) +
-        " get_all_keys_fail=" + std::to_string(snapshot.getAllKeysFailureCount) +
-        " exist_key_req=" + std::to_string(snapshot.existKeyRequestCount) +
-        " exist_key_fail=" + std::to_string(snapshot.existKeyFailureCount) +
-        " batch_exist_key_req=" + std::to_string(snapshot.batchExistKeyRequestCount) +
-        " batch_exist_key_fail=" + std::to_string(snapshot.batchExistKeyFailureCount) +
-        " mount_req=" + std::to_string(snapshot.mountRequestCount) +
-        " mount_fail=" + std::to_string(snapshot.mountFailureCount) +
-        " unmount_req=" + std::to_string(snapshot.unmountRequestCount) +
-        " unmount_fail=" + std::to_string(snapshot.unmountFailureCount);
+    std::ostringstream expectedSummary;
+    expectedSummary
+        << "keys=" << kHttpExpectedBlobCount << " evict=" << snapshot.evictCount << " hbm_used=" << SIZE_32K << "/"
+        << kHttpSegmentCapacityBytes << " dram_used=" << kHttpZeroUsedBytes << "/" << kHttpSegmentCapacityBytes
+        << " alloc_req=" << snapshot.allocRequestCount << " alloc_success=" << snapshot.allocSuccessCount
+        << " alloc_fail=" << snapshot.allocFailureCount << " batch_alloc_req=" << snapshot.batchAllocRequestCount
+        << " batch_alloc_success=" << snapshot.batchAllocSuccessCount
+        << " batch_alloc_fail=" << snapshot.batchAllocFailureCount << " get_req=" << snapshot.getRequestCount
+        << " get_success=" << snapshot.getSuccessCount << " get_fail=" << snapshot.getFailureCount
+        << " get_not_found=" << snapshot.getNotFoundCount << " batch_get_req=" << snapshot.batchGetRequestCount
+        << " batch_get_success=" << snapshot.batchGetSuccessCount << " batch_get_fail=" << snapshot.batchGetFailureCount
+        << " batch_get_not_found=" << snapshot.batchGetNotFoundCount << " remove_req=" << snapshot.removeRequestCount
+        << " remove_success=" << snapshot.removeSuccessCount << " remove_fail=" << snapshot.removeFailureCount
+        << " remove_not_found=" << snapshot.removeNotFoundCount
+        << " batch_remove_req=" << snapshot.batchRemoveRequestCount
+        << " batch_remove_success=" << snapshot.batchRemoveSuccessCount
+        << " batch_remove_fail=" << snapshot.batchRemoveFailureCount
+        << " batch_remove_not_found=" << snapshot.batchRemoveNotFoundCount
+        << " remove_all_req=" << snapshot.removeAllRequestCount
+        << " remove_all_success=" << snapshot.removeAllSuccessCount
+        << " remove_all_fail=" << snapshot.removeAllFailureCount
+        << " update_state_req=" << snapshot.updateStateRequestCount
+        << " update_state_success=" << snapshot.updateStateSuccessCount
+        << " update_state_fail=" << snapshot.updateStateFailureCount
+        << " update_state_not_found=" << snapshot.updateStateNotFoundCount
+        << " batch_update_state_req=" << snapshot.batchUpdateStateRequestCount
+        << " batch_update_state_success=" << snapshot.batchUpdateStateSuccessCount
+        << " batch_update_state_fail=" << snapshot.batchUpdateStateFailureCount
+        << " batch_update_state_not_found=" << snapshot.batchUpdateStateNotFoundCount
+        << " query_req=" << snapshot.queryRequestCount << " query_success=" << snapshot.querySuccessCount
+        << " query_fail=" << snapshot.queryFailureCount << " query_not_found=" << snapshot.queryNotFoundCount
+        << " batch_query_req=" << snapshot.batchQueryRequestCount
+        << " batch_query_success=" << snapshot.batchQuerySuccessCount
+        << " batch_query_fail=" << snapshot.batchQueryFailureCount
+        << " batch_query_not_found=" << snapshot.batchQueryNotFoundCount
+        << " get_all_keys_req=" << snapshot.getAllKeysRequestCount
+        << " get_all_keys_success=" << snapshot.getAllKeysSuccessCount
+        << " get_all_keys_fail=" << snapshot.getAllKeysFailureCount
+        << " exist_key_req=" << snapshot.existKeyRequestCount << " exist_key_success=" << snapshot.existKeySuccessCount
+        << " exist_key_fail=" << snapshot.existKeyFailureCount
+        << " exist_key_not_found=" << snapshot.existKeyNotFoundCount
+        << " batch_exist_key_req=" << snapshot.batchExistKeyRequestCount
+        << " batch_exist_key_success=" << snapshot.batchExistKeySuccessCount
+        << " batch_exist_key_fail=" << snapshot.batchExistKeyFailureCount
+        << " batch_exist_key_not_found=" << snapshot.batchExistKeyNotFoundCount
+        << " mount_req=" << snapshot.mountRequestCount << " mount_success=" << snapshot.mountSuccessCount
+        << " mount_fail=" << snapshot.mountFailureCount << " unmount_req=" << snapshot.unmountRequestCount
+        << " unmount_success=" << snapshot.unmountSuccessCount << " unmount_fail=" << snapshot.unmountFailureCount;
 
     auto summaryResponse = WaitForResponse(client, "/metrics/summary");
     ASSERT_NE(summaryResponse, nullptr);
-    EXPECT_NE(summaryResponse->body.find(expectedSummary), std::string::npos);
+    EXPECT_NE(summaryResponse->body.find(expectedSummary.str()), std::string::npos);
 }
 
 TEST_F(MmcMetaServiceHttpTest, BusinessCountersIgnoreInternalEndpoints)
 {
+    constexpr uint64_t queryRequestDelta = 3;
+    constexpr uint64_t querySuccessDelta = 2;
+    constexpr uint64_t notFoundDelta = 1;
+    constexpr uint64_t batchRequestDelta = 1;
+    constexpr uint64_t getAllKeysRequestDelta = 1;
+
     httplib::Client client(kHttpLocalHost, httpPort_);
     MmcMetaMetricSnapshot beforeSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
 
@@ -481,11 +524,18 @@ TEST_F(MmcMetaServiceHttpTest, BusinessCountersIgnoreInternalEndpoints)
     ASSERT_NE(querySegmentResponse, nullptr);
 
     MmcMetaMetricSnapshot afterBusinessSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
-    EXPECT_EQ(afterBusinessSnapshot.queryRequestCount, beforeSnapshot.queryRequestCount + 1);
+    EXPECT_EQ(afterBusinessSnapshot.queryRequestCount, beforeSnapshot.queryRequestCount + queryRequestDelta);
+    EXPECT_EQ(afterBusinessSnapshot.querySuccessCount, beforeSnapshot.querySuccessCount + querySuccessDelta);
     EXPECT_EQ(afterBusinessSnapshot.queryFailureCount, beforeSnapshot.queryFailureCount);
-    EXPECT_EQ(afterBusinessSnapshot.batchQueryRequestCount, beforeSnapshot.batchQueryRequestCount + 1);
+    EXPECT_EQ(afterBusinessSnapshot.queryNotFoundCount, beforeSnapshot.queryNotFoundCount + notFoundDelta);
+    EXPECT_EQ(afterBusinessSnapshot.batchQueryRequestCount, beforeSnapshot.batchQueryRequestCount + batchRequestDelta);
+    EXPECT_EQ(afterBusinessSnapshot.batchQuerySuccessCount, beforeSnapshot.batchQuerySuccessCount + batchRequestDelta);
+    EXPECT_EQ(afterBusinessSnapshot.batchQueryNotFoundCount, beforeSnapshot.batchQueryNotFoundCount);
     EXPECT_EQ(afterBusinessSnapshot.batchQueryFailureCount, beforeSnapshot.batchQueryFailureCount);
-    EXPECT_EQ(afterBusinessSnapshot.getAllKeysRequestCount, beforeSnapshot.getAllKeysRequestCount + 1);
+    EXPECT_EQ(afterBusinessSnapshot.getAllKeysRequestCount,
+              beforeSnapshot.getAllKeysRequestCount + getAllKeysRequestDelta);
+    EXPECT_EQ(afterBusinessSnapshot.getAllKeysSuccessCount,
+              beforeSnapshot.getAllKeysSuccessCount + getAllKeysRequestDelta);
     EXPECT_EQ(afterBusinessSnapshot.getAllKeysFailureCount, beforeSnapshot.getAllKeysFailureCount);
 
     auto segmentStatusResponse =
@@ -513,9 +563,14 @@ TEST_F(MmcMetaServiceHttpTest, BusinessCountersIgnoreInternalEndpoints)
     MmcMetaMetricSnapshot afterInternalSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
     EXPECT_EQ(afterInternalSnapshot.queryRequestCount, afterBusinessSnapshot.queryRequestCount);
     EXPECT_EQ(afterInternalSnapshot.queryFailureCount, afterBusinessSnapshot.queryFailureCount);
+    EXPECT_EQ(afterInternalSnapshot.querySuccessCount, afterBusinessSnapshot.querySuccessCount);
+    EXPECT_EQ(afterInternalSnapshot.queryNotFoundCount, afterBusinessSnapshot.queryNotFoundCount);
     EXPECT_EQ(afterInternalSnapshot.batchQueryRequestCount, afterBusinessSnapshot.batchQueryRequestCount);
+    EXPECT_EQ(afterInternalSnapshot.batchQuerySuccessCount, afterBusinessSnapshot.batchQuerySuccessCount);
+    EXPECT_EQ(afterInternalSnapshot.batchQueryNotFoundCount, afterBusinessSnapshot.batchQueryNotFoundCount);
     EXPECT_EQ(afterInternalSnapshot.batchQueryFailureCount, afterBusinessSnapshot.batchQueryFailureCount);
     EXPECT_EQ(afterInternalSnapshot.getAllKeysRequestCount, afterBusinessSnapshot.getAllKeysRequestCount);
+    EXPECT_EQ(afterInternalSnapshot.getAllKeysSuccessCount, afterBusinessSnapshot.getAllKeysSuccessCount);
     EXPECT_EQ(afterInternalSnapshot.getAllKeysFailureCount, afterBusinessSnapshot.getAllKeysFailureCount);
 }
 
@@ -535,30 +590,230 @@ TEST_F(MmcMetaServiceHttpTest, BatchQueryKeysIgnoresTrailingComma)
     EXPECT_TRUE(json.at("data").at(kHttpFirstItemIndex).at("valid").get<bool>());
 }
 
+TEST_F(MmcMetaServiceHttpTest, ProxyDuplicateAllocCountersTrackFailures)
+{
+    constexpr uint64_t requestDelta = 1;
+    constexpr size_t batchDuplicateItemCount = 1U;
+    const AllocOptions duplicateAllocOptions(SIZE_32K, kHttpExpectedBlobCount, MEDIA_HBM, {kHttpRankId},
+                                             kHttpAllocOffset);
+
+    MmcMetaMetricSnapshot beforeSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
+
+    AllocResponse duplicateAllocResponse;
+    const AllocRequest duplicateAllocRequest(kHttpAllocKey, duplicateAllocOptions, GenerateOperateId(kHttpRankId));
+    EXPECT_EQ(metaMgrProxy_->Alloc(duplicateAllocRequest, duplicateAllocResponse), MMC_DUPLICATED_OBJECT);
+
+    MmcMetaMetricSnapshot afterSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
+    EXPECT_EQ(afterSnapshot.allocRequestCount, beforeSnapshot.allocRequestCount + requestDelta);
+    EXPECT_EQ(afterSnapshot.allocSuccessCount, beforeSnapshot.allocSuccessCount);
+    EXPECT_EQ(afterSnapshot.allocFailureCount, beforeSnapshot.allocFailureCount + requestDelta);
+
+    beforeSnapshot = afterSnapshot;
+    const std::vector<std::string> batchKeys{kHttpAllocKey};
+    const std::vector<AllocOptions> batchOptions{duplicateAllocOptions};
+    BatchAllocResponse batchAllocResponse;
+    const BatchAllocRequest batchAllocRequest(batchKeys, batchOptions, 0, GenerateOperateId(kHttpRankId));
+    EXPECT_EQ(metaMgrProxy_->BatchAlloc(batchAllocRequest, batchAllocResponse), MMC_OK);
+    ASSERT_EQ(batchAllocResponse.results_.size(), batchDuplicateItemCount);
+    EXPECT_EQ(batchAllocResponse.results_.at(kHttpFirstItemIndex), MMC_DUPLICATED_OBJECT);
+
+    afterSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
+    EXPECT_EQ(afterSnapshot.batchAllocRequestCount, beforeSnapshot.batchAllocRequestCount + requestDelta);
+    EXPECT_EQ(afterSnapshot.batchAllocSuccessCount, beforeSnapshot.batchAllocSuccessCount);
+    EXPECT_EQ(afterSnapshot.batchAllocFailureCount, beforeSnapshot.batchAllocFailureCount + requestDelta);
+    EXPECT_EQ(afterSnapshot.allocRequestCount, beforeSnapshot.allocRequestCount + requestDelta);
+    EXPECT_EQ(afterSnapshot.allocSuccessCount, beforeSnapshot.allocSuccessCount);
+    EXPECT_EQ(afterSnapshot.allocFailureCount, beforeSnapshot.allocFailureCount + requestDelta);
+}
+
 TEST_F(MmcMetaServiceHttpTest, ProxyGetCountersTrackAttempts)
 {
+    constexpr uint64_t getRequestDelta = 4;
+    constexpr uint64_t getSuccessDelta = 2;
+    constexpr uint64_t getNotFoundDelta = 2;
+    constexpr uint64_t batchGetRequestDelta = 1;
+
     const MmcMetaMetricSnapshot beforeSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
 
+    const std::string missingGetKey = "http-contract-missing-get-key";
     AllocResponse getResponse;
     const GetRequest getRequest(kHttpAllocKey, kHttpRankId, GenerateOperateId(kHttpRankId), true);
     EXPECT_EQ(metaMgrProxy_->Get(getRequest, getResponse), MMC_OK);
 
     AllocResponse missingGetResponse;
-    const GetRequest missingGetRequest("missing-key", kHttpRankId, GenerateOperateId(kHttpRankId), true);
-    EXPECT_NE(metaMgrProxy_->Get(missingGetRequest, missingGetResponse), MMC_OK);
+    const GetRequest missingGetRequest(missingGetKey, kHttpRankId, GenerateOperateId(kHttpRankId), true);
+    EXPECT_EQ(metaMgrProxy_->Get(missingGetRequest, missingGetResponse), MMC_UNMATCHED_KEY);
 
     BatchAllocResponse batchGetResponse;
-    const BatchGetRequest batchGetRequest({kHttpAllocKey, "missing-key"}, kHttpRankId, GenerateOperateId(kHttpRankId));
+    const std::string missingBatchGetKey = "http-contract-missing-batch-get-key";
+    const BatchGetRequest batchGetRequest({kHttpAllocKey, missingBatchGetKey}, kHttpRankId,
+                                          GenerateOperateId(kHttpRankId));
     EXPECT_EQ(metaMgrProxy_->BatchGet(batchGetRequest, batchGetResponse), MMC_OK);
     ASSERT_EQ(batchGetResponse.results_.size(), kHttpExpectedSegmentCount);
     EXPECT_EQ(batchGetResponse.results_.at(kHttpFirstItemIndex), MMC_OK);
-    EXPECT_NE(batchGetResponse.results_.at(kHttpSecondItemIndex), MMC_OK);
+    EXPECT_EQ(batchGetResponse.results_.at(kHttpSecondItemIndex), MMC_UNMATCHED_KEY);
 
     const MmcMetaMetricSnapshot afterSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
-    constexpr uint64_t kHttpGetAttemptCount = 2;
-    constexpr uint64_t kHttpGetFailureCount = 1;
-    EXPECT_EQ(afterSnapshot.getRequestCount, beforeSnapshot.getRequestCount + kHttpGetAttemptCount);
-    EXPECT_EQ(afterSnapshot.getFailureCount, beforeSnapshot.getFailureCount + kHttpGetFailureCount);
-    EXPECT_EQ(afterSnapshot.batchGetRequestCount, beforeSnapshot.batchGetRequestCount + 1);
+    EXPECT_EQ(afterSnapshot.getRequestCount, beforeSnapshot.getRequestCount + getRequestDelta);
+    EXPECT_EQ(afterSnapshot.getSuccessCount, beforeSnapshot.getSuccessCount + getSuccessDelta);
+    EXPECT_EQ(afterSnapshot.getFailureCount, beforeSnapshot.getFailureCount);
+    EXPECT_EQ(afterSnapshot.getNotFoundCount, beforeSnapshot.getNotFoundCount + getNotFoundDelta);
+    EXPECT_EQ(afterSnapshot.batchGetRequestCount, beforeSnapshot.batchGetRequestCount + batchGetRequestDelta);
+    EXPECT_EQ(afterSnapshot.batchGetSuccessCount, beforeSnapshot.batchGetSuccessCount + batchGetRequestDelta);
+    EXPECT_EQ(afterSnapshot.batchGetNotFoundCount, beforeSnapshot.batchGetNotFoundCount);
     EXPECT_EQ(afterSnapshot.batchGetFailureCount, beforeSnapshot.batchGetFailureCount);
+}
+
+TEST_F(MmcMetaServiceHttpTest, ProxySingleOpsTrackCounters)
+{
+    constexpr uint64_t pairRequestDelta = 2;
+    constexpr uint64_t successDelta = 1;
+    constexpr uint64_t notFoundDelta = 1;
+    constexpr uint64_t singleRequestDelta = 1;
+
+    const std::string missingExistKey = "http-contract-missing-exist-key";
+    const std::string missingQueryKey = "http-contract-missing-query-key";
+    const std::string missingRemoveKey = "http-contract-missing-remove-key";
+    const std::string missingUpdateKey = "http-contract-missing-update-key";
+
+    MmcMetaMetricSnapshot beforeSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
+
+    IsExistResponse existResponse;
+    EXPECT_EQ(metaMgrProxy_->ExistKey(IsExistRequest(kHttpAllocKey), existResponse), MMC_OK);
+
+    IsExistResponse missingExistResponse;
+    EXPECT_EQ(metaMgrProxy_->ExistKey(IsExistRequest(missingExistKey), missingExistResponse), MMC_UNMATCHED_KEY);
+
+    MmcMetaMetricSnapshot afterSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
+    EXPECT_EQ(afterSnapshot.existKeyRequestCount, beforeSnapshot.existKeyRequestCount + pairRequestDelta);
+    EXPECT_EQ(afterSnapshot.existKeySuccessCount, beforeSnapshot.existKeySuccessCount + successDelta);
+    EXPECT_EQ(afterSnapshot.existKeyNotFoundCount, beforeSnapshot.existKeyNotFoundCount + notFoundDelta);
+    EXPECT_EQ(afterSnapshot.existKeyFailureCount, beforeSnapshot.existKeyFailureCount);
+
+    beforeSnapshot = afterSnapshot;
+    QueryResponse queryResponse;
+    EXPECT_EQ(metaMgrProxy_->Query(QueryRequest(kHttpAllocKey), queryResponse), MMC_OK);
+
+    QueryResponse missingQueryResponse;
+    EXPECT_EQ(metaMgrProxy_->Query(QueryRequest(missingQueryKey), missingQueryResponse), MMC_UNMATCHED_KEY);
+
+    afterSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
+    EXPECT_EQ(afterSnapshot.queryRequestCount, beforeSnapshot.queryRequestCount + pairRequestDelta);
+    EXPECT_EQ(afterSnapshot.querySuccessCount, beforeSnapshot.querySuccessCount + successDelta);
+    EXPECT_EQ(afterSnapshot.queryNotFoundCount, beforeSnapshot.queryNotFoundCount + notFoundDelta);
+    EXPECT_EQ(afterSnapshot.queryFailureCount, beforeSnapshot.queryFailureCount);
+
+    beforeSnapshot = afterSnapshot;
+    const uint64_t updateOperateId = GenerateOperateId(kHttpRankId);
+    AllocResponse updateGetResponse;
+    EXPECT_EQ(metaMgrProxy_->Get(GetRequest(kHttpAllocKey, kHttpRankId, updateOperateId, true), updateGetResponse),
+              MMC_OK);
+
+    Response updateResponse;
+    EXPECT_EQ(
+        metaMgrProxy_->UpdateState(
+            UpdateRequest(MMC_READ_FINISH, kHttpAllocKey, kHttpRankId, MEDIA_HBM, updateOperateId), updateResponse),
+        MMC_OK);
+    EXPECT_EQ(updateResponse.ret_, MMC_OK);
+
+    Response missingUpdateResponse;
+    EXPECT_EQ(metaMgrProxy_->UpdateState(UpdateRequest(MMC_READ_FINISH, missingUpdateKey, kHttpRankId, MEDIA_HBM,
+                                                       GenerateOperateId(kHttpRankId)),
+                                         missingUpdateResponse),
+              MMC_OK);
+    EXPECT_EQ(missingUpdateResponse.ret_, MMC_UNMATCHED_KEY);
+
+    afterSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
+    EXPECT_EQ(afterSnapshot.updateStateRequestCount, beforeSnapshot.updateStateRequestCount + pairRequestDelta);
+    EXPECT_EQ(afterSnapshot.updateStateSuccessCount, beforeSnapshot.updateStateSuccessCount + successDelta);
+    EXPECT_EQ(afterSnapshot.updateStateNotFoundCount, beforeSnapshot.updateStateNotFoundCount + notFoundDelta);
+    EXPECT_EQ(afterSnapshot.updateStateFailureCount, beforeSnapshot.updateStateFailureCount);
+
+    beforeSnapshot = afterSnapshot;
+    Response removeResponse;
+    EXPECT_EQ(metaMgrProxy_->Remove(RemoveRequest(missingRemoveKey), removeResponse), MMC_UNMATCHED_KEY);
+
+    afterSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
+    EXPECT_EQ(afterSnapshot.removeRequestCount, beforeSnapshot.removeRequestCount + singleRequestDelta);
+    EXPECT_EQ(afterSnapshot.removeSuccessCount, beforeSnapshot.removeSuccessCount);
+    EXPECT_EQ(afterSnapshot.removeNotFoundCount, beforeSnapshot.removeNotFoundCount + notFoundDelta);
+    EXPECT_EQ(afterSnapshot.removeFailureCount, beforeSnapshot.removeFailureCount);
+
+    beforeSnapshot = afterSnapshot;
+    EXPECT_EQ(metaMgrProxy_->Remove(RemoveRequest(kHttpAllocKey), removeResponse), MMC_OK);
+
+    afterSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
+    EXPECT_EQ(afterSnapshot.removeRequestCount, beforeSnapshot.removeRequestCount + singleRequestDelta);
+    EXPECT_EQ(afterSnapshot.removeSuccessCount, beforeSnapshot.removeSuccessCount + successDelta);
+    EXPECT_EQ(afterSnapshot.removeNotFoundCount, beforeSnapshot.removeNotFoundCount);
+    EXPECT_EQ(afterSnapshot.removeFailureCount, beforeSnapshot.removeFailureCount);
+}
+
+TEST_F(MmcMetaServiceHttpTest, ProxyBatchOpsTrackCounters)
+{
+    constexpr uint64_t batchSubcallDelta = 2;
+    constexpr uint64_t successDelta = 1;
+    constexpr uint64_t notFoundDelta = 1;
+    constexpr uint64_t batchRequestDelta = 1;
+
+    const std::string missingBatchExistKey = "http-contract-missing-batch-exist-key";
+    const std::string missingBatchQueryKey = "http-contract-missing-batch-query-key";
+    const std::string missingBatchRemoveKey = "http-contract-missing-batch-remove-key";
+
+    MmcMetaMetricSnapshot beforeSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
+
+    BatchIsExistResponse batchExistResponse;
+    EXPECT_EQ(
+        metaMgrProxy_->BatchExistKey(BatchIsExistRequest({kHttpAllocKey, missingBatchExistKey}), batchExistResponse),
+        MMC_OK);
+    ASSERT_EQ(batchExistResponse.results_.size(), kHttpExpectedSegmentCount);
+    EXPECT_EQ(batchExistResponse.results_.at(kHttpFirstItemIndex), MMC_OK);
+    EXPECT_EQ(batchExistResponse.results_.at(kHttpSecondItemIndex), MMC_UNMATCHED_KEY);
+
+    MmcMetaMetricSnapshot afterSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
+    EXPECT_EQ(afterSnapshot.existKeyRequestCount, beforeSnapshot.existKeyRequestCount + batchSubcallDelta);
+    EXPECT_EQ(afterSnapshot.existKeySuccessCount, beforeSnapshot.existKeySuccessCount + successDelta);
+    EXPECT_EQ(afterSnapshot.existKeyNotFoundCount, beforeSnapshot.existKeyNotFoundCount + notFoundDelta);
+    EXPECT_EQ(afterSnapshot.existKeyFailureCount, beforeSnapshot.existKeyFailureCount);
+    EXPECT_EQ(afterSnapshot.batchExistKeyRequestCount, beforeSnapshot.batchExistKeyRequestCount + batchRequestDelta);
+    EXPECT_EQ(afterSnapshot.batchExistKeySuccessCount, beforeSnapshot.batchExistKeySuccessCount + successDelta);
+    EXPECT_EQ(afterSnapshot.batchExistKeyNotFoundCount, beforeSnapshot.batchExistKeyNotFoundCount);
+    EXPECT_EQ(afterSnapshot.batchExistKeyFailureCount, beforeSnapshot.batchExistKeyFailureCount);
+
+    beforeSnapshot = afterSnapshot;
+    BatchQueryResponse batchQueryResponse;
+    EXPECT_EQ(metaMgrProxy_->BatchQuery(BatchQueryRequest({kHttpAllocKey, missingBatchQueryKey}), batchQueryResponse),
+              MMC_OK);
+    ASSERT_EQ(batchQueryResponse.batchQueryInfos_.size(), kHttpExpectedSegmentCount);
+    EXPECT_TRUE(batchQueryResponse.batchQueryInfos_.at(kHttpFirstItemIndex).valid_);
+    EXPECT_FALSE(batchQueryResponse.batchQueryInfos_.at(kHttpSecondItemIndex).valid_);
+
+    afterSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
+    EXPECT_EQ(afterSnapshot.queryRequestCount, beforeSnapshot.queryRequestCount + batchSubcallDelta);
+    EXPECT_EQ(afterSnapshot.querySuccessCount, beforeSnapshot.querySuccessCount + successDelta);
+    EXPECT_EQ(afterSnapshot.queryNotFoundCount, beforeSnapshot.queryNotFoundCount + notFoundDelta);
+    EXPECT_EQ(afterSnapshot.queryFailureCount, beforeSnapshot.queryFailureCount);
+    EXPECT_EQ(afterSnapshot.batchQueryRequestCount, beforeSnapshot.batchQueryRequestCount + batchRequestDelta);
+    EXPECT_EQ(afterSnapshot.batchQuerySuccessCount, beforeSnapshot.batchQuerySuccessCount + successDelta);
+    EXPECT_EQ(afterSnapshot.batchQueryNotFoundCount, beforeSnapshot.batchQueryNotFoundCount);
+    EXPECT_EQ(afterSnapshot.batchQueryFailureCount, beforeSnapshot.batchQueryFailureCount);
+
+    beforeSnapshot = afterSnapshot;
+    BatchRemoveResponse batchRemoveResponse;
+    EXPECT_EQ(
+        metaMgrProxy_->BatchRemove(BatchRemoveRequest({kHttpAllocKey, missingBatchRemoveKey}), batchRemoveResponse),
+        MMC_OK);
+    ASSERT_EQ(batchRemoveResponse.results_.size(), kHttpExpectedSegmentCount);
+    EXPECT_EQ(batchRemoveResponse.results_.at(kHttpFirstItemIndex), MMC_OK);
+    EXPECT_EQ(batchRemoveResponse.results_.at(kHttpSecondItemIndex), MMC_UNMATCHED_KEY);
+
+    afterSnapshot = MmcMetaMetricManager::GetInstance().GetSnapshot();
+    EXPECT_EQ(afterSnapshot.removeRequestCount, beforeSnapshot.removeRequestCount + batchSubcallDelta);
+    EXPECT_EQ(afterSnapshot.removeSuccessCount, beforeSnapshot.removeSuccessCount + successDelta);
+    EXPECT_EQ(afterSnapshot.removeNotFoundCount, beforeSnapshot.removeNotFoundCount + notFoundDelta);
+    EXPECT_EQ(afterSnapshot.removeFailureCount, beforeSnapshot.removeFailureCount);
+    EXPECT_EQ(afterSnapshot.batchRemoveRequestCount, beforeSnapshot.batchRemoveRequestCount + batchRequestDelta);
+    EXPECT_EQ(afterSnapshot.batchRemoveSuccessCount, beforeSnapshot.batchRemoveSuccessCount + successDelta);
+    EXPECT_EQ(afterSnapshot.batchRemoveNotFoundCount, beforeSnapshot.batchRemoveNotFoundCount);
+    EXPECT_EQ(afterSnapshot.batchRemoveFailureCount, beforeSnapshot.batchRemoveFailureCount);
 }

@@ -92,14 +92,12 @@ public:
         MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
         metricManager.IncrementRequestCounter(RestMetricType::REMOVE);
         resp.ret_ = metaMangerPtr_->Remove(req.key_);
+        IncrementResultCounter(metricManager, RestMetricType::REMOVE, resp.ret_);
         if (ubsIoEnable_) {
-            Result ret = ubsIoProxy_->Delete(req.key_);
+            Result ubsIoRet = ubsIoProxy_->Delete(req.key_);
             if (resp.ret_ != MMC_OK) {
-                resp.ret_ = ret;
+                resp.ret_ = ubsIoRet;
             }
-        }
-        if (resp.ret_ != MMC_OK) {
-            metricManager.IncrementFailureCounter(RestMetricType::REMOVE);
         }
         return resp.ret_;
     }
@@ -110,14 +108,17 @@ public:
         metricManager.IncrementRequestCounter(RestMetricType::BATCH_REMOVE);
         resp.results_.reserve(req.keys_.size());
         for (const std::string &key : req.keys_) {
-            resp.results_.emplace_back(metaMangerPtr_->Remove(key));
+            metricManager.IncrementRequestCounter(RestMetricType::REMOVE);
+            Result metaRet = metaMangerPtr_->Remove(key);
+            resp.results_.emplace_back(metaRet);
+            IncrementResultCounter(metricManager, RestMetricType::REMOVE, metaRet);
         }
+        IncrementBatchResultCounter(metricManager, RestMetricType::BATCH_REMOVE, resp.results_);
         if (ubsIoEnable_) {
             std::vector<int> ubsIoResults(req.keys_.size(), MMC_OK);
             Result ret = ubsIoProxy_->BatchDelete(req.keys_, ubsIoResults);
-            if (ret != 0) {
+            if (ret != MMC_OK) {
                 MMC_LOG_ERROR("ubsIo batch delete failed, ret: " << ret);
-                metricManager.IncrementFailureCounter(RestMetricType::BATCH_REMOVE);
                 return MMC_ERROR;
             }
             for (size_t i = 0; i < req.keys_.size(); ++i) {
@@ -135,9 +136,7 @@ public:
         MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
         metricManager.IncrementRequestCounter(RestMetricType::REMOVE_ALL);
         resp.ret_ = metaMangerPtr_->RemoveAll();
-        if (resp.ret_ != MMC_OK) {
-            metricManager.IncrementFailureCounter(RestMetricType::REMOVE_ALL);
-        }
+        IncrementResultCounter(metricManager, RestMetricType::REMOVE_ALL, resp.ret_);
         return resp.ret_;
     }
 
@@ -147,9 +146,7 @@ public:
         MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
         metricManager.IncrementRequestCounter(RestMetricType::MOUNT);
         Result ret = metaMangerPtr_->Mount(loc, localMemInitInfo, blobMap);
-        if (ret != MMC_OK) {
-            metricManager.IncrementFailureCounter(RestMetricType::MOUNT);
-        }
+        IncrementResultCounter(metricManager, RestMetricType::MOUNT, ret);
         return ret;
     }
 
@@ -158,9 +155,7 @@ public:
         MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
         metricManager.IncrementRequestCounter(RestMetricType::UNMOUNT);
         Result ret = metaMangerPtr_->Unmount(loc);
-        if (ret != MMC_OK) {
-            metricManager.IncrementFailureCounter(RestMetricType::UNMOUNT);
-        }
+        IncrementResultCounter(metricManager, RestMetricType::UNMOUNT, ret);
         return ret;
     }
 
@@ -169,11 +164,9 @@ public:
         MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
         metricManager.IncrementRequestCounter(RestMetricType::EXIST_KEY);
         resp.ret_ = metaMangerPtr_->ExistKey(req.key_);
-        if (resp.ret_ == MMC_UNMATCHED_KEY && ubsIoEnable_) {
+        IncrementResultCounter(metricManager, RestMetricType::EXIST_KEY, resp.ret_);
+        if (ubsIoEnable_ && resp.ret_ == MMC_UNMATCHED_KEY) {
             resp.ret_ = ubsIoProxy_->Exist(req.key_) == 1 ? MMC_OK : MMC_UNMATCHED_KEY;
-        }
-        if (resp.ret_ != MMC_OK) {
-            metricManager.IncrementFailureCounter(RestMetricType::EXIST_KEY);
         }
         return resp.ret_;
     }
@@ -182,40 +175,47 @@ public:
 
     Result Query(const QueryRequest &req, QueryResponse &resp)
     {
+        constexpr uint32_t ssdQueryBlobCount = 1;
+
         MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
         metricManager.IncrementRequestCounter(RestMetricType::QUERY);
-        Result ret = metaMangerPtr_->Query(req.key_, resp.queryInfo_);
-        if (ret != MMC_OK && ubsIoEnable_) {
+        Result metaRet = metaMangerPtr_->Query(req.key_, resp.queryInfo_);
+        IncrementResultCounter(metricManager, RestMetricType::QUERY, metaRet);
+        if (metaRet != MMC_OK && ubsIoEnable_) {
             size_t length = 0;
-            ret = ubsIoProxy_->GetLength(req.key_, length);
-            if (ret == MMC_OK) {
+            Result ubsIoRet = ubsIoProxy_->GetLength(req.key_, length);
+            if (ubsIoRet == MMC_OK) {
                 resp.queryInfo_.valid_ = true;
                 resp.queryInfo_.size_ = length;
-                resp.queryInfo_.numBlobs_ = 1;
+                resp.queryInfo_.numBlobs_ = ssdQueryBlobCount;
                 resp.queryInfo_.blobRanks_[0] = UINT32_MAX;
                 resp.queryInfo_.blobTypes_[0] = MEDIA_SSD;
                 resp.queryInfo_.prot_ = 0;
                 return MMC_OK;
-            } else {
-                MMC_LOG_WARN("ubsIo get length failed, ret: " << ret);
-                metricManager.IncrementFailureCounter(RestMetricType::QUERY);
-                return MMC_UNMATCHED_KEY;
             }
+            MMC_LOG_WARN("ubsIo get length failed, ret: " << ubsIoRet);
+            return MMC_UNMATCHED_KEY;
         }
-        if (ret != MMC_OK) {
-            metricManager.IncrementFailureCounter(RestMetricType::QUERY);
-        }
-        return ret;
+        return metaRet;
     }
 
     Result BatchQuery(const BatchQueryRequest &req, BatchQueryResponse &resp)
     {
-        MmcMetaMetricManager::GetInstance().IncrementRequestCounter(RestMetricType::BATCH_QUERY);
+        constexpr uint32_t ssdQueryBlobCount = 1;
+
+        MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();
+        metricManager.IncrementRequestCounter(RestMetricType::BATCH_QUERY);
+        std::vector<Result> results;
+        results.reserve(req.keys_.size());
         for (const std::string &key : req.keys_) {
             MemObjQueryInfo queryInfo;
-            metaMangerPtr_->Query(key, queryInfo);
+            metricManager.IncrementRequestCounter(RestMetricType::QUERY);
+            Result metaRet = metaMangerPtr_->Query(key, queryInfo);
+            results.push_back(metaRet);
             resp.batchQueryInfos_.push_back(queryInfo);
+            IncrementResultCounter(metricManager, RestMetricType::QUERY, metaRet);
         }
+        IncrementBatchResultCounter(metricManager, RestMetricType::BATCH_QUERY, results);
         if (ubsIoEnable_) {
             std::vector<std::string> ubsIoKeys;
             std::vector<size_t> ubsIoIndices;
@@ -231,19 +231,20 @@ public:
                 std::vector<size_t> ubsIoLengths(ubsIoKeys.size(), 0);
                 std::vector<int> ubsIoResults(ubsIoKeys.size(), MMC_OK);
                 Result ret = ubsIoProxy_->BatchGetLength(ubsIoKeys, ubsIoLengths, ubsIoResults);
-                if (ret != 0) {
+                if (ret != MMC_OK) {
                     MMC_LOG_ERROR("ubsIo batch get length failed, ret: " << ret);
-                    MmcMetaMetricManager::GetInstance().IncrementFailureCounter(RestMetricType::BATCH_QUERY);
                     return MMC_ERROR;
                 }
                 for (size_t idx = 0; idx < ubsIoIndices.size(); ++idx) {
                     const size_t resultIndex = ubsIoIndices[idx];
-                    resp.batchQueryInfos_[resultIndex].valid_ = true;
-                    resp.batchQueryInfos_[resultIndex].size_ = ubsIoLengths[idx];
-                    resp.batchQueryInfos_[resultIndex].numBlobs_ = 1;
-                    resp.batchQueryInfos_[resultIndex].blobRanks_[0] = UINT32_MAX;
-                    resp.batchQueryInfos_[resultIndex].blobTypes_[0] = MEDIA_SSD;
-                    resp.batchQueryInfos_[resultIndex].prot_ = 0;
+                    if (ubsIoResults[idx] == MMC_OK) {
+                        resp.batchQueryInfos_[resultIndex].valid_ = true;
+                        resp.batchQueryInfos_[resultIndex].size_ = ubsIoLengths[idx];
+                        resp.batchQueryInfos_[resultIndex].numBlobs_ = ssdQueryBlobCount;
+                        resp.batchQueryInfos_[resultIndex].blobRanks_[0] = UINT32_MAX;
+                        resp.batchQueryInfos_[resultIndex].blobTypes_[0] = MEDIA_SSD;
+                        resp.batchQueryInfos_[resultIndex].prot_ = 0;
+                    }
                 }
             }
         }
@@ -256,6 +257,33 @@ public:
     }
 
 private:
+    // Increments exactly one terminal result counter for a single operation: MMC_OK -> success, MMC_UNMATCHED_KEY ->
+    // not_found, other errors including MMC_DUPLICATED_OBJECT -> failure.
+    static void IncrementResultCounter(MmcMetaMetricManager &metricManager, RestMetricType type, Result ret)
+    {
+        if (ret == MMC_OK) {
+            metricManager.IncrementSuccessCounter(type);
+            return;
+        }
+        if (ret == MMC_UNMATCHED_KEY) {
+            metricManager.IncrementNotFoundCounter(type);
+            return;
+        }
+        metricManager.IncrementFailureCounter(type);
+    }
+
+    static void IncrementBatchResultCounter(MmcMetaMetricManager &metricManager, RestMetricType type,
+                                            const std::vector<Result> &results)
+    {
+        for (Result ret : results) {
+            if (ret != MMC_OK && ret != MMC_UNMATCHED_KEY) {
+                metricManager.IncrementFailureCounter(type);
+                return;
+            }
+        }
+        metricManager.IncrementSuccessCounter(type);
+    }
+
     std::mutex mutex_;
     bool started_ = false;
     bool ubsIoEnable_ = false;
