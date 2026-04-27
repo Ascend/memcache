@@ -14,10 +14,30 @@ import os
 import time
 import threading
 from ctypes import cdll
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 from kubernetes import client, config
 from kubernetes.config.config_exception import ConfigException
 from kubernetes.client.rest import ApiException
+
+
+UTC = timezone.utc
+
+
+def _to_utc_datetime(value):
+    if value is None:
+        return None
+
+    if isinstance(value, datetime):
+        date_time = value
+    else:
+        date_time_text = str(value)
+        if date_time_text.endswith("Z"):
+            date_time_text = f"{date_time_text[:-1]}+00:00"
+        date_time = datetime.fromisoformat(date_time_text)
+
+    if date_time.tzinfo is None or date_time.utcoffset() is None:
+        return date_time.replace(tzinfo=UTC)
+    return date_time.astimezone(UTC)
 
 
 class MmcLogger:
@@ -152,9 +172,7 @@ class MetaServiceLeaderElection:
                 return "None"  # 无主节点
 
             # 检查租约是否过期
-            renew_time = lease.spec.renew_time
-            if renew_time:
-                renew_time = datetime.fromisoformat(str(lease.spec.renew_time)).astimezone(UTC)
+            renew_time = _to_utc_datetime(lease.spec.renew_time)
             current_time = datetime.now(UTC)
             if renew_time and (current_time - renew_time > timedelta(seconds=self.lease_duration)):
                 return "None"  # 租约过期
@@ -195,9 +213,7 @@ class MetaServiceLeaderElection:
         )
 
         # 检查是否需要更新
-        renew_time = lease.spec.renew_time
-        if renew_time:
-            renew_time = datetime.fromisoformat(str(lease.spec.renew_time)).astimezone(UTC)
+        renew_time = _to_utc_datetime(lease.spec.renew_time)
 
         holder = lease.spec.holder_identity
         if lease.spec.lease_duration_seconds is not None:
