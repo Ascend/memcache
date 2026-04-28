@@ -122,7 +122,7 @@ setup(
     packages=find_namespace_packages(exclude=("tests*",)),
     url="https://gitcode.com/Ascend/memcache",
     license="Mulan PSL v2",
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     zip_safe=False,
     package_data={"memcache_hybrid": ["_pymmc.cpython*.so", "lib/**", "VERSION"]},
     cmdclass={

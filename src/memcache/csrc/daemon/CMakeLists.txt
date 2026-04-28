@@ -10,18 +10,28 @@
 
 aux_source_directory(. DAEMON_SRCS)
 
-add_executable(mmc_meta_service ${DAEMON_SRCS} $<TARGET_OBJECTS:ptracer_object> $<TARGET_OBJECTS:config_store_object>)
-
-target_compile_options(mmc_meta_service PRIVATE -fPIC -Wno-float-equal)
-
-target_link_options(mmc_meta_service PRIVATE -pie)
-
-target_link_libraries(mmc_meta_service PUBLIC mmc_shared pthread acc_tcp_net_static)
-
+set(MMC_META_SERVICE_BUILDABLE ON)
 if (BUILD_PYTHON STREQUAL "ON")
-    target_link_libraries(mmc_meta_service PRIVATE pybind11::module Python3::Python)
+    if ((NOT DEFINED PYTHON_LIBRARY) OR ("${PYTHON_LIBRARY}" MATCHES "NOTFOUND"))
+        set(MMC_META_SERVICE_BUILDABLE OFF)
+        message(WARNING "skip building mmc_meta_service: PYTHON_LIBRARY is NOTFOUND")
+    endif ()
 endif ()
 
-install(TARGETS mmc_meta_service
-        RUNTIME DESTINATION ${TARGET_INSTALL_DIR}/memcache/bin
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
+if (MMC_META_SERVICE_BUILDABLE)
+    add_executable(mmc_meta_service ${DAEMON_SRCS} $<TARGET_OBJECTS:ptracer_object> $<TARGET_OBJECTS:config_store_object>)
+
+    target_compile_options(mmc_meta_service PRIVATE -fPIC -Wno-float-equal)
+
+    target_link_options(mmc_meta_service PRIVATE -pie)
+
+    target_link_libraries(mmc_meta_service PUBLIC mmc_shared pthread acc_tcp_net_static)
+
+    if (BUILD_PYTHON STREQUAL "ON")
+        target_link_libraries(mmc_meta_service PRIVATE pybind11::embed)
+    endif ()
+
+    install(TARGETS mmc_meta_service
+            RUNTIME DESTINATION ${TARGET_INSTALL_DIR}/memcache/bin
+            PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
+endif ()
