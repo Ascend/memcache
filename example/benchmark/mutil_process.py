@@ -9,7 +9,7 @@
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
-
+import math
 import os
 import time
 from time import sleep
@@ -17,7 +17,6 @@ from typing import List
 import torch
 import torch_npu
 
-from status_file_manager import StatusFileManager
 
 g_local_type = "npu"
 
@@ -30,6 +29,7 @@ v_sizes = [v_size for _ in range(layers_num)]
 layers_block_size = [item for pair in zip(k_sizes, v_sizes) for item in pair]
 key_prefix: str = "key_"
 PRINT_DATA_SUM = True
+MISALIGNED_ACCESS = True
 
 
 def set_device(device_id):
@@ -54,7 +54,7 @@ def allocate_aligned_tensor(shape, dtype=torch.float32, alignment=2*1024*1024):
     total_bytes = num_elements * element_size
 
     padding = alignment - 1
-    buffer = torch.randn(total_bytes + padding, dtype=dtype, device=g_local_type)
+    buffer = torch.randint(0, 256, (total_bytes + padding,), dtype=dtype, device=g_local_type)
 
     address = buffer.data_ptr()
     aligned_address = (address + alignment - 1) & ~(alignment - 1)
@@ -111,13 +111,9 @@ def write_worker(*args):
     global g_local_type
     g_local_type = args[6]
     process_count = args[7]
+    sync = args[8]
 
     set_device(device_id)
-    status_manager = []
-    for i in range(process_count):
-        status_manager.append(StatusFileManager(f"wtask_{i}.txt"))
-    status_manager[device_id].reset_to_preparing()
-
     print(f"npu:{device_id} 开始，PID: {os.getpid()}")
     if backend == "mooncake":
         store = init_mooncake(device_id)
@@ -149,7 +145,7 @@ def write_worker(*args):
         one_dim_sum = one_dim_tensor.sum().item()
     keys_list = []
     buffs_list = []
-    sizes_list = []    
+    sizes_list = []
     for i in range(call_count):
         keys = []
         buffs = []
@@ -159,7 +155,7 @@ def write_worker(*args):
             keys.append(key)
             if data_dim == 2:
                 block_buffs = [item for pair in zip(get_col_tensors_ptr_by_index(k_tensors, len(k_sizes), j),
-                                                    get_col_tensors_ptr_by_index(v_tensors, len(v_sizes), j)) 
+                                                    get_col_tensors_ptr_by_index(v_tensors, len(v_sizes), j))
                                                     for item in pair]
                 sizes.append(layers_block_size)
             else:
@@ -170,24 +166,14 @@ def write_worker(*args):
         buffs_list.append(buffs)
         sizes_list.append(sizes)
 
-    status_manager[device_id].set_to_ready()
-    for i in range(process_count):
-        status_manager[i].wait_until_ready(timeout=5 * 60)
-    
+    sync.wait()
     start = time.perf_counter()
-    print(f"===== npu:{device_id} begin on {start} ......")
-
     for keys, buffs, sizes in zip(keys_list, buffs_list, sizes_list):
         write_ret = store.batch_put_from_layers(keys, buffs, sizes, 0)
         if any(x != 0 for x in write_ret):
             raise f"Failed to put pid:{os.getpid()} deviceId:{device_id}"
-
-    print(f"===== npu:{device_id} finish on {time.perf_counter()} ......")
-    status_manager[device_id].reset_to_preparing()
-    for i in range(process_count):
-        status_manager[i].wait_until_ready(timeout=5 * 60, check_ready=False)
-
     end = time.perf_counter()
+    sync.wait()
     duration_us = (end - start) * 1_000_000
     total_size_bytes = sum(sum(size) for size in sizes for sizes in sizes_list)
     total_size_gb = total_size_bytes / (1024 * 1024 * 1024)
@@ -199,10 +185,6 @@ def write_worker(*args):
           f"bw:{bandwidth_gb_per_sec:.3f} GB/s\033[0m\n")
 
     sleep(1)
-    status_manager[device_id].set_to_ready()
-    for i in range(process_count):
-        status_manager[i].wait_until_ready(timeout=5 * 60)
-
     if PRINT_DATA_SUM:
         print(f"write data sum for check data ==> {device_id=} {k_sum=}, {v_sum}, {one_dim_sum}\n")
     sleep(1)
@@ -220,13 +202,9 @@ def read_worker(*args):
     global g_local_type
     g_local_type = args[6]
     process_count = args[7]
+    sync = args[8]
 
     set_device(device_id)
-    status_manager = []
-    for i in range(process_count):
-        status_manager.append(StatusFileManager(f"task_{i}.txt"))
-    status_manager[device_id].reset_to_preparing()
-    sleep(5)
     print(f"npu:{device_id} 开始，PID: {os.getpid()}")
     if backend == "mooncake":
         store = init_mooncake(device_id)
@@ -244,13 +222,15 @@ def read_worker(*args):
     v_tensors = None
     k_sum = 0
     v_sum = 0
-    one_dim_sum = 0    
+    one_dim_sum = 0
     if data_dim == 2:
+        read_size = max(k_sizes, default=0) * len(k_sizes) + max(v_sizes, default=0) * len(v_sizes)
         k_tensors = malloc_npu_blocks(max(k_sizes, default=0), len(k_sizes), batch_size)
         v_tensors = malloc_npu_blocks(max(v_sizes, default=0), len(v_sizes), batch_size)
         store.register_buffer(k_tensors.data_ptr(), max(k_sizes, default=0) * len(k_sizes) * batch_size)
         store.register_buffer(v_tensors.data_ptr(), max(v_sizes, default=0) * len(v_sizes) * batch_size)
     else:
+        read_size = max(block_size, default=0)
         one_dim_tensor = malloc_npu_blocks(max(block_size, default=0), 1, batch_size)
         store.register_buffer(one_dim_tensor.data_ptr(), max(block_size, default=0) * batch_size)
     if g_local_type == "npu":
@@ -261,7 +241,9 @@ def read_worker(*args):
     keys_list = []
     buffs_list = []
     sizes_list = []
-    for i in range(call_count):
+    # 错开读取位置，防止流量都到一个打到numa
+    start_index = (math.ceil((1 << 30) / read_size) * device_id) % call_count if MISALIGNED_ACCESS else 0
+    for i in range(start_index, call_count):
         keys = []
         buffs = []
         sizes = []
@@ -270,34 +252,51 @@ def read_worker(*args):
             keys.append(key)
             if data_dim == 2:
                 block_buffs = [item for pair in zip(get_col_tensors_ptr_by_index(k_tensors, len(k_sizes), j),
-                                                    get_col_tensors_ptr_by_index(v_tensors, len(v_sizes), j)) 
+                                                    get_col_tensors_ptr_by_index(v_tensors, len(v_sizes), j))
                                                     for item in pair]
                 sizes.append(layers_block_size)
             else:
                 block_buffs = get_col_tensors_ptr_by_index(one_dim_tensor, 1, j)
                 sizes.append(block_size)
             buffs.append(block_buffs)
-        
+
         keys_list.append(keys)
         buffs_list.append(buffs)
         sizes_list.append(sizes)
 
-    status_manager[device_id].set_to_ready()
-    for i in range(process_count):
-        status_manager[i].wait_until_ready(timeout=5 * 60)
-    
-    start = time.perf_counter()
-    print(f"===== npu:{device_id} begin on {start} ......")
+    for i in range(start_index):
+        keys = []
+        buffs = []
+        sizes = []
+        for j in range(batch_size):
+            key = key_prefix + str(device_id) + '_' + str(i) + '_' + str(j)
+            keys.append(key)
+            if data_dim == 2:
+                block_buffs = [item for pair in zip(get_col_tensors_ptr_by_index(k_tensors, len(k_sizes), j),
+                                                    get_col_tensors_ptr_by_index(v_tensors, len(v_sizes), j))
+                                                    for item in pair]
+                sizes.append(layers_block_size)
+            else:
+                block_buffs = get_col_tensors_ptr_by_index(one_dim_tensor, 1, j)
+                sizes.append(block_size)
+            buffs.append(block_buffs)
+        keys_list.append(keys)
+        buffs_list.append(buffs)
+        sizes_list.append(sizes)
+
     for keys, buffs, sizes in zip(keys_list, buffs_list, sizes_list):
         read_ret = store.batch_get_into_layers(keys, buffs, sizes, direct_t)
         if any(x != 0 for x in read_ret):
             raise f"Failed to get pid:{os.getpid()} deviceId:{device_id}"
-    print(f"===== npu:{device_id} finish on {time.perf_counter()} ......")
 
-    status_manager[device_id].reset_to_preparing()
-    for i in range(process_count):
-        status_manager[i].wait_until_ready(timeout=5 * 60, check_ready=False)
+    sync.wait()
+    start = time.perf_counter()
+    for keys, buffs, sizes in zip(keys_list, buffs_list, sizes_list):
+        read_ret = store.batch_get_into_layers(keys, buffs, sizes, direct_t)
+        if any(x != 0 for x in read_ret):
+            raise f"Failed to get pid:{os.getpid()} deviceId:{device_id}"
     end = time.perf_counter()
+    sync.wait()
     duration_us = (end - start) * 1_000_000
     total_size_bytes = sum(sum(size) for size in sizes for sizes in sizes_list)
     total_size_gb = total_size_bytes / (1024 * 1024 * 1024)
@@ -305,15 +304,15 @@ def read_worker(*args):
     bandwidth_gb_per_sec = total_size_gb / total_duration_seconds
     if data_dim == 2:
         k_sum = k_tensors.sum().item()
-        v_sum = v_tensors.sum().item()        
+        v_sum = v_tensors.sum().item()
     else:
-        one_dim_sum = one_dim_tensor.sum().item()   
+        one_dim_sum = one_dim_tensor.sum().item()
 
     print(f"\033[91mdevice_id:{device_id} read_total_size:{total_size_bytes} bytes, "
           f"single_size:{total_size_bytes / call_count:.0f} bytes, call count:{call_count}, "
           f"total_time:{duration_us:.2f} us, avg_time:{duration_us / call_count:.2f} us, "
           f"bw:{bandwidth_gb_per_sec:.3f} GB/s\033[0m\n")
-    
+
     sleep(1)
     if PRINT_DATA_SUM:
         print(f"read data sum for check data ==> {device_id=} {k_sum=}, {v_sum}, {one_dim_sum}")
