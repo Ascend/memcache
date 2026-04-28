@@ -110,9 +110,10 @@ Result MmcBmProxy::InternalCreateBm(const mmc_bm_create_config_t &createConfig, 
         (createConfig.localMaxDRAMSize + createConfig.localMaxHBMSize) * static_cast<uint64_t>(worldSize);
     option.enable56BitsGva = totalPoolSize > mmcAuto56BitsGvaThreshold;
     if (option.enable56BitsGva) {
-        MMC_LOG_INFO("auto enable 56-bit GVA: localMaxDramSize=" <<
-                     createConfig.localMaxDRAMSize << ", localMaxHbmSize=" << createConfig.localMaxHBMSize <<
-                     ", worldSize=" << worldSize << ", threshold=" << mmcAuto56BitsGvaThreshold);
+        MMC_LOG_INFO("56 bits GVA is enabled since the total address space size (" <<
+                     totalPoolSize << ") is larger than threshold(" << mmcAuto56BitsGvaThreshold <<
+                     "), localMaxDramSize(" << createConfig.localMaxDRAMSize << "), localMaxHbmSize(" <<
+                     createConfig.localMaxHBMSize << "), worldSize(" << worldSize << ").");
     }
     option.flags = createConfig.flags;
     option.tag[0] = '\0';
