@@ -31,7 +31,6 @@ if __name__ == "__main__":
     print(f"主进程 PID: {os.getpid()}, {testcase=}, {process_count=}, {batch_size=}, {block_size=}, "
           f"{call_count=}, {data_dim=}, {backend=}, {local_type=}")
 
-    mp.set_start_method("spawn", force=True)
     sync = mp.Barrier(process_count)
     process = []
     # 创建两个子进程
