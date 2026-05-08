@@ -609,6 +609,7 @@ PYBIND11_MODULE(_pymmc, m)
             py::arg("config"), "Set meta service startup config.")
         .def_static(
             "main", []() { return MmcMetaServiceProcess::getInstance().MainForPython(); },
+            py::call_guard<py::gil_scoped_release>(),
             "Start the meta service process directly. This is a blocking call.");
 
     // Define the MmcacheStore class
