@@ -259,14 +259,14 @@ function install_wheel_package() {
     fi
 
     # Use pip official resolver for precheck without touching current environment.
-    pip3 install --dry-run --no-index --find-links "${wheel_dir}" "${wheel_package}"
+    pip3 install --break-system-packages --dry-run --no-index --find-links "${wheel_dir}" "${wheel_package}"
     if [ $? -ne 0 ]; then
         print "ERROR" "${wheel_name} precheck install failed, keep current ${wheel_name}"
         print "ERROR" "Maybe you should upgrade your memfabric_hybrid version"
         exit -1
     fi
 
-    pip3 install --no-deps --find-links "${wheel_dir}" --force-reinstall "${wheel_package}"
+    pip3 install --break-system-packages --no-deps --find-links "${wheel_dir}" --force-reinstall "${wheel_package}"
     if [ $? -ne 0 ]; then
         print "ERROR" "${wheel_name} install failed"
         exit -1

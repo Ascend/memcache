@@ -65,7 +65,7 @@ function uninstall_process()
     if [ -z "$pip_path" ]; then
         print "WARNING" "memcache_hybrid  pip3 Not Found, skip uninstall wheel package."
     else
-        pip3 uninstall -y memcache_hybrid
+        pip3 uninstall -y --break-system-packages memcache_hybrid
     fi
     print "INFO" "memcache_hybrid $(basename $1) uninstall success!"
 }
