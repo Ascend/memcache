@@ -24,10 +24,19 @@ git reset --hard
 
 2. 拉取第三方库
 
+```bash
+# Initialize and update only the required submodules (excluding test dependencies)
+git submodule update --init 3rdparty/
+
+# Update memfabric_hybrid to the latest version of a specific branch (e.g., master)
+# Replace 'master' with your target branch name
+git -c submodule.3rdparty/memfabric_hybrid.branch=master submodule update --remote 3rdparty/memfabric_hybrid
 ```
-git submodule update --recursive --init
-git submodule update --remote 3rdparty/memfabric_hybrid
-```
+
+**说明：**
+- `--init 3rdparty/memfabric_hybrid` 只初始化并更新指定的子模块，避免拉取 test 目录等不必要的依赖
+- 通过 `-c submodule.3rdparty/memfabric_hybrid.branch=<branch_name>` 参数可以指定拉取的目标分支
+- 若需拉取所有子模块（包括测试依赖），可使用 `git submodule update --recursive --init`
 
 3. 编译
 
