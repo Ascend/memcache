@@ -104,6 +104,7 @@ void MmcMetaServiceLeaderElection::ElectionLoop()
         while (running_) {
             MMC_LOG_DEBUG("Election loop circle, pod=" << this->podName_ << ",  times=" << ++count);
             pybind11::gil_scoped_acquire acquire; // 安全
+            MMC_LOG_DEBUG("Election loop acquired Python GIL, pod=" << this->podName_);
             if (!running_) {
                 pybind11::gil_scoped_release release;
                 break;
@@ -185,6 +186,7 @@ void MmcMetaServiceLeaderElection::RenewLoop()
             }
             MMC_LOG_DEBUG("The leader renew lease loop circle, pod=" << this->podName_ << ",  times=" << ++count);
             pybind11::gil_scoped_acquire acquire; // 安全
+            MMC_LOG_DEBUG("Renew loop acquired Python GIL, pod=" << this->podName_);
             if (!running_) {
                 pybind11::gil_scoped_release release;
                 break;
