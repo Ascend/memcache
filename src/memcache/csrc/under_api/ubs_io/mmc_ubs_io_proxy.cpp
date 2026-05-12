@@ -16,7 +16,7 @@
 #include <string>
 #include "mmc_logger.h"
 #include "mmc_ptracer.h"
-#include "dl_dfc_api.h"
+#include "dl_ubsio_api.h"
 #include "mmc_ubs_io_proxy.h"
 
 namespace ock {
@@ -32,17 +32,15 @@ Result MmcUbsIoProxy::InitUbsIo(int32_t deviceId)
         return MMC_OK;
     }
 
-    Result result = DlDfcApi::LoadLibrary();
+    Result result = DlUbsioApi::LoadLibrary();
     if (result != MMC_OK) {
-        MMC_LOG_ERROR("Failed to load dfc library, error: " << result);
+        MMC_LOG_ERROR("Failed to load ubsio library, error: " << result);
         return result;
     }
-
-    kv_worker_mode mode = kv_worker_mode::KV_CONVERGENCE;
-    result = DlDfcApi::DfcClientInit(mode, deviceId);
+    result = DlUbsioApi::UbsioClientInit(deviceId);
     if (result != MMC_OK) {
-        MMC_LOG_ERROR("Failed to init dfc, error: " << result);
-        DlDfcApi::CleanupLibrary();
+        MMC_LOG_ERROR("Failed to init ubsio, error: " << result);
+        DlUbsioApi::CleanupLibrary();
         return result;
     }
 
@@ -53,7 +51,7 @@ Result MmcUbsIoProxy::InitUbsIo(int32_t deviceId)
 void MmcUbsIoProxy::DestroyUbsIo()
 {
     if (started_) {
-        DlDfcApi::CleanupLibrary();
+        DlUbsioApi::CleanupLibrary();
         started_ = false;
     }
 }
@@ -66,7 +64,7 @@ Result MmcUbsIoProxy::Put(const std::string &key, void *buf, size_t length)
 
     uint32_t flags = 0;
     TP_TRACE_BEGIN(TP_MMC_UBS_IO_PUT);
-    int32_t ret = DlDfcApi::DfcPut(key.c_str(), buf, length, flags);
+    int32_t ret = DlUbsioApi::UbsioPut(key.c_str(), buf, length, flags);
     TP_TRACE_END(TP_MMC_UBS_IO_PUT, ret);
     return ret;
 }
@@ -79,7 +77,7 @@ Result MmcUbsIoProxy::Get(const std::string &key, void *buf, size_t length)
 
     uint32_t flags = 0;
     TP_TRACE_BEGIN(TP_MMC_UBS_IO_GET);
-    int32_t ret = DlDfcApi::DfcGet(key.c_str(), buf, length, flags);
+    int32_t ret = DlUbsioApi::UbsioGet(key.c_str(), buf, length, flags);
     TP_TRACE_END(TP_MMC_UBS_IO_GET, ret);
     return ret;
 }
@@ -91,7 +89,7 @@ Result MmcUbsIoProxy::Exist(const std::string &key)
 
     uint32_t flags = 0;
     TP_TRACE_BEGIN(TP_MMC_UBS_IO_EXIST);
-    int32_t ret = DlDfcApi::DfcExist(key.c_str(), flags);
+    int32_t ret = DlUbsioApi::UbsioExist(key.c_str(), flags);
     TP_TRACE_END(TP_MMC_UBS_IO_EXIST, MMC_OK);
     return ret;
 }
@@ -103,7 +101,7 @@ Result MmcUbsIoProxy::Delete(const std::string &key)
 
     uint32_t flags = 0;
     TP_TRACE_BEGIN(TP_MMC_UBS_IO_DELETE);
-    int32_t ret = DlDfcApi::DfcDelete(key.c_str(), flags);
+    int32_t ret = DlUbsioApi::UbsioDelete(key.c_str(), flags);
     TP_TRACE_END(TP_MMC_UBS_IO_DELETE, ret);
     return ret;
 }
@@ -116,7 +114,7 @@ Result MmcUbsIoProxy::GetLength(const std::string &key, size_t &length)
     uint32_t flags = 0;
     size_t tempLength = 0;
     TP_TRACE_BEGIN(TP_MMC_UBS_IO_LENGTH);
-    int32_t ret = DlDfcApi::DfcGetLength(key.c_str(), &tempLength, flags);
+    int32_t ret = DlUbsioApi::UbsioGetLength(key.c_str(), &tempLength, flags);
     TP_TRACE_END(TP_MMC_UBS_IO_LENGTH, ret);
     if (ret == 0) {
         length = tempLength;
@@ -145,8 +143,8 @@ Result MmcUbsIoProxy::BatchPut(const std::vector<std::string> &keys, const std::
     uint32_t flags = 0;
 
     TP_TRACE_BEGIN(TP_MMC_UBS_IO_BATCH_PUT);
-    int32_t ret = DlDfcApi::DfcBatchPut(keyPtrs.data(), keysCount, bufferPtrs.data(), lengthCopy.data(), results.data(),
-        flags);
+    int32_t ret = DlUbsioApi::UbsioBatchPut(keyPtrs.data(), keysCount, bufferPtrs.data(), lengthCopy.data(),
+        results.data(), flags);
     TP_TRACE_END(TP_MMC_UBS_IO_BATCH_PUT, ret);
     return ret;
 }
@@ -168,7 +166,7 @@ Result MmcUbsIoProxy::BatchGet(const std::vector<std::string> &keys, void **bufs
     uint32_t flags = 0;
 
     TP_TRACE_BEGIN(TP_MMC_UBS_IO_BATCH_GET);
-    int32_t ret = DlDfcApi::DfcBatchGet(keyPtrs.data(), keysCount, bufs, lengths.data(), results.data(), flags);
+    int32_t ret = DlUbsioApi::UbsioBatchGet(keyPtrs.data(), keysCount, bufs, lengths.data(), results.data(), flags);
     TP_TRACE_END(TP_MMC_UBS_IO_BATCH_GET, ret);
     return ret;
 }
@@ -210,8 +208,8 @@ Result MmcUbsIoProxy::BatchGetWithHBM(const std::vector<std::string> &keys,
 
     uint32_t flags = 0;
     TP_TRACE_BEGIN(TP_MMC_UBS_IO_BATCH_GET);
-    int32_t ret = DlDfcApi::DfcBatchGetWithHBM(keyPtrs.data(), keysCount, bufs, lengths, lengthsRows,
-                                               lengthsCols, results.data(), flags);
+    int32_t ret = DlUbsioApi::UbsioBatchGetWithHBM(keyPtrs.data(), keysCount, bufs, lengths, lengthsRows,
+                                                   lengthsCols, results.data(), flags);
     TP_TRACE_END(TP_MMC_UBS_IO_BATCH_GET, ret);
     delete[] bufs;
     delete[] lengths;
@@ -223,7 +221,7 @@ Result MmcUbsIoProxy::BatchGetFree(void **bufs, int keysCount)
     MMC_ASSERT_RETURN(started_, MMC_NOT_INITIALIZED);
 
     TP_TRACE_BEGIN(TP_MMC_UBS_IO_BATCH_FREE);
-    int32_t ret = DlDfcApi::DfcBatchFreeAddress(bufs, keysCount);
+    int32_t ret = DlUbsioApi::UbsioBatchFreeAddress(bufs, keysCount);
     TP_TRACE_END(TP_MMC_UBS_IO_BATCH_FREE, ret);
     return ret;
 }
@@ -243,7 +241,7 @@ Result MmcUbsIoProxy::BatchExist(const std::vector<std::string> &keys, bool *res
     uint32_t flags = 0;
 
     TP_TRACE_BEGIN(TP_MMC_UBS_IO_BATCH_EXIST);
-    int32_t ret = DlDfcApi::DfcBatchExist(keyPtrs.data(), keysCount, results, flags);
+    int32_t ret = DlUbsioApi::UbsioBatchExist(keyPtrs.data(), keysCount, results, flags);
     TP_TRACE_END(TP_MMC_UBS_IO_BATCH_EXIST, ret);
     return ret;
 }
@@ -263,7 +261,7 @@ Result MmcUbsIoProxy::BatchDelete(const std::vector<std::string> &keys, std::vec
     uint32_t flags = 0;
 
     TP_TRACE_BEGIN(TP_MMC_UBS_IO_BATCH_DELETE);
-    int32_t ret = DlDfcApi::DfcBatchDelete(keyPtrs.data(), keysCount, results.data(), flags);
+    int32_t ret = DlUbsioApi::UbsioBatchDelete(keyPtrs.data(), keysCount, results.data(), flags);
     TP_TRACE_END(TP_MMC_UBS_IO_BATCH_DELETE, ret);
     return ret;
 }
@@ -285,7 +283,7 @@ Result MmcUbsIoProxy::BatchGetLength(const std::vector<std::string> &keys, std::
     uint32_t flags = 0;
 
     TP_TRACE_BEGIN(TP_MMC_UBS_IO_BATCH_LENGTH);
-    int32_t ret = DlDfcApi::DfcBatchGetLength(keyPtrs.data(), keysCount, lengths.data(), results.data(), flags);
+    int32_t ret = DlUbsioApi::UbsioBatchGetLength(keyPtrs.data(), keysCount, lengths.data(), results.data(), flags);
     TP_TRACE_END(TP_MMC_UBS_IO_BATCH_LENGTH, ret);
     return ret;
 }

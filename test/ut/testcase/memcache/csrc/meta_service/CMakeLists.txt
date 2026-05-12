@@ -110,5 +110,5 @@ ADD_UNIT_TEST(test_ubs_io_enabled
         INCLUDE_PATHS ${TEST_INCLUDE_PATHS}
         LINK_LIBRARIES ${TEST_DEPEND_LIBS}
         BUILD_FLAGS -fpermissive --coverage
-        DEPENDS mock_dfc
+        DEPENDS mock_ubsio
 )

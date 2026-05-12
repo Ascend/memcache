@@ -169,7 +169,7 @@ TEST_F(TestUbsIoProxy, BatchPutAndGet)
         ASSERT_STREQ(static_cast<char*>(get_bufs[i]), values[i].c_str());
     }
 
-    // 测试BatchGetFree操作（释放DFC分配的内存）
+    // 测试BatchGetFree操作（释放UBSIO分配的内存）
     result_ = proxy_->BatchGetFree(get_bufs.data(), get_bufs.size());
     ASSERT_EQ(result_, MMC_OK);
 }

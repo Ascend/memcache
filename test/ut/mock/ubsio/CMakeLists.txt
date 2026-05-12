@@ -8,6 +8,6 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-add_library(mock_dfc SHARED mock_dfc_api.cpp)
-target_include_directories(mock_dfc PRIVATE ${CMAKE_SOURCE_DIR}/src/memcache/csrc/under_api/ubs_io)
-set_target_properties(mock_dfc PROPERTIES OUTPUT_NAME "dfc_client")
+add_library(mock_ubsio SHARED mock_ubsio_api.cpp)
+target_include_directories(mock_ubsio PRIVATE ${CMAKE_SOURCE_DIR}/src/memcache/csrc/under_api/ubs_io)
+set_target_properties(mock_ubsio PROPERTIES OUTPUT_NAME "ubsio_kvc")

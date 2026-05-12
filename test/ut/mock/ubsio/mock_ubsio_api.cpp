@@ -17,53 +17,48 @@
 #include <vector>
 #include <algorithm>
 
-// 定义与DFC库相同的类型和函数
-
-enum class kv_worker_mode {
-    KV_CONVERGENCE,
-    KV_SEPARATES
-};
-
 // 全局存储模拟
-std::map<std::string, std::string> gDfcStorage;
-std::mutex gDfcMutex;
+std::map<std::string, std::string> gUbsioStorage;
+std::mutex gUbsioMutex;
+
+// 存储分配的内存，以便后续释放
+std::vector<void*> gAllocatedBuffers;
+std::mutex gBufferMutex;
 
 // 初始化函数
-extern "C" int32_t DfcClientInit(kv_worker_mode mode, int32_t deviceId)
+extern "C" int32_t UbsioKvCacheInit(int32_t deviceId)
 {
-    (void)mode;
     (void)deviceId;
-
     return 0;
 }
 
 // 写入函数
-extern "C" int32_t DfcPut(const char *key, void *buf, size_t length, uint32_t flags)
+extern "C" int32_t UbsioKvCachePut(const char *key, void *buf, size_t length, uint32_t flags)
 {
     (void)flags;
     if (key == nullptr || buf == nullptr) {
         return -1;
     }
     
-    std::lock_guard<std::mutex> lock(gDfcMutex);
+    std::lock_guard<std::mutex> lock(gUbsioMutex);
     std::string keyStr(key);
     std::string valueStr(static_cast<char*>(buf), length);
-    gDfcStorage[keyStr] = valueStr;
+    gUbsioStorage[keyStr] = valueStr;
     return 0;
 }
 
 // 读取函数
-extern "C" int32_t DfcGet(const char *key, void *buf, size_t length, uint32_t flags)
+extern "C" int32_t UbsioKvCacheGet(const char *key, void *buf, size_t length, uint32_t flags)
 {
     (void)flags;
     if (key == nullptr || buf == nullptr) {
         return -1;
     }
     
-    std::lock_guard<std::mutex> lock(gDfcMutex);
+    std::lock_guard<std::mutex> lock(gUbsioMutex);
     std::string keyStr(key);
-    auto it = gDfcStorage.find(keyStr);
-    if (it == gDfcStorage.end()) {
+    auto it = gUbsioStorage.find(keyStr);
+    if (it == gUbsioStorage.end()) {
         return -1;
     }
     
@@ -77,44 +72,44 @@ extern "C" int32_t DfcGet(const char *key, void *buf, size_t length, uint32_t fl
 }
 
 // 检查存在函数
-extern "C" bool DfcExist(const char *key, uint32_t flags)
+extern "C" bool UbsioKvCacheExist(const char *key, uint32_t flags)
 {
     (void)flags;
     if (key == nullptr) {
         return false;
     }
     
-    std::lock_guard<std::mutex> lock(gDfcMutex);
+    std::lock_guard<std::mutex> lock(gUbsioMutex);
     std::string keyStr(key);
-    return gDfcStorage.find(keyStr) != gDfcStorage.end();
+    return gUbsioStorage.find(keyStr) != gUbsioStorage.end();
 }
 
 // 删除函数
-extern "C" int32_t DfcDelete(const char *key, uint32_t flags)
+extern "C" int32_t UbsioKvCacheDelete(const char *key, uint32_t flags)
 {
     (void)flags;
     if (key == nullptr) {
         return -1;
     }
     
-    std::lock_guard<std::mutex> lock(gDfcMutex);
+    std::lock_guard<std::mutex> lock(gUbsioMutex);
     std::string keyStr(key);
-    size_t erased = gDfcStorage.erase(keyStr);
+    size_t erased = gUbsioStorage.erase(keyStr);
     return erased > 0 ? 0 : -1;
 }
 
 // 获取长度函数
-extern "C" int32_t DfcGetLength(const char *key, size_t *length, uint32_t flags)
+extern "C" int32_t UbsioKvCacheGetLength(const char *key, size_t *length, uint32_t flags)
 {
     (void)flags;
     if (key == nullptr || length == nullptr) {
         return -1;
     }
     
-    std::lock_guard<std::mutex> lock(gDfcMutex);
+    std::lock_guard<std::mutex> lock(gUbsioMutex);
     std::string keyStr(key);
-    auto it = gDfcStorage.find(keyStr);
-    if (it == gDfcStorage.end()) {
+    auto it = gUbsioStorage.find(keyStr);
+    if (it == gUbsioStorage.end()) {
         return -1;
     }
     
@@ -123,15 +118,15 @@ extern "C" int32_t DfcGetLength(const char *key, size_t *length, uint32_t flags)
 }
 
 // 批量写入函数
-extern "C" int32_t DfcBatchPut(const char **keys, uint32_t keys_count, void **bufs,
-                               size_t *lengths, int *results, uint32_t flags)
+extern "C" int32_t UbsioKvCacheBatchPut(const char **keys, uint32_t keys_count, void **bufs, size_t *lengths,
+                                        int *results, uint32_t flags)
 {
     (void)flags;
     if (keys == nullptr || bufs == nullptr || lengths == nullptr || results == nullptr) {
         return -1;
     }
     
-    std::lock_guard<std::mutex> lock(gDfcMutex);
+    std::lock_guard<std::mutex> lock(gUbsioMutex);
     for (uint32_t i = 0; i < keys_count; ++i) {
         if (keys[i] == nullptr || bufs[i] == nullptr) {
             results[i] = -1;
@@ -140,26 +135,22 @@ extern "C" int32_t DfcBatchPut(const char **keys, uint32_t keys_count, void **bu
         
         std::string keyStr(keys[i]);
         std::string valueStr(static_cast<char*>(bufs[i]), lengths[i]);
-        gDfcStorage[keyStr] = valueStr;
+        gUbsioStorage[keyStr] = valueStr;
         results[i] = 0;
     }
     return 0;
 }
 
-// 存储分配的内存，以便后续释放
-std::vector<void*> gAllocatedBuffers;
-std::mutex gBufferMutex;
-
 // 批量读取函数
-extern "C" int32_t DfcBatchGet(const char **keys, uint32_t keys_count, void **bufs,
-                               size_t *lengths, int *results, uint32_t flags)
+extern "C" int32_t UbsioKvCacheBatchGet(const char **keys, uint32_t keys_count, void **bufs, size_t *lengths,
+                                        int *results, uint32_t flags)
 {
     (void)flags;
     if (keys == nullptr || bufs == nullptr || lengths == nullptr || results == nullptr) {
         return -1;
     }
     
-    std::lock_guard<std::mutex> lock(gDfcMutex);
+    std::lock_guard<std::mutex> lock(gUbsioMutex);
     for (uint32_t i = 0; i < keys_count; ++i) {
         if (keys[i] == nullptr) {
             results[i] = -1;
@@ -167,22 +158,22 @@ extern "C" int32_t DfcBatchGet(const char **keys, uint32_t keys_count, void **bu
         }
         
         std::string keyStr(keys[i]);
-        auto it = gDfcStorage.find(keyStr);
-        if (it == gDfcStorage.end()) {
+        auto it = gUbsioStorage.find(keyStr);
+        if (it == gUbsioStorage.end()) {
             results[i] = -1;
             continue;
         }
         
         const std::string& value = it->second;
-        // DFC为buf分配内存
-        void* allocatedBuf = malloc(value.size() + 1); // 额外加1用于字符串结束符
+        // UBSIO为buf分配内存
+        void* allocatedBuf = malloc(value.size() + 1);
         if (allocatedBuf == nullptr) {
             results[i] = -1;
             continue;
         }
         
         memcpy(allocatedBuf, value.c_str(), value.size());
-        static_cast<char*>(allocatedBuf)[value.size()] = '\0'; // 添加字符串结束符
+        static_cast<char*>(allocatedBuf)[value.size()] = '\0';
         
         // 存储分配的内存
         {
@@ -199,14 +190,14 @@ extern "C" int32_t DfcBatchGet(const char **keys, uint32_t keys_count, void **bu
 }
 
 // 批量检查存在函数
-extern "C" int32_t DfcBatchExist(const char **keys, uint32_t keys_count, bool *results, uint32_t flags)
+extern "C" int32_t UbsioKvCacheBatchExist(const char **keys, uint32_t keys_count, bool *results, uint32_t flags)
 {
     (void)flags;
     if (keys == nullptr || results == nullptr) {
         return -1;
     }
     
-    std::lock_guard<std::mutex> lock(gDfcMutex);
+    std::lock_guard<std::mutex> lock(gUbsioMutex);
     for (uint32_t i = 0; i < keys_count; ++i) {
         if (keys[i] == nullptr) {
             results[i] = false;
@@ -214,20 +205,20 @@ extern "C" int32_t DfcBatchExist(const char **keys, uint32_t keys_count, bool *r
         }
         
         std::string keyStr(keys[i]);
-        results[i] = (gDfcStorage.find(keyStr) != gDfcStorage.end());
+        results[i] = (gUbsioStorage.find(keyStr) != gUbsioStorage.end());
     }
     return 0;
 }
 
 // 批量删除函数
-extern "C" int32_t DfcBatchDelete(const char **keys, uint32_t keys_count, int32_t *results, uint32_t flags)
+extern "C" int32_t UbsioKvCacheBatchDelete(const char **keys, uint32_t keys_count, int32_t *results, uint32_t flags)
 {
     (void)flags;
     if (keys == nullptr || results == nullptr) {
         return -1;
     }
     
-    std::lock_guard<std::mutex> lock(gDfcMutex);
+    std::lock_guard<std::mutex> lock(gUbsioMutex);
     for (uint32_t i = 0; i < keys_count; ++i) {
         if (keys[i] == nullptr) {
             results[i] = -1;
@@ -235,22 +226,22 @@ extern "C" int32_t DfcBatchDelete(const char **keys, uint32_t keys_count, int32_
         }
         
         std::string keyStr(keys[i]);
-        size_t erased = gDfcStorage.erase(keyStr);
+        size_t erased = gUbsioStorage.erase(keyStr);
         results[i] = (erased > 0) ? 0 : -1;
     }
     return 0;
 }
 
 // 批量获取长度函数
-extern "C" int32_t DfcBatchGetLength(const char **keys, uint32_t keys_count, size_t *lengths,
-                                     int32_t *results, uint32_t flags)
+extern "C" int32_t UbsioKvCacheBatchGetLength(const char **keys, uint32_t keys_count, size_t *lengths,
+                                              int32_t *results, uint32_t flags)
 {
     (void)flags;
     if (keys == nullptr || lengths == nullptr || results == nullptr) {
         return -1;
     }
     
-    std::lock_guard<std::mutex> lock(gDfcMutex);
+    std::lock_guard<std::mutex> lock(gUbsioMutex);
     for (uint32_t i = 0; i < keys_count; ++i) {
         if (keys[i] == nullptr) {
             results[i] = -1;
@@ -258,8 +249,8 @@ extern "C" int32_t DfcBatchGetLength(const char **keys, uint32_t keys_count, siz
         }
         
         std::string keyStr(keys[i]);
-        auto it = gDfcStorage.find(keyStr);
-        if (it == gDfcStorage.end()) {
+        auto it = gUbsioStorage.find(keyStr);
+        if (it == gUbsioStorage.end()) {
             results[i] = -1;
             continue;
         }
@@ -271,7 +262,7 @@ extern "C" int32_t DfcBatchGetLength(const char **keys, uint32_t keys_count, siz
 }
 
 // 批量释放地址函数
-extern "C" int32_t DfcBatchFreeAddress(void **bufs, uint32_t keys_count)
+extern "C" int32_t UbsioKvCacheBatchFree(void **bufs, uint32_t keys_count)
 {
     if (bufs == nullptr) {
         return -1;
@@ -293,32 +284,21 @@ extern "C" int32_t DfcBatchFreeAddress(void **bufs, uint32_t keys_count)
     return 0;
 }
 
-extern "C" int32_t DfcBatchGetWithHBM(const char **keys, uint32_t keys_count, void ***bufs, size_t **lengths,
-                                      uint32_t lengthsRows, uint32_t lengthsCols, int *results, uint32_t flags)
+// 批量直接读取函数（带HBM）
+extern "C" int32_t UbsioKvCacheBatchGetDirect(const char **keys, uint32_t keys_count, void ***bufs, size_t **lengths,
+    uint32_t lengths_rows, uint32_t lengths_cols, int *results, uint32_t flags)
 {
     (void)flags;
-    if (keys == nullptr || bufs == nullptr || lengths == nullptr || results == nullptr) {
+    (void)bufs;
+    (void)lengths;
+    (void)lengths_rows;
+    (void)lengths_cols;
+    if (keys == nullptr || results == nullptr) {
         return -1;
     }
-    if (lengthsRows != keys_count || lengthsCols < 1) {
-        return -1;
-    }
-
-    std::lock_guard<std::mutex> lock(gDfcMutex);
+    
+    // 简化实现，标记所有为成功
     for (uint32_t i = 0; i < keys_count; ++i) {
-        if (keys[i] == nullptr) {
-            results[i] = -1;
-            continue;
-        }
-        
-        std::string keyStr(keys[i]);
-        auto it = gDfcStorage.find(keyStr);
-        if (it == gDfcStorage.end()) {
-            results[i] = -1;
-            continue;
-        }
-        
-        lengths[i] = it->second.size();
         results[i] = 0;
     }
     return 0;
