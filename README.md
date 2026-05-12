@@ -47,7 +47,7 @@ MemCache包含LocalService和MetaService两大核心组件：
 
 - **MetaService**：
   - 负责管理整个集群中内存池空间的分配和管理，处理LocalService的加入与退出。
-  - MetaService作为独立进程运行，提供两种启动方式：python API启动；二进制启动，详见 [安装部署](./doc/build.md)
+  - MetaService作为独立进程运行，提供两种启动方式：python API启动；二进制启动，详见 [whl安装使用](./doc/install_whl.md) 和 [run安装使用](./doc/install_run.md)
   - MetaService支持两种部署形态：
   ***1、单点模式***：MetaService由单个进程组成，部署方式简单，但存在单点故障的问题。如果MetaService进程崩溃或无法访问，系统将无法继续提供服务，直至重新恢复为止。
   ***2、HA模式***：该模式基于K8S的的ClusterIP Service和Lease资源构建，部署较为复杂，该模式会部署多个MetaService进程实例，实现多活高可用。部署详见 [MetaService HA](./doc/memcache_metaservice_HA.md)      
@@ -110,13 +110,13 @@ MemCache核心能力是提供大容量内存池和高性能的H2D、D2H、**D2RH
 
 请访问以下文档获取简易教程。
 
-- [编译部署](./doc/build.md)：介绍组件编译和安装教程。
+- 安装使用：[whl安装和使用](./doc/install_whl.md)（适用于Python用户），[run编译、安装和使用](./doc/install_run.md)（适用于C++用户）
 - [配置文件](doc/memcache_config.md)：涉及MetaService、LocalService公共配置
-- [样例执行](./example/examples.md)：介绍如何端到端执行样例代码，包括C++和Python样例。
+- [样例执行](./example/examples.md)：介绍如何端到端执行样例代码，包括C++和Python样例
 - [最佳实践]：推出中...
 ## 📑学习教程
 
-- [c++接口](doc/mamcache_c++_api.md)：C++接口介绍以及C++接口对应的API列表
+- [c++接口](doc/memcache_c++_api.md)：C++接口介绍以及C++接口对应的API列表
 - [python接口](doc/memcache_python_api.md)：python接口介绍以及python接口对应的API列表
 
 ## 📦软件硬件配套说明
