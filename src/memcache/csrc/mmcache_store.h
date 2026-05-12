@@ -119,6 +119,12 @@ public:
 
     std::vector<KeyInfo> BatchGetKeyInfo(const std::vector<std::string> &keys) override;
 
+    std::vector<uintptr_t> BatchMalloc(const std::vector<std::string> &keys, const std::vector<size_t> &sizes,
+                                       uint16_t media) override;
+
+    int BatchCopy(std::vector<void *> &gvas, std::vector<void *> &buffers, std::vector<size_t> &sizes,
+                  const int32_t direct = 3) override;
+
     // bellow only python api use
     mmc_buffer Get(const std::string &key);
 

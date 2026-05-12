@@ -58,15 +58,15 @@ Result MmcMemObjMeta::RemoveBlobs(const MmcBlobFilterPtr &filter, bool revert)
     return numBlobs_ < oldNumBlobs ? MMC_OK : MMC_ERROR;
 }
 
-Result MmcMemObjMeta::FreeBlobs(const std::string &key, MmcGlobalAllocatorPtr &allocator,
-                                const MmcBlobFilterPtr &filter, bool doBackupRemove)
+std::vector<MmcMemBlobPtr> MmcMemObjMeta::FreeBlobs(const std::string &key, MmcGlobalAllocatorPtr &allocator,
+                                                    const MmcBlobFilterPtr &filter, bool doBackupRemove)
 {
     if (NumBlobs() == 0) {
-        return MMC_OK;
+        return {};
     }
     std::vector<MmcMemBlobPtr> blobs = GetBlobs(filter);
     RemoveBlobs(filter);
-    Result result = MMC_OK;
+
     Result ret = MMC_OK;
     for (size_t i = 0; i < blobs.size(); i++) {
         if (doBackupRemove) {
@@ -77,18 +77,17 @@ Result MmcMemObjMeta::FreeBlobs(const std::string &key, MmcGlobalAllocatorPtr &a
                                                       << " for key:" << key);
             }
         }
+        // 此步骤如果lease的client num不为零，会等待超时才会返回
         ret = blobs[i]->UpdateState(key, 0, 0, MMC_REMOVE_START);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("remove op, meta update failed:" << ret);
-            result = MMC_ERROR;
         }
         ret = allocator->Free(blobs[i]);
         if (ret != MMC_OK) {
             MMC_LOG_ERROR("Error in free blobs! failed:" << ret);
-            result = MMC_ERROR;
         }
     }
-    return result;
+    return blobs;
 }
 
 std::vector<MmcMemBlobPtr> MmcMemObjMeta::GetBlobs(const MmcBlobFilterPtr &filter, bool revert)

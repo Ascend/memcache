@@ -30,6 +30,7 @@ void DefineMmcStructModule(py::module_ &m)
         .def("size", &KeyInfo::Size)
         .def("loc_list", &KeyInfo::GetLocs)
         .def("type_list", &KeyInfo::GetTypes)
+        .def("gva_list", &KeyInfo::GetGvas)
         .def("__str__", &KeyInfo::ToString)
         .def("__repr__", &KeyInfo::ToString);
 
@@ -780,6 +781,60 @@ PYBIND11_MODULE(_pymmc, m)
             },
             py::arg("keys"), py::arg("buffer_ptrs"), py::arg("sizes"), py::arg("direct") = SMEMB_COPY_H2G,
             py::arg("replicateConfig") = defaultConfig)
+        .def(
+            "batch_alloc",
+            [](MmcacheStore &self, const std::vector<std::string> &keys, const std::vector<size_t> &sizes,
+               uint16_t media) {
+                py::gil_scoped_release release;
+                return self.BatchMalloc(keys, sizes, media);
+            },
+            py::arg("keys"), py::arg("sizes"), py::arg("media") = 1) // MEDIA_DRAM
+        .def(
+            "batch_copy",
+            [](MmcacheStore &self, const std::vector<uintptr_t> &gva_ptrs, const std::vector<uintptr_t> &buffer_ptrs,
+               std::vector<size_t> &sizes, const int32_t &direct) {
+                if (gva_ptrs.size() != buffer_ptrs.size() || gva_ptrs.size() != sizes.size()) {
+                    return -1;
+                }
+                std::vector<void *> gvaVec{};
+                std::vector<void *> bufVec{};
+                for (size_t i = 0; i < gva_ptrs.size(); i++) {
+                    gvaVec.push_back(reinterpret_cast<void *>(gva_ptrs[i]));
+                    bufVec.push_back(reinterpret_cast<void *>(buffer_ptrs[i]));
+                }
+
+                py::gil_scoped_release release;
+                return self.BatchCopy(gvaVec, bufVec, sizes, direct);
+            },
+            py::arg("gva_ptrs"), py::arg("buffer_ptrs"), py::arg("sizes"), py::arg("direct") = SMEMB_COPY_G2L)
+        .def(
+            "batch_copy_layers",
+            [](MmcacheStore &self, const std::vector<uintptr_t> &gva_ptrs,
+               const std::vector<std::vector<uintptr_t>> &buffer_ptrs, const std::vector<std::vector<size_t>> &sizes,
+               const int32_t &direct) {
+                if (gva_ptrs.size() != buffer_ptrs.size() || gva_ptrs.size() != sizes.size()) {
+                    return -1;
+                }
+
+                std::vector<void *> gvaVec{};
+                std::vector<void *> bufVec{};
+                std::vector<size_t> sizeVec{};
+                for (size_t i = 0; i < gva_ptrs.size(); i++) {
+                    uintptr_t gva = gva_ptrs[i];
+                    for (size_t j = 0; j < buffer_ptrs[i].size(); j++) {
+                        auto &buffer = buffer_ptrs[i][j];
+                        auto size = sizes[i][j];
+                        sizeVec.push_back(size);
+                        bufVec.push_back(reinterpret_cast<void *>(buffer));
+                        gvaVec.push_back(reinterpret_cast<void *>(gva));
+                        gva += size;
+                    }
+                }
+
+                py::gil_scoped_release release;
+                return self.BatchCopy(gvaVec, bufVec, sizeVec, direct);
+            },
+            py::arg("gva_ptrs"), py::arg("buffer_ptrs"), py::arg("sizes"), py::arg("direct") = SMEMB_COPY_G2L)
         .def(
             "put",
             [](MmcacheStore &self, const std::string &key, const py::buffer &buf,

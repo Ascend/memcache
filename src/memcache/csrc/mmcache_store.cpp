@@ -359,6 +359,7 @@ KeyInfo MmcacheStore::GetKeyInfo(const std::string &key)
     for (int i = 0; i < info.numBlobs; i++) {
         keyInfo.AddLoc(info.ranks[i]);
         keyInfo.AddType(info.types[i]);
+        keyInfo.AddGva(info.gvas[i]);
     }
     return keyInfo;
 }
@@ -410,6 +411,7 @@ std::vector<KeyInfo> MmcacheStore::BatchGetKeyInfo(const std::vector<std::string
         for (int j = 0; j < info.numBlobs && j < MAX_BLOB_COPIES; j++) {
             keyInfo.AddLoc(info.ranks[j]);
             keyInfo.AddType(info.types[j]);
+            keyInfo.AddGva(info.gvas[j]);
         }
         infoList.emplace_back(keyInfo);
     }
@@ -928,5 +930,37 @@ std::vector<mmc_buffer> MmcacheStore::GetBatch(const std::vector<std::string> &k
     (void)ret;
     return buffers;
 }
+
+std::vector<uintptr_t> MmcacheStore::BatchMalloc(const std::vector<std::string> &keys, const std::vector<size_t> &sizes,
+                                                 uint16_t media)
+{
+    std::vector<uintptr_t> gvas(keys.size(), 0);
+    if (keys.size() != sizes.size()) {
+        MMC_LOG_ERROR("Input vector sizes mismatch: keys=" << keys.size() << ", sizes=" << sizes.size());
+        return gvas;
+    }
+
+    for (const std::string &key : keys) {
+        if (key.length() == 0 || key.length() > MAX_KEY_LEN) {
+            MMC_LOG_ERROR("Invalid param, key's len (" << key.length() << ") is not between 1 and " << MAX_KEY_LEN);
+            return gvas;
+        }
+    }
+
+    mmc_put_options options{};
+    options.mediaType = media;
+    options.policy = NATIVE_AFFINITY;
+    options.replicaNum = 1;
+    std::fill(std::begin(options.preferredLocalServiceIDs), std::end(options.preferredLocalServiceIDs), -1);
+    MmcClientDefault::GetInstance()->BatchMalloc(keys, sizes, options, gvas);
+    return gvas;
+}
+
+int MmcacheStore::BatchCopy(std::vector<void *> &gvas, std::vector<void *> &buffers, std::vector<size_t> &sizes,
+                            const int32_t direct)
+{
+    return MmcClientDefault::GetInstance()->BatchCopy(gvas, buffers, sizes, direct);
+}
+
 } // namespace mmc
 } // namespace ock

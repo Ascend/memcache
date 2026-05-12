@@ -72,6 +72,8 @@ constexpr auto OCK_MMC_CLIENT_READ_THREAD_POOL_SIZE = std::make_pair("ock.mmc.cl
 constexpr auto OCK_MMC_CLIENT_AGGREGATE_IO = std::make_pair("ock.mmc.client.aggregate.io", true);
 constexpr auto OCK_MMC_CLIENT_AGGREGATE_NUM = std::make_pair("ock.mmc.client.aggregate.num", 122);
 constexpr auto OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE = std::make_pair("ock.mmc.client.write_thread_pool.size", 4);
+constexpr auto OCK_MMC_CLIENT_BATCH_CHUNK_SIZE = std::make_pair("ock.mmc.client.batch_option.chunk.size", "8MB");
+constexpr auto OCK_MMC_CLIENT_BATCH_CHUNK_COUNT = std::make_pair("ock.mmc.client.batch_option.chunk.count", 3);
 
 constexpr auto OCK_MMC_UBS_IO_ENABLE = std::make_pair("ock.mmc.ubs_io.enable", false);
 } // namespace ConfConstant
@@ -100,6 +102,7 @@ constexpr int MAX_TIMEOUT_SEC = 600;
 constexpr int MIN_THREAD_POOL_SIZE = 1;
 constexpr int MAX_THREAD_POOL_SIZE = 64;
 constexpr int MAX_AGGREGATE_NUM = 131072; // 128K
+constexpr int MAX_BATCH_CHUNK_COUNT = 64;
 
 constexpr uint64_t MAX_DRAM_SIZE = 1024ULL * 1024ULL * 1024ULL * 1024ULL; // 1TB
 constexpr uint64_t MAX_HBM_SIZE = 1024ULL * 1024ULL * 1024ULL * 1024ULL;  // 1TB
@@ -114,6 +117,8 @@ constexpr uint64_t MEM_2MB_BYTES = 2ULL * 1024ULL * 1024ULL;
 constexpr uint64_t MEM_128MB_BYTES = 128ULL * 1024ULL * 1024ULL;
 
 constexpr unsigned long PATH_MAX_LEN = 1023;
+
+constexpr uint64_t DEFAULT_BATCH_CHUNK_SIZE = 8 * MB_MEM_BYTES;
 
 } // namespace mmc
 } // namespace ock

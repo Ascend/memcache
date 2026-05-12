@@ -68,6 +68,12 @@ public:
     Result BatchQuery(const std::vector<std::string> &keys, std::vector<mmc_data_info> &query_infos,
                       uint32_t flags) const;
 
+    Result BatchMalloc(const std::vector<std::string> &keys, const std::vector<size_t> &sizes,
+                       const mmc_put_options &options, std::vector<uintptr_t> &gvas);
+
+    Result BatchCopy(std::vector<void *> &gvas, std::vector<void *> &buffers, std::vector<size_t> &sizes,
+                     const int32_t direct);
+
     Result RegisterBuffer(uint64_t addr, uint64_t size);
 
     Result UnRegisterBuffer(uint64_t addr, uint64_t size);
@@ -116,7 +122,7 @@ private:
     MmcClientDefault &operator=(const MmcClientDefault &) = delete;
 
     inline uint32_t RankId(const affinity_policy &policy);
-    Result PrepareAllocOpt(const MmcBufferArray &bufArr, const mmc_put_options &options, uint32_t flags,
+    Result PrepareAllocOpt(const uint64_t blobSize, const mmc_put_options &options, uint32_t flags,
                            AllocOptions &allocOpt);
     Result PrepareBlob(const MmcBufferArray &bufArr, const MmcMemBlobDesc &blob, MediaType &mediaType,
                        BatchCopyDesc &copyDesc, bool blobIsSrc);
@@ -128,9 +134,16 @@ private:
                       std::vector<int> &batchResult);
     void SyncUpdateState(BatchUpdateRequest &updateRequest);
     void AsyncUpdateState(BatchUpdateRequest &updateRequest);
+    void SyncUpdateBlobByGva(BatchUpdateBlobRequest &updateRequest);
+    void AsyncUpdateBlobByGva(BatchUpdateBlobRequest &updateRequest);
     std::future<int32_t> SubmitPutTask(BatchCopyDesc &copyDesc, MediaType mediaType, bool asyncExec);
     std::future<int32_t> SubmitGetTask(BatchCopyDesc &copyDesc, MediaType mediaType, bool asyncExec);
-    
+    Result BatchDataOperation(std::vector<void *> &gvas, std::vector<void *> &buffers, std::vector<size_t> &sizes,
+                              int32_t direct);
+    void NotifyUpdateBlobByGva(const std::vector<void *> &gvas, const std::vector<size_t> &sizes,
+                               Result operationResult);
+    Result ExecuteConcurrently(const std::vector<void *> &gvas, const std::vector<void *> &buffers,
+                               const std::vector<size_t> &sizes, bool isPut, MediaType mediaType, size_t chunkSize);
     // UBS IO相关数据结构
     struct UbsIoBatchGetData {
         const std::vector<std::string> &keys;
@@ -162,6 +175,8 @@ private:
     bool aggregateIO_{false};
     size_t aggregateNum_{0};
     MmcThreadPoolPtr writeThreadPool_;
+    uint64_t batchChunkSize_ = 0;
+    uint32_t batchChunkCount_ = 0;
 };
 
 uint32_t MmcClientDefault::RankId(const affinity_policy &policy)

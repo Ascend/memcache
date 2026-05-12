@@ -344,7 +344,7 @@ private:
             return MMC_ERROR;
         }
         Result ret;
-        switch (allocReq.flags_) {
+        switch (allocReq.flags_ & 0xFF) {
             case ALLOC_ARRANGE:
                 ret = MmcLocalityStrategy::ArrangeLocality(allocators_, allocReq, blobs, excludeRanks);
                 break;

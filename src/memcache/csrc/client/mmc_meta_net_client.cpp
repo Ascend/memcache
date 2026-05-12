@@ -51,6 +51,7 @@ Result MetaNetClient::Start(const NetEngineOptions &config)
     client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_QUERY_REQ, nullptr);
     client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_BATCH_QUERY_REQ, nullptr);
     client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_BATCH_ALLOC_REQ, nullptr);
+    client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_BATCH_UPDATE_BLOB_REQ, nullptr);
     client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::LM_PING_REQ,
                                       std::bind(&MetaNetClient::HandlePing, this, std::placeholders::_1));
     client->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::LM_META_REPLICATE_REQ,

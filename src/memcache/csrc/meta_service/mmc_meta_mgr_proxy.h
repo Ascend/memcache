@@ -77,6 +77,8 @@ public:
 
     Result BatchUpdateState(const BatchUpdateRequest &req, BatchUpdateResponse &resp);
 
+    Result BatchUpdateBlobState(const BatchUpdateBlobRequest &req, BatchUpdateResponse &resp);
+
     Result Get(const GetRequest &req, AllocResponse &resp);
 
     Result BatchGet(const BatchGetRequest &req, BatchAllocResponse &resp);

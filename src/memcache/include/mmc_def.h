@@ -95,6 +95,8 @@ typedef struct {
     mmc_tls_config tlsConfig;
     bool ubsIoEnable;
     char dataOpType[PROTOCOL_SIZE];
+    uint64_t batchChunkSize;
+    uint32_t batchChunkCount;
 } mmc_client_config_t;
 
 typedef struct {
@@ -123,6 +125,7 @@ typedef struct {
     bool valid;
     uint32_t ranks[MAX_BLOB_COPIES];
     uint16_t types[MAX_BLOB_COPIES];
+    uint64_t gvas[MAX_BLOB_COPIES];
 } mmc_data_info;
 
 #ifdef __cplusplus

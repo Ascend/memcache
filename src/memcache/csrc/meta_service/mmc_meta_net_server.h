@@ -70,6 +70,8 @@ private:
 
     Result HandleBatchQuery(const NetContextPtr &context);
 
+    Result HandleBatchUpdateBlob(const NetContextPtr &context);
+
 private:
     NetEnginePtr engine_;
     MmcMetaServicePtr metaService_;

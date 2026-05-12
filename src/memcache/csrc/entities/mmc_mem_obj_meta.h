@@ -53,8 +53,8 @@ public:
      * @param allocator allocator ptr
      * @return 0 if removed
      */
-    Result FreeBlobs(const std::string &key, MmcGlobalAllocatorPtr &allocator, const MmcBlobFilterPtr &filter = nullptr,
-                     bool doBackupRemove = true);
+    std::vector<MmcMemBlobPtr> FreeBlobs(const std::string &key, MmcGlobalAllocatorPtr &allocator,
+                                         const MmcBlobFilterPtr &filter = nullptr, bool doBackupRemove = true);
 
     /**
      * @brief Get the prot

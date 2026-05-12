@@ -136,6 +136,26 @@ Result MmcMetaMgrProxy::BatchUpdateState(const BatchUpdateRequest &req, BatchUpd
     return MMC_OK;
 }
 
+Result MmcMetaMgrProxy::BatchUpdateBlobState(const BatchUpdateBlobRequest &req, BatchUpdateResponse &resp)
+{
+    const size_t gvaCount = req.gvas_.size();
+    if (gvaCount != req.sizes_.size() || gvaCount != req.actionResults_.size()) {
+        MMC_LOG_ERROR("Input vectors size mismatch {gvaNum:" << req.gvas_.size() << ", sizeNum:" << req.sizes_.size()
+                                                             << ", retNum:" << req.actionResults_.size() << "}");
+        return MMC_ERROR;
+    }
+
+    for (size_t i = 0; i < gvaCount; ++i) {
+        Result ret = metaMangerPtr_->UpdateBlobState(req.gvas_[i], req.sizes_[i], req.actionResults_[i]);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("update for gva: " << req.gvas_[i] << ", size:" << req.sizes_[i]
+                                             << ", action:" << req.actionResults_[i] << " failed, error: " << ret);
+        }
+        resp.results_.push_back(ret);
+    }
+    return MMC_OK;
+}
+
 Result MmcMetaMgrProxy::Get(const GetRequest &req, AllocResponse &resp)
 {
     MmcMetaMetricManager &metricManager = MmcMetaMetricManager::GetInstance();

@@ -154,6 +154,47 @@ inline std::string SafeGetEnv(const char *name) noexcept
     return value;
 }
 
+// bit ops
+template<typename T>
+inline void SetBit(T &value, uint32_t bit)
+{
+    constexpr uint32_t maxBits = sizeof(T) * 8;
+    if (bit < maxBits) {
+        value |= (T{1} << bit);
+    }
+}
+
+template<typename T>
+inline bool IsBitSet(T value, uint32_t bit)
+{
+    constexpr uint32_t maxBits = sizeof(T) * 8;
+    return (bit < maxBits) && ((value & (T{1} << bit)) != 0);
+}
+
+template<typename T>
+inline void ClearBit(T &value, uint32_t bit)
+{
+    constexpr uint32_t maxBits = sizeof(T) * 8;
+    if (bit < maxBits) {
+        value &= ~(T{1} << bit);
+    }
+}
+
+template<typename T>
+inline void ToggleBit(T &value, uint32_t bit)
+{
+    constexpr uint32_t maxBits = sizeof(T) * 8;
+    if (bit < maxBits) {
+        value ^= (T{1} << bit); // 翻转指定位
+    }
+}
+
+template<typename T>
+inline void SetBits(T &value, T mask)
+{
+    value |= mask;
+}
+
 } // namespace mmc
 } // namespace ock
 #endif // MEM_FABRIC_HYBRID_SMEM_COMMON_FUNC_H

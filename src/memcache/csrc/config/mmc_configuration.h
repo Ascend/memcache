@@ -314,6 +314,9 @@ public:
         AddIntConf(OCK_MMC_CLIENT_AGGREGATE_NUM,
                    VIntRange::Create(OCK_MMC_CLIENT_AGGREGATE_NUM.first, 1, MAX_AGGREGATE_NUM), 0);
         AddBoolConf(OCK_MMC_UBS_IO_ENABLE, VNoCheck::Create(), 0);
+        AddStrConf(OCK_MMC_CLIENT_BATCH_CHUNK_SIZE, VNoCheck::Create(), 0);
+        AddIntConf(OCK_MMC_CLIENT_BATCH_CHUNK_COUNT,
+                   VIntRange::Create(OCK_MMC_CLIENT_BATCH_CHUNK_COUNT.first, 1, MAX_BATCH_CHUNK_COUNT), 0);
     }
 
     void GetLocalServiceConfig(mmc_local_service_config_t &config)
@@ -350,6 +353,9 @@ public:
         config.aggregateIO = GetBool(ConfConstant::OCK_MMC_CLIENT_AGGREGATE_IO);
         config.aggregateNum = GetInt(ConfConstant::OCK_MMC_CLIENT_AGGREGATE_NUM);
         config.writeThreadPoolNum = static_cast<uint32_t>(GetInt(ConfConstant::OCK_MMC_CLIENT_WRITE_THREAD_POOL_SIZE));
+        config.batchChunkSize =
+            GetUInt64(ConfConstant::OKC_MMC_LOCAL_SERVICE_DRAM_SIZE.first, DEFAULT_BATCH_CHUNK_SIZE);
+        config.batchChunkCount = GetInt(ConfConstant::OCK_MMC_CLIENT_BATCH_CHUNK_COUNT);
         std::string logLevelStr = GetString(ConfConstant::OCK_MMC_LOG_LEVEL);
         StringToUpper(logLevelStr);
         config.logLevel = MmcOutLogger::Instance().GetLogLevel(logLevelStr);

@@ -333,3 +333,71 @@ TEST_F(TestMmcacheStore, BatchIsExist)
     ret = store->BatchIsExist(keys);
     EXPECT_EQ(ret[0], MMC_INVALID_PARAM);
 }
+
+TEST_F(TestMmcacheStore, BatchMalloc)
+{
+    std::string metaUrl = "tcp://127.0.0.1:5869";
+    std::string bmUrl = "tcp://127.0.0.1:5882";
+
+    mmc_meta_service_config_t metaServiceConfig{};
+    metaServiceConfig.logLevel = INFO_LEVEL;
+    metaServiceConfig.logRotationFileSize = 2 * 1024 * 1024;
+    metaServiceConfig.logRotationFileCount = 20;
+    metaServiceConfig.accTlsConfig.tlsEnable = false;
+    metaServiceConfig.evictThresholdHigh = 80;
+    metaServiceConfig.evictThresholdLow = 60;
+    metaServiceConfig.haEnable = false;
+    metaServiceConfig.ubsIoEnable = false;
+    UrlStringToChar(metaUrl, metaServiceConfig.discoveryURL);
+    UrlStringToChar(bmUrl, metaServiceConfig.configStoreURL);
+    mmc_meta_service_t meta_service = mmcs_meta_service_start(&metaServiceConfig);
+    ASSERT_TRUE(meta_service != nullptr);
+    mmc_set_extern_logger([](int level, const char *msg) { std::cerr << msg << std::endl; });
+    mmc_set_log_level(1);
+
+    std::shared_ptr<ObjectStore> store = ObjectStore::CreateObjectStore();
+    auto ret = GenerateLocalConf(confPath_);
+    ASSERT_EQ(ret, 0);
+    MMC_LOCAL_CONF_PATH = confPath_;
+    ret = store->Init(0);
+    ASSERT_EQ(ret, 0);
+
+    std::vector<std::string> keys{"key1", "key2", "key3", "key4"};
+    uint64_t bufferTestSize2M = 1024 * 1024 * 2ULL;
+    std::vector<uint64_t> sizes(keys.size(), bufferTestSize2M);
+    uint16_t media = 1;
+
+    auto gva_vec = store->BatchMalloc(keys, sizes, media);
+    for (auto gva : gva_vec) {
+        EXPECT_NE(gva, 0);
+    }
+
+    std::vector<void *> buffer1, buffer2, gvas;
+    for (auto i = 0; i < sizes.size(); ++i) {
+        auto ptr1 = malloc(sizes[i]);
+        memset(ptr1, i, sizes[i]);
+        auto ptr2 = malloc(sizes[i]);
+        memset(ptr2, 0, sizes[i]);
+        buffer1.push_back(ptr1);
+        buffer2.push_back(ptr2);
+    }
+    for (auto i = 0; i < gva_vec.size(); ++i) {
+        gvas.push_back(reinterpret_cast<void *>(gva_vec[i]));
+    }
+
+    ret = store->BatchCopy(gvas, buffer1, sizes, 0);
+    EXPECT_EQ(ret, 0);
+    ret = store->BatchCopy(gvas, buffer2, sizes, 1);
+    EXPECT_EQ(ret, 0);
+    for (auto i = 0; i < sizes.size(); ++i) {
+        ret = memcmp(buffer1[i], buffer2[i], sizes[i]);
+    }
+
+    store->BatchRemove(keys);
+    store->TearDown();
+    mmcs_meta_service_stop(meta_service);
+    for (auto i = 0; i < sizes.size(); ++i) {
+        free(buffer1[i]);
+        free(buffer2[i]);
+    }
+}

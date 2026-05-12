@@ -79,6 +79,8 @@ Result ock::mmc::MetaNetServer::Start(NetEngineOptions &options)
                                       std::bind(&MetaNetServer::HandleBatchQuery, this, std::placeholders::_1));
     server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_BATCH_ALLOC_REQ,
                                       std::bind(&MetaNetServer::HandleBatchAlloc, this, std::placeholders::_1));
+    server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::ML_BATCH_UPDATE_BLOB_REQ,
+                                      std::bind(&MetaNetServer::HandleBatchUpdateBlob, this, std::placeholders::_1));
     server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::LM_PING_REQ, nullptr);
     server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::LM_META_REPLICATE_REQ, nullptr);
     server->RegRequestReceivedHandler(LOCAL_META_OPCODE_REQ::LM_BLOB_COPY_REQ, nullptr);
@@ -206,6 +208,19 @@ Result MetaNetServer::HandleBatchAlloc(const NetContextPtr &context)
     if (batchResult != MMC_OK) {
         MMC_LOG_ERROR("BatchAlloc failed. Keys count: " << req.keys_.size() << ", Error: " << batchResult);
     }
+    return context->Reply(req.msgId, resp);
+}
+
+Result MetaNetServer::HandleBatchUpdateBlob(const NetContextPtr &context)
+{
+    BatchUpdateBlobRequest req{};
+    BatchUpdateResponse resp{};
+    context->GetRequest<BatchUpdateBlobRequest>(req);
+
+    auto &metaMgrProxy = metaService_->GetMetaMgrProxy();
+    TP_TRACE_BEGIN(TP_MMC_META_BATCH_UPDATE_BLOB);
+    auto ret = metaMgrProxy->BatchUpdateBlobState(req, resp);
+    TP_TRACE_END(TP_MMC_META_BATCH_UPDATE_BLOB, ret);
     return context->Reply(req.msgId, resp);
 }
 

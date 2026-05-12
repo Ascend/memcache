@@ -24,7 +24,7 @@ struct AllocOptions {
     uint32_t numBlobs_{0};
     uint16_t mediaType_{0};
     std::vector<uint32_t> preferredRank_{};
-    uint32_t flags_{0};
+    uint32_t flags_{0}; // 0 ~ 7 位用来做分配策略；从第8位开始，做其他的flag标记，详见 AllocFlags
     AllocOptions() = default;
     AllocOptions(const uint64_t blobSize, const uint32_t numBlobs, const uint16_t mediaType,
                  const std::vector<uint32_t> &preferredRank, const uint32_t flags)
@@ -180,6 +180,36 @@ struct BatchGetRequest : MsgBase {
         packer.Deserialize(operateId_);
         packer.Deserialize(rankId_);
         packer.Deserialize(keys_);
+        return MMC_OK;
+    }
+};
+
+struct BatchUpdateBlobRequest : MsgBase {
+    std::vector<uint64_t> gvas_{};
+    std::vector<uint64_t> sizes_{};
+    std::vector<BlobActionResult> actionResults_;
+
+    BatchUpdateBlobRequest() : MsgBase{0, ML_BATCH_UPDATE_BLOB_REQ, 0} {}
+
+    Result Serialize(NetMsgPacker &packer) const override
+    {
+        packer.Serialize(msgVer);
+        packer.Serialize(msgId);
+        packer.Serialize(destRankId);
+        packer.Serialize(gvas_);
+        packer.Serialize(sizes_);
+        packer.Serialize(actionResults_);
+        return MMC_OK;
+    }
+
+    Result Deserialize(NetMsgUnpacker &packer) override
+    {
+        packer.Deserialize(msgVer);
+        packer.Deserialize(msgId);
+        packer.Deserialize(destRankId);
+        packer.Deserialize(gvas_);
+        packer.Deserialize(sizes_);
+        packer.Deserialize(actionResults_);
         return MMC_OK;
     }
 };
@@ -470,6 +500,17 @@ struct UpdateRequest : MsgBase {
         packer.Deserialize(mediaType_);
         packer.Deserialize(operateId_);
         return MMC_OK;
+    }
+
+    bool operator==(const UpdateRequest &rhs) const
+    {
+        return this->key_ == rhs.key_ && this->rank_ == rhs.rank_ && this->mediaType_ == rhs.mediaType_ &&
+               this->operateId_ == rhs.operateId_;
+    }
+
+    bool operator!=(const UpdateRequest &rhs) const
+    {
+        return !(*this == rhs);
     }
 };
 

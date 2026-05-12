@@ -137,12 +137,7 @@ Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOp
 
     Result ret = globalAllocator_->Alloc(allocOpt, blobs);
     if (ret != MMC_OK) {
-        if (!blobs.empty()) {
-            for (auto &blob : blobs) {
-                globalAllocator_->Free(blob);
-            }
-            blobs.clear();
-        }
+        globalAllocator_->Free(blobs);
         MMC_LOG_ERROR("Alloc " << allocOpt.blobSize_ << " failed, ret:" << ret);
         return ret;
     }
@@ -157,17 +152,48 @@ Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOp
 
     ret = metaContainer_->Insert(key, tempMetaObj);
     if (ret != MMC_OK) {
-        tempMetaObj->FreeBlobs(key, globalAllocator_, nullptr, false);
+        globalAllocator_->Free(blobs);
         if (ret != MMC_DUPLICATED_OBJECT) {
             MMC_LOG_ERROR("Fail to insert " << key << " into MmcMetaContainer. ret:" << ret);
         }
-    } else {
+    }
+
+    // 重复插入，且是GVA_MALLOC场景，需要重新获取meta对象
+    if (ret == MMC_DUPLICATED_OBJECT && (allocOpt.flags_ & ALLOC_FLAGS_GVA_MALLOC_MASK)) {
+        tempMetaObj = nullptr;
+        auto repRet = metaContainer_->Get(key, tempMetaObj);
+        if (repRet != MMC_OK || tempMetaObj == nullptr) {
+            MMC_LOG_ERROR("Unexcept error! key: " << key << " not find in MmcMetaContainer. ret:" << repRet);
+            ret = MMC_ERROR;
+        }
+    }
+
+    if (ret == MMC_OK || (ret == MMC_DUPLICATED_OBJECT && (allocOpt.flags_ & ALLOC_FLAGS_GVA_MALLOC_MASK))) {
         std::unique_lock<std::mutex> guard(tempMetaObj->Mutex());
         objMeta.prot_ = tempMetaObj->Prot();
         objMeta.priority_ = tempMetaObj->Priority();
         objMeta.size_ = tempMetaObj->Size();
         tempMetaObj->GetBlobsDesc(objMeta.blobs_);
         objMeta.numBlobs_ = objMeta.blobs_.size();
+        // GVA_MALLOC场景，需要将对象的GVA信息记录下来，用于后续更新GVA信息
+        // 但是重复key不需要重复记录了
+        if ((allocOpt.flags_ & ALLOC_FLAGS_GVA_MALLOC_MASK) && ret != MMC_DUPLICATED_OBJECT) {
+            for (auto &blob : blobs) {
+                GvaMapInfo mapInfo{};
+                mapInfo.key_ = key;
+                mapInfo.operateId_ = operateId;
+                mapInfo.blob_ = blob;
+                std::unique_lock<std::mutex> guard(gvaMutex_);
+                if (!gva2updateMap_.Add(blob->Gva(), blob->Size(), mapInfo)) {
+                    MMC_LOG_ERROR("Add gva2updateMap failed, gva:" << blob->Gva() << ", size:" << blob->Size()
+                                                                   << ", key:" << key << ", operateId:" << operateId);
+                }
+            }
+        }
+
+        if ((allocOpt.flags_ & ALLOC_FLAGS_GVA_MALLOC_MASK)) {
+            ret = MMC_OK;
+        }
     }
     return ret;
 }
@@ -175,9 +201,19 @@ Result MmcMetaManager::Alloc(const std::string &key, const AllocOptions &allocOp
 Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &loc, const BlobActionResult &actRet,
                                    uint64_t operateId)
 {
+    Result ret;
+    if (actRet == MMC_WRITE_FAIL) {
+        ret = Remove(key);
+        if (ret != MMC_OK) {
+            MMC_LOG_ERROR("UpdateState: Failed remove key " << key << ", ret: " << ret);
+        }
+        return ret;
+    }
+
     MmcMemObjMetaPtr metaObj;
     // when update state, do not update the lru
-    Result ret = metaContainer_->Get(key, metaObj);
+    Result result = MMC_OK;
+    ret = metaContainer_->Get(key, metaObj);
     if (ret != MMC_OK || metaObj == nullptr) {
         MMC_LOG_ERROR("UpdateState: Cannot find " << key << " memObjMeta! ret:" << ret
                                                   << ", action:" << static_cast<uint32_t>(actRet));
@@ -186,20 +222,77 @@ Result MmcMetaManager::UpdateState(const std::string &key, const MmcLocation &lo
     MmcBlobFilterPtr filter = MmcMakeRef<MmcBlobFilter>(loc.rank_, loc.mediaType_, NONE);
     {
         std::unique_lock<std::mutex> guard(metaObj->Mutex());
-        ret = metaObj->UpdateBlobsState(key, filter, operateId, actRet);
-        if (ret != MMC_OK) {
-            MMC_LOG_ERROR("UpdateState: Failed to update blob state, ret: " << ret);
-            return ret;
+
+        std::vector<MmcMemBlobPtr> blobs = metaObj->GetBlobs(filter);
+
+        uint32_t opRankId = GetRankIdByOperateId(operateId);
+        uint32_t opSeq = GetSequenceByOperateId(operateId);
+
+        for (auto blob : blobs) {
+            auto ret = blob->UpdateState(key, opRankId, opSeq, actRet);
+            if (ret != MMC_OK) {
+                MMC_LOG_ERROR("Update rank:" << opRankId << ", seq:" << opSeq << " blob state by "
+                                             << std::to_string(actRet) << " Fail!");
+                result = MMC_ERROR;
+            }
         }
     }
+    return result;
+}
+
+Result MmcMetaManager::UpdateBlobState(const uint64_t gva, const uint64_t size, const BlobActionResult &actRet)
+{
+    std::unique_lock<std::mutex> gvaGuard(gvaMutex_);
+    GvaMapInfo *gvaInfo = gva2updateMap_.Query(gva, size);
+    if (gvaInfo == nullptr) {
+        MMC_LOG_DEBUG("query interval failed, gva:" << gva << ", size:" << size);
+        return MMC_OK;
+    }
+
+    auto key = gvaInfo->key_;
+    uint32_t opRankId = GetRankIdByOperateId(gvaInfo->operateId_);
+    uint32_t opSeq = GetSequenceByOperateId(gvaInfo->operateId_);
+    MmcMemBlobPtr blobPtr = gvaInfo->blob_;
+
+    Result ret;
     if (actRet == MMC_WRITE_FAIL) {
+        gva2updateMap_.RemoveAt(gva); // lease是否联动删除??
+        gvaGuard.unlock();            // 先解锁
+
         ret = Remove(key);
         if (ret != MMC_OK) {
-            MMC_LOG_ERROR("UpdateState: Failed remove key " << key << ", ret: " << ret);
-            return ret;
+            MMC_LOG_ERROR("UpdateBlobState: Failed remove key " << key << ", ret: " << ret);
         }
+        return ret;
     }
-    return MMC_OK;
+
+    if (!gvaInfo->Fill(gva, size)) {
+        return MMC_OK; // 未填满，不更新
+    }
+    gvaGuard.unlock(); // 先解锁
+
+    // when update state, do not update the lru
+    MmcMemObjMetaPtr metaObj = nullptr;
+    ret = metaContainer_->Get(key, metaObj);
+    if (ret != MMC_OK || metaObj == nullptr) {
+        std::unique_lock<std::mutex> tmpGuard1(gvaMutex_);
+        gva2updateMap_.RemoveAt(gva);
+        MMC_LOG_ERROR("UpdateState: Cannot find " << key << " memObjMeta! ret:" << ret << ", action:" << actRet
+                                                  << ", gva:" << gva << ", size:" << size);
+        return MMC_UNMATCHED_KEY;
+    }
+
+    std::unique_lock<std::mutex> metaGuard(metaObj->Mutex());
+    ret = blobPtr->UpdateState(key, opRankId, opSeq, actRet);
+    metaGuard.unlock(); // 必须释放锁，否则在 Remove 调用中会死锁
+    if (ret != MMC_OK) {
+        MMC_LOG_ERROR("failed to update gva:" << gva << ", size: " << size << ", key:" << key << " with " << actRet
+                                              << ", ret:" << ret);
+    }
+
+    std::unique_lock<std::mutex> tmpGuard2(gvaMutex_);
+    gva2updateMap_.RemoveAt(gva);
+    return ret;
 }
 
 void MmcMetaManager::PushRemoveList(const std::string &key, const MmcMemObjMetaPtr &meta)
@@ -207,12 +300,23 @@ void MmcMetaManager::PushRemoveList(const std::string &key, const MmcMemObjMetaP
     auto future = threadPool_->Enqueue(
         [&](const std::string keyL, const MmcMemObjMetaPtr metaL, MmcGlobalAllocatorPtr allocator) {
             std::unique_lock<std::mutex> guard(metaL->Mutex());
-            return metaL->FreeBlobs(keyL, allocator);
+            auto blobs = metaL->FreeBlobs(keyL, allocator);
+            std::unique_lock<std::mutex> tmpGuard1(gvaMutex_);
+            for (auto &blob : blobs) {
+                gva2updateMap_.RemoveAt(blob->Gva());
+            }
+            return MMC_OK;
         },
         key, meta, globalAllocator_);
+
+    std::vector<MmcMemBlobPtr> blobs;
     if (!future.valid()) {
         // already locked when call, no need lock again
-        meta->FreeBlobs(key, globalAllocator_);
+        blobs = meta->FreeBlobs(key, globalAllocator_);
+        std::unique_lock<std::mutex> tmpGuard1(gvaMutex_); // 这里这一步在meta锁内操作，是否会有ABA问题？
+        for (auto &blob : blobs) {
+            gva2updateMap_.RemoveAt(blob->Gva());
+        }
     }
 }
 
@@ -354,18 +458,21 @@ Result MmcMetaManager::Unmount(const MmcLocation &loc)
 
     auto matchFunc = [this, &filter](const std::string &key, const MmcMemObjMetaPtr &objMeta) -> bool {
         if (objMeta == nullptr) {
-            MMC_LOG_ERROR("objMeta is null");
+            MMC_LOG_ERROR("objMeta is null for key:" << key);
             return false;
         }
         std::unique_lock<std::mutex> guard(objMeta->Mutex());
-        auto ret = objMeta->FreeBlobs(key, globalAllocator_, filter, false);
-        if (ret != MMC_OK) {
-            MMC_LOG_ERROR("Fail to force remove key:" << key << " blobs in when unmount! ret:" << ret);
-            return false;
-        }
+        auto blobs = objMeta->FreeBlobs(key, globalAllocator_, filter, false);
         if (objMeta->NumBlobs() == 0) {
             return true;
         }
+        guard.unlock();
+
+        std::unique_lock<std::mutex> tmpGuard1(gvaMutex_);
+        for (auto &blob : blobs) {
+            gva2updateMap_.RemoveAt(blob->Gva());
+        }
+
         return false;
     };
 
@@ -397,6 +504,7 @@ Result MmcMetaManager::Query(const std::string &key, MemObjQueryInfo &queryInfo)
         }
         queryInfo.blobRanks_[i] = blob.rank_;
         queryInfo.blobTypes_[i] = blob.mediaType_;
+        queryInfo.blobGvas_[i] = blob.gva_;
         i++;
     }
     queryInfo.numBlobs_ = i;
@@ -512,13 +620,15 @@ Result MmcMetaManager::MoveBlob(const std::string &key, const MmcLocation &src, 
             MMC_LOG_ERROR("Fail to malloc filter");
             return MMC_MALLOC_FAILED;
         }
-        ret = objMeta->FreeBlobs(key, globalAllocator_, filter);
-        if (ret != MMC_OK) {
-            MMC_LOG_ERROR("key: " << key << " free blob failed, ret " << ret);
-            return ret;
-        }
-        
+
+        auto blobs = objMeta->FreeBlobs(key, globalAllocator_, filter);
         MMC_LOG_INFO("move " << key << " from " << src << " to " << dst << " " << blobsDesc[0] << ", " << objMeta);
+        guard.unlock();
+
+        std::unique_lock<std::mutex> tmpGuard1(gvaMutex_);
+        for (auto &blob : blobs) {
+            gva2updateMap_.RemoveAt(blob->Gva());
+        }
     }
     if (ubsIoEnable_ && dst.mediaType_ == MEDIA_SSD) {
         metaContainer_->Erase(key);

@@ -48,6 +48,11 @@ public:
         return type_;
     }
 
+    std::vector<uint64_t> &GetGvas()
+    {
+        return gva_;
+    }
+
     void AddType(int type)
     {
         type_.emplace_back(type);
@@ -56,6 +61,11 @@ public:
     void AddLoc(int loc)
     {
         loc_.emplace_back(loc);
+    }
+
+    void AddGva(uint64_t gva)
+    {
+        gva_.emplace_back(gva);
     }
 
     std::string ToString() const
@@ -69,6 +79,11 @@ public:
         for (auto type : type_) {
             desc << std::to_string(type) << ",";
         }
+        desc << " gva:";
+        for (auto gva : gva_) {
+            desc << std::to_string(gva) << ",";
+        }
+
         desc << " blobNum:" << blobNum_;
         desc << ", size:" << size_;
         return desc.str();
@@ -81,10 +96,11 @@ public:
     }
 
 private:
-    uint64_t size_{};
+    uint64_t size_{};   // size <= 0， 表示key不存在或无效
     uint32_t blobNum_{};
     std::vector<int> loc_{};  // blob's location
     std::vector<int> type_{}; // blob's media type
+    std::vector<uint64_t> gva_{}; // blob's gva
 };
 
 class ReplicateConfig {
@@ -311,6 +327,12 @@ public:
      * @return Vector of key infos
      */
     virtual std::vector<KeyInfo> BatchGetKeyInfo(const std::vector<std::string> &keys) = 0;
+
+    virtual std::vector<uintptr_t> BatchMalloc(const std::vector<std::string> &keys, const std::vector<size_t> &sizes,
+                                               uint16_t media) = 0;
+
+    virtual int BatchCopy(std::vector<void *> &gvas, std::vector<void *> &buffers, std::vector<size_t> &sizes,
+                          const int32_t direct = 3) = 0;
 };
 
 } // namespace mmc
