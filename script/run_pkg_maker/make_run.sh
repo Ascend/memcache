@@ -51,6 +51,8 @@ mkdir ${PKG_DIR}/config
 
 # memcache
 cp -r "${OUTPUT_DIR}"/memcache/include/cpp ${PKG_DIR}/"${ARCH_OS}"/include/
+cp "${OUTPUT_DIR}"/memcache/include/mmc.h ${PKG_DIR}/"${ARCH_OS}"/include/
+cp "${OUTPUT_DIR}"/memcache/include/mmc_def.h ${PKG_DIR}/"${ARCH_OS}"/include/
 cp "${OUTPUT_DIR}"/memcache/lib64/lib* ${PKG_DIR}/"${ARCH_OS}"/lib64/
 if compgen -G "${OUTPUT_DIR}/memcache/bin/*" > /dev/null; then
     cp "${OUTPUT_DIR}"/memcache/bin/* ${PKG_DIR}/"${ARCH_OS}"/bin/
