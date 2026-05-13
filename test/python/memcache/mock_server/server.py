@@ -229,6 +229,21 @@ class MmcTest(TestServer):
         self._store = None
         self._local_config = None
 
+    def _unregister_registered_buffers(self, registered: list[tuple]) -> None:
+        """Best-effort unregister for (ptr, size) pairs; used in try/finally to avoid VaManager leaks."""
+        if not registered or self._store is None:
+            return
+        for ptr, sz in registered:
+            try:
+                unreg_ret = self._store.unregister_buffer(ptr, sz)
+                if unreg_ret != 0:
+                    logging.error(
+                        "unregister_buffer failed, ret=%s ptr=%s size=%s",
+                        unreg_ret, ptr, sz,
+                    )
+            except Exception:
+                logging.exception("unregister_buffer raised ptr=%s size=%s", ptr, sz)
+
     def _init_cmds(self):
         cmds = [
             CliCommand("init_mmc", "initialize memcache", self.init_mmc, 0),
@@ -354,23 +369,28 @@ class MmcTest(TestServer):
         else:
             direct = int(MmcDirect.COPY_L2G.value)
             tensor = self.malloc_tensor(mini_block_size=size, device='npu')
-        if tensor is not None:
-            self._store.register_buffer(tensor.data_ptr(), size)
-        rep_conf = ReplicateConfig()
-        if replica_num is not None:
-            rep_conf.replicaNum = replica_num
-        if preferred_ranks is not None:
-            rep_conf.preferredLocalServiceIDs = preferred_ranks
+        registered = []
+        try:
+            if tensor is not None:
+                reg_ret = self._store.register_buffer(tensor.data_ptr(), size)
+                if reg_ret != 0:
+                    raise RuntimeError(f"register_buffer failed, ret={reg_ret} (ptr={tensor.data_ptr()}, size={size})")
+                registered.append((tensor.data_ptr(), size))
+            rep_conf = ReplicateConfig()
+            if replica_num is not None:
+                rep_conf.replicaNum = replica_num
+            if preferred_ranks is not None:
+                rep_conf.preferredLocalServiceIDs = preferred_ranks
 
-        if size <= 0:
-            res = self._store.put_from(key, 0, 0, direct)
-            value = 0
-        else:
-            res = self._store.put_from(key, tensor.data_ptr(), size, direct, rep_conf)
-            value = tensor_sum(tensor)
-        if tensor is not None:
-            self._store.unregister_buffer(tensor.data_ptr(), size)
-        self.cli_return(str([res, value]))
+            if size <= 0:
+                res = self._store.put_from(key, 0, 0, direct)
+                value = 0
+            else:
+                res = self._store.put_from(key, tensor.data_ptr(), size, direct, rep_conf)
+                value = tensor_sum(tensor)
+            self.cli_return(str([res, value]))
+        finally:
+            self._unregister_registered_buffers(registered)
 
     @result_handler
     def get(self, key: str):
@@ -390,17 +410,22 @@ class MmcTest(TestServer):
         else:
             direct = int(MmcDirect.COPY_G2L.value)
             tensor = self.malloc_tensor(mini_block_size=size, device='npu')
-        if tensor is not None:
-            self._store.register_buffer(tensor.data_ptr(), size)
-        if size <= 0:
-            res = self._store.get_into(key, 0, 0, direct)
-            value = 0
-        else:
-            res = self._store.get_into(key, tensor[0].data_ptr(), size, direct)
-            value = tensor_sum(tensor)
-        if tensor is not None:
-            self._store.unregister_buffer(tensor.data_ptr(), size)
-        self.cli_return(str([res, value]))
+        registered = []
+        try:
+            if tensor is not None:
+                reg_ret = self._store.register_buffer(tensor.data_ptr(), size)
+                if reg_ret != 0:
+                    raise RuntimeError(f"register_buffer failed, ret={reg_ret} (ptr={tensor.data_ptr()}, size={size})")
+                registered.append((tensor.data_ptr(), size))
+            if size <= 0:
+                res = self._store.get_into(key, 0, 0, direct)
+                value = 0
+            else:
+                res = self._store.get_into(key, tensor[0].data_ptr(), size, direct)
+                value = tensor_sum(tensor)
+            self.cli_return(str([res, value]))
+        finally:
+            self._unregister_registered_buffers(registered)
 
     @result_handler
     def batch_get_into(self, keys: list, sizes: list, media: int):
@@ -412,24 +437,29 @@ class MmcTest(TestServer):
         else:
             direct = int(MmcDirect.COPY_G2L.value)
             device = 'npu'
-        for size in sizes:
-            tensor = self.malloc_tensor(mini_block_size=size, device=device)
-            if tensor is not None:
-                self._store.register_buffer(tensor.data_ptr(), size)
-            blocks.append(tensor)
-        for i in range(len(sizes)):
-            if blocks[i] is None:
-                data_ptrs.append(0)
-            else:
-                data_ptrs.append(blocks[i].data_ptr())
-        res = self._store.batch_get_into(keys, data_ptrs, sizes, direct)
-        values = []
-        for i in range(len(sizes)):
-            values.append(tensor_sum(blocks[i]))
-        for tensor, size in zip(blocks, sizes):
-            if tensor is not None:
-                self._store.unregister_buffer(tensor.data_ptr(), size)
-        self.cli_return(str([res, values]))
+        registered = []
+        try:
+            for size in sizes:
+                tensor = self.malloc_tensor(mini_block_size=size, device=device)
+                if tensor is not None:
+                    reg_ret = self._store.register_buffer(tensor.data_ptr(), size)
+                    if reg_ret != 0:
+                        raise RuntimeError(
+                            f"register_buffer failed, ret={reg_ret} (ptr={tensor.data_ptr()}, size={size})")
+                    registered.append((tensor.data_ptr(), size))
+                blocks.append(tensor)
+            for i in range(len(sizes)):
+                if blocks[i] is None:
+                    data_ptrs.append(0)
+                else:
+                    data_ptrs.append(blocks[i].data_ptr())
+            res = self._store.batch_get_into(keys, data_ptrs, sizes, direct)
+            values = []
+            for i in range(len(sizes)):
+                values.append(tensor_sum(blocks[i]))
+            self.cli_return(str([res, values]))
+        finally:
+            self._unregister_registered_buffers(registered)
 
     @result_handler
     def batch_put_from(self, keys: list, sizes: list, media: int, replica_num: int | None = None,
@@ -442,31 +472,36 @@ class MmcTest(TestServer):
         else:
             direct = int(MmcDirect.COPY_L2G.value)
             device = 'npu'
-        for size in sizes:
-            tensor = self.malloc_tensor(mini_block_size=size, device=device)
-            if tensor is not None:
-                self._store.register_buffer(tensor.data_ptr(), size)
-            blocks.append(tensor)
-        for i in range(len(sizes)):
-            if blocks[i] is None:
-                data_ptrs.append(0)
-            else:
-                data_ptrs.append(blocks[i].data_ptr())
+        registered = []
+        try:
+            for size in sizes:
+                tensor = self.malloc_tensor(mini_block_size=size, device=device)
+                if tensor is not None:
+                    reg_ret = self._store.register_buffer(tensor.data_ptr(), size)
+                    if reg_ret != 0:
+                        raise RuntimeError(
+                            f"register_buffer failed, ret={reg_ret} (ptr={tensor.data_ptr()}, size={size})")
+                    registered.append((tensor.data_ptr(), size))
+                blocks.append(tensor)
+            for i in range(len(sizes)):
+                if blocks[i] is None:
+                    data_ptrs.append(0)
+                else:
+                    data_ptrs.append(blocks[i].data_ptr())
 
-        rep_conf = ReplicateConfig()
-        if replica_num is not None:
-            rep_conf.replicaNum = replica_num
-        if preferred_ranks is not None:
-            rep_conf.preferredLocalServiceIDs = preferred_ranks
+            rep_conf = ReplicateConfig()
+            if replica_num is not None:
+                rep_conf.replicaNum = replica_num
+            if preferred_ranks is not None:
+                rep_conf.preferredLocalServiceIDs = preferred_ranks
 
-        res = self._store.batch_put_from(keys, data_ptrs, sizes, direct, rep_conf)
-        values = []
-        for i in range(len(sizes)):
-            values.append(tensor_sum(blocks[i]))
-        for tensor, size in zip(blocks, sizes):
-            if tensor is not None:
-                self._store.unregister_buffer(tensor.data_ptr(), size)
-        self.cli_return(str([res, values]))
+            res = self._store.batch_put_from(keys, data_ptrs, sizes, direct, rep_conf)
+            values = []
+            for i in range(len(sizes)):
+                values.append(tensor_sum(blocks[i]))
+            self.cli_return(str([res, values]))
+        finally:
+            self._unregister_registered_buffers(registered)
 
     @result_handler
     def is_exist(self, key: str):
@@ -516,24 +551,33 @@ class MmcTest(TestServer):
             device = 'npu'
         tensor = self.malloc_tensor(layer_num=layers_num, mini_block_size=mini_block_size, device=device)
         # tensor is None in negative cases whose sizes is 0
-        if tensor is not None:
-            self._store.register_buffer(tensor.data_ptr(), mini_block_size * layers_num)
+        reg_sz = mini_block_size * layers_num
+        registered = []
+        try:
+            if tensor is not None:
+                reg_ret = self._store.register_buffer(tensor.data_ptr(), reg_sz)
+                if reg_ret != 0:
+                    raise RuntimeError(
+                        f"register_buffer failed, ret={reg_ret} (ptr={tensor.data_ptr()}, size={reg_sz})")
+                registered.append((tensor.data_ptr(), reg_sz))
 
-        rep_conf = ReplicateConfig()
-        if replica_num is not None:
-            rep_conf.replicaNum = replica_num
-        if preferred_ranks is not None:
-            rep_conf.preferredLocalServiceIDs = preferred_ranks
+            rep_conf = ReplicateConfig()
+            if replica_num is not None:
+                rep_conf.replicaNum = replica_num
+            if preferred_ranks is not None:
+                rep_conf.preferredLocalServiceIDs = preferred_ranks
 
-        res = self._store.put_from_layers(key,
-                                          [] if tensor is None else [layer.data_ptr() for layer in tensor],
-                                          sizes,
-                                          direct,
-                                          rep_conf)
-        value = tensor_sum(tensor, sizes)
-        if tensor is not None:
-            self._store.unregister_buffer(tensor.data_ptr(), mini_block_size * layers_num)
-        self.cli_return(str([res, value]))
+            res = self._store.put_from_layers(key,
+                                              [] if tensor is None else [layer.data_ptr() for layer in tensor],
+                                              sizes,
+                                              direct,
+                                              rep_conf)
+            if device == 'npu':
+                self.sync_stream()
+            value = tensor_sum(tensor, sizes)
+            self.cli_return(str([res, value]))
+        finally:
+            self._unregister_registered_buffers(registered)
 
     @result_handler
     def get_into_layers(self, key: str, sizes: List[int], media: int):
@@ -547,18 +591,25 @@ class MmcTest(TestServer):
             device = 'npu'
         tensor = self.malloc_tensor(layer_num=layers_num, mini_block_size=mini_block_size, device=device)
         # tensor is None in negative cases whose sizes is 0
-        if tensor is not None:
-            self._store.register_buffer(tensor.data_ptr(), mini_block_size * layers_num)
-        res = self._store.get_into_layers(key,
-                                          [] if tensor is None else [layer.data_ptr() for layer in tensor],
-                                          sizes,
-                                          direct)
-        if device == 'npu':
-            self.sync_stream()
-        value = tensor_sum(tensor, sizes)
-        if tensor is not None:
-            self._store.unregister_buffer(tensor.data_ptr(), mini_block_size * layers_num)
-        self.cli_return(str([res, value]))
+        reg_sz = mini_block_size * layers_num
+        registered = []
+        try:
+            if tensor is not None:
+                reg_ret = self._store.register_buffer(tensor.data_ptr(), reg_sz)
+                if reg_ret != 0:
+                    raise RuntimeError(
+                        f"register_buffer failed, ret={reg_ret} (ptr={tensor.data_ptr()}, size={reg_sz})")
+                registered.append((tensor.data_ptr(), reg_sz))
+            res = self._store.get_into_layers(key,
+                                              [] if tensor is None else [layer.data_ptr() for layer in tensor],
+                                              sizes,
+                                              direct)
+            if device == 'npu':
+                self.sync_stream()
+            value = tensor_sum(tensor, sizes)
+            self.cli_return(str([res, value]))
+        finally:
+            self._unregister_registered_buffers(registered)
 
     @result_handler
     def batch_put_from_layers(self, keys: List[str], sizes: List[List[int]], media: int, replica_num: int | None = None,
@@ -570,35 +621,42 @@ class MmcTest(TestServer):
             direct = MmcDirect.COPY_L2G.value
             device = 'npu'
         blocks = []
-        for sizes_ in sizes:
-            tensor = self.malloc_tensor(layer_num=len(sizes_), mini_block_size=max(sizes_, default=0), device=device)
-            # tensor is None in negative cases whose sizes is 0
-            if tensor is not None:
-                self._store.register_buffer(tensor.data_ptr(), max(sizes_, default=0) * len(sizes_))
-            blocks.append(tensor)
+        registered = []
+        try:
+            for sizes_ in sizes:
+                tensor = self.malloc_tensor(
+                    layer_num=len(sizes_), mini_block_size=max(sizes_, default=0), device=device)
+                # tensor is None in negative cases whose sizes is 0
+                if tensor is not None:
+                    reg_sz = max(sizes_, default=0) * len(sizes_)
+                    reg_ret = self._store.register_buffer(tensor.data_ptr(), reg_sz)
+                    if reg_ret != 0:
+                        raise RuntimeError(
+                            f"register_buffer fail, ret={reg_ret} (ptr={tensor.data_ptr()}, size={reg_sz})")
+                    registered.append((tensor.data_ptr(), reg_sz))
+                blocks.append(tensor)
 
-        rep_conf = ReplicateConfig()
-        if replica_num is not None:
-            rep_conf.replicaNum = replica_num
-        if preferred_ranks is not None:
-            rep_conf.preferredLocalServiceIDs = preferred_ranks
+            rep_conf = ReplicateConfig()
+            if replica_num is not None:
+                rep_conf.replicaNum = replica_num
+            if preferred_ranks is not None:
+                rep_conf.preferredLocalServiceIDs = preferred_ranks
 
-        results = self._store.batch_put_from_layers(
-            keys,
-            [[] if block is None
-             else [layer.data_ptr() for layer in block]
-             for block in blocks],
-            sizes,
-            direct,
-            rep_conf
-        )
-        if device == 'npu':
-            self.sync_stream()
-        tensor_sums = [tensor_sum(block, sizes_) for block, sizes_ in zip(blocks, sizes)]
-        for block, sizes_ in zip(blocks, sizes):
-            if block is not None:
-                self._store.unregister_buffer(block.data_ptr(), max(sizes_, default=0) * len(sizes_))
-        self.cli_return(str([results, tensor_sums]))
+            results = self._store.batch_put_from_layers(
+                keys,
+                [[] if block is None
+                 else [layer.data_ptr() for layer in block]
+                 for block in blocks],
+                sizes,
+                direct,
+                rep_conf
+            )
+            if device == 'npu':
+                self.sync_stream()
+            tensor_sums = [tensor_sum(block, sizes_) for block, sizes_ in zip(blocks, sizes)]
+            self.cli_return(str([results, tensor_sums]))
+        finally:
+            self._unregister_registered_buffers(registered)
 
     @result_handler
     def batch_get_into_layers(self, keys: List[str], sizes: List[List[int]], media: int):
@@ -609,27 +667,34 @@ class MmcTest(TestServer):
             direct = MmcDirect.COPY_G2L.value
             device = 'npu'
         blocks = []
-        for sizes_ in sizes:
-            tensor = self.malloc_tensor(layer_num=len(sizes_), mini_block_size=max(sizes_, default=0), device=device)
-            # tensor is None in negative cases whose sizes is 0
-            if tensor is not None:
-                self._store.register_buffer(tensor.data_ptr(), max(sizes_, default=0) * len(sizes_))
-            blocks.append(tensor)
-        results = self._store.batch_get_into_layers(
-            keys,
-            [[] if block is None
-             else [layer.data_ptr() for layer in block]
-             for block in blocks],
-            sizes,
-            direct
-        )
-        if device == 'npu':
-            self.sync_stream()
-        tensor_sums = [tensor_sum(block, sizes_) for block, sizes_ in zip(blocks, sizes)]
-        for block, sizes_ in zip(blocks, sizes):
-            if block is not None:
-                self._store.unregister_buffer(block.data_ptr(), max(sizes_, default=0) * len(sizes_))
-        self.cli_return(str([results, tensor_sums]))
+        registered = []
+        try:
+            for sizes_ in sizes:
+                tensor = self.malloc_tensor(
+                    layer_num=len(sizes_), mini_block_size=max(sizes_, default=0), device=device)
+                # tensor is None in negative cases whose sizes is 0
+                if tensor is not None:
+                    reg_sz = max(sizes_, default=0) * len(sizes_)
+                    reg_ret = self._store.register_buffer(tensor.data_ptr(), reg_sz)
+                    if reg_ret != 0:
+                        raise RuntimeError(
+                            f"register_buffer fail, ret={reg_ret} (ptr={tensor.data_ptr()}, size={reg_sz})")
+                    registered.append((tensor.data_ptr(), reg_sz))
+                blocks.append(tensor)
+            results = self._store.batch_get_into_layers(
+                keys,
+                [[] if block is None
+                 else [layer.data_ptr() for layer in block]
+                 for block in blocks],
+                sizes,
+                direct
+            )
+            if device == 'npu':
+                self.sync_stream()
+            tensor_sums = [tensor_sum(block, sizes_) for block, sizes_ in zip(blocks, sizes)]
+            self.cli_return(str([results, tensor_sums]))
+        finally:
+            self._unregister_registered_buffers(registered)
 
     @result_handler
     def perf_test_put_from(self, size: int, iter_count: int, medium: str = 'npu', register: bool = True,
@@ -641,7 +706,9 @@ class MmcTest(TestServer):
         direct = MmcDirect.COPY_L2G.value if medium == 'npu' else MmcDirect.COPY_H2G.value
 
         if register:
-            self._store.register_buffer(tensor.data_ptr(), size)
+            reg_ret = self._store.register_buffer(tensor.data_ptr(), size)
+            if reg_ret != 0:
+                raise RuntimeError(f"register_buffer failed, ret={reg_ret} (ptr={tensor.data_ptr()}, size={size})")
 
         rep_conf = ReplicateConfig()
         if preferred_rank is not None:
@@ -658,7 +725,12 @@ class MmcTest(TestServer):
         end = time.time()
 
         if register:
-            self._store.unregister_buffer(tensor.data_ptr(), size)
+            unreg_ret = self._store.unregister_buffer(tensor.data_ptr(), size)
+            if unreg_ret != 0:
+                logging.error(
+                    "unregister_buffer failed, ret=%s ptr=%s size=%s",
+                    unreg_ret, tensor.data_ptr(), size,
+                )
 
         self.cli_return(str([res, end - start]))
 
@@ -671,7 +743,9 @@ class MmcTest(TestServer):
         direct = MmcDirect.COPY_G2L.value if medium == 'npu' else MmcDirect.COPY_G2H.value
 
         if register:
-            self._store.register_buffer(tensor.data_ptr(), size)
+            reg_ret = self._store.register_buffer(tensor.data_ptr(), size)
+            if reg_ret != 0:
+                raise RuntimeError(f"register_buffer failed, ret={reg_ret} (ptr={tensor.data_ptr()}, size={size})")
 
         res = 0
         start = time.time()
@@ -684,7 +758,12 @@ class MmcTest(TestServer):
         end = time.time()
 
         if register:
-            self._store.unregister_buffer(tensor.data_ptr(), size)
+            unreg_ret = self._store.unregister_buffer(tensor.data_ptr(), size)
+            if unreg_ret != 0:
+                logging.error(
+                    "unregister_buffer failed, ret=%s ptr=%s size=%s",
+                    unreg_ret, tensor.data_ptr(), size,
+                )
 
         self.cli_return(str([res, end - start]))
 
@@ -700,7 +779,10 @@ class MmcTest(TestServer):
         direct = MmcDirect.COPY_L2G.value if medium == 'npu' else MmcDirect.COPY_H2G.value
 
         if register:
-            self._store.register_buffer(tensor.data_ptr(), mini_block_size * layers_num)
+            reg_sz = mini_block_size * layers_num
+            reg_ret = self._store.register_buffer(tensor.data_ptr(), reg_sz)
+            if reg_ret != 0:
+                raise RuntimeError(f"register_buffer failed, ret={reg_ret} (ptr={tensor.data_ptr()}, size={reg_sz})")
 
         rep_conf = ReplicateConfig()
         if preferred_rank is not None:
@@ -717,7 +799,13 @@ class MmcTest(TestServer):
         end = time.time()
 
         if register:
-            self._store.unregister_buffer(tensor.data_ptr(), mini_block_size * layers_num)
+            reg_sz = mini_block_size * layers_num
+            unreg_ret = self._store.unregister_buffer(tensor.data_ptr(), reg_sz)
+            if unreg_ret != 0:
+                logging.error(
+                    "unregister_buffer failed, ret=%s ptr=%s size=%s",
+                    unreg_ret, tensor.data_ptr(), reg_sz,
+                )
 
         self.cli_return(str([res, end - start]))
 
@@ -732,7 +820,10 @@ class MmcTest(TestServer):
         direct = MmcDirect.COPY_G2L.value if medium == 'npu' else MmcDirect.COPY_G2H.value
 
         if register:
-            self._store.register_buffer(tensor.data_ptr(), mini_block_size * layers_num)
+            reg_sz = mini_block_size * layers_num
+            reg_ret = self._store.register_buffer(tensor.data_ptr(), reg_sz)
+            if reg_ret != 0:
+                raise RuntimeError(f"register_buffer failed, ret={reg_ret} (ptr={tensor.data_ptr()}, size={reg_sz})")
 
         res = 0
         start = time.time()
@@ -745,7 +836,13 @@ class MmcTest(TestServer):
         end = time.time()
 
         if register:
-            self._store.unregister_buffer(tensor.data_ptr(), mini_block_size * layers_num)
+            reg_sz = mini_block_size * layers_num
+            unreg_ret = self._store.unregister_buffer(tensor.data_ptr(), reg_sz)
+            if unreg_ret != 0:
+                logging.error(
+                    "unregister_buffer failed, ret=%s ptr=%s size=%s",
+                    unreg_ret, tensor.data_ptr(), reg_sz,
+                )
 
         self.cli_return(str([res, end - start]))
 
