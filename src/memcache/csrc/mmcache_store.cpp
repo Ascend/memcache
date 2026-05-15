@@ -242,7 +242,10 @@ std::vector<int> MmcacheStore::BatchRemove(const std::vector<std::string> &keys)
 {
     std::vector<int> results;
 
-    MMC_VALIDATE_RETURN(!keys.empty(), "key vector is empty", {});
+    if (keys.empty()) {
+        MMC_LOG_DEBUG("key vector is empty");
+        return {};
+    }
     MMC_VALIDATE_RETURN(keys.size() <= MAX_BATCH_OP_COUNT, "key vector length exceeds limit" << MAX_BATCH_OP_COUNT,
                         {MMC_INVALID_PARAM});
 
@@ -296,7 +299,10 @@ std::vector<int> MmcacheStore::BatchIsExist(const std::vector<std::string> &keys
 {
     std::vector<int> results;
 
-    MMC_VALIDATE_RETURN(!keys.empty(), "key vector is empty", {});
+    if (keys.empty()) {
+        MMC_LOG_DEBUG("key vector is empty");
+        return {};
+    }
     MMC_VALIDATE_RETURN(keys.size() <= MAX_BATCH_OP_COUNT, "key vector length exceeds limit" << MAX_BATCH_OP_COUNT,
                         {MMC_INVALID_PARAM});
 
@@ -360,7 +366,11 @@ KeyInfo MmcacheStore::GetKeyInfo(const std::string &key)
 std::vector<KeyInfo> MmcacheStore::BatchGetKeyInfo(const std::vector<std::string> &keys)
 {
     uint32_t size = keys.size();
-    MMC_VALIDATE_RETURN(!keys.empty(), "key vector is empty", {});
+
+    if (keys.empty()) {
+        MMC_LOG_DEBUG("key vector is empty");
+        return {};
+    }
     MMC_VALIDATE_RETURN(keys.size() <= MAX_BATCH_OP_COUNT, "key vector length exceeds limit" << MAX_BATCH_OP_COUNT, {});
 
     const char **ckeys = new (std::nothrow) const char *[size];
