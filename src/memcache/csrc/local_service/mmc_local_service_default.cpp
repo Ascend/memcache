@@ -178,6 +178,7 @@ Result MmcLocalServiceDefault::RegisterBm()
     req.blobMap_.clear();
 
     Response resp;
+    std::unique_lock<std::mutex> lockGuard(blobMutex_);
     auto chunk_start = blobMap_.begin();
     const auto end = blobMap_.end();
 
@@ -192,6 +193,7 @@ Result MmcLocalServiceDefault::RegisterBm()
         chunk_start = chunk_end;
         req.blobMap_.clear();
     }
+    lockGuard.unlock();
     MMC_RETURN_ERROR(SyncCallMeta(req, resp, TIMEOUT_THIRTY), "bm register failed, bmRankId=" << req.rank_);
     MMC_RETURN_ERROR(resp.ret_, "bm register failed, bmRankId=" << req.rank_ << ", retCode=" << resp.ret_);
     MMC_LOG_INFO("bm register succeed, bmRankId=" << req.rank_ << ", type num=" << req.mediaType_.size());
