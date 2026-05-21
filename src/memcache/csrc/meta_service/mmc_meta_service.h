@@ -44,11 +44,11 @@ public:
 
     bool IsConfigStoreReady() const;
 
-    Result GetMetadata(const std::string &key, std::string &value, int64_t timeoutMs = 0) const;
+    Result GetMetadata(const std::string &key, std::string &value, int64_t timeoutMs = 0);
 
-    Result PutMetadata(const std::string &key, const std::string &value) const;
+    Result PutMetadata(const std::string &key, const std::string &value);
 
-    Result DeleteMetadata(const std::string &key) const;
+    Result DeleteMetadata(const std::string &key);
 
 private:
     MetaNetServerPtr metaNetServer_;
@@ -61,6 +61,7 @@ private:
     std::string name_;
     mmc_meta_service_config_t options_;
     std::unordered_map<uint32_t, std::unordered_set<uint16_t>> rankMediaTypeMap_;
+    std::unordered_map<std::string, std::string> metadata_;
     ock::smem::StorePtr confStore_ = nullptr;
 };
 inline const std::string &MmcMetaService::Name() const
