@@ -91,7 +91,7 @@ ENDFUNCTION()
 
 set(TEST_INCLUDE_PATHS ../../src/memcache/)
 set(TEST_SRC_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
-set(TEST_DEPEND_LIBS gtest dl acc_tcp_net_static mmc_static gcov pthread)
+set(TEST_DEPEND_LIBS mmc_static gtest dl acc_tcp_net_static smem_static gcov pthread)
 
 add_subdirectory(testcase/memcache/csrc/net)
 add_subdirectory(testcase/memcache/csrc/meta_service)

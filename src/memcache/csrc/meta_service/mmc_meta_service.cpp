@@ -71,7 +71,8 @@ Result MmcMetaService::Start(const mmc_meta_service_config_t &options)
     NetEngineOptions configStoreOpt{};
     NetEngineOptions::ExtractIpPortFromUrl(options_.configStoreURL, configStoreOpt);
     smem::StoreFactory::SetTlsInfo(MmcSmemBmHelper::TransSmemTlsConfig(options_.configStoreTlsConfig));
-    confStore_ = ock::smem::StoreFactory::CreateStoreByUrl(options_.configStoreURL, true);
+    confStore_ = ock::smem::StoreFactory::CreateStoreByUrl(options_.configStoreURL,
+                                                           ock::smem::ConfigStoreModel::CSM_SERVER);
     MMC_VALIDATE_RETURN(confStore_ != nullptr, "Failed to start config store server", MMC_ERROR);
 
     started_ = true;
@@ -179,27 +180,41 @@ void MmcMetaService::Stop()
         ubsIoProxyPtr_ = nullptr;
     }
     confStore_ = nullptr;
+    metadata_.clear();
     ock::smem::StoreFactory::DestroyStore(options_.configStoreURL);
     MMC_LOG_INFO("Stop MmcMetaServiceDefault (" << name_ << ") at " << options_.discoveryURL);
     started_ = false;
 }
 
-Result MmcMetaService::GetMetadata(const std::string &key, std::string &value, int64_t timeoutMs) const
+Result MmcMetaService::GetMetadata(const std::string &key, std::string &value, int64_t timeoutMs)
 {
-    MMC_VALIDATE_RETURN(confStore_ != nullptr, "config store not initialized", MMC_NOT_INITIALIZED);
-    return confStore_->Get(key, value, timeoutMs);
+    std::lock_guard<std::mutex> guard(mutex_);
+    auto it = metadata_.find(key);
+    if (it == metadata_.end()) {
+        return ock::smem::StoreErrorCode::NOT_EXIST;
+    } else {
+        value = it->second;
+        return ock::smem::StoreErrorCode::SUCCESS;
+    }
 }
 
-Result MmcMetaService::PutMetadata(const std::string &key, const std::string &value) const
+Result MmcMetaService::PutMetadata(const std::string &key, const std::string &value)
 {
-    MMC_VALIDATE_RETURN(confStore_ != nullptr, "config store not initialized", MMC_NOT_INITIALIZED);
-    return confStore_->Set(key, value);
+    std::lock_guard<std::mutex> guard(mutex_);
+    metadata_[key] = value;
+    return ock::smem::StoreErrorCode::SUCCESS;
 }
 
-Result MmcMetaService::DeleteMetadata(const std::string &key) const
+Result MmcMetaService::DeleteMetadata(const std::string &key)
 {
-    MMC_VALIDATE_RETURN(confStore_ != nullptr, "config store not initialized", MMC_NOT_INITIALIZED);
-    return confStore_->Remove(key);
+    std::lock_guard<std::mutex> guard(mutex_);
+    auto it = metadata_.find(key);
+    if (it == metadata_.end()) {
+        return ock::smem::StoreErrorCode::NOT_EXIST;
+    } else {
+        metadata_.erase(it);
+        return ock::smem::StoreErrorCode::SUCCESS;
+    }
 }
 
 } // namespace mmc
