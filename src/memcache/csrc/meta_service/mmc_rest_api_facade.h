@@ -61,6 +61,8 @@ public:
     Result GetMetadata(const std::string &key, std::string &value) const;
     Result PutMetadata(const std::string &key, const std::string &value) const;
     Result DeleteMetadata(const std::string &key) const;
+    Result RemoveKey(const std::string &key) const;
+    Result RemoveAllKeys() const;
 
     std::string GetRole() const;
     std::string GetHaStatus() const;

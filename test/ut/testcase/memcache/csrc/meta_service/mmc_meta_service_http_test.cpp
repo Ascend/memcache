@@ -389,6 +389,30 @@ TEST_F(MmcMetaServiceHttpTest, RoutesContract)
     EXPECT_EQ(segmentRemainingJson.at("segments").at(kHttpSecondItemIndex).at("segment_name"),
               kHttpDramSegmentName);
 
+    auto removeAllKeysResponse = client.Delete("/all_keys");
+    ASSERT_NE(removeAllKeysResponse, nullptr);
+    auto removeAllKeysJson = nlohmann::json::parse(removeAllKeysResponse->body);
+    EXPECT_TRUE(removeAllKeysJson.at("success").get<bool>());
+    EXPECT_EQ(removeAllKeysJson.at("message"), "all keys deleted");
+
+    auto allKeysAfterRemoveAllResponse = WaitForResponse(client, "/get_all_keys");
+    ASSERT_NE(allKeysAfterRemoveAllResponse, nullptr);
+    EXPECT_EQ(allKeysAfterRemoveAllResponse->body, "");
+
+    PrepareAllocatedKey();
+
+    auto removeKeyResponse = client.Delete((std::string("/key?key=") + kHttpAllocKey).c_str());
+    ASSERT_NE(removeKeyResponse, nullptr);
+    auto removeKeyJson = nlohmann::json::parse(removeKeyResponse->body);
+    EXPECT_TRUE(removeKeyJson.at("success").get<bool>());
+    EXPECT_EQ(removeKeyJson.at("message"), "key deleted");
+
+    auto queryRemovedKeyResponse = WaitForResponse(client, std::string("/query_key?key=") + kHttpAllocKey);
+    ASSERT_NE(queryRemovedKeyResponse, nullptr);
+    auto queryRemovedKeyJson = nlohmann::json::parse(queryRemovedKeyResponse->body);
+    EXPECT_FALSE(queryRemovedKeyJson.at("success").get<bool>());
+    EXPECT_EQ(queryRemovedKeyJson.at("error_message"), "Key not found");
+
     auto drainJobResponse = client.Post("/api/v1/drain_jobs", "{}", "application/json");
     ASSERT_NE(drainJobResponse, nullptr);
     auto drainJobJson = nlohmann::json::parse(drainJobResponse->body);

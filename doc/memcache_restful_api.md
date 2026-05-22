@@ -902,7 +902,115 @@ curl "http://127.0.0.1:8000/batch_query_keys?keys=key_a,key_b"
 | `error_message` | 实际错误原因；此处仅为格式示例 | 全局错误返回格式规则 |
 | `timestamp` | 错误返回格式中的时间戳字段 | 全局错误返回格式规则 |
 
-### 13 `GET /get_all_keys`
+### 13 `DELETE /key?key=...`
+
+#### 作用
+删除指定业务 KVCache key 及其关联数据。
+
+#### curl
+
+```bash
+curl -X DELETE "http://127.0.0.1:8000/key?key=demo_key"
+```
+
+#### 请求参数
+
+| 参数名 | 类型 | 必填 | 描述 |
+|---|---|---|---|
+| `key` | String | 是 | 要删除的业务 KVCache key |
+
+#### 成功示例
+
+`application/json; charset=utf-8`：
+
+```json
+{
+  "success": true,
+  "message": "key deleted"
+}
+```
+
+**解释**
+
+| 字段 | 含义 | 来源 |
+|---|---|---|
+| `success` | 请求是否成功；成功场景固定为 `true` | 接口成功返回约定 |
+| `message` | 成功提示信息 | 接口成功返回约定 |
+
+#### 错误示例
+
+`application/json; charset=utf-8`：
+
+```json
+{
+  "success": false,
+  "error_message": "actual error reason",
+  "timestamp": 0
+}
+```
+
+**解释**
+
+| 字段 | 含义 | 来源 |
+|---|---|---|
+| `success` | 请求是否成功；错误场景固定为 `false` | 全局统一错误返回规则 |
+| `error_message` | 实际错误原因；此处仅为格式示例 | 全局错误返回格式规则 |
+| `timestamp` | 错误返回格式中的时间戳字段 | 全局错误返回格式规则 |
+
+### 14 `DELETE /all_keys`
+
+#### 作用
+删除所有业务 KVCache key 及其关联数据。
+
+#### curl
+
+```bash
+curl -X DELETE "http://127.0.0.1:8000/all_keys"
+```
+
+#### 请求参数
+
+无
+
+#### 成功示例
+
+`application/json; charset=utf-8`：
+
+```json
+{
+  "success": true,
+  "message": "all keys deleted"
+}
+```
+
+**解释**
+
+| 字段 | 含义 | 来源 |
+|---|---|---|
+| `success` | 请求是否成功；成功场景固定为 `true` | 接口成功返回约定 |
+| `message` | 成功提示信息 | 接口成功返回约定 |
+
+#### 错误示例
+
+`application/json; charset=utf-8`：
+
+```json
+{
+  "success": false,
+  "error_message": "actual error reason",
+  "timestamp": 0
+}
+```
+
+**解释**
+
+| 字段 | 含义 | 来源 |
+|---|---|---|
+| `success` | 请求是否成功；错误场景固定为 `false` | 全局统一错误返回规则 |
+| `error_message` | 实际错误原因；此处仅为格式示例 | 全局错误返回格式规则 |
+| `timestamp` | 错误返回格式中的时间戳字段 | 全局错误返回格式规则 |
+
+### 15 `GET /get_all_keys`
 
 #### 作用  
 列出全部对象 key 列表。
@@ -952,7 +1060,7 @@ key_2
 | `error_message` | 实际错误原因；此处仅为格式示例 | 全局错误返回格式规则 |
 | `timestamp` | 错误返回格式中的时间戳字段 | 全局错误返回格式规则 |
 
-### 14 `GET /get_all_segments`
+### 16 `GET /get_all_segments`
 
 #### 作用  
 列出全部 `segment_id`。当前版本逐行返回文本，不返回 JSON 数组。
@@ -1005,7 +1113,7 @@ rank-1-dram
 | `error_message` | 实际错误原因；此处仅为格式示例 | 全局错误返回格式规则 |
 | `timestamp` | 错误返回格式中的时间戳字段 | 全局错误返回格式规则 |
 
-### 15 `GET /query_segment?segment=...`
+### 17 `GET /query_segment?segment=...`
 
 #### 作用  
 查询指定 segment 的容量占用信息。
@@ -1068,7 +1176,7 @@ curl "http://127.0.0.1:8000/query_segment?segment=rank-0-hbm"
 | `error_message` | 实际错误原因；此处仅为格式示例 | 全局错误返回格式规则 |
 | `timestamp` | 错误返回格式中的时间戳字段 | 全局错误返回格式规则 |
 
-### 16 `POST /api/v1/drain_jobs`
+### 18 `POST /api/v1/drain_jobs`
 
 #### 作用  
 目标契约为返回固定字段顺序的单行文本摘要；当前源码尚未按该契约实现。
@@ -1107,7 +1215,7 @@ curl -X POST "http://127.0.0.1:8000/api/v1/drain_jobs"
 | `error_message` | 实际错误原因；该接口当前为 `Not supported` | 未实现接口约定 |
 | `timestamp` | 错误返回格式中的时间戳字段 | 统一错误格式 |
 
-### 17 `GET /api/v1/drain_jobs/query?job_id=...`
+### 19 `GET /api/v1/drain_jobs/query?job_id=...`
 
 #### 作用  
 目标契约为返回固定字段顺序的单行文本摘要；当前源码尚未按该契约实现。
@@ -1149,7 +1257,7 @@ curl "http://127.0.0.1:8000/api/v1/drain_jobs/query?job_id=job_1"
 | `error_message` | 实际错误原因；该接口当前为 `Not supported` | 未实现接口约定 |
 | `timestamp` | 错误返回格式中的时间戳字段 | 统一错误格式 |
 
-### 18 `POST /api/v1/drain_jobs/cancel?job_id=...`
+### 20 `POST /api/v1/drain_jobs/cancel?job_id=...`
 
 #### 作用  
 当前版本不实现该接口；返回统一错误格式，实际 `error_message` 为 `Not supported`。
@@ -1190,7 +1298,7 @@ curl -X POST "http://127.0.0.1:8000/api/v1/drain_jobs/cancel?job_id=job_1"
 | `error_message` | 实际错误原因；该接口当前为 `Not supported` | 未实现接口约定 |
 | `timestamp` | 错误返回格式中的时间戳字段 | 统一错误格式 |
 
-### 19 `GET /api/v1/segments/status?segment=...`
+### 21 `GET /api/v1/segments/status?segment=...`
 
 #### 作用  
 查询指定 segment 的状态。当前版本仅返回 `OK`。
@@ -1249,7 +1357,7 @@ curl "http://127.0.0.1:8000/api/v1/segments/status?segment=rank-0-hbm"
 | `error_message` | 实际错误原因；此处仅为格式示例 | 全局错误返回格式规则 |
 | `timestamp` | 错误返回格式中的时间戳字段 | 全局错误返回格式规则 |
 
-### 20 `GET /api/v1/capacity/usage`
+### 22 `GET /api/v1/capacity/usage`
 
 #### 作用  
 返回整体容量使用情况。介质映射关系为 `HBM -> npu`、`DRAM -> cpu`；无对应介质时返回 `0`，不视为错误。
@@ -1320,7 +1428,7 @@ curl "http://127.0.0.1:8000/api/v1/capacity/usage"
 | `error_message` | 实际错误原因；此处仅为格式示例 | 全局错误返回格式规则 |
 | `timestamp` | 错误返回格式中的时间戳字段 | 全局错误返回格式规则 |
 
-### 21 `GET /api/v1/capacity/segment_remaining`
+### 23 `GET /api/v1/capacity/segment_remaining`
 
 #### 作用  
 返回各 segment 的剩余容量情况。
@@ -1389,7 +1497,7 @@ curl "http://127.0.0.1:8000/api/v1/capacity/segment_remaining"
 | `error_message` | 实际错误原因；此处仅为格式示例 | 全局错误返回格式规则 |
 | `timestamp` | 错误返回格式中的时间戳字段 | 全局错误返回格式规则 |
 
-### 22 `GET /api/v1/analysis/alloc_free_latency`
+### 24 `GET /api/v1/analysis/alloc_free_latency`
 
 #### 作用  
 返回 alloc/free 延迟相关的 ptracer 文本结果。该接口展示 alloc/free 相关统计行，数据来源与 `/metrics/ptracer` 保持一致。

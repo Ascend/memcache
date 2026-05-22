@@ -30,6 +30,8 @@ constexpr char kContentTypeTextUtf8[] = "text/plain; charset=utf-8";
 constexpr char kContentTypePrometheus[] = "text/plain; version=0.0.4";
 constexpr char kMetadataUpdatedText[] = "metadata updated";
 constexpr char kMetadataDeletedText[] = "metadata deleted";
+constexpr char K_KEY_DELETED_TEXT[] = "key deleted";
+constexpr char K_ALL_KEYS_DELETED_TEXT[] = "all keys deleted";
 constexpr char kErrorNotSupported[] = "Not supported";
 constexpr char kErrorInternalServer[] = "Internal server error";
 constexpr char kErrorKeyNotFound[] = "Key not found";
@@ -218,6 +220,46 @@ void MmcHttpServer::RegisterDataManagementEndpoints()
             return;
         }
         ReplyTextOk(res, kMetadataDeletedText);
+    });
+
+    server_.Delete("/key", [this](const httplib::Request &req, httplib::Response &res) {
+        if (restApiFacade_ == nullptr) {
+            ReplyJsonError200(res, kErrorInternalServer);
+            return;
+        }
+
+        std::string key;
+        if (!GetRequiredParam(req, "key", key, res)) {
+            return;
+        }
+
+        const Result ret = restApiFacade_->RemoveKey(key);
+        if (ret != MMC_OK) {
+            const std::string message = ret == MMC_UNMATCHED_KEY ? kErrorKeyNotFound : kErrorInternalServer;
+            ReplyJsonError200(res, message);
+            return;
+        }
+        nlohmann::json body;
+        body["success"] = true;
+        body["message"] = K_KEY_DELETED_TEXT;
+        ReplyJsonOk(res, body);
+    });
+
+    server_.Delete("/all_keys", [this](const httplib::Request &, httplib::Response &res) {
+        if (restApiFacade_ == nullptr) {
+            ReplyJsonError200(res, kErrorInternalServer);
+            return;
+        }
+
+        const Result ret = restApiFacade_->RemoveAllKeys();
+        if (ret != MMC_OK) {
+            ReplyJsonError200(res, kErrorInternalServer);
+            return;
+        }
+        nlohmann::json body;
+        body["success"] = true;
+        body["message"] = K_ALL_KEYS_DELETED_TEXT;
+        ReplyJsonOk(res, body);
     });
 
     server_.Get("/get_all_keys", [this](const httplib::Request &, httplib::Response &res) {

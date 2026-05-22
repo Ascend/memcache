@@ -117,6 +117,22 @@ Result MmcRestApiFacade::DeleteMetadata(const std::string &key) const
     return metaService_->DeleteMetadata(key);
 }
 
+Result MmcRestApiFacade::RemoveKey(const std::string &key) const
+{
+    MMC_VALIDATE_RETURN(metaMgrProxy_ != nullptr, "meta manager proxy is nullptr", MMC_NOT_INITIALIZED);
+    RemoveRequest request(key);
+    Response response;
+    return metaMgrProxy_->Remove(request, response);
+}
+
+Result MmcRestApiFacade::RemoveAllKeys() const
+{
+    MMC_VALIDATE_RETURN(metaMgrProxy_ != nullptr, "meta manager proxy is nullptr", MMC_NOT_INITIALIZED);
+    RemoveAllRequest request;
+    Response response;
+    return metaMgrProxy_->RemoveAll(request, response);
+}
+
 std::string MmcRestApiFacade::GetRole() const
 {
     return GetHaSnapshot().role;
