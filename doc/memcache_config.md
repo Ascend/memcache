@@ -8,6 +8,7 @@
 | ock.mmc.meta_service.config_store_url   | string     | optional    | tcp://127.0.0.1:6000    | tcp://\<ip>\<port>        | port in [1025, 65535]                                        |
 | ock.mmc.meta_service.metrics_url        | string     | optional    | http://127.0.0.1:8000   | http://\<ip>\<port>        | port in [1025, 65535]                                        |
 | ock.mmc.meta.ha.enable                  | bool       | optional    | false                   | true/false                | enable meta service master/backup HA in k8s cluster          |
+| ock.mmc.meta_service.metrics_report_interval_seconds | integer     | optional  | 30    | [0, 86400] | metrics summary printing interval in seconds, 0 disables periodic metrics printing|
 | ock.mmc.log_level                       | string     | optional    | info                    | debug/info/warn/error     | log level                                                    |
 | ock.mmc.log_path                        | string     | optional    | /var/log/memcache_hybrid| relative or absolute path | log path, the absolute path is start with '/'                |
 | ock.mmc.log_rotation_file_size          | int        | optional    | 20                      | 1 <= n <= 500             | log rotation file size(MB)                                   |

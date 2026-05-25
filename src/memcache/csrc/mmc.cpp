@@ -45,6 +45,7 @@ mmc_meta_service_config_t create_default_meta_config()
     config.accTlsConfig.tlsEnable = false;
     config.configStoreTlsConfig.tlsEnable = false;
     config.ubsIoEnable = false;
+    config.metricsReportIntervalSeconds = 0U;
     return config;
 }
 

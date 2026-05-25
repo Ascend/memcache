@@ -57,6 +57,7 @@ typedef struct {
     mmc_tls_config accTlsConfig;
     mmc_tls_config configStoreTlsConfig;
     bool ubsIoEnable;
+    uint32_t metricsReportIntervalSeconds;
 } mmc_meta_service_config_t;
 
 typedef struct {

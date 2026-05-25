@@ -177,6 +177,9 @@ public:
         AddStrConf(OCK_MMC_META_SERVICE_URL, VNoCheck::Create(), 0);
         AddStrConf(OCK_MMC_META_SERVICE_CONFIG_STORE_URL, VNoCheck::Create(), 0);
         AddStrConf(OCK_MMC_META_SERVICE_HTTP_URL, VNoCheck::Create(), 0);
+        AddUInt64Conf(OCK_MMC_METRICS_REPORT_INTERVAL_SECONDS,
+                      VUInt64Range::Create(OCK_MMC_METRICS_REPORT_INTERVAL_SECONDS.first,
+                                           MIN_INTERVAL_SECONDS, MAX_INTERVAL_SECONDS), 0);
         AddBoolConf(OCK_MMC_META_HA_ENABLE, VStrEnum::Create(OCK_MMC_META_HA_ENABLE.first, BOOL_ENUM_STR), 0);
         AddStrConf(OCK_MMC_LOG_LEVEL, VStrEnum::Create(OCK_MMC_LOG_LEVEL.first, LOG_LEVEL_ENUM_STR), 0);
         AddStrConf(OCK_MMC_LOG_PATH, VStrLength::Create(OCK_MMC_LOG_PATH.first, PATH_MAX_LEN), 0);
@@ -237,6 +240,7 @@ public:
         config.evictThresholdLow = GetInt(ConfConstant::OKC_MMC_EVICT_THRESHOLD_LOW);
         config.logRotationFileSize = GetInt(ConfConstant::OCK_MMC_LOG_ROTATION_FILE_SIZE) * MB_NUM;
         config.logRotationFileCount = GetInt(ConfConstant::OCK_MMC_LOG_ROTATION_FILE_COUNT);
+        config.metricsReportIntervalSeconds = GetUInt64(ConfConstant::OCK_MMC_METRICS_REPORT_INTERVAL_SECONDS);
         GetAccTlsConfig(config.accTlsConfig);
         GetConfigStoreTlsConfig(config.configStoreTlsConfig);
         config.ubsIoEnable = GetBool(ConfConstant::OCK_MMC_UBS_IO_ENABLE);

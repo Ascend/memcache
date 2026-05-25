@@ -23,6 +23,8 @@ constexpr auto OCK_MMC_META_SERVICE_CONFIG_STORE_URL =
     std::make_pair("ock.mmc.meta_service.config_store_url", "tcp://127.0.0.1:6000");
 constexpr auto OCK_MMC_META_SERVICE_HTTP_URL =
     std::make_pair("ock.mmc.meta_service.metrics_url", "http://127.0.0.1:8000");
+constexpr auto OCK_MMC_METRICS_REPORT_INTERVAL_SECONDS =
+    std::make_pair("ock.mmc.meta_service.metrics_report_interval_seconds", 30UL);
 constexpr auto OCK_MMC_META_HA_ENABLE = std::make_pair("ock.mmc.meta.ha.enable", false);
 constexpr auto OKC_MMC_EVICT_THRESHOLD_HIGH = std::make_pair("ock.mmc.evict_threshold_high", 90);
 constexpr auto OKC_MMC_EVICT_THRESHOLD_LOW = std::make_pair("ock.mmc.evict_threshold_low", 80);
@@ -119,6 +121,9 @@ constexpr uint64_t MEM_128MB_BYTES = 128ULL * 1024ULL * 1024ULL;
 constexpr unsigned long PATH_MAX_LEN = 1023;
 
 constexpr uint64_t DEFAULT_BATCH_CHUNK_SIZE = 8 * MB_MEM_BYTES;
+
+constexpr uint64_t MIN_INTERVAL_SECONDS = 0;
+constexpr uint64_t MAX_INTERVAL_SECONDS = 86400;
 
 } // namespace mmc
 } // namespace ock

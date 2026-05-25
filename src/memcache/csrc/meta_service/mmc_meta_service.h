@@ -12,10 +12,18 @@
 #ifndef MEM_FABRIC_MMC_META_SERVICE_DEFAULT_H
 #define MEM_FABRIC_MMC_META_SERVICE_DEFAULT_H
 
+#include <memory>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
 #include "mmc_def.h"
 #include "mmc_global_allocator.h"
 #include "mmc_meta_net_server.h"
 #include "mmc_meta_mgr_proxy.h"
+#include "mmc_periodic_task.h"
 #include "mmc_ubs_io_proxy.h"
 #include "smem_config_store.h"
 
@@ -55,6 +63,7 @@ private:
     MmcMetaMgrProxyPtr metaMgrProxy_;
     MMCMetaBackUpMgrPtr metaBackUpMgrPtr_;
     MmcUbsIoProxyPtr ubsIoProxyPtr_;
+    std::unique_ptr<MmcPeriodicTask> periodicTask_;
 
     std::mutex mutex_;
     bool started_ = false;
@@ -63,6 +72,10 @@ private:
     std::unordered_map<uint32_t, std::unordered_set<uint16_t>> rankMediaTypeMap_;
     std::unordered_map<std::string, std::string> metadata_;
     ock::smem::StorePtr confStore_ = nullptr;
+
+    bool StartPeriodicTask(const std::string &taskName, uint32_t intervalSeconds, MmcPeriodicTask::Task task);
+    void StopPeriodicTask();
+    void StartMetricsReportTask();
 };
 inline const std::string &MmcMetaService::Name() const
 {

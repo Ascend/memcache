@@ -11,9 +11,13 @@
 */
 #include "mmc_meta_service.h"
 
+#include <memory>
+
+#include "mmc_logger.h"
 #include "mmc_ref.h"
 #include "mmc_meta_mgr_proxy.h"
 #include "mmc_meta_net_server.h"
+#include "mmc_rest_api_facade.h"
 #include "mmc_smem_bm_helper.h"
 #include "spdlogger4c.h"
 #include "spdlogger.h"
@@ -77,6 +81,8 @@ Result MmcMetaService::Start(const mmc_meta_service_config_t &options)
 
     started_ = true;
     MMC_LOG_INFO("Started MetaService (" << name_ << ") at " << options_.discoveryURL);
+
+    StartMetricsReportTask();
     return MMC_OK;
 }
 
@@ -172,6 +178,7 @@ void MmcMetaService::Stop()
         MMC_LOG_WARN("MmcClientDefault has not been started");
         return;
     }
+    StopPeriodicTask();
     metaBackUpMgrPtr_->Stop();
     metaMgrProxy_->Stop();
     metaNetServer_->Stop();
@@ -184,6 +191,69 @@ void MmcMetaService::Stop()
     ock::smem::StoreFactory::DestroyStore(options_.configStoreURL);
     MMC_LOG_INFO("Stop MmcMetaServiceDefault (" << name_ << ") at " << options_.discoveryURL);
     started_ = false;
+}
+
+bool MmcMetaService::StartPeriodicTask(const std::string &taskName, uint32_t intervalSeconds,
+                                       MmcPeriodicTask::Task task)
+{
+    if (intervalSeconds == 0 || !task) {
+        MMC_LOG_ERROR("Failed to start periodic task in meta service, invalid param: taskName=" << taskName
+                      << ", intervalSeconds=" << intervalSeconds);
+        return false;
+    }
+    if (periodicTask_ == nullptr) {
+        periodicTask_ = std::make_unique<MmcPeriodicTask>();
+    }
+
+    if (!periodicTask_->RegisterTask(taskName, intervalSeconds, std::move(task))) {
+        MMC_LOG_ERROR("Failed to register periodic task: " << taskName << ", intervalSeconds=" << intervalSeconds);
+        return false;
+    }
+
+    if (!periodicTask_->IsRunning() && !periodicTask_->Start()) {
+        MMC_LOG_ERROR("Failed to start periodic task scheduler");
+        return false;
+    }
+
+    MMC_LOG_INFO("Registered periodic task in meta service: " << taskName
+                 << ", intervalSeconds=" << intervalSeconds);
+    return true;
+}
+
+void MmcMetaService::StopPeriodicTask()
+{
+    if (periodicTask_ != nullptr) {
+        periodicTask_->Stop();
+        periodicTask_.reset();
+    }
+    MMC_LOG_INFO("Stopped periodic task worker in meta service");
+}
+
+void MmcMetaService::StartMetricsReportTask()
+{
+    if (options_.metricsReportIntervalSeconds == 0) {
+        MMC_LOG_INFO("Metrics report task disabled by config");
+        return;
+    }
+    const uint32_t intervalSeconds = options_.metricsReportIntervalSeconds;
+    const bool started = StartPeriodicTask(
+        "metrics_report", intervalSeconds,
+        [this]() {
+            if (metaMgrProxy_ == nullptr) {
+                MMC_LOG_WARN("Skip metrics report task because metaMgrProxy is null");
+                return;
+            }
+            MmcRestApiFacade facade(this, metaMgrProxy_);
+            std::string metricsSummary;
+            if (facade.BuildMetricsSummary(true, metricsSummary) == MMC_OK) {
+                MMC_AUDIT_LOG("Metrics summary: " + metricsSummary);
+            } else {
+                MMC_LOG_WARN("Failed to build periodic metrics summary");
+            }
+        });
+    if (!started) {
+        MMC_LOG_ERROR("Failed to start metrics report task");
+    }
 }
 
 Result MmcMetaService::GetMetadata(const std::string &key, std::string &value, int64_t timeoutMs)
