@@ -158,7 +158,10 @@ Result MmcBmProxy::Copy(uint64_t srcBmAddr, uint64_t dstBmAddr, uint64_t size, s
         return MMC_ERROR;
     }
     TP_TRACE_BEGIN(TP_SMEM_BM_PUT);
-    smem_copy_params params = {(const void *)srcBmAddr, (void *)dstBmAddr, size};
+    smem_copy_params params{};
+    params.src = (const void *)srcBmAddr;
+    params.dest = (void *)dstBmAddr;
+    params.dataSize = size;
     auto ret = smem_bm_copy(handle_, &params, type, 0);
     TP_TRACE_END(TP_SMEM_BM_PUT, ret);
     return ret;
@@ -181,7 +184,10 @@ Result MmcBmProxy::Put(const mmc_buffer *buf, uint64_t bmAddr, uint64_t size)
         return MMC_ERROR;
     }
     TP_TRACE_BEGIN(TP_SMEM_BM_PUT);
-    smem_copy_params params = {(void *)(buf->addr + buf->offset), (void *)bmAddr, buf->len};
+    smem_copy_params params{};
+    params.src = (void *)(buf->addr + buf->offset);
+    params.dest = (void *)bmAddr;
+    params.dataSize = buf->len;
     auto ret = smem_bm_copy(handle_, &params, type, ASYNC_COPY_FLAG);
     TP_TRACE_END(TP_SMEM_BM_PUT, ret);
     return ret;
@@ -203,7 +209,10 @@ Result MmcBmProxy::Get(const mmc_buffer *buf, uint64_t bmAddr, uint64_t size)
         return MMC_ERROR;
     }
     TP_TRACE_BEGIN(TP_SMEM_BM_GET);
-    smem_copy_params params = {(void *)bmAddr, (void *)(buf->addr + buf->offset), buf->len};
+    smem_copy_params params{};
+    params.src = (void *)bmAddr;
+    params.dest = (void *)(buf->addr + buf->offset);
+    params.dataSize = buf->len;
     auto ret = smem_bm_copy(handle_, &params, type, ASYNC_COPY_FLAG);
     TP_TRACE_END(TP_SMEM_BM_GET, ret);
     return ret;
@@ -285,7 +294,11 @@ Result MmcBmProxy::BatchPut(const MmcBufferArray &bufArr, const MmcMemBlobDesc &
         dataSizes[i] = buf->len;
         shift += MmcBufSize(*buf);
     }
-    smem_batch_copy_params batch_params = {sources.data(), destinations.data(), dataSizes.data(), count};
+    smem_batch_copy_params batch_params{};
+    batch_params.sources = sources.data();
+    batch_params.destinations = destinations.data();
+    batch_params.dataSizes = dataSizes.data();
+    batch_params.batchSize = count;
     return smem_bm_copy_batch(handle_, &batch_params, type, 0);
 }
 
@@ -317,7 +330,11 @@ Result MmcBmProxy::BatchGet(const MmcBufferArray &bufArr, const MmcMemBlobDesc &
         dataSizes[i] = buf->len;
         shift += MmcBufSize(*buf);
     }
-    smem_batch_copy_params batch_params = {sources.data(), destinations.data(), dataSizes.data(), count};
+    smem_batch_copy_params batch_params{};
+    batch_params.sources = sources.data();
+    batch_params.destinations = destinations.data();
+    batch_params.dataSizes = dataSizes.data();
+    batch_params.batchSize = count;
     return smem_bm_copy_batch(handle_, &batch_params, type, 0);
 }
 
@@ -339,9 +356,11 @@ Result MmcBmProxy::BatchDataPut(std::vector<void *> &sources, std::vector<void *
     }
 
     smem_bm_copy_type type = localMedia == MEDIA_DRAM ? SMEMB_COPY_H2G : SMEMB_COPY_L2G;
-    smem_batch_copy_params batch_params = {reinterpret_cast<void **>(sources.data()),
-                                           reinterpret_cast<void **>(destinations.data()), sizes.data(),
-                                           static_cast<uint32_t>(sources.size())};
+    smem_batch_copy_params batch_params{};
+    batch_params.sources = reinterpret_cast<void **>(sources.data());
+    batch_params.destinations = reinterpret_cast<void **>(destinations.data());
+    batch_params.dataSizes = sizes.data();
+    batch_params.batchSize = static_cast<uint32_t>(sources.size());
     uint64_t totalSize = std::accumulate(sizes.begin(), sizes.end(), 0ULL);
     TP_TRACE_BEGIN(TP_MMC_LOCAL_BATCH_PUT);
     auto ret = smem_bm_copy_batch(handle_, &batch_params, type, 0);
@@ -369,9 +388,11 @@ Result MmcBmProxy::BatchDataGet(std::vector<void *> &sources, std::vector<void *
     }
 
     smem_bm_copy_type type = localMedia == MEDIA_DRAM ? SMEMB_COPY_G2H : SMEMB_COPY_G2L;
-    smem_batch_copy_params batch_params = {reinterpret_cast<void **>(sources.data()),
-                                           reinterpret_cast<void **>(destinations.data()), sizes.data(),
-                                           static_cast<uint32_t>(sources.size())};
+    smem_batch_copy_params batch_params{};
+    batch_params.sources = reinterpret_cast<void **>(sources.data());
+    batch_params.destinations = reinterpret_cast<void **>(destinations.data());
+    batch_params.dataSizes = sizes.data();
+    batch_params.batchSize = static_cast<uint32_t>(sources.size());
     uint64_t totalSize = std::accumulate(sizes.begin(), sizes.end(), 0ULL);
     TP_TRACE_BEGIN(TP_MMC_LOCAL_BATCH_GET);
     auto ret = smem_bm_copy_batch(handle_, &batch_params, type, 0);
