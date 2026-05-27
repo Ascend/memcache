@@ -102,6 +102,7 @@ typedef struct {
     const void *src;
     void *dest;
     size_t dataSize;
+    void *stream; /* if stream != null, submit task on this stream async */
 } smem_copy_params;
 
 typedef struct {
@@ -109,6 +110,7 @@ typedef struct {
     void **destinations;
     const uint64_t *dataSizes;
     uint32_t batchSize;
+    void *stream; /* if stream != null, submit task on this stream async */
 } smem_batch_copy_params;
 
 #ifdef __cplusplus

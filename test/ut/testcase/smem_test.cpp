@@ -224,7 +224,10 @@ TEST_F(TestSmem, two_crad_bm_copy_success)
         memset(hostSrc, rank + 1, UT_COPY_MEM_SIZE);
         memset(hostDst, 0, UT_COPY_MEM_SIZE);
 
-        smem_copy_params params = {hostSrc, remote, UT_COPY_MEM_SIZE};
+        smem_copy_params params{};
+        params.src = hostSrc;
+        params.dest = remote;
+        params.dataSize = UT_COPY_MEM_SIZE;
         ret = smem_bm_copy(handle, &params, SMEMB_COPY_H2G, 0);
         if (ret != 0) {
             exit(11);
