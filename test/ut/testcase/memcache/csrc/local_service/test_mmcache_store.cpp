@@ -29,6 +29,13 @@ using namespace testing;
 using namespace std;
 using namespace ock::mmc;
 
+namespace {
+// Avoid well-known/system ports (5869/5870 are often occupied, e.g. mail submission).
+constexpr const char *kMmcacheStoreMetaUrl = "tcp://127.0.0.1:16070";
+constexpr const char *kMmcacheStoreConfigStoreUrl = "tcp://127.0.0.1:16084";
+constexpr const char *kMmcacheStoreHcomUrl = "tcp://127.0.0.1:16001";
+} // namespace
+
 class TestMmcacheStore : public testing::Test {
 public:
     TestMmcacheStore();
@@ -62,7 +69,7 @@ static int GenerateLocalConf(std::string confPath)
         return 1;
     }
 
-    outFile << "ock.mmc.meta_service_url = tcp://127.0.0.1:5869" << std::endl;
+    outFile << "ock.mmc.meta_service_url = " << kMmcacheStoreMetaUrl << std::endl;
     outFile << " ock.mmc.log_level = info " << std::endl;
 
     outFile << "ock.mmc.tls.enable = false" << std::endl;
@@ -75,7 +82,7 @@ static int GenerateLocalConf(std::string confPath)
     outFile << "ock.mmc.tls.decrypter.path =" << std::endl;
 
     outFile << "ock.mmc.local_service.world_size = 1" << std::endl;
-    outFile << "ock.mmc.local_service.config_store_url = tcp://127.0.0.1:5882" << std::endl;
+    outFile << "ock.mmc.local_service.config_store_url = " << kMmcacheStoreConfigStoreUrl << std::endl;
     outFile << "ock.mmc.config_store.tls.enable = false" << std::endl;
     outFile << "ock.mmc.config_store.tls.ca.path = /opt/ock/security/certs/ca.cert.pem" << std::endl;
     outFile << "ock.mmc.config_store.tls.ca.crl.path = /opt/ock/security/certs/ca.crl.pem" << std::endl;
@@ -88,7 +95,7 @@ static int GenerateLocalConf(std::string confPath)
     outFile << "ock.mmc.local_service.dram.size = 32MB" << std::endl;
     outFile << "ock.mmc.local_service.hbm.size = 32MB" << std::endl;
 
-    outFile << "ock.mmc.local_service.hcom_url = tcp://127.0.0.1:7000" << std::endl;
+    outFile << "ock.mmc.local_service.hcom_url = " << kMmcacheStoreHcomUrl << std::endl;
     outFile << "ock.mmc.local_service.hcom.tls.enable = false" << std::endl;
     outFile << "ock.mmc.local_service.hcom.tls.ca.path = /opt/ock/security/certs/ca.cert.pem" << std::endl;
     outFile << "ock.mmc.local_service.hcom.tls.ca.crl.path = /opt/ock/security/certs/ca.crl.pem" << std::endl;
@@ -149,8 +156,8 @@ static void TestStore(std::shared_ptr<ObjectStore> &store, const std::vector<voi
 TEST_F(TestMmcacheStore, Init)
 {
     // 1、启动 meta
-    std::string metaUrl = "tcp://127.0.0.1:5869";
-    std::string bmUrl = "tcp://127.0.0.1:5882";
+    std::string metaUrl = kMmcacheStoreMetaUrl;
+    std::string bmUrl = kMmcacheStoreConfigStoreUrl;
 
     mmc_meta_service_config_t metaServiceConfig{};
     metaServiceConfig.logLevel = INFO_LEVEL;
@@ -206,8 +213,8 @@ TEST_F(TestMmcacheStore, Init)
 static mmc_meta_service_t StartMetaService()
 {
     // 1、启动 meta
-    std::string metaUrl = "tcp://127.0.0.1:5869";
-    std::string bmUrl = "tcp://127.0.0.1:5882";
+    std::string metaUrl = kMmcacheStoreMetaUrl;
+    std::string bmUrl = kMmcacheStoreConfigStoreUrl;
 
     mmc_meta_service_config_t metaServiceConfig{};
     metaServiceConfig.logLevel = INFO_LEVEL;
@@ -336,8 +343,8 @@ TEST_F(TestMmcacheStore, BatchIsExist)
 
 TEST_F(TestMmcacheStore, BatchMalloc)
 {
-    std::string metaUrl = "tcp://127.0.0.1:5869";
-    std::string bmUrl = "tcp://127.0.0.1:5882";
+    std::string metaUrl = kMmcacheStoreMetaUrl;
+    std::string bmUrl = kMmcacheStoreConfigStoreUrl;
 
     mmc_meta_service_config_t metaServiceConfig{};
     metaServiceConfig.logLevel = INFO_LEVEL;

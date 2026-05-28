@@ -8,4 +8,12 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 
-add_subdirectory(mf_smem)
+file(GLOB_RECURSE mf_smem_src
+        ${CMAKE_CURRENT_SOURCE_DIR}/mf_smem_api_test.cpp
+)
+ADD_UNIT_TEST(test_mf_smem_api
+        FILES ${mf_smem_src} ${TEST_SRC_PATHS}/ut_main.cpp
+        INCLUDE_PATHS ${TEST_INCLUDE_PATHS}
+        LINK_LIBRARIES ${TEST_DEPEND_LIBS}
+        BUILD_FLAGS -fpermissive --coverage
+)

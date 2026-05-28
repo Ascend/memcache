@@ -22,6 +22,13 @@ using namespace testing;
 using namespace std;
 using namespace ock::mmc;
 
+namespace {
+// Avoid well-known/system ports (5869/5870 are often occupied, e.g. mail submission).
+constexpr const char *kServiceInterfaceMetaUrl = "tcp://127.0.0.1:16069";
+constexpr const char *kServiceInterfaceBmUrl = "tcp://127.0.0.1:16082";
+constexpr const char *kServiceInterfaceHcomUrl = "tcp://127.0.0.1:16083";
+} // namespace
+
 static const uint32_t UT_READ_POOL_NUM = 32U;
 static const uint32_t UT_WRITE_POOL_NUM = 4U;
 
@@ -84,9 +91,9 @@ static bool CheckData(void *base, void *ptr)
 
 TEST_F(TestMmcServiceInterface, MultiLevelEvict)
 {
-    std::string metaUrl = "tcp://127.0.0.1:5869";
-    std::string bmUrl = "tcp://127.0.0.1:5882";
-    std::string hcomUrl = "tcp://127.0.0.1:5883";
+    std::string metaUrl = kServiceInterfaceMetaUrl;
+    std::string bmUrl = kServiceInterfaceBmUrl;
+    std::string hcomUrl = kServiceInterfaceHcomUrl;
 
     mmc_meta_service_config_t metaServiceConfig{};
     metaServiceConfig.logLevel = INFO_LEVEL;
@@ -175,9 +182,9 @@ TEST_F(TestMmcServiceInterface, MultiLevelEvict)
 
 TEST_F(TestMmcServiceInterface, metaServiceStart)
 {
-    std::string metaUrl = "tcp://127.0.0.1:5869";
-    std::string bmUrl = "tcp://127.0.0.1:5882";
-    std::string hcomUrl = "tcp://127.0.0.1:5883";
+    std::string metaUrl = kServiceInterfaceMetaUrl;
+    std::string bmUrl = kServiceInterfaceBmUrl;
+    std::string hcomUrl = kServiceInterfaceHcomUrl;
     std::string localUrl = "";
     mmc_meta_service_config_t metaServiceConfig{};
     metaServiceConfig.logLevel = INFO_LEVEL;

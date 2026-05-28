@@ -14,11 +14,56 @@
 #include "mmc_ref.h"
 #include "smem_bm.h"
 #include "gtest/gtest.h"
+#include <dlfcn.h>
 #include <iostream>
 #include <memory>
 
-extern "C" const smem_bm_create_option_t *MockSmemBmGetLastCreate2Option();
-extern "C" void MockSmemBmResetLastCreate2Option();
+namespace {
+using MockGetLastCreate2OptionFn = const smem_bm_create_option_t *(*)();
+using MockResetLastCreate2OptionFn = void (*)();
+
+void *GetMockSmemLibHandle()
+{
+    const char *libDir = std::getenv("MEMFABRIC_HYBRID_EXTEND_LIB_PATH");
+    if (libDir == nullptr || libDir[0] == '\0') {
+        return nullptr;
+    }
+    std::string libPath = libDir;
+    if (libPath.back() != '/') {
+        libPath.push_back('/');
+    }
+    libPath.append("libmf_smem.so");
+
+    dlerror();
+    void *handle = dlopen(libPath.c_str(), RTLD_LAZY | RTLD_NOLOAD);
+    if (handle == nullptr) {
+        handle = dlopen(libPath.c_str(), RTLD_LAZY);
+    }
+    return handle;
+}
+
+const smem_bm_create_option_t *MockSmemBmGetLastCreate2Option()
+{
+    void *handle = GetMockSmemLibHandle();
+    if (handle == nullptr) {
+        return nullptr;
+    }
+    auto fn = reinterpret_cast<MockGetLastCreate2OptionFn>(dlsym(handle, "MockSmemBmGetLastCreate2Option"));
+    return fn != nullptr ? fn() : nullptr;
+}
+
+void MockSmemBmResetLastCreate2Option()
+{
+    void *handle = GetMockSmemLibHandle();
+    if (handle == nullptr) {
+        return;
+    }
+    auto fn = reinterpret_cast<MockResetLastCreate2OptionFn>(dlsym(handle, "MockSmemBmResetLastCreate2Option"));
+    if (fn != nullptr) {
+        fn();
+    }
+}
+} // namespace
 
 using namespace testing;
 using namespace std;

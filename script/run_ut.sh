@@ -17,6 +17,7 @@ readonly OUTPUT_PATH="$PROJECT_FULL_PATH/output"
 readonly HYBM_LIB_PATH="$OUTPUT_PATH/hybm/lib64"
 readonly SMEM_LIB_PATH="$OUTPUT_PATH/smem/lib64"
 readonly MEMCACHE_LIB_PATH="$OUTPUT_PATH/memcache/lib64"
+readonly MOCK_SMEM_LIB_PATH="$OUTPUT_PATH/test/mock_mf_smem/lib64"
 readonly COVERAGE_PATH="$OUTPUT_PATH/coverage"
 readonly TEST_REPORT_PATH="$OUTPUT_PATH/bin/gcover_report"
 readonly MOCKCPP_PATH="$PROJECT_FULL_PATH/test/3rdparty/mockcpp"
@@ -62,6 +63,7 @@ cmake -G "$GENERATOR" \
   -S . -B ${BUILD_PATH}
 ${MAKE_CMD} install -j"${MMC_BUILD_JOBS}" -C ${BUILD_PATH}
 export LD_LIBRARY_PATH=$MEMCACHE_LIB_PATH:$SMEM_LIB_PATH:$HYBM_LIB_PATH:$MOCK_CANN_PATH/driver/lib64:$MOCK_MMC_UBSIO_PATH:$MOCK_MMC_CANN_PATH:$LD_LIBRARY_PATH
+export MEMFABRIC_HYBRID_EXTEND_LIB_PATH=$MOCK_SMEM_LIB_PATH
 export ASCEND_HOME_PATH=$MOCK_CANN_PATH
 export ASAN_OPTIONS="detect_stack_use_after_return=1:allow_user_poisoning=1:detect_leaks=0"
 

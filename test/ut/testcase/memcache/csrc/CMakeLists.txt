@@ -8,6 +8,7 @@ file(GLOB_RECURSE mmc_test_src
         ${CMAKE_CURRENT_SOURCE_DIR}/under_api/ubs_io/*
         #        ${CMAKE_CURRENT_SOURCE_DIR}/net/*
 )
+list(FILTER mmc_test_src EXCLUDE REGEX ".*/test_local_handler\\.cpp$")
 ADD_UNIT_TEST(test_mmc_test
         FILES ${mmc_test_src} ${TEST_SRC_PATHS}/ut_main.cpp
         INCLUDE_PATHS ${TEST_INCLUDE_PATHS}

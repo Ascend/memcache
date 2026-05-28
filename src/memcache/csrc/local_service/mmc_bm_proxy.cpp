@@ -15,6 +15,7 @@
 #include "mmc_logger.h"
 #include "mmc_smem_bm_helper.h"
 #include "mmc_ptracer.h"
+#include "smem_bm_api.h"
 
 namespace ock {
 namespace mmc {
@@ -28,14 +29,17 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
         MMC_LOG_INFO("MmcBmProxy " << name_ << " already init");
         return MMC_OK;
     }
+
+    MMC_RETURN_ERROR(MFSmemApi::LoadLibrary(MFSmemApi::ResolveLibDir()), "Failed to load smem bm library");
+
     createConfig_ = createConfig;
-    MMC_RETURN_ERROR(smem_set_log_level(initConfig.logLevel), "Failed to set smem bm log level");
+    MMC_RETURN_ERROR(MFSmemApi::SmemSetLogLevel(initConfig.logLevel), "Failed to set smem bm log level");
     if (initConfig.logFunc != nullptr) {
-        MMC_RETURN_ERROR(smem_set_extern_logger(initConfig.logFunc), "Failed to set smem bm extern logger");
+        MMC_RETURN_ERROR(MFSmemApi::SmemSetExternLogger(initConfig.logFunc), "Failed to set smem bm extern logger");
     }
 
     smem_bm_config_t config;
-    MMC_RETURN_ERROR(smem_bm_config_init(&config), "Failed to init smem bm config");
+    MMC_RETURN_ERROR(MFSmemApi::SmemBmConfigInit(&config), "Failed to init smem bm config");
     config.flags = initConfig.flags;
     config.startConfigStoreServer = false;
     config.hcomTlsConfig = MmcSmemBmHelper::TransSmemTlsConfig(initConfig.hcomTlsConfig);
@@ -45,36 +49,36 @@ Result MmcBmProxy::InitBm(const mmc_bm_init_config_t &initConfig, const mmc_bm_c
     std::copy_n(initConfig.hcomUrl.c_str(), std::min(sizeof(config.hcomUrl) - 1, initConfig.hcomUrl.size()),
                 config.hcomUrl);
 
-    MMC_RETURN_ERROR(smem_init(0), "Failed to init smem");
+    MMC_RETURN_ERROR(MFSmemApi::SmemInit(0), "Failed to init smem");
 
-    if (smem_bm_init(initConfig.ipPort.c_str(), initConfig.worldSize, initConfig.deviceId, &config) != 0) {
+    if (MFSmemApi::SmemBmInit(initConfig.ipPort.c_str(), initConfig.worldSize, initConfig.deviceId, &config) != 0) {
         MMC_LOG_ERROR("Failed to init smem bm");
-        smem_uninit();
+        MFSmemApi::SmemUninit();
         return MMC_ERROR;
     }
 
-    bmRankId_ = smem_bm_get_rank_id();
+    bmRankId_ = MFSmemApi::SmemBmGetRankId();
 
     auto ret = InternalCreateBm(createConfig, initConfig.worldSize);
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("Internal create bm failed");
-        smem_bm_uninit(0);
-        smem_uninit();
+        MFSmemApi::SmemBmUninit(0);
+        MFSmemApi::SmemUninit();
         return ret;
     }
 
-    if (smem_bm_join(handle_, 0) != 0) {
+    if (MFSmemApi::SmemBmJoin(handle_, 0) != 0) {
         MMC_LOG_ERROR("Failed to join smem bm");
-        smem_bm_destroy(handle_);
-        smem_bm_uninit(0);
-        smem_uninit();
+        MFSmemApi::SmemBmDestroy(handle_);
+        MFSmemApi::SmemBmUninit(0);
+        MFSmemApi::SmemUninit();
         return MMC_ERROR;
     }
 
-    gvas_[MEDIA_HBM] = smem_bm_ptr_by_mem_type(handle_, SMEM_MEM_TYPE_DEVICE, bmRankId_);
-    gvas_[MEDIA_DRAM] = smem_bm_ptr_by_mem_type(handle_, SMEM_MEM_TYPE_HOST, bmRankId_);
-    spaces_[MEDIA_HBM] = smem_bm_get_local_mem_size_by_mem_type(handle_, SMEM_MEM_TYPE_DEVICE);
-    spaces_[MEDIA_DRAM] = smem_bm_get_local_mem_size_by_mem_type(handle_, SMEM_MEM_TYPE_HOST);
+    gvas_[MEDIA_HBM] = MFSmemApi::SmemBmPtrByMemType(handle_, SMEM_MEM_TYPE_DEVICE, bmRankId_);
+    gvas_[MEDIA_DRAM] = MFSmemApi::SmemBmPtrByMemType(handle_, SMEM_MEM_TYPE_HOST, bmRankId_);
+    spaces_[MEDIA_HBM] = MFSmemApi::SmemBmGetLocalMemSizeByMemType(handle_, SMEM_MEM_TYPE_DEVICE);
+    spaces_[MEDIA_DRAM] = MFSmemApi::SmemBmGetLocalMemSizeByMemType(handle_, SMEM_MEM_TYPE_HOST);
     started_ = true;
 
     MMC_LOG_INFO("init bm success, rank:" << bmRankId_ << ", worldSize:" << initConfig.worldSize << ", hbm{"
@@ -118,7 +122,7 @@ Result MmcBmProxy::InternalCreateBm(const mmc_bm_create_config_t &createConfig, 
     option.flags = createConfig.flags;
     option.tag[0] = '\0';
     option.tagOpInfo[0] = '\0';
-    handle_ = smem_bm_create2(createConfig.id, &option);
+    handle_ = MFSmemApi::SmemBmCreate2(createConfig.id, &option);
     if (handle_ == nullptr) {
         MMC_LOG_ERROR("Failed to create smem bm");
         return MMC_ERROR;
@@ -136,12 +140,13 @@ void MmcBmProxy::DestroyBm()
     }
 
     if (handle_ != nullptr) {
-        smem_bm_destroy(handle_);
+        MFSmemApi::SmemBmDestroy(handle_);
         handle_ = nullptr;
         std::fill(gvas_, gvas_ + MEDIA_NONE, nullptr);
     }
-    smem_bm_uninit(0);
-    smem_uninit();
+    MFSmemApi::SmemBmUninit(0);
+    MFSmemApi::SmemUninit();
+    MFSmemApi::CleanupLibrary();
     started_ = false;
     MMC_LOG_INFO("MmcBmProxy (" << name_ << ") is destroyed successfully");
 }
@@ -162,7 +167,7 @@ Result MmcBmProxy::Copy(uint64_t srcBmAddr, uint64_t dstBmAddr, uint64_t size, s
     params.src = (const void *)srcBmAddr;
     params.dest = (void *)dstBmAddr;
     params.dataSize = size;
-    auto ret = smem_bm_copy(handle_, &params, type, 0);
+    auto ret = MFSmemApi::SmemBmCopy(handle_, &params, type, 0);
     TP_TRACE_END(TP_SMEM_BM_PUT, ret);
     return ret;
 }
@@ -188,7 +193,7 @@ Result MmcBmProxy::Put(const mmc_buffer *buf, uint64_t bmAddr, uint64_t size)
     params.src = (void *)(buf->addr + buf->offset);
     params.dest = (void *)bmAddr;
     params.dataSize = buf->len;
-    auto ret = smem_bm_copy(handle_, &params, type, ASYNC_COPY_FLAG);
+    auto ret = MFSmemApi::SmemBmCopy(handle_, &params, type, ASYNC_COPY_FLAG);
     TP_TRACE_END(TP_SMEM_BM_PUT, ret);
     return ret;
 }
@@ -213,7 +218,7 @@ Result MmcBmProxy::Get(const mmc_buffer *buf, uint64_t bmAddr, uint64_t size)
     params.src = (void *)bmAddr;
     params.dest = (void *)(buf->addr + buf->offset);
     params.dataSize = buf->len;
-    auto ret = smem_bm_copy(handle_, &params, type, ASYNC_COPY_FLAG);
+    auto ret = MFSmemApi::SmemBmCopy(handle_, &params, type, ASYNC_COPY_FLAG);
     TP_TRACE_END(TP_SMEM_BM_GET, ret);
     return ret;
 }
@@ -299,7 +304,7 @@ Result MmcBmProxy::BatchPut(const MmcBufferArray &bufArr, const MmcMemBlobDesc &
     batch_params.destinations = destinations.data();
     batch_params.dataSizes = dataSizes.data();
     batch_params.batchSize = count;
-    return smem_bm_copy_batch(handle_, &batch_params, type, 0);
+    return MFSmemApi::SmemBmCopyBatch(handle_, &batch_params, type, 0);
 }
 
 Result MmcBmProxy::BatchGet(const MmcBufferArray &bufArr, const MmcMemBlobDesc &blob)
@@ -335,7 +340,7 @@ Result MmcBmProxy::BatchGet(const MmcBufferArray &bufArr, const MmcMemBlobDesc &
     batch_params.destinations = destinations.data();
     batch_params.dataSizes = dataSizes.data();
     batch_params.batchSize = count;
-    return smem_bm_copy_batch(handle_, &batch_params, type, 0);
+    return MFSmemApi::SmemBmCopyBatch(handle_, &batch_params, type, 0);
 }
 
 Result MmcBmProxy::BatchDataPut(std::vector<void *> &sources, std::vector<void *> &destinations,
@@ -363,7 +368,7 @@ Result MmcBmProxy::BatchDataPut(std::vector<void *> &sources, std::vector<void *
     batch_params.batchSize = static_cast<uint32_t>(sources.size());
     uint64_t totalSize = std::accumulate(sizes.begin(), sizes.end(), 0ULL);
     TP_TRACE_BEGIN(TP_MMC_LOCAL_BATCH_PUT);
-    auto ret = smem_bm_copy_batch(handle_, &batch_params, type, 0);
+    auto ret = MFSmemApi::SmemBmCopyBatch(handle_, &batch_params, type, 0);
     TP_TRACE_END(TP_MMC_LOCAL_BATCH_PUT, ret);
     TP_TRACE_RECORD(TP_MMC_LOCAL_BATCH_PUT_SIZE, totalSize * 1000ULL, 0);
     (void)totalSize;
@@ -395,7 +400,7 @@ Result MmcBmProxy::BatchDataGet(std::vector<void *> &sources, std::vector<void *
     batch_params.batchSize = static_cast<uint32_t>(sources.size());
     uint64_t totalSize = std::accumulate(sizes.begin(), sizes.end(), 0ULL);
     TP_TRACE_BEGIN(TP_MMC_LOCAL_BATCH_GET);
-    auto ret = smem_bm_copy_batch(handle_, &batch_params, type, 0);
+    auto ret = MFSmemApi::SmemBmCopyBatch(handle_, &batch_params, type, 0);
     TP_TRACE_END(TP_MMC_LOCAL_BATCH_GET, ret);
     TP_TRACE_RECORD(TP_MMC_LOCAL_BATCH_GET_SIZE, totalSize * 1000ULL, 0);
     (void)totalSize;
@@ -405,7 +410,7 @@ Result MmcBmProxy::BatchDataGet(std::vector<void *> &sources, std::vector<void *
 Result MmcBmProxy::RegisterBuffer(uint64_t addr, uint64_t size)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    auto ret = smem_bm_register_user_mem(handle_, addr, size);
+    auto ret = MFSmemApi::SmemBmRegisterUserMem(handle_, addr, size);
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("Failed to register mem,  ret:" << ret);
     }
@@ -415,7 +420,7 @@ Result MmcBmProxy::RegisterBuffer(uint64_t addr, uint64_t size)
 Result MmcBmProxy::UnRegisterBuffer(uint64_t addr)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    auto ret = smem_bm_unregister_user_mem(handle_, addr);
+    auto ret = MFSmemApi::SmemBmUnregisterUserMem(handle_, addr);
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("Failed to unregister mem,  ret:" << ret);
     }
@@ -424,7 +429,7 @@ Result MmcBmProxy::UnRegisterBuffer(uint64_t addr)
 
 Result MmcBmProxy::CopyWait()
 {
-    auto ret = smem_bm_wait(handle_);
+    auto ret = MFSmemApi::SmemBmWait(handle_);
     if (ret != MMC_OK) {
         MMC_LOG_ERROR("Failed to wait copy task ret:" << ret);
     }

@@ -84,14 +84,13 @@ FUNCTION(ADD_UNIT_TEST TEST_NAME)
     IF (ADD_UNIT_TEST_BUILD_FLAGS)
         target_compile_options(${TEST_TARGET_NAME} PUBLIC ${ADD_UNIT_TEST_BUILD_FLAGS})
     ENDIF ()
-
     add_test(NAME ${TEST_NAME} COMMAND $<TARGET_FILE:${TEST_TARGET_NAME}>)
 
 ENDFUNCTION()
 
 set(TEST_INCLUDE_PATHS ../../src/memcache/)
 set(TEST_SRC_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
-set(TEST_DEPEND_LIBS mmc_static gtest dl acc_tcp_net_static smem_static gcov pthread)
+set(TEST_DEPEND_LIBS mmc_static gtest dl acc_tcp_net_static gcov pthread)
 
 add_subdirectory(testcase/memcache/csrc/net)
 add_subdirectory(testcase/memcache/csrc/meta_service)
@@ -100,4 +99,5 @@ add_subdirectory(testcase/memcache/csrc/common)
 add_subdirectory(testcase/memcache/csrc/config)
 add_subdirectory(testcase/memcache/csrc/entities)
 add_subdirectory(testcase/memcache/csrc/log)
+add_subdirectory(testcase/memcache/csrc/under_api)
 add_subdirectory(testcase/memcache/csrc/)

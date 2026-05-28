@@ -15,8 +15,7 @@
 #include <mutex>
 #include <map>
 #include <vector>
-#include "smem.h"
-#include "smem_bm.h"
+#include "smem_bm_def.h"
 #include "mmc_def.h"
 #include "mmc_mem_blob.h"
 #include "mmc_types.h"

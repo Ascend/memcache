@@ -24,6 +24,7 @@ typedef void *smem_bm_t;
 #define ASYNC_COPY_FLAG       (1UL << (0))
 #define SMEM_BM_INIT_GVM_FLAG (1ULL << 1ULL) // Init the GVM module, enable to use Host DRAM
 #define SMEM_TLS_PATH_SIZE    256
+
 /**
 * @brief Smem memory type
 */
@@ -35,6 +36,8 @@ typedef enum {
 
     SMEM_MEM_TYPE_BUTT
 } smem_bm_mem_type;
+typedef smem_bm_mem_type smem_bm_mem_type_t;
+
 /**
  * @brief CPU initiated data operation type, currently only support SDMA
  */
@@ -47,6 +50,7 @@ typedef enum {
     SMEMB_DATA_OP_HOST_SHM = 1U << 5,
     SMEMB_DATA_OP_BUTT
 } smem_bm_data_op_type;
+typedef smem_bm_data_op_type smem_bm_data_op_type_t;
 
 /**
 * @brief Data copy direction
@@ -61,6 +65,7 @@ typedef enum {
     /* add here */
     SMEMB_COPY_BUTT
 } smem_bm_copy_type;
+typedef smem_bm_copy_type smem_bm_copy_type_t;
 
 typedef struct {
     bool tlsEnable;
@@ -72,6 +77,7 @@ typedef struct {
     char packagePath[SMEM_TLS_PATH_SIZE];
     char decrypterLibPath[SMEM_TLS_PATH_SIZE];
 } smem_tls_config;
+typedef smem_tls_config smem_tls_config_t;
 
 typedef struct {
     uint32_t initTimeout;             /* func smem_bm_init timeout, default 120s (min=1, max=SMEM_BM_TIMEOUT_MAX) */
@@ -90,6 +96,19 @@ typedef struct {
 } smem_bm_config_t;
 
 typedef struct {
+    uint64_t maxDramSize;            /* the max size of all rank DRAM memory contributes to Big Memory object */
+    uint64_t maxHbmSize;             /* the max size of all rank HBM memory contributes to Big Memory object */
+    uint64_t localDRAMSize;          /* the size of local DRAM memory contributes to Big Memory object */
+    uint64_t localHBMSize;           /* the size of local HBM memory contributes to Big Memory object */
+    smem_bm_data_op_type dataOpType; /* if tag or tagOpInfo is empty, use dataOpType */
+    bool enable56BitsGva;            /* Enable 56-bit GVA when total addr space exceeds 32TB. */
+    uint32_t flags;                  /* optional flags, default 0 */
+    char tag[32];                    /* tag of bm, eg:tag_1 */
+    char tagOpInfo[256];             /* optype of tag to tag, eg: tag1:DEVICE_SDMA:tag1,tag1:DEVICE_RDMA:tag2 */
+    int dramShmFd;
+} smem_bm_create_option_t;
+
+typedef struct {
     void *src;
     uint64_t spitch;
     void *dest;
@@ -104,6 +123,7 @@ typedef struct {
     size_t dataSize;
     void *stream; /* if stream != null, submit task on this stream async */
 } smem_copy_params;
+typedef smem_copy_params smem_copy_params_t;
 
 typedef struct {
     void **sources;
@@ -112,6 +132,7 @@ typedef struct {
     uint32_t batchSize;
     void *stream; /* if stream != null, submit task on this stream async */
 } smem_batch_copy_params;
+typedef smem_batch_copy_params smem_batch_copy_params_t;
 
 #ifdef __cplusplus
 }

@@ -9,6 +9,7 @@
  * MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
  * See the Mulan PSL v2 for more details.
 */
+#include <cstdlib>
 #include <gtest/gtest.h>
 
 #include "smem_bm_api.h"
@@ -26,11 +27,40 @@ public:
     void TearDown() override {}
 };
 
-TEST_F(MFSmemApiTest, smem_bm_api_test)
+TEST_F(MFSmemApiTest, resolve_lib_dir_and_load)
 {
-    std::string outLibPath = OUT_LIB_PATH;
-    ASSERT_EQ(MFSmemApi::LoadLibrary("") != 0, true);
-    ASSERT_EQ(MFSmemApi::LoadLibrary(outLibPath + "/smem/lib64/") == 0, true);
+    const std::string libDir = MFSmemApi::ResolveLibDir();
+    ASSERT_FALSE(libDir.empty());
+    ASSERT_EQ(MFSmemApi::LoadLibrary(libDir), MMC_OK);
+    ASSERT_EQ(MFSmemApi::LoadLibrary(libDir), MMC_OK);
+}
 
-    ASSERT_EQ(MFSmemApi::SmemInit(0) != 0, true);
+TEST_F(MFSmemApiTest, resolve_lib_dir_fails_when_lib_missing)
+{
+    const char *savedPath = std::getenv("MEMFABRIC_HYBRID_EXTEND_LIB_PATH");
+    ASSERT_NE(savedPath, nullptr);
+
+    setenv("MEMFABRIC_HYBRID_EXTEND_LIB_PATH", "/tmp/mf_smem_not_exist/lib64", 1);
+    const std::string resolved = MFSmemApi::ResolveLibDir();
+    setenv("MEMFABRIC_HYBRID_EXTEND_LIB_PATH", savedPath, 1);
+
+    ASSERT_TRUE(resolved.empty());
+}
+
+TEST_F(MFSmemApiTest, reject_empty_lib_dir)
+{
+    ASSERT_EQ(MFSmemApi::LoadLibrary(""), MMC_INVALID_PARAM);
+}
+
+TEST_F(MFSmemApiTest, cleanup_and_reload)
+{
+    const std::string libDir = MFSmemApi::ResolveLibDir();
+    ASSERT_FALSE(libDir.empty());
+    ASSERT_EQ(MFSmemApi::LoadLibrary(libDir), MMC_OK);
+
+    MFSmemApi::CleanupLibrary();
+    ASSERT_EQ(MFSmemApi::LoadLibrary(libDir), MMC_OK);
+
+    MFSmemApi::CleanupLibrary();
+    MFSmemApi::CleanupLibrary();
 }
