@@ -20,10 +20,19 @@ extern "C" {
 #endif
 
 typedef void *smem_bm_t;
-#define SMEM_BM_TIMEOUT_MAX   UINT32_MAX /* all timeout must <= UINT32_MAX */
-#define ASYNC_COPY_FLAG       (1UL << (0))
-#define SMEM_BM_INIT_GVM_FLAG (1ULL << 1ULL) // Init the GVM module, enable to use Host DRAM
-#define SMEM_TLS_PATH_SIZE    256
+#define SMEM_BM_TIMEOUT_MAX UINT32_MAX /* all timeout must <= UINT32_MAX */
+#define SMEM_TLS_PATH_SIZE  256
+
+// SMEM_BM_BIND_NUMA_FLAG start index When SMEM_BM_PERFORMANCE_MODE_FLAG == 1, this field is used
+#define SMEM_BM_BIND_NUMA_FLAG_INDEX        0
+#define SMEM_BM_BIND_NUMA_FLAG_LEN          7
+#define SMEM_BM_PERFORMANCE_MODE_FLAG_INDEX 7
+#define SMEM_BM_PERFORMANCE_MODE_FLAG_LEN   1
+// Automatic NUMA affinity selection when SMEM_BM_BIND_NUMA_FLAG == SMEM_BM_BIND_NUMA_AUTO_AFFINITY_FLAG
+#define SMEM_BM_BIND_NUMA_AUTO_AFFINITY_FLAG ((1U << SMEM_BM_BIND_NUMA_FLAG_LEN) - 1)
+#define SMEM_BM_FLAG_CREATE_WITH_SHM         (1U << 8)
+// SMEM_BM_FLAG_DRAM_MAP_HOST_VA map host virtual address space
+#define SMEM_BM_FLAG_DRAM_MAP_HOST_VA (1U << 9)
 
 /**
 * @brief Smem memory type
@@ -42,12 +51,12 @@ typedef smem_bm_mem_type smem_bm_mem_type_t;
  * @brief CPU initiated data operation type, currently only support SDMA
  */
 typedef enum {
-    SMEMB_DATA_OP_SDMA = 1U << 0,
-    SMEMB_DATA_OP_HOST_RDMA = 1U << 1,
-    SMEMB_DATA_OP_HOST_TCP = 1U << 2,
-    SMEMB_DATA_OP_DEVICE_RDMA = 1U << 3,
-    SMEMB_DATA_OP_HOST_URMA = 1U << 4,
-    SMEMB_DATA_OP_HOST_SHM = 1U << 5,
+    SMEMB_DATA_OP_SDMA = 1U << 0,        /* data operation done by device SDMA */
+    SMEMB_DATA_OP_HOST_RDMA = 1U << 1,   /* data operation done by host RDMA */
+    SMEMB_DATA_OP_HOST_TCP = 1U << 2,    /* data operation done by host TCP */
+    SMEMB_DATA_OP_DEVICE_RDMA = 1U << 3, /* data operation done by device RDMA */
+    SMEMB_DATA_OP_HOST_URMA = 1U << 4,   /* data operation done by host URMA */
+    SMEMB_DATA_OP_HOST_SHM = 1U << 5,    /* same-node host shared memory (no network transport) */
     SMEMB_DATA_OP_BUTT
 } smem_bm_data_op_type;
 typedef smem_bm_data_op_type smem_bm_data_op_type_t;
@@ -56,12 +65,16 @@ typedef smem_bm_data_op_type smem_bm_data_op_type_t;
 * @brief Data copy direction
 */
 typedef enum {
-    SMEMB_COPY_L2G = 0, /* copy data from local hbm to global space */
-    SMEMB_COPY_G2L = 1, /* copy data from global space to local hbm */
-    SMEMB_COPY_G2H = 2, /* copy data from global space to local host dram */
-    SMEMB_COPY_H2G = 3, /* copy data from local host dram to global space */
-    SMEMB_COPY_G2G = 4, /* copy data from global space to global space */
-    SMEMB_COPY_AUTO = 9,
+    SMEMB_COPY_L2G = 0,  /* copy data from local hbm to global space */
+    SMEMB_COPY_G2L = 1,  /* copy data from global space to local hbm */
+    SMEMB_COPY_G2H = 2,  /* copy data from global space to local host dram */
+    SMEMB_COPY_H2G = 3,  /* copy data from local host dram to global space */
+    SMEMB_COPY_L2GH = 4, /* copy data from local hbm to global host space */
+    SMEMB_COPY_GH2L = 5, /* copy data from global host space to local hbm */
+    SMEMB_COPY_GH2H = 6, /* copy data from global host space to host memory */
+    SMEMB_COPY_H2GH = 7, /* copy data from host memory to global host space */
+    SMEMB_COPY_G2G = 8,  /* copy data from global space to global space */
+    SMEMB_COPY_AUTO = 9, /* data copy direction is automatically selected */
     /* add here */
     SMEMB_COPY_BUTT
 } smem_bm_copy_type;
@@ -88,7 +101,7 @@ typedef struct {
     bool dynamicWorldSize;            /* member cannot join dynamically */
     bool unifiedAddressSpace;         /* unified address with SVM */
     bool autoRanking;                 /* automatically allocate rank IDs, default is false. */
-    uint16_t rankId;                  /* user specified rank ID, valid for autoRanking is False */
+    uint32_t rankId;                  /* user specified rank ID, valid for autoRanking is False */
     uint32_t flags;                   /* other flag, default 0 */
     char hcomUrl[64];
     smem_tls_config hcomTlsConfig;
@@ -109,19 +122,10 @@ typedef struct {
 } smem_bm_create_option_t;
 
 typedef struct {
-    void *src;
-    uint64_t spitch;
-    void *dest;
-    uint64_t dpitch;
-    uint64_t width;
-    uint64_t height;
-} smem_copy_2d_params;
-
-typedef struct {
     const void *src;
     void *dest;
     size_t dataSize;
-    void *stream; /* if stream != null, submit task on this stream async */
+    void *stream;
 } smem_copy_params;
 typedef smem_copy_params smem_copy_params_t;
 
@@ -130,9 +134,34 @@ typedef struct {
     void **destinations;
     const uint64_t *dataSizes;
     uint32_t batchSize;
-    void *stream; /* if stream != null, submit task on this stream async */
+    void *stream;
 } smem_batch_copy_params;
 typedef smem_batch_copy_params smem_batch_copy_params_t;
+
+typedef struct {
+    int32_t *results;
+    uint32_t batchSize;
+} smem_batch_copy_result;
+typedef smem_batch_copy_result smem_batch_copy_result_t;
+
+/**
+ * @brief smem join/leave event type
+ */
+typedef enum {
+    SMEM_GROUP_EVENT_JOIN,  /* join event */
+    SMEM_GROUP_EVENT_LEAVE, /* leave event */
+    SMEM_MEMBER_EVENT_BUTT
+} smem_bm_group_event_t;
+
+/**
+ * @brief callback function for group member change event: join/leave,
+ * @param handle           [in] Big Memory object handle created by <i>smem_bm_create</i>
+ * @param rankId           [in] rank ID
+ * @param event            [in] event type <i>smem_bm_group_event_t</i>
+ * @param context          [in] context passed in set_group_event_handler
+ * @return void
+ */
+typedef void (*smem_bm_group_event_cb)(smem_bm_t handle, uint32_t rankId, smem_bm_group_event_t event, void *context);
 
 #ifdef __cplusplus
 }

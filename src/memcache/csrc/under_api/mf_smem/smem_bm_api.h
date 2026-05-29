@@ -15,6 +15,10 @@
 #include "smem_bm_def.h"
 #include "mmc_common_includes.h"
 
+#ifndef ASYNC_COPY_FLAG
+#define ASYNC_COPY_FLAG (1UL << (0))
+#endif
+
 namespace ock {
 namespace mmc {
 

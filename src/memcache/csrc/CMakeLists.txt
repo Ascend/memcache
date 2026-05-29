@@ -105,7 +105,7 @@ target_include_directories(mmc_objects BEFORE PUBLIC ${PROJECT_MMC_SRC_BASE}/csr
 target_link_libraries(mmc_objects PUBLIC config_store_object)
 target_compile_options(mmc_objects PRIVATE -fPIC -Wno-float-equal)
 
-add_library(mmc_static STATIC $<TARGET_OBJECTS:mmc_objects>)
+add_library(mmc_static STATIC $<TARGET_OBJECTS:mmc_objects> $<TARGET_OBJECTS:ptracer_object> $<TARGET_OBJECTS:config_store_object>)
 set_target_properties(mmc_static PROPERTIES OUTPUT_NAME "mf_memcache")
 target_link_libraries(mmc_static PUBLIC pthread acc_tcp_net_static)
 target_link_directories(mmc_static PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib)
@@ -120,7 +120,7 @@ else (
 )
 endif ()
 
-add_library(mmc_shared SHARED $<TARGET_OBJECTS:mmc_objects>)
+add_library(mmc_shared SHARED $<TARGET_OBJECTS:mmc_objects> $<TARGET_OBJECTS:ptracer_object> $<TARGET_OBJECTS:config_store_object>)
 set_target_properties(mmc_shared PROPERTIES OUTPUT_NAME "mf_memcache")
 target_link_libraries(mmc_shared PUBLIC pthread acc_tcp_net_static)
 target_link_directories(mmc_shared PUBLIC ${PROJECT_3RDPARTY_BIN_DIR}/spdlog/lib)
