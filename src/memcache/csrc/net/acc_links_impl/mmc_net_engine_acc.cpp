@@ -269,8 +269,8 @@ Result NetEngineAcc::Call(uint32_t targetId, int16_t opCode, const char *reqData
 
     /* step2: get the link to send */
     NetLinkAccPtr link;
-    auto result = peerLinkMap_->Find(targetId, link);
-    if (!result || link == nullptr) {
+    auto successful = peerLinkMap_->Find(targetId, link);
+    if (!successful || link == nullptr) {
         return MMC_LINK_NOT_FOUND; /* need to connect */
     }
     /* step3: copy data */
@@ -287,7 +287,7 @@ Result NetEngineAcc::Call(uint32_t targetId, int16_t opCode, const char *reqData
 
     /* step5: put into ctx store before sent the data to peer in case of the peer responses very fast  */
     uint32_t seqNo = 0;
-    result = ctxStore_->PutAndGetSeqNo<NetWaitHandler>(waiter.Get(), seqNo);
+    Result result = ctxStore_->PutAndGetSeqNo<NetWaitHandler>(waiter.Get(), seqNo);
     MMC_ASSERT_RETURN(result == MMC_OK, result);
     MMC_ASSERT_RETURN(link->RealLink() != nullptr, MMC_ERROR);
     /* step6: send message to peer */
