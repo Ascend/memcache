@@ -25,7 +25,8 @@
 namespace ock {
 namespace mmc {
 
-constexpr int MAX_LAYER_NUM = 255;
+constexpr int MAX_LAYER_NUM = 255;  // 分层场景：传统神经网络模型
+constexpr int MAX_BUFFER_NUM = 8192; // 多 buffer 场景：支持稀疏数据、分段存储等
 constexpr int MAX_KEY_LEN = 256;
 constexpr uint64_t MMC_DEVICE_VA_START = 0x100000000000UL; // NPU上的地址空间起始: 16T
 constexpr uint64_t MMC_DEVICE_VA_SIZE = 0x80000000000UL;   // NPU上的地址空间范围: 8T
@@ -759,8 +760,8 @@ int MmcacheStore::CheckInput(const size_t batchSize, const std::vector<std::vect
 {
     for (size_t i = 0; i < batchSize; i += 1) {
         const auto layerNum = buffers[i].size();
-        if (layerNum == 0 || layerNum > MAX_LAYER_NUM) {
-            MMC_LOG_ERROR("Layer number is 0 or exceeds the limit of " << MAX_LAYER_NUM);
+        if (layerNum == 0 || layerNum > MAX_BUFFER_NUM) {
+            MMC_LOG_ERROR("Layer number is 0 or exceeds the limit of " << MAX_BUFFER_NUM);
             return MMC_INVALID_PARAM;
         }
         if (sizes[i].size() != layerNum) {
