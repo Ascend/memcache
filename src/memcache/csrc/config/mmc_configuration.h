@@ -433,12 +433,6 @@ public:
             return MMC_INVALID_PARAM;
         }
 
-        if (config.localDRAMSize == 0 && config.localHBMSize == 0) {
-            MMC_LOG_ERROR("After alignment " << (alignment == GB_SIZE_ALIGNMENT ? "1GB" : "2MB")
-                                             << ", DRAM size and HBM size cannot be 0 at the same time");
-            return MMC_INVALID_PARAM;
-        }
-
         MMC_LOG_INFO("After alignment " << (alignment == GB_SIZE_ALIGNMENT ? "1GB" : "2MB")
                                         << ", ock.mmc.local_service.dram.size is " << config.localDRAMSize
                                         << ", ock.mmc.local_service.max.dram.size is " << config.localMaxDRAMSize);

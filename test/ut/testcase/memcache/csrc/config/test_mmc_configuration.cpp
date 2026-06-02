@@ -208,7 +208,7 @@ TEST_F(TestMmcConfiguration, ValidateLocalServiceConfigTest)
     zeroConfig.localMaxHBMSize = 0;
 
     ret = ClientConfig::ValidateLocalServiceConfig(zeroConfig);
-    ASSERT_EQ(ret, MMC_INVALID_PARAM); // 两者都为0应该返回错误
+    ASSERT_EQ(ret, MMC_OK); // 两者都为0是允许的（分离部署场景）
 
     // 测试一个为0，一个不为0的情况
     zeroConfig.localDRAMSize = 2ULL * 1024 * 1024;    // 2MB
