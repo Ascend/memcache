@@ -77,7 +77,7 @@ void NetEngineAcc::Stop()
         MMC_LOG_WARN("NetEngineAcc has not been started");
         return;
     }
-    if (threadPool_ == nullptr) {
+    if (threadPool_ != nullptr) {
         threadPool_->Destroy();
     }
     MMC_ASSERT(StopInner() == MMC_OK);
