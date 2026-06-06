@@ -38,7 +38,8 @@ constexpr uint64_t HBM_SIZE_ALIGNMENT = 2097152;  // 2MB
 
 const std::string BOOL_ENUM_STR = "false||true";
 const std::string LOG_LEVEL_ENUM_STR = "debug||info||warn||error";
-const std::string LOCAL_SERVER_PROTOCAL_ENUM_STR = "host_rdma||host_urma||host_tcp||device_rdma||device_sdma||host_shm";
+const std::string LOCAL_SERVER_PROTOCAL_ENUM_STR =
+    "host_rdma||host_urma||host_tcp||device_rdma||device_urma||device_sdma||host_shm";
 
 // 定义单位与字节的转换关系
 enum class MemUnit { B, KB, MB, GB, TB, UNKNOWN };
@@ -178,8 +179,9 @@ public:
         AddStrConf(OCK_MMC_META_SERVICE_CONFIG_STORE_URL, VNoCheck::Create(), 0);
         AddStrConf(OCK_MMC_META_SERVICE_HTTP_URL, VNoCheck::Create(), 0);
         AddUInt64Conf(OCK_MMC_METRICS_REPORT_INTERVAL_SECONDS,
-                      VUInt64Range::Create(OCK_MMC_METRICS_REPORT_INTERVAL_SECONDS.first,
-                                           MIN_INTERVAL_SECONDS, MAX_INTERVAL_SECONDS), 0);
+                      VUInt64Range::Create(OCK_MMC_METRICS_REPORT_INTERVAL_SECONDS.first, MIN_INTERVAL_SECONDS,
+                                           MAX_INTERVAL_SECONDS),
+                      0);
         AddBoolConf(OCK_MMC_META_HA_ENABLE, VStrEnum::Create(OCK_MMC_META_HA_ENABLE.first, BOOL_ENUM_STR), 0);
         AddStrConf(OCK_MMC_LOG_LEVEL, VStrEnum::Create(OCK_MMC_LOG_LEVEL.first, LOG_LEVEL_ENUM_STR), 0);
         AddStrConf(OCK_MMC_LOG_PATH, VStrLength::Create(OCK_MMC_LOG_PATH.first, PATH_MAX_LEN), 0);
@@ -374,7 +376,7 @@ public:
         uint64_t alignment = DRAM_SIZE_ALIGNMENT;          // 默认 2MB 对齐
         std::string protocol(config.dataOpType);
 
-        if (protocol == "device_rdma" || protocol == "device_sdma") {
+        if (protocol == "device_rdma" || protocol == "device_urma" || protocol == "device_sdma") {
             alignment = GB_SIZE_ALIGNMENT;
         }
 

@@ -12,6 +12,7 @@
 #include "gtest/gtest.h"
 
 #define private public
+#include "mmc_smem_bm_helper.h"
 #include "mmc_configuration.h"
 #include "mmc_def.h"
 #undef private
@@ -145,6 +146,21 @@ TEST_F(TestMmcConfiguration, ValidateLocalServiceConfigTest)
     ASSERT_EQ(deviceConfig.localMaxDRAMSize, 4ULL * 1024 * 1024 * 1024); // 4GB
     ASSERT_EQ(deviceConfig.localHBMSize, 2ULL * 1024 * 1024 * 1024);     // 2GB
     ASSERT_EQ(deviceConfig.localMaxHBMSize, 4ULL * 1024 * 1024 * 1024);  // 4GB
+
+    // 测试device_urma协议，1GB向上对齐
+    SafeCopy("device_urma", deviceConfig.dataOpType, PROTOCOL_SIZE);
+    deviceConfig.localDRAMSize = 768ULL * 1024ULL * 1024ULL;     // 768MB，应该对齐到1GB
+    deviceConfig.localMaxDRAMSize = 1024ULL * 1024ULL * 1024ULL; // 1GB，已经对齐
+    deviceConfig.localHBMSize = 256ULL * 1024ULL * 1024ULL;      // 256MB，应该对齐到1GB
+    deviceConfig.localMaxHBMSize = 2ULL * 1024ULL * 1024ULL * 1024ULL;
+
+    ret = ClientConfig::ValidateLocalServiceConfig(deviceConfig);
+    ASSERT_EQ(ret, MMC_OK);
+    ASSERT_EQ(deviceConfig.localDRAMSize, 1ULL * 1024ULL * 1024ULL * 1024ULL);
+    ASSERT_EQ(deviceConfig.localMaxDRAMSize, 1ULL * 1024ULL * 1024ULL * 1024ULL);
+    ASSERT_EQ(deviceConfig.localHBMSize, 1ULL * 1024ULL * 1024ULL * 1024ULL);
+    ASSERT_EQ(deviceConfig.localMaxHBMSize, 2ULL * 1024ULL * 1024ULL * 1024ULL);
+    ASSERT_EQ(MmcSmemBmHelper::TransSmemBmDataOpType("device_urma"), SMEMB_DATA_OP_DEVICE_URMA);
 
     // 测试device_sdma协议，1GB向上对齐
     SafeCopy("device_sdma", deviceConfig.dataOpType, PROTOCOL_SIZE);

@@ -92,7 +92,7 @@ void DefineMmcStructModule(py::module_ &m)
                     SafeCopy(value, cfg.protocol, sizeof(cfg.protocol));
                 },
                 R"pbdoc(
-             Data transfer protocol: host_rdma, host_urma, host_tcp, host_shm, device_rdma, device_sdma.
+             Data transfer protocol: host_rdma, host_urma, host_tcp, host_shm, device_rdma, device_urma, device_sdma.
          )pbdoc")
             .def_property(
                 "hcom_url", [](const local_config &cfg) { return std::string(cfg.hcom_url); },

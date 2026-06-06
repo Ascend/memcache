@@ -192,7 +192,7 @@ LocalConfig是分布式内存缓存的配置类，用于设置客户端的各种
 | config_store_url | str | "tcp://127.0.0.1:6000" | Config store的URL地址 |
 | log_level | str | "info" | 日志级别：debug, info, warn, error |
 | world_size | int | 256 | 最大支持的rank数量 |
-| protocol | str | "host_rdma" | 数据传输协议：host_rdma, host_urma, host_tcp, host_shm, device_rdma, device_sdma |
+| protocol | str | "host_rdma" | 数据传输协议：host_rdma, host_urma, host_tcp, host_shm, device_rdma, device_urma, device_sdma |
 | hcom_url | str | "tcp://127.0.0.1:7000" | HCOM URL for RDMA network |
 | dram_size | str | "1GB" | DRAM空间使用，支持格式如1GB, 2MB等 |
 | hbm_size | str | "0" | HBM空间使用 |

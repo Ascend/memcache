@@ -52,7 +52,7 @@ typedef struct {
     // Data transfer protocol:
     // 'host_rdma': rdma over host; 'host_urma': rdma over host_ub;
     // 'host_tcp': tcp over host; 'host_shm': shared memory over host;
-    // 'device_rdma': rdma over device; 'device_sdma': sdma over device
+    // 'device_rdma': rdma over device; 'device_urma': urma over device; 'device_sdma': sdma over device
     // host_rdma, host_urma and host_tcp need hcom; host_shm does not need hcom
     char protocol[PROTOCOL_SIZE];
 
@@ -63,7 +63,7 @@ typedef struct {
     // 2048KB/2048K, 200MB/200mb/200m, 2.5GB or 1TB, case-insensitive;
     // the maximum value is 1TB
     // The system automatically calculates and aligns upwards to 2MB
-    // (host_rdma, host_tcp or host_shm) or 1GB (device_sdma or device_rdma)
+    // (host_rdma, host_tcp or host_shm) or 1GB (device_sdma, device_rdma or device_urma)
     // In A3 environment all protocol should be aligned to 1GB, otherwise mmc init will fail
     // After alignment, the HBM size and DRAM size cannot both be 0 at the same time
     char dram_size[64];

@@ -13,6 +13,7 @@
 #define MF_HYBRID_MMC_SMEM_BM_HELPER_H
 
 #include <string>
+#include "mmc_def.h"
 #include "smem_bm_def.h"
 
 namespace ock {
@@ -26,6 +27,9 @@ public:
         }
         if (dataOpType == "device_rdma") {
             return SMEMB_DATA_OP_DEVICE_RDMA;
+        }
+        if (dataOpType == "device_urma") {
+            return SMEMB_DATA_OP_DEVICE_URMA;
         }
         if (dataOpType == "host_tcp") {
             return SMEMB_DATA_OP_HOST_TCP;
