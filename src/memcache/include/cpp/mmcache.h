@@ -182,8 +182,8 @@ public:
      * @param buffers Vector of pointers to the pre-allocated buffers
      * @param sizes Vector of sizes of the buffers
      * @param direct direct indicate the location of the data, for detailed meanings, refer to smem_bm_copy_type
-     * @return Vector of integers, where each element is the number of bytes
-     * read on success, or a negative value on error
+     * @return Vector of integers, where each element is zero on success, or a
+     * negative value on error
      */
     virtual std::vector<int> BatchGetInto(const std::vector<std::string> &keys, const std::vector<void *> &buffers,
                                           const std::vector<size_t> &sizes, const int32_t direct = 2) = 0;
@@ -206,13 +206,13 @@ public:
      * @param buffers Vector of pointers to the pre-allocated buffers
      * @param sizes Vector of sizes of the buffers
      * @param direct direct indicate the location of the data, for detailed meanings, refer to smem_bm_copy_type
-     * @return Vector of integers, where each element is the number of bytes
-     * read on success, or a negative value on error
+     * @return Vector of integers, where each element is zero on success, or a
+     * negative value on error
      */
     virtual std::vector<int> BatchGetIntoLayers(const std::vector<std::string> &keys,
-                                                const std::vector<std::vector<void *>> &buffers,
-                                                const std::vector<std::vector<size_t>> &sizes,
-                                                const int32_t direct = 2) = 0;
+                                                 const std::vector<std::vector<void *>> &buffers,
+                                                 const std::vector<std::vector<size_t>> &sizes,
+                                                 const int32_t direct = 2) = 0;
 
     /**
      * @brief Put object data directly from a pre-allocated buffer

@@ -117,7 +117,10 @@ MetaService.setup(config)
 
 - `config`: MetaConfig对象，包含元数据服务的启动配置
 
-**返回值**: 无返回值
+**返回值**:
+
+- `0`: 成功
+- 其他: 失败
 
 **使用示例**:
 
@@ -189,7 +192,7 @@ LocalConfig是分布式内存缓存的配置类，用于设置客户端的各种
 | config_store_url | str | "tcp://127.0.0.1:6000" | Config store的URL地址 |
 | log_level | str | "info" | 日志级别：debug, info, warn, error |
 | world_size | int | 256 | 最大支持的rank数量 |
-| protocol | str | "host_rdma" | 数据传输协议：host_rdma, host_urma, host_tcp, device_rdma, device_sdma |
+| protocol | str | "host_rdma" | 数据传输协议：host_rdma, host_urma, host_tcp, host_shm, device_rdma, device_sdma |
 | hcom_url | str | "tcp://127.0.0.1:7000" | HCOM URL for RDMA network |
 | dram_size | str | "1GB" | DRAM空间使用，支持格式如1GB, 2MB等 |
 | hbm_size | str | "0" | HBM空间使用 |
@@ -197,7 +200,7 @@ LocalConfig是分布式内存缓存的配置类，用于设置客户端的各种
 | max_hbm_size | str | "0" | 所有本地进程中hbm_size的最大值 |
 | client_retry_milliseconds | int | 0 | 客户端请求meta service时的总重试时间(毫秒) |
 | client_timeout_seconds | int | 60 | 客户端请求超时时间(秒) |
-| read_thread_pool_size | int | 32 | 读线程池大小 |
+| read_thread_pool_size | int | 4 | 读线程池大小 |
 | write_thread_pool_size | int | 4 | 写线程池大小 |
 | aggregate_io | bool | true | 是否启用读/写聚合 |
 | aggregate_num | int | 122 | 聚合数量 |
@@ -304,7 +307,7 @@ store.close()
 #### put
 
 ```python
-result = store.put(key, data, replicateConfig=defaultConfig)
+result = store.put(key, buf, replicateConfig=defaultConfig)
 ```
 
 **功能**: 将指定key的数据写入分布式内存缓存中
@@ -312,7 +315,7 @@ result = store.put(key, data, replicateConfig=defaultConfig)
 **参数**:
 
 - `key`: 数据的键，字符串类型
-- `data`: 要存储的字节数据
+- `buf`: 要存储的字节数据
 - `replicateConfig`: 复制配置，具体请参考ReplicateConfig数据结构
 
 **返回值**:
@@ -323,7 +326,7 @@ result = store.put(key, data, replicateConfig=defaultConfig)
 #### put_batch
 
 ```python
-def put_batch(self, keys: List[str], values: List[bytes], replicateConfig: ReplicateConfig = None) -> int
+def put_batch(self, keys: List[str], values: List[bytes], replicateConfig: ReplicateConfig = defaultConfig) -> int
 ```
 
 **功能**: 在单个批处理操作中存储多个对象，提高处理效率
@@ -843,7 +846,6 @@ from memcache_hybrid import LocalConfig, DistributedObjectStore
 # 创建配置和客户端
 config = LocalConfig()
 config.meta_service_url = "tcp://192.168.1.1:5000"
-config.meta_se·rvice_url = "tcp://192.168.1.1:5000"
 config.protocol = "device_sdma"
 
 store = DistributedObjectStore()

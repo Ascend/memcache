@@ -2,7 +2,7 @@
 本说明用于介绍如何在Kubernetes集群中，验证MetaService的主备高可用流程。在生产环境中，用户可以进行参考配置MetaService的主备高可用。
 
 原理机制：基于K8S的的Service（type=ClusterIP）和Lease资源，实现MetaService的选主功能：
-* Service(type=ClusterIp)：对所有的LocalService客户端，提供MetaService服务的统一访问能力，负责将客户端的访问请求路由转发到主MetaService（role=master的Pod为主节点）。
+* Service(type=ClusterIP)：对所有的LocalService客户端，提供MetaService服务的统一访问能力，负责将客户端的访问请求路由转发到主MetaService（role=master的Pod为主节点）。
 * Lease：提供分布式锁功能，记录主服务Pod名称和租约过期时间。
 每个MetaService定时检查Lease资源，判断租约是否过期，如果过期，则尝试更新租约进行选主； 
 主服务（leader）则定期续约。 当主节点故障，且租约过期后，其他MetaService节点竞争成为新的主节点（Leader），并更新自身标签role=master。
@@ -171,19 +171,14 @@ cp -rf /usr/local/memcache_hybrid/latest/config/* /home/meta/config
    ock.mmc.log_path = /home/meta/logs
    ```
 
-#### 2.2 依赖库
-
-使用host_rdma数据传输协议时，需要将libhcom.so拷贝至/home/meta/lib下，  
-请参考[hcom项目](https://atomgit.com/openeuler/ubs-comm/tree/br_dev_container_20260228)获取最新的so文件。
-
-#### 2.3 软件包
+#### 2.2 软件包
 下载源码，并参考README内容，编译构建安装包，并放置到/home/meta目录下（pod启动时会自动安装这个目录下的包）
 
-#### 2.4 镜像准备
+#### 2.3 镜像准备
 
-##### 2.4.1 准备一个已安装好MemCache所有运行依赖的镜像
+##### 2.3.1 准备一个已安装好MemCache所有运行依赖的镜像
 
-##### 2.4.2 将docker镜像导入到nerdctl
+##### 2.3.2 将docker镜像导入到nerdctl
 ```shell
 # 查询已有镜像
 nerdctl images
@@ -210,7 +205,7 @@ curl http://127.0.0.1:5000/v2/<image-name>/tags/list
 kubectl delete ns ns-memcache
 ```
 代码仓`/test/k8s_deploy`目录存放了相关的测试验证主备高可用的样例yaml文件，
-需要修改meta-pods-demo.yaml和local-pods-demo.yaml文件内容，将 **containers:image** 和 **InitContarners:image** 改为第二步push的镜像。
+需要修改meta-pods-demo.yaml和local-pods-demo.yaml文件内容，将 **containers:image** 和 **initContainers:image** 改为第二步push的镜像。
 
 **注意：`./test`目录下所有的文件，仅作样例参考，存在安全风险，不能直接用于生产环境，
 用户可以参考样例进行修改定制**

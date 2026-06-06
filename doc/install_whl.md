@@ -52,7 +52,7 @@ MemFabric详细安装方法可参考[MemFabric使用指导](https://gitcode.com/
 **1. 启动MetaService**
 
 MetaService作为独立进程运行，进入python控制台或者编写python脚本如下即可拉起进程：
-```bash
+```python
 from memcache_hybrid import MetaService, MetaConfig
 
 config = MetaConfig()
@@ -72,7 +72,7 @@ LocalService作为客户端，以whl形式作为共享库提供API供应用进�
 
 进入python控制台或者编写python脚本如下即可拉起示例进程：
 
-```bash
+```python
 from memcache_hybrid import DistributedObjectStore, LocalConfig
 
 config = LocalConfig()
@@ -134,12 +134,12 @@ export MMC_LOCAL_CONFIG_PATH=/usr/local/lib/python3.11/site-packages/memcache_hy
 **3. 启动MetaService**
 
 进入python控制台或者编写python脚本如下即可拉起进程：
-```bash
+```python
 from memcache_hybrid import MetaService
 MetaService.main()
 ```
 
-**3. 启动LocalService**
+**4. 启动LocalService**
 
 通过MemCache提供的[API](./memcache_python_api.md)初始化客户端并拉起LocalService，执行数据写入、查询、获取、删除等
 

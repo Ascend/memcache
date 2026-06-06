@@ -100,7 +100,7 @@ int32_t mmcc_init(mmc_client_config_t *config);
 
 #### mmcc_uninit
 ```c
-void mmcc_uninit();
+void mmcc_uninit(void);
 ```
 **功能**: 反初始化客户端，释放相关资源。
 
@@ -279,7 +279,7 @@ int32_t mmcc_batch_exist(const char **keys, uint32_t keys_count, int32_t *exist_
 #### mmcc_batch_put
 ```c
 int32_t mmcc_batch_put(const char **keys, uint32_t keys_count, const mmc_buffer *bufs,
-                       mmc_put_options& options, uint32_t flags);
+                       mmc_put_options& options, uint32_t flags, int *results);
 ```
 **功能**: 批量将多个数据对象放入分布式内存缓存中。
 
@@ -289,6 +289,7 @@ int32_t mmcc_batch_put(const char **keys, uint32_t keys_count, const mmc_buffer 
 - `bufs`: 要放入的数据缓冲区数组
 - `options`: 批量放置操作的选项
 - `flags`: 可选标志，保留字段
+- `results`: 每个放置操作的结果
 
 **返回值**:
 - `0`: 成功
@@ -296,7 +297,7 @@ int32_t mmcc_batch_put(const char **keys, uint32_t keys_count, const mmc_buffer 
 
 #### mmcc_batch_get
 ```c
-int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffer *bufs, uint32_t flags);
+int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffer *bufs, uint32_t flags, int *results);
 ```
 **功能**: 批量从分布式内存缓存中获取多个数据对象。
 
@@ -305,6 +306,7 @@ int32_t mmcc_batch_get(const char **keys, uint32_t keys_count, mmc_buffer *bufs,
 - `keys_count`: 数组中键的数量
 - `bufs`: 存储检索数据的数据缓冲区数组
 - `flags`: 可选标志，保留字段
+- `results`: 每个获取操作的结果
 
 **返回值**:
 - `0`: 成功
@@ -347,10 +349,16 @@ int32_t mmc_set_log_level(int level);
 ### smem_bm_copy_type 枚举类型
 
 用于指定数据拷贝方向的枚举类型：
-- `SMEMB_COPY_H2G`: 从主机内存到全局内存
-- `SMEMB_COPY_L2G`: 从卡上内存到全局内存
-- `SMEMB_COPY_G2H`: 从全局内存到主机内存
-- `SMEMB_COPY_G2L`: 从全局内存到卡上内存
+- `SMEMB_COPY_L2G` (0): 从卡上内存到全局内存
+- `SMEMB_COPY_G2L` (1): 从全局内存到卡上内存
+- `SMEMB_COPY_G2H` (2): 从全局内存到主机内存
+- `SMEMB_COPY_H2G` (3): 从主机内存到全局内存
+- `SMEMB_COPY_L2GH` (4): 从卡上内存到全局主机内存
+- `SMEMB_COPY_GH2L` (5): 从全局主机内存到卡上内存
+- `SMEMB_COPY_GH2H` (6): 从全局主机内存到主机内存
+- `SMEMB_COPY_H2GH` (7): 从主机内存到全局主机内存
+- `SMEMB_COPY_G2G` (8): 从全局内存到全局内存
+- `SMEMB_COPY_AUTO` (9): 自动选择数据拷贝方向
 
 ## 数据结构
 

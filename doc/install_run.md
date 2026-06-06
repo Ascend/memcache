@@ -51,8 +51,8 @@ git -c submodule.3rdparty/memfabric_hybrid.branch=master submodule update --remo
 bash script/build_and_pack_run.sh --build_mode RELEASE --build_test OFF
 ```
 
-- build_and_pack_run.sh支持2个参数，分别是<build_mode> <build_test>
-- build_mode: 编译类型，可填RELEASE或DEBUG，默认RELEASE
+- build_and_pack_run.sh支持2个参数，分别是--build_mode <build_mode>和--build_test <build_test>
+- build_mode: 编译类型，可填RELEASE、DEBUG或ASAN，默认RELEASE
 - build_test: 是否打包测试工具，可填ON或OFF，默认OFF
 
 编译成功后，生成的run包在output目录下，生成的whl包在output/memcache/wheel目录下
@@ -67,7 +67,7 @@ MemCache依赖MemFabric，需要先安装MemFabric，详细安装方法可参考
 
 MemCache将所有特性集成到run包中供用户使用，run包格式为 ```memcache_hybrid-${version}_${os}_${arch}.run```
 
-其中，version表示MemCache的版本；os表示操作系统，如linux；arch表示架构，如x86或aarch64
+其中，version表示MemCache的版本；os表示操作系统，如linux；arch表示架构，如x86_64或aarch64
 
 run包的默认安装根路径为 /usr/local/
 
@@ -146,7 +146,7 @@ export MMC_LOCAL_CONFIG_PATH=/usr/local/memcache_hybrid/latest/config/mmc-local.
 
 **3. 导入头文件**
 
-```bash
+```cpp
 #include "mmcache.h"
 ```
 

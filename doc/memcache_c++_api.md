@@ -149,11 +149,11 @@ virtual int PutFrom(const std::string &key, void *buffer, size_t size, const int
 **功能**: 将 buffer 中的数据写入缓存并关联到 key。
 
 **参数**:
-- `replicateConfig`: 副本策略配置
 - `key`: 数据键（长度 < 256字节）
 - `buffer`: 目标内存地址
 - `size`: 缓冲区容量
 - `direct`: 数据流向
+- `replicateConfig`: 副本策略配置
 
 **返回值**:
 - `0`: 成功
@@ -218,8 +218,7 @@ virtual std::vector<int> BatchGetInto(const std::vector<std::string> &keys, cons
 - `direct`: 数据流向
 
 **返回值**:
-- `0`: 成功
-- 其他: 失败
+- 返回每个键对应的处理结果列表，每个元素 `0` 表示成功，负数表示失败
 
 #### BatchPutFrom
 ```c++
@@ -230,15 +229,14 @@ virtual std::vector<int> BatchPutFrom(const std::vector<std::string> &keys, cons
 **功能**: 批量写入多个键。
 
 **参数**:
-- `ReplicateConfig`: 副本策略配置
 - `keys`: 数据键列表（每个键长度 < 256字节）
 - `buffers`: 目标内存地址列表，必须与keys一一对应
 - `sizes`: 缓冲区容量列表，必须与buffers长度一致
 - `direct`: 数据流向
+- `replicateConfig`: 副本策略配置
 
 **返回值**:
-- `0`: 成功
-- 其他: 失败
+- 返回每个键对应的处理结果列表，每个元素 `0` 表示成功，负数表示失败
 
 #### BatchRemove
 ```c++
@@ -250,8 +248,7 @@ virtual std::vector<int> BatchRemove(const std::vector<std::string> &keys) = 0;
 - `keys`: 数据键列表（每个键长度 < 256字节）
 
 **返回值**:
-- `0`: 成功
-- 其他: 失败
+- 返回每个键对应的处理结果列表，每个元素 `0` 表示成功，负数表示失败
 
 #### BatchIsExist
 ```c++
@@ -339,9 +336,7 @@ virtual std::vector<int> BatchPutFromLayers(const std::vector<std::string> &keys
 - `replicateConfig`: 副本策略配置
 
 **返回值**:
-返回每个key对应的处理结果列表
-- `0`: 成功
-- 其他: 失败
+返回每个键对应的处理结果列表，每个元素 `0` 表示成功，负数表示失败
 
 #### BatchGetIntoLayers
 ```c++
@@ -359,9 +354,7 @@ virtual std::vector<int> BatchGetIntoLayers(const std::vector<std::string> &keys
 - `direct`: 数据流向
 
 **返回值**:
-返回每个key对应的处理结果列表
-- `0`: 成功
-- 其他: 失败
+返回每个键对应的处理结果列表，每个元素 `0` 表示成功，负数表示失败
 
 ### 6. 辅助接口
 
@@ -386,11 +379,12 @@ virtual int GetLocalServiceId(uint32_t &localServiceId) = 0;
 - `preferredLocalServiceIDs`: 优先分配的本地服务 ID 列表，列表大小必须小于或等于replicaNum
 
 ### KeyInfo
-客户端配置结构体，包含以下字段：
+键元信息结构体，包含以下字段：
 - `size_`: 数据字节数
 - `blobNum_`: 数据副本数
 - `loc_`: 数据副本所在位置列表
 - `type_`: 数据副本所在介质类型列表
+- `gva_`: 数据副本的全局虚拟地址列表
 
 ## smem_bm_copy_type 枚举类型
 
@@ -400,7 +394,12 @@ virtual int GetLocalServiceId(uint32_t &localServiceId) = 0;
 | SMEMB_COPY_G2L | 1 | 从全局内存复制到卡上内存 |
 | SMEMB_COPY_G2H | 2 | 从全局内存复制到主机内存 |
 | SMEMB_COPY_H2G | 3 | 从主机内存复制到全局内存 |
-| SMEMB_COPY_G2G | 4 | 从全局内存复制到全局内存 |
+| SMEMB_COPY_L2GH | 4 | 从卡上内存复制到全局主机内存 |
+| SMEMB_COPY_GH2L | 5 | 从全局主机内存复制到卡上内存 |
+| SMEMB_COPY_GH2H | 6 | 从全局主机内存复制到主机内存 |
+| SMEMB_COPY_H2GH | 7 | 从主机内存复制到全局主机内存 |
+| SMEMB_COPY_G2G | 8 | 从全局内存复制到全局内存 |
+| SMEMB_COPY_AUTO | 9 | 自动选择数据拷贝方向 |
 
 ## 错误码
 

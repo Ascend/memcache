@@ -37,8 +37,8 @@ MemCache的SSD功能基于UBS_IO（Unified Block Storage IO）子系统实现，
          │
 ┌────────▼──────────────┐
 │ UBS_IO KV Cache接口层 │
-│ (DlUbsioKvcApi)       │
-└────────┬──────────────
+│ (DlUbsioApi)           │
+└────────┬──────────────┘
          │
 ┌────────▼──────────────────┐
 │      存储层               │
@@ -51,7 +51,7 @@ MemCache的SSD功能基于UBS_IO（Unified Block Storage IO）子系统实现，
 | 组件 | 职责 | 实现文件 |
 |------|------|---------|
 | MmcUbsIoProxy | UBS IO代理，提供统一的存储接口 | src/memcache/csrc/under_api/ubs_io/mmc_ubs_io_proxy.h/cpp |
-| DlUbsioKvcApi | 动态加载UBS_IO KV Cache库的接口封装 | src/memcache/csrc/under_api/ubs_io/dl_UbsioKvc_api.h/cpp |
+| DlUbsioApi | 动态加载UBS_IO KV Cache库的接口封装 | src/memcache/csrc/under_api/ubs_io/dl_ubsio_api.h/cpp |
 | UBS_IO KV Cache库 | Unified Block Storage KV Cache缓存库，处理SSD存储操作 | 外部依赖：libubsio_kvc.so |
 
 ### 2.3 数据流向
