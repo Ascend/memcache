@@ -254,6 +254,10 @@ Result MmcLocalServiceDefault::CopyBlob(const std::string& key, const MmcMemBlob
             MMC_LOG_ERROR("ubsIo proxy is null, src=" << src << ", dst=" << dst);
             return MMC_ERROR;
         }
+        if (src.gva_ == 0 || src.size_ == 0) {
+            MMC_LOG_ERROR("key " << key << " invalid gva " << src.gva_ << " or size " << src.size_);
+            return MMC_INVALID_PARAM;
+        }
         TP_TRACE_BEGIN(TP_MMC_LOCAL_UBS_IO_PUT);
         Result ret = ubsIoProxyPtr_->Put(key, reinterpret_cast<void*>(src.gva_), src.size_);
         TP_TRACE_END(TP_MMC_LOCAL_UBS_IO_PUT, ret);
